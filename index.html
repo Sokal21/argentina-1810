@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Argentina 1810</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #14110f; overflow: hidden; }
+  #game { width: 100vw; height: 100vh; }
+  #hud {
+    position: fixed; left: 16px; bottom: 14px; color: #cdbfa3;
+    font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .02em;
+    text-shadow: 0 1px 0 #000; user-select: none; pointer-events: none;
+  }
+  #hud kbd {
+    display: inline-block; min-width: 1.3em; padding: 1px 5px; margin-right: 2px; text-align: center;
+    border: 1px solid #6b5c44; border-radius: 3px; background: #241d17; color: #f0e3c4;
+  }
+  #fx { position: fixed; left: 16px; top: 14px; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100vw - 32px); }
+  #fx button {
+    font: 12px/1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .02em; cursor: pointer;
+    padding: 6px 9px; border: 1px solid #6b5c44; border-radius: 4px; background: #241d17; color: #a89a80;
+  }
+  #fx button b { color: #6b5c44; font-weight: normal; margin-right: 5px; }
+  #fx button.on { background: #cdbfa3; color: #1a1512; border-color: #f0e3c4; }
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="fx"></div>
+<div id="hud"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> mover · <kbd>Espacio</kbd> atacar · <kbd>1</kbd>–<kbd>3</kbd> efectos · <kbd>0</kbd> ninguno · <span id="state"></span></div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
