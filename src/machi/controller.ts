@@ -16,6 +16,18 @@ export interface MachiInput {
 
 export interface Bounds { minX: number; maxX: number; minY: number; maxY: number }
 
+/** A spell leaving the branch: where it starts and which way it goes. */
+export interface Cast {
+  /** Point on the ground under the branch tip. */
+  x: number;
+  y: number;
+  /** Height of the branch tip above that point. */
+  height: number;
+  /** Direction along the ground, same convention as MachiInput. */
+  dx: number;
+  dy: number;
+}
+
 /** What to draw this step. Position is where her feet are. */
 export interface MachiPose {
   x: number;
@@ -66,6 +78,7 @@ export class MachiController {
   private dir = { x: 0, y: 0 };
   /** Time into the current cast, or null when not attacking. */
   private attack: number | null = null;
+  private cast: Cast | null = null;
 
   constructor(private bounds?: Bounds) {}
 
@@ -77,6 +90,13 @@ export class MachiController {
 
   get isMoving(): boolean { return this.moving; }
   get isAttacking(): boolean { return this.attack !== null; }
+
+  /** The spell released during the last update, if any. Reading it clears it. */
+  takeCast(): Cast | null {
+    const cast = this.cast;
+    this.cast = null;
+    return cast;
+  }
 
   update(dt: number, input: MachiInput): void {
     this.updateAttack(dt, input.attack);
@@ -150,7 +170,13 @@ export class MachiController {
   // the last frames play out.
   private updateAttack(dt: number, held: boolean): void {
     if (held) {
-      this.attack = this.attack === null ? 0 : (this.attack + dt) % ATTACK_TIME;
+      if (this.attack === null) {
+        this.attack = 0;
+      } else {
+        const before = this.attack, after = before + dt;
+        this.releaseSpell(before, after);
+        this.attack = after % ATTACK_TIME;
+      }
     } else if (this.attack !== null) {
       const sheet: Sheet | undefined = SHEETS[`attack_${this.view}`];
       if (sheet && this.attack >= (sheet.cast ?? sheet.frames) / sheet.frames * ATTACK_TIME) {
@@ -163,12 +189,31 @@ export class MachiController {
     }
   }
 
+  // The spell goes off the moment the animation reaches the frame where the
+  // light has left the branch. Nothing is released mid-turn, when the cast is
+  // not on screen, nor while a released key is unwinding it.
+  private releaseSpell(before: number, after: number): void {
+    const sheet: Sheet | undefined = SHEETS[`attack_${this.view}`];
+    if (!sheet || sheet.cast === undefined || !sheet.muzzle || this.turn) return;
+    const at = sheet.cast / sheet.frames * ATTACK_TIME;
+    if (before >= at || after < at) return;
+    const mirrored = sheet.faces !== 0 && this.faceX !== sheet.faces;
+    this.cast = {
+      x: this.x + (mirrored ? -sheet.muzzle[0] : sheet.muzzle[0]),
+      y: this.y,
+      height: sheet.muzzle[1],
+      dx: this.straight ? 0 : this.faceX,
+      dy: this.straight ? this.faceY : this.level ? 0 : this.faceY,
+    };
+  }
+
   pose(): MachiPose {
     const turn = this.turn && TURNS[this.turn.key];
     const view = this.view;
     let name = turn ? turn.sheet : `${this.moving ? 'trot' : 'idle'}_${view}`;
     const casting = this.attack !== null && !turn && !!SHEETS[`attack_${view}`];
-    if (casting) name = `attack_${view}`;
+    // Standing still she casts with her feet planted.
+    if (casting) name = this.moving ? `attack_${view}` : `attack_still_${view}`;
     const s = SHEETS[name];
     const count = s.frames - s.skip;
 

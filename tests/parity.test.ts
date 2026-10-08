@@ -81,7 +81,8 @@ function loadGame() {
     step(dt: number) {
       machi.update(dt, keys.read());
       const { sheet, flip, frame, x, y } = machi.pose();
-      return { sheet, flip, frame, x, y };
+      // The prototype has no standing casts; it plays the walking one on the spot.
+      return { sheet: sheet.replace('attack_still_', 'attack_'), flip, frame, x, y };
     },
   };
 }
@@ -124,13 +125,19 @@ test.each([1, 2, 3, 4, 5])('same poses as the prototype under random key mashing
   expect(seen.size).toBeGreaterThan(15);
 });
 
-test('every sheet the prototype knows is in the game data, with the same numbers', async () => {
+test('the game data has the same sheets and turns as the prototype, with the same numbers', async () => {
   const { SHEETS, TURNS } = await import('../src/machi/data');
   const html = readFileSync(new URL('../demo/index.html', import.meta.url), 'utf8');
   const js = html.split('<script>')[1].split('</script>')[0];
   const proto = new Function(
     `${js.slice(js.indexOf('const FPS'), js.indexOf('const SCALE'))}; return { SHEETS, TURNS };`)();
   for (const s of Object.values(proto.SHEETS) as any[]) s.src = s.src.replace('../assets/', '');
-  expect(SHEETS).toEqual(proto.SHEETS);
+  // The game adds where the bolt starts and the standing casts, which the
+  // prototype never had.
+  const shared = Object.fromEntries(
+    Object.entries(SHEETS)
+      .filter(([name]) => !name.startsWith('attack_still_'))
+      .map(([name, { muzzle: _muzzle, ...sheet }]) => [name, sheet]));
+  expect(shared).toEqual(proto.SHEETS);
   expect(TURNS).toEqual(proto.TURNS);
 });

@@ -29,6 +29,12 @@ export interface Sheet {
   still?: number;
   /** Attack sheets: first frame after the light has left the branch. */
   cast?: number;
+  /**
+   * Attack sheets: where the light sits on the branch tip in the last lit
+   * frame, as [x from the body's centre in the unmirrored art, height above
+   * her feet]. The bolt starts there.
+   */
+  muzzle?: [number, number];
 }
 
 export interface Turn {
@@ -56,6 +62,9 @@ export const PIVOT_DRIFT = 0.5; // share of her speed she keeps when a pivot sta
 export const PIVOT_STOP = 0.25; // fraction of a pivot spent slowing down before she moves the new way
 export const COAST_GRACE = 0.15; // a stop shorter than this still counts as "was moving"
 
+export const BOLT_SPEED = 230;  // sprite pixels per second along the ground
+export const BOLT_RANGE = 260;  // ground distance it covers before fizzling out
+
 export const SHEETS: Record<string, Sheet> = {
   idle_front:  { src: 'machi/idle/idle_sheet.png',   frames: 8, faces: -1, skip: 0, ax: 55.6 },
   trot_front:  { src: 'machi/trote/trote_sheet.png', frames: 8, faces: -1, skip: 1, ax: 55.6, ay: -2 },
@@ -74,11 +83,19 @@ export const SHEETS: Record<string, Sheet> = {
   trot_north:  { src: 'machi/trote_arriba/trote_arriba_sheet.png', frames: 8, faces: 0, skip: 1, ax: 45.1, ay: 1 },
 
   // Slow walk while casting with the branch.
-  attack_front: { src: 'machi/ataque_caminata/ataque_caminata_sheet.png', frames: 8, faces: -1, skip: 0, ax: 55.6, ay: -1, cast: 6 },
-  attack_down:  { src: 'machi/diag_abajo/ataque_sheet.png',               frames: 8, faces: -1, skip: 0, ax: 51.3, cast: 5 },
-  attack_back:  { src: 'machi/ataque_caminata_espalda/sheet.png',         frames: 8, faces: -1, skip: 0, ax: 50.3, cast: 6 },
-  attack_south: { src: 'machi/ataque_caminata_abajo/sheet.png',           frames: 8, faces: 0, skip: 0, ax: 47.8, ay: -1, cast: 6 },
-  attack_north: { src: 'machi/ataque_caminata_arriba/sheet.png',          frames: 8, faces: 0, skip: 0, ax: 45.1, ay: -1, cast: 6 },
+  attack_front: { src: 'machi/ataque_caminata/ataque_caminata_sheet.png', frames: 8, faces: -1, skip: 0, ax: 55.6, ay: -1, cast: 6, muzzle: [-34, 52] },
+  attack_down:  { src: 'machi/diag_abajo/ataque_sheet.png',               frames: 8, faces: -1, skip: 0, ax: 51.3, cast: 5, muzzle: [-36, 29] },
+  attack_back:  { src: 'machi/ataque_caminata_espalda/sheet.png',         frames: 8, faces: -1, skip: 0, ax: 50.3, cast: 6, muzzle: [-40, 72] },
+  attack_south: { src: 'machi/ataque_caminata_abajo/sheet.png',           frames: 8, faces: 0, skip: 0, ax: 47.8, ay: -1, cast: 6, muzzle: [3, 26] },
+  attack_north: { src: 'machi/ataque_caminata_arriba/sheet.png',          frames: 8, faces: 0, skip: 0, ax: 45.1, ay: -1, cast: 6, muzzle: [-16, 86] },
+
+  // The same casts with her feet planted, for attacking while standing still.
+  // Built by tools/build_attack_standing.py from the walking sheets above.
+  attack_still_front: { src: 'machi/ataque_caminata/ataque_de_pie_sheet.png', frames: 8, faces: -1, skip: 0, ax: 55.6, ay: -1, cast: 6, muzzle: [-34, 52] },
+  attack_still_down:  { src: 'machi/diag_abajo/ataque_de_pie_sheet.png',               frames: 8, faces: -1, skip: 0, ax: 51.3, cast: 5, muzzle: [-36, 29] },
+  attack_still_back:  { src: 'machi/ataque_caminata_espalda/de_pie_sheet.png',         frames: 8, faces: -1, skip: 0, ax: 50.3, cast: 6, muzzle: [-40, 72] },
+  attack_still_south: { src: 'machi/ataque_caminata_abajo/de_pie_sheet.png',           frames: 8, faces: 0, skip: 0, ax: 47.8, ay: -1, cast: 6, muzzle: [3, 26] },
+  attack_still_north: { src: 'machi/ataque_caminata_arriba/de_pie_sheet.png',          frames: 8, faces: 0, skip: 0, ax: 45.1, ay: -1, cast: 6, muzzle: [-16, 86] },
 
   turn_front_back:  { src: 'machi/giro_frente_espalda/giro_sheet.png', frames: 6, faces: -1, skip: 0,
                       ax: [55.8, 55.2, 54.7, 52.6, 50.7, 48.0] },

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Bolts } from '../bolts';
 import { LookFX } from '../fx/LookFX';
 import { fx } from '../fx/settings';
 import { Keys } from '../input';
@@ -16,6 +17,7 @@ export class GameScene extends Phaser.Scene {
   private machi!: MachiController;
   private sprite!: Phaser.GameObjects.Sprite;
   private shadow!: Phaser.GameObjects.Ellipse;
+  private bolts!: Bolts;
   private look?: LookFX;
   private label = '';
 
@@ -40,6 +42,7 @@ export class GameScene extends Phaser.Scene {
 
     this.shadow = this.add.ellipse(0, 0, 22, 8, 0x000000, 0.28);
     this.sprite = this.add.sprite(0, 0, SHEETS.idle_front.src, 0);
+    this.bolts = new Bolts(this, WORLD_W, WORLD_H);
 
     const cam = this.cameras.main;
     cam.setZoom(ZOOM);
@@ -62,7 +65,11 @@ export class GameScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     // A long frame (tab in the background) must not teleport her.
-    this.machi.update(Math.min(0.05, delta / 1000), this.keys.read());
+    const dt = Math.min(0.05, delta / 1000);
+    this.machi.update(dt, this.keys.read());
+    const cast = this.machi.takeCast();
+    if (cast) this.bolts.spawn(cast);
+    this.bolts.update(dt);
     this.draw();
   }
 
@@ -76,14 +83,16 @@ export class GameScene extends Phaser.Scene {
     const x = Math.round(pose.x), y = Math.round(pose.y);
     const ax = Math.round(pose.ax);
 
-    this.shadow.setPosition(x, y - 1);
+    // Things further down the screen are in front.
+    this.shadow.setPosition(x, y - 1).setDepth(y - 0.5);
     this.sprite
       .setTexture(SHEETS[pose.sheet].src, pose.frame)
       .setFlipX(pose.flip)
       // The origin is her feet under the body's centre. Flipping mirrors the
       // frame inside its own box, so the centre moves to the other side.
       .setDisplayOrigin(pose.flip ? FRAME - ax : ax, FRAME - pose.ay)
-      .setPosition(x, y);
+      .setPosition(x, y)
+      .setDepth(y);
     this.label = pose.sheet + (pose.flip ? ' (espejado)' : '');
 
     if (this.look) {
@@ -117,6 +126,6 @@ export class GameScene extends Phaser.Scene {
       }
     }
     tex.refresh();
-    this.add.image(0, 0, 'ground').setOrigin(0, 0);
+    this.add.image(0, 0, 'ground').setOrigin(0, 0).setDepth(-1e6);
   }
 }
