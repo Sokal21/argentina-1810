@@ -8,6 +8,8 @@ const CYAN = '#46e6fa', PALE = '#bef8fc', WHITE = '#ffffff';
 interface Bolt {
   orb: Phaser.GameObjects.Image;
   shadow: Phaser.GameObjects.Ellipse;
+  /** Invisible box on the orb that the physics engine tests. */
+  spot: Phaser.GameObjects.Zone;
   /** Position on the ground, and velocity along it. */
   x: number;
   y: number;
@@ -16,16 +18,25 @@ interface Bolt {
   /** Height above the ground: it keeps the one the branch released it at. */
   z: number;
   age: number;
+  /** It struck something and is done, wherever it had got to. */
+  spent: boolean;
 }
 
 /** The spells in flight: an orb, the shadow under it and a trail of sparks. */
 export class Bolts {
   private live: Bolt[] = [];
+  /**
+   * The orbs' boxes. A spell hits what it is seen to touch: its place on the
+   * ground can be far below the orb, and testing that instead made spells
+   * pass through whatever the player was pointing at.
+   */
+  readonly bodies: Phaser.Physics.Arcade.Group;
   private sparks: Phaser.GameObjects.Particles.ParticleEmitter;
   private burst: Phaser.GameObjects.Particles.ParticleEmitter;
 
   constructor(private scene: Phaser.Scene, private width: number, private height: number) {
     this.makeTextures();
+    this.bodies = scene.physics.add.group();
     this.sparks = scene.add.particles(0, 0, 'spark', {
       lifespan: 260, speed: { min: 0, max: 10 }, scale: { start: 1, end: 0 },
       alpha: { start: 0.9, end: 0 }, emitting: false,
@@ -40,15 +51,29 @@ export class Bolts {
     // Same convention as her own movement: a unit direction on the ground,
     // with the vertical part foreshortened.
     const len = Math.hypot(cast.dx, cast.dy) || 1;
-    this.live.push({
+    const spot = this.scene.add.zone(cast.x, cast.y - cast.height, 7, 7);
+    const bolt: Bolt = {
       orb: this.scene.add.image(0, 0, 'bolt'),
-      shadow: this.scene.add.ellipse(0, 0, 8, 3, 0x000000, 0.22),
+      shadow: this.scene.add.ellipse(cast.x, cast.y, 8, 4, 0x000000, 0.22),
+      spot,
       x: cast.x, y: cast.y,
       vx: cast.dx / len * BOLT_SPEED,
       vy: cast.dy / len * BOLT_SPEED * ISO_Y,
       z: cast.height,
       age: 0,
-    });
+      spent: false,
+    };
+    this.live.push(bolt);
+    this.bodies.add(spot);
+    spot.setData('bolt', bolt);
+  }
+
+  /** The bolt whose spot this is has hit something. Returns its heading on screen. */
+  strike(spot: Phaser.GameObjects.GameObject): { dx: number; dy: number } | null {
+    const bolt = spot.getData('bolt') as Bolt | undefined;
+    if (!bolt || bolt.spent) return null;
+    bolt.spent = true;
+    return { dx: bolt.vx, dy: bolt.vy };
   }
 
   update(dt: number): void {
@@ -59,15 +84,17 @@ export class Bolts {
       const x = Math.round(bolt.x), y = Math.round(bolt.y);
       bolt.orb.setPosition(x, y - bolt.z).setDepth(bolt.y);
       bolt.shadow.setPosition(x, y).setDepth(bolt.y - 0.5);
+      bolt.spot.setPosition(x, y - bolt.z);
       this.sparks.emitParticleAt(x, y - bolt.z, 1);
     }
 
-    const spent = (b: Bolt) => b.age * BOLT_SPEED >= BOLT_RANGE
+    const spent = (b: Bolt) => b.spent || b.age * BOLT_SPEED >= BOLT_RANGE
       || b.x < 0 || b.x > this.width || b.y < 0 || b.y > this.height;
     for (const bolt of this.live.filter(spent)) {
       this.burst.emitParticleAt(bolt.orb.x, bolt.orb.y, 10);
       bolt.orb.destroy();
       bolt.shadow.destroy();
+      bolt.spot.destroy();
     }
     this.live = this.live.filter(b => !spent(b));
   }

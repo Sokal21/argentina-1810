@@ -148,3 +148,24 @@ test('she only backs away when walking against the aim, not across it or with it
   expect(sheet(135, 0)).toBe('retreat_front');   // away at an angle
   expect(sheet(90, -90)).toBe('retreat_north');  // walking down, aiming up
 });
+
+test('aimed at a point on screen, the spell is seen to pass exactly through it', () => {
+  // From every view, with the pointer in a spread of places around her.
+  for (const facing of [0, 45, 90, 135, 180, -135, -90, -45]) {
+    for (const target of [{ x: 150, y: -40 }, { x: -120, y: 30 }, { x: 20, y: 140 }, { x: -60, y: -150 }]) {
+      const machi = new MachiController();
+      run(machi, 1, { ...idle, move: deg(facing) });
+      run(machi, 0.5, idle);
+      const aim = deg(Math.atan2((target.y - (machi.y - 45)) * 2, target.x - machi.x) * 180 / Math.PI);
+      const [cast] = run(machi, 2, { ...idle, attack: true, aim, target });
+      // Where the orb is drawn when released, and the way it moves on screen
+      // (the vertical part of a ground direction is drawn at half size).
+      const fromX = cast.x, fromY = cast.y - cast.height;
+      const vx = cast.dx, vy = cast.dy / 2;
+      // The target lies along that line, ahead of the orb, not behind it.
+      const tx = target.x - fromX, ty = target.y - fromY;
+      expect(vx * ty - vy * tx).toBeCloseTo(0, 6);
+      expect(vx * tx + vy * ty).toBeGreaterThan(0);
+    }
+  }
+});

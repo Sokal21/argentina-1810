@@ -9,6 +9,7 @@ const game = new Phaser.Game({
   pixelArt: true,
   roundPixels: true,
   scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
+  physics: { default: 'arcade' },
   scene: [GameScene],
 });
 

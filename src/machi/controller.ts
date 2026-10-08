@@ -25,6 +25,12 @@ export interface MachiInput {
    * if she is walking another way. Without it spells follow her view.
    */
   aim?: Vec | null;
+  /**
+   * The point on screen (world pixels, as drawn) a spell should pass through:
+   * the pointer. The spell is seen flying above the ground, so this is a
+   * point of the picture, not a spot on the floor.
+   */
+  target?: Vec | null;
 }
 
 export interface Bounds { minX: number; maxX: number; minY: number; maxY: number }
@@ -79,6 +85,7 @@ function turnPath(table: Record<string, Turn>, from: View, to: View): string[] {
 
 const turnLength = (turn: Turn) => turn.frames.length / (turn.fps ?? TURN_FPS);
 
+const MIN_AIM = 4; // a pointer this close to the branch tip gives no direction
 const SECTOR = Math.PI / 4;
 /**
  * A free direction snapped to the eight she can be drawn in. `prev` is the
@@ -136,7 +143,7 @@ export class MachiController {
   }
 
   update(dt: number, input: MachiInput): void {
-    this.updateAttack(dt, input.attack, input.aim ?? null);
+    this.updateAttack(dt, input.attack, input.aim ?? null, input.target ?? null);
 
     // A free walking direction is drawn as the nearest of the eight.
     let { dx, dy } = input;
@@ -233,13 +240,13 @@ export class MachiController {
     this.faceY = dy || 1;
   }
 
-  private updateAttack(dt: number, held: boolean, aim: Vec | null): void {
+  private updateAttack(dt: number, held: boolean, aim: Vec | null, target: Vec | null): void {
     if (held) {
       if (this.attack === null) {
         this.attack = 0;
       } else {
         const before = this.attack, after = before + dt;
-        this.releaseSpell(before, after, aim);
+        this.releaseSpell(before, after, aim, target);
         this.attack = after % ATTACK_TIME;
       }
     } else if (this.attack !== null) {
@@ -257,20 +264,28 @@ export class MachiController {
   // The spell goes off the moment the animation reaches the frame where the
   // light has left the branch. Nothing is released mid-turn, when the cast is
   // not on screen, nor while a released key is unwinding it.
-  private releaseSpell(before: number, after: number, aim: Vec | null): void {
+  private releaseSpell(before: number, after: number, aim: Vec | null, target: Vec | null): void {
     const sheet = this.castSheet();
     if (!sheet || sheet.cast === undefined || !sheet.muzzle || this.turn) return;
     const at = sheet.cast / sheet.frames * ATTACK_TIME;
     if (before >= at || after < at) return;
     const mirrored = sheet.faces !== 0 && this.faceX !== sheet.faces;
-    this.cast = {
-      x: this.x + (mirrored ? -sheet.muzzle[0] : sheet.muzzle[0]),
-      y: this.y,
-      height: sheet.muzzle[1],
-      // Toward the aim if there is one, otherwise the way her view points.
-      dx: aim ? aim.x : this.straight ? 0 : this.faceX,
-      dy: aim ? aim.y : this.straight ? this.faceY : this.level ? 0 : this.faceY,
-    };
+    const x = this.x + (mirrored ? -sheet.muzzle[0] : sheet.muzzle[0]);
+    const height = sheet.muzzle[1];
+    // Toward the aim if there is one, otherwise the way her view points.
+    let dx = aim ? aim.x : this.straight ? 0 : this.faceX;
+    let dy = aim ? aim.y : this.straight ? this.faceY : this.level ? 0 : this.faceY;
+    if (target) {
+      // The spell is drawn at the branch tip, off to one side of her and high
+      // above the ground, and flies level from there. Aimed from her body it
+      // would run parallel to the line she points along and miss the pointer
+      // by that offset, so it is aimed from where it is actually seen to
+      // start. Screen offsets become a ground direction by undoing the
+      // foreshortening of the vertical.
+      const sx = target.x - x, sy = (target.y - (this.y - height)) / ISO_Y;
+      if (Math.hypot(sx, sy) > MIN_AIM) { dx = sx; dy = sy; }
+    }
+    this.cast = { x, y: this.y, height, dx, dy };
   }
 
   // Which of the three casts fits what her legs are doing: planted, backing
