@@ -22,6 +22,13 @@ FLIPS = {
                          f"{A}/trote_abajo/trote_abajo_sheet.png", 0),
     "giro_lado_diagonal": (f"{A}/giro_abajo_frente/giro_sheet.png", [2, 1],
                            f"{A}/trote_abajo/trote_abajo_sheet.png", 0),
+    # The same three for turning on the spot, from the standing turns.
+    "giros_de_pie/lado_frente": (f"{A}/giros_de_pie/abajo_frente.png", [4, 2],
+                                 f"{A}/giros_de_pie/abajo_frente.png", 0),
+    "giros_de_pie/lado_diagonal": (f"{A}/giros_de_pie/abajo_frente.png", [2, 1],
+                                   f"{A}/giros_de_pie/abajo_frente.png", 0),
+    "giros_de_pie/lado_espalda": (f"{A}/giros_de_pie/arriba_espalda.png", [4, 2],
+                                  f"{A}/giros_de_pie/arriba_espalda.png", 0),
     "giro_lado_espalda": (f"{A}/giro_arriba_espalda/giro_sheet_ajustado.png", [1, 0],
                           f"{A}/trote_arriba/trote_arriba_sheet.png", 0),
 }

@@ -1,16 +1,17 @@
 import Phaser from 'phaser';
 import { Bolts } from '../bolts';
 import { LookFX } from '../fx/LookFX';
-import { fx } from '../fx/settings';
+import { controls, fx } from '../fx/settings';
 import { Keys } from '../input';
-import { MachiController } from '../machi/controller';
-import { FRAME, SHEETS } from '../machi/data';
+import { MachiController, type MachiInput, type Vec } from '../machi/controller';
+import { FRAME, ISO_Y, SHEETS } from '../machi/data';
 
 const ZOOM = 2;            // screen pixels per sprite pixel
 const WORLD_W = 1280;      // world size, in sprite pixels
 const WORLD_H = 800;
 const TILE_W = 32, TILE_H = 16; // ground diamond, in sprite pixels
 const CHEST = 45;          // height of her chest above her feet, where the light sits
+const ARRIVE = 5;          // she stops this close to the pointer instead of jittering on it
 
 export class GameScene extends Phaser.Scene {
   private keys!: Keys;
@@ -18,6 +19,7 @@ export class GameScene extends Phaser.Scene {
   private sprite!: Phaser.GameObjects.Sprite;
   private shadow!: Phaser.GameObjects.Ellipse;
   private bolts!: Bolts;
+  private marker!: Phaser.GameObjects.Ellipse;
   private look?: LookFX;
   private label = '';
 
@@ -43,6 +45,9 @@ export class GameScene extends Phaser.Scene {
     this.shadow = this.add.ellipse(0, 0, 22, 8, 0x000000, 0.28);
     this.sprite = this.add.sprite(0, 0, SHEETS.idle_front.src, 0);
     this.bolts = new Bolts(this, WORLD_W, WORLD_H);
+    // Where the pointer touches the ground, while steering with it.
+    this.marker = this.add.ellipse(0, 0, 12, 6).setStrokeStyle(1, 0x46e6fa, 0.8).setDepth(1e6);
+    this.input.mouse?.disableContextMenu();
 
     const cam = this.cameras.main;
     cam.setZoom(ZOOM);
@@ -66,11 +71,34 @@ export class GameScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     // A long frame (tab in the background) must not teleport her.
     const dt = Math.min(0.05, delta / 1000);
-    this.machi.update(dt, this.keys.read());
+    this.machi.update(dt, this.readInput());
     const cast = this.machi.takeCast();
     if (cast) this.bolts.spawn(cast);
     this.bolts.update(dt);
     this.draw();
+  }
+
+  // Keyboard input, plus the pointer when steering with it: holding the left
+  // button walks toward the pointer and spells fly at it, both at any angle.
+  private readInput(): MachiInput {
+    const input: MachiInput = this.keys.read();
+    this.marker.setVisible(controls.mouse);
+    if (!controls.mouse) return input;
+
+    const pointer = this.input.activePointer;
+    pointer.updateWorldPoint(this.cameras.main);
+    this.marker.setPosition(Math.round(pointer.worldX), Math.round(pointer.worldY));
+    // The screen shows the ground foreshortened; undo that to get a true
+    // direction on it.
+    const toward = (fromX: number, fromY: number, reach: number): Vec | null => {
+      const x = pointer.worldX - fromX, y = (pointer.worldY - fromY) / ISO_Y;
+      const len = Math.hypot(x, y);
+      return len > reach ? { x: x / len, y: y / len } : null;
+    };
+    input.aim = toward(this.machi.x, this.machi.y - CHEST, 1);
+    if (pointer.leftButtonDown()) input.move = toward(this.machi.x, this.machi.y, ARRIVE);
+    input.attack ||= pointer.rightButtonDown();
+    return input;
   }
 
   /** Name of the animation on screen, for the debug readout. */

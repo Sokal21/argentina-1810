@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { EFFECTS, fx, setEffect, type Effect } from './fx/settings';
+import { controls, EFFECTS, fx, setEffect, setMouseControl, type Effect } from './fx/settings';
 import { GameScene } from './scenes/GameScene';
 
 const game = new Phaser.Game({
@@ -18,7 +18,11 @@ if (import.meta.env.DEV) (globalThis as { game?: Phaser.Game }).game = game;
 // Effect buttons and their number keys; 0 turns everything off.
 const bar = document.getElementById('fx')!;
 const buttons = new Map<Effect, HTMLButtonElement>();
-const refresh = () => buttons.forEach((b, name) => b.classList.toggle('on', fx[name]));
+const mouseButton = document.createElement('button');
+const refresh = () => {
+  buttons.forEach((b, name) => b.classList.toggle('on', fx[name]));
+  mouseButton.classList.toggle('on', controls.mouse);
+};
 
 EFFECTS.forEach(([name, label], i) => {
   const b = document.createElement('button');
@@ -29,10 +33,15 @@ EFFECTS.forEach(([name, label], i) => {
   bar.appendChild(b);
   buttons.set(name, b);
 });
+mouseButton.innerHTML = '<b>M</b>Mouse 360°';
+mouseButton.addEventListener('mousedown', e => e.preventDefault());
+mouseButton.addEventListener('click', () => { setMouseControl(!controls.mouse); refresh(); });
+bar.appendChild(mouseButton);
 refresh();
 
 addEventListener('keydown', e => {
   if (e.repeat) return;
+  if (e.code === 'KeyM') { setMouseControl(!controls.mouse); refresh(); return; }
   const digit = /^Digit(\d)$/.exec(e.code);
   if (!digit) return;
   const n = Number(digit[1]);

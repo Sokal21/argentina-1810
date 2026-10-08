@@ -263,6 +263,54 @@
       "sha12": "5a781bb68630",
       "label": "machi_ataque_caminata_arriba v2 (branch stays in the left hand; 8 frames) — untouched SpriteCook output",
       "file": "assets/machi/ataque_caminata_arriba/sheet_original.png"
+    },
+    {
+      "asset_id": "6eae0e0f-6668-412a-a53a-00f03bc3ae97",
+      "sha12": "fa0a6b3c22f7",
+      "label": "machi_giro_de_pie_abajo_frente (standing turn, 6 frames) — untouched SpriteCook output",
+      "file": "assets/machi/giros_de_pie/abajo_frente_original.png"
+    },
+    {
+      "asset_id": "e1efe4c8-4da8-4d8d-a652-cba3819f19bb",
+      "sha12": "71d76c010405",
+      "label": "machi_giro_de_pie_frente_espalda (standing turn, 6 frames) — untouched SpriteCook output",
+      "file": "assets/machi/giros_de_pie/frente_espalda_original.png"
+    },
+    {
+      "asset_id": "3e46e120-ea49-4589-8957-628edc61fa36",
+      "sha12": "8f62c48d99de",
+      "label": "machi_giro_de_pie_arriba_espalda (standing turn, 6 frames) — untouched SpriteCook output",
+      "file": "assets/machi/giros_de_pie/arriba_espalda_original.png"
+    },
+    {
+      "asset_id": "d1724da3-3541-4dad-a174-02c6da8b18d3",
+      "sha12": "965b142609fa",
+      "label": "machi_ataque_retroceso_frente (backing away while casting; 8 frames) — untouched SpriteCook output",
+      "file": "assets/machi/ataque_retroceso/frente_original.png"
+    },
+    {
+      "asset_id": "6626819d-b2f3-4ee0-a79e-4df2369d030e",
+      "sha12": "09298caf930e",
+      "label": "machi_ataque_retroceso_diagonal (backing away while casting; 8 frames) — untouched SpriteCook output",
+      "file": "assets/machi/ataque_retroceso/diagonal_original.png"
+    },
+    {
+      "asset_id": "55035224-56b3-444c-a2e9-7bec954d9558",
+      "sha12": "4231aa1a2947",
+      "label": "machi_ataque_retroceso_espalda (backing away while casting; 8 frames) — untouched SpriteCook output",
+      "file": "assets/machi/ataque_retroceso/espalda_original.png"
+    },
+    {
+      "asset_id": "3e4b60be-5610-410f-beb8-ef56a2d76515",
+      "sha12": "748198c0e629",
+      "label": "machi_ataque_retroceso_abajo (backing away while casting; 8 frames) — untouched SpriteCook output",
+      "file": "assets/machi/ataque_retroceso/abajo_original.png"
+    },
+    {
+      "asset_id": "2f0b824f-cd60-4283-bc8e-b26242483251",
+      "sha12": "d00522d64594",
+      "label": "machi_ataque_retroceso_arriba (backing away while casting; 8 frames) — untouched SpriteCook output",
+      "file": "assets/machi/ataque_retroceso/arriba_original.png"
     }
   ]
 }

@@ -132,11 +132,11 @@ test('the game data has the same sheets and turns as the prototype, with the sam
   const proto = new Function(
     `${js.slice(js.indexOf('const FPS'), js.indexOf('const SCALE'))}; return { SHEETS, TURNS };`)();
   for (const s of Object.values(proto.SHEETS) as any[]) s.src = s.src.replace('../assets/', '');
-  // The game adds where the bolt starts and the standing casts, which the
-  // prototype never had.
+  // The game adds where the bolt starts, the standing casts and the turns on
+  // the spot, which the prototype never had.
   const shared = Object.fromEntries(
     Object.entries(SHEETS)
-      .filter(([name]) => !name.startsWith('attack_still_'))
+      .filter(([name]) => !/^(attack_still_|pivot_|retreat_)/.test(name))
       .map(([name, { muzzle: _muzzle, ...sheet }]) => [name, sheet]));
   expect(shared).toEqual(proto.SHEETS);
   expect(TURNS).toEqual(proto.TURNS);

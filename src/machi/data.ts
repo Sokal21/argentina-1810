@@ -61,6 +61,14 @@ export const IDLE_REST = 2.5;   // seconds standing still between two plays of t
 export const PIVOT_DRIFT = 0.5; // share of her speed she keeps when a pivot starts
 export const PIVOT_STOP = 0.25; // fraction of a pivot spent slowing down before she moves the new way
 export const COAST_GRACE = 0.15; // a stop shorter than this still counts as "was moving"
+// With a free direction (the pointer) she is drawn in the nearest of her
+// eight views. She keeps the current one this many radians past its sector's
+// edge, so a direction resting on the boundary does not flicker.
+export const SNAP_STICK = 0.14;
+// Casting while walking more against the aim than with it, she backs away
+// instead of striding forwards. This is how far against: the cosine of the
+// angle between where she walks and where she aims.
+export const RETREAT_BELOW = -0.3;
 
 export const BOLT_SPEED = 230;  // sprite pixels per second along the ground
 export const BOLT_RANGE = 260;  // ground distance it covers before fizzling out
@@ -111,6 +119,35 @@ export const SHEETS: Record<string, Sheet> = {
   flip_back:  { src: 'machi/giro_lado_espalda.png',  frames: 5, faces: 0, skip: 0, ax: 47 },
 };
 
+// Turning on the spot: the same turns generated with her feet planted, for
+// when she follows the aim without walking.
+Object.assign(SHEETS, {
+  pivot_south_front: { src: 'machi/giros_de_pie/abajo_frente.png',   frames: 6, faces: -1, skip: 0,
+                       ax: [48.0, 47.9, 47.9, 47.9, 48.2, 48.3] },
+  pivot_front_back:  { src: 'machi/giros_de_pie/frente_espalda.png', frames: 6, faces: -1, skip: 0,
+                       ax: [55.8, 55.3, 54.4, 51.6, 49.2, 47.3] },
+  pivot_north_back:  { src: 'machi/giros_de_pie/arriba_espalda.png', frames: 6, faces: -1, skip: 0,
+                       ax: [45.0, 45.7, 45.8, 46.2, 46.5, 46.6] },
+  // Built by tools/build_turn_side_flip.py, already centred on the body.
+  pivot_flip_front:  { src: 'machi/giros_de_pie/lado_frente.png',   frames: 5, faces: 0, skip: 0, ax: 47 },
+  pivot_flip_down:   { src: 'machi/giros_de_pie/lado_diagonal.png', frames: 5, faces: 0, skip: 0, ax: 47 },
+  pivot_flip_back:   { src: 'machi/giros_de_pie/lado_espalda.png',  frames: 5, faces: 0, skip: 0, ax: 47 },
+} satisfies Record<string, Sheet>);
+
+// Backing away while casting: aiming one way and walking the other. Each
+// starts from its walking cast's numbers and overrides what was measured to
+// differ: the light leaves the branch on another frame and from another spot.
+const RETREATS: Record<View, Partial<Sheet> & { src: string }> = {
+  front: { src: 'machi/ataque_retroceso/frente_pies_atras.png',   ax: 56,   cast: 6, muzzle: [-47, 52] },
+  down:  { src: 'machi/ataque_retroceso/diagonal_pies_atras.png', ax: 52,   cast: 6, muzzle: [-40, 26] },
+  back:  { src: 'machi/ataque_retroceso/espalda_pies_atras.png',  ax: 50.5, cast: 5, muzzle: [-37, 69] },
+  south: { src: 'machi/ataque_retroceso/abajo_pies_atras.png',    ax: 47.8, cast: 6, muzzle: [1, 20] },
+  north: { src: 'machi/ataque_retroceso/arriba_pies_atras.png',   ax: 45,   cast: 6, muzzle: [-14, 88] },
+};
+for (const [view, measured] of Object.entries(RETREATS)) {
+  SHEETS[`retreat_${view}`] = { ...SHEETS[`attack_${view}`], ...measured };
+}
+
 /**
  * Views in turning order, from facing the camera to facing away. A change
  * between two views that are not neighbours chains the turns in between.
@@ -143,4 +180,25 @@ export const TURNS: Record<string, Turn> = {
   'down:1>down:-1':   { sheet: 'flip_down',  frames: [4, 3, 2, 1, 0], fps: 14, pivot: true },
   'back:-1>back:1':   { sheet: 'flip_back',  frames: [0, 1, 2, 3, 4], fps: 14, pivot: true },
   'back:1>back:-1':   { sheet: 'flip_back',  frames: [4, 3, 2, 1, 0], fps: 14, pivot: true },
+};
+
+/**
+ * The turns used while she stands. There is no dedicated about-turn: facing
+ * the opposite way chains the turns through every view in between.
+ */
+export const STANDING_TURNS: Record<string, Turn> = {
+  'south>down': { sheet: 'pivot_south_front', frames: [1, 2], fps: 14 },
+  'down>south': { sheet: 'pivot_south_front', frames: [2, 1], fps: 14 },
+  'down>front': { sheet: 'pivot_south_front', frames: [3, 4], fps: 14 },
+  'front>down': { sheet: 'pivot_south_front', frames: [4, 3], fps: 14 },
+  'front>back': { sheet: 'pivot_front_back', frames: [1, 2, 3, 4], fps: 14 },
+  'back>front': { sheet: 'pivot_front_back', frames: [4, 3, 2, 1], fps: 14 },
+  'north>back': { sheet: 'pivot_north_back', frames: [2, 4], fps: 14 },
+  'back>north': { sheet: 'pivot_north_back', frames: [4, 2], fps: 14 },
+  'front:-1>front:1': { sheet: 'pivot_flip_front', frames: [0, 1, 2, 3, 4], fps: 14 },
+  'front:1>front:-1': { sheet: 'pivot_flip_front', frames: [4, 3, 2, 1, 0], fps: 14 },
+  'down:-1>down:1':   { sheet: 'pivot_flip_down',  frames: [0, 1, 2, 3, 4], fps: 14 },
+  'down:1>down:-1':   { sheet: 'pivot_flip_down',  frames: [4, 3, 2, 1, 0], fps: 14 },
+  'back:-1>back:1':   { sheet: 'pivot_flip_back',  frames: [0, 1, 2, 3, 4], fps: 14 },
+  'back:1>back:-1':   { sheet: 'pivot_flip_back',  frames: [4, 3, 2, 1, 0], fps: 14 },
 };
