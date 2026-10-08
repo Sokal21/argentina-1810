@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spritoro · Machi demo</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #14110f; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; image-rendering: pixelated; }
+  #hud {
+    position: fixed; left: 16px; bottom: 14px; color: #cdbfa3;
+    font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .02em;
+    text-shadow: 0 1px 0 #000; user-select: none;
+  }
+  #hud kbd {
+    display: inline-block; min-width: 1.3em; padding: 1px 5px; margin-right: 2px; text-align: center;
+    border: 1px solid #6b5c44; border-radius: 3px; background: #241d17; color: #f0e3c4;
+  }
+  #fx { position: fixed; left: 16px; top: 14px; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100vw - 32px); z-index: 5; }
+  #fx button {
+    font: 12px/1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .02em; cursor: pointer;
+    padding: 6px 9px; border: 1px solid #6b5c44; border-radius: 4px; background: #241d17; color: #a89a80;
+  }
+  #fx button b { color: #6b5c44; font-weight: normal; margin-right: 5px; }
+  #fx button.on { background: #cdbfa3; color: #1a1512; border-color: #f0e3c4; }
+  #fx button.on b { color: #6b5c44; }
+  /* Screen-resolution overlays: unlike the canvas they are not pixelated. */
+  .overlay { position: fixed; inset: 0; pointer-events: none; display: none; }
+  .overlay.on { display: block; }
+  /* Soft light over the upscaled pixels: darkness away from her, a warm glow near. */
+  #dark { background: radial-gradient(circle 36vmin at var(--lx, 50%) var(--ly, 50%), rgba(6, 8, 20, 0) 0, rgba(6, 8, 20, .25) 55%, rgba(6, 8, 20, .78) 100%); }
+  #glow { mix-blend-mode: soft-light;
+          background: radial-gradient(circle 20vmin at var(--lx, 50%) var(--ly, 50%), rgba(255, 206, 140, .75) 0, rgba(255, 190, 120, .28) 55%, rgba(255, 190, 120, 0) 100%); }
+  /* Scanlines every 4 screen pixels (two sprite pixels), a faint RGB mask and a vignette. */
+  #crt { background:
+           repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0 2px, rgba(0, 0, 0, .32) 3px 4px),
+           repeating-linear-gradient(to right, rgba(255, 0, 0, .06) 0 1px, rgba(0, 255, 0, .05) 1px 2px, rgba(0, 0, 255, .06) 2px 3px);
+         box-shadow: inset 0 0 22vmin rgba(0, 0, 0, .7); }
+  canvas.crt { filter: contrast(1.12) saturate(1.2) blur(.45px); }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="dark" class="overlay"></div>
+<div id="glow" class="overlay"></div>
+<div id="crt" class="overlay"></div>
+<div id="fx"></div>
+<div id="hud"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> mover · <kbd>Espacio</kbd> atacar · <kbd>1</kbd>–<kbd>6</kbd> efectos · <kbd>0</kbd> ninguno · <span id="state"></span></div>
+<script>
+// Each sheet is one row of equally sized frames. `faces` is the horizontal
+// direction the art was drawn looking at; the other one is drawn mirrored.
+// `skip` drops leading frames that repeat the standing pose inside a cycle.
+// `ax` is the x of the body's centre inside a frame (one value, or one per
+// frame): frames are centred on the whole figure including the drum, so the
+// body sits at a different x in each sheet and would slide on every change.
+// `ay` shifts a sheet vertically, in sprite pixels (positive is down). Her
+// standing height is the same everywhere, but each trot was generated with
+// its own bounce: the front diagonal one dips below standing height while the
+// others hop above it, so without this her head changes height with the view.
+// `faces: 0` marks a straight-on view that is never mirrored, and `still`
+// holds a single frame (the straight views have no idle sheet of their own).
+const FPS = 8;
+const SHEETS = {
+  idle_front:  { src: '../assets/machi/idle/idle_sheet.png',                     frames: 8, faces: -1, skip: 0, ax: 55.6 },
+  trot_front:  { src: '../assets/machi/trote/trote_sheet.png',                   frames: 8, faces: -1, skip: 1, ax: 55.6, ay: -2 },
+  // Slow walk while casting with the branch. `cast` is the first frame after
+  // the light has left the branch.
+  attack_front: { src: '../assets/machi/ataque_caminata/ataque_caminata_sheet.png', frames: 8, faces: -1, skip: 0, ax: 55.6, ay: -1, cast: 6 },
+  attack_back:  { src: '../assets/machi/ataque_caminata_espalda/sheet.png',         frames: 8, faces: -1, skip: 0, ax: 50.3, cast: 6 },
+  attack_south: { src: '../assets/machi/ataque_caminata_abajo/sheet.png',           frames: 8, faces:  0, skip: 0, ax: 47.8, ay: -1, cast: 6 },
+  attack_north: { src: '../assets/machi/ataque_caminata_arriba/sheet.png',          frames: 8, faces:  0, skip: 0, ax: 45.1, ay: -1, cast: 6 },
+  // Down diagonal. Its base pose is frame 3 of the south-to-front turn.
+  idle_down:   { src: '../assets/machi/diag_abajo/idle_sheet.png',                frames: 8, faces: -1, skip: 0, ax: 50.7 },
+  trot_down:   { src: '../assets/machi/diag_abajo/trote_sheet.png',               frames: 8, faces: -1, skip: 0, ax: 51.8 },
+  attack_down: { src: '../assets/machi/diag_abajo/ataque_sheet.png',              frames: 8, faces: -1, skip: 0, ax: 51.3, cast: 5 },
+  idle_back:   { src: '../assets/machi/idle_espalda/idle_espalda_sheet.png',     frames: 8, faces: -1, skip: 0, ax: 50.6 },
+  trot_back:   { src: '../assets/machi/trote_espalda/trote_espalda_sheet.png',   frames: 8, faces: -1, skip: 1, ax: 50.6, ay: 1 },
+  idle_south:  { src: '../assets/machi/trote_abajo/trote_abajo_sheet.png',       frames: 8, faces:  0, skip: 0, ax: 48, still: 0 },
+  trot_south:  { src: '../assets/machi/trote_abajo/trote_abajo_sheet.png',       frames: 8, faces:  0, skip: 1, ax: 48, ay: 1 },
+  idle_north:  { src: '../assets/machi/trote_arriba/trote_arriba_sheet.png',     frames: 8, faces:  0, skip: 0, ax: 45.1, still: 0 },
+  trot_north:  { src: '../assets/machi/trote_arriba/trote_arriba_sheet.png',     frames: 8, faces:  0, skip: 1, ax: 45.1, ay: 1 },
+  turn_front_back: { src: '../assets/machi/giro_frente_espalda/giro_sheet.png',  frames: 6, faces: -1, skip: 0,
+                     ax: [55.8, 55.2, 54.7, 52.6, 50.7, 48.0] },
+  turn_south_front: { src: '../assets/machi/giro_abajo_frente/giro_sheet.png',   frames: 6, faces: -1, skip: 0,
+                      ax: [48.0, 48.1, 48.1, 48.1, 48.9, 48.6] },
+  // Built by tools/build_turn_side_flip.py: facing left -> facing right,
+  // never mirrored, already centred on the body.
+  flip_front: { src: '../assets/machi/giro_lado_frente.png',  frames: 5, faces: 0, skip: 0, ax: 47 },
+  flip_down:  { src: '../assets/machi/giro_lado_diagonal.png', frames: 5, faces: 0, skip: 0, ax: 47 },
+  flip_back:  { src: '../assets/machi/giro_lado_espalda.png', frames: 5, faces: 0, skip: 0, ax: 47 },
+  // Built by tools/build_turn_north_south.py, already centred on the body.
+  turn_north_south: { src: '../assets/machi/giro_arriba_abajo/giro_sheet_ajustado.png', frames: 5, faces: 0, skip: 0, ax: 47, ay: -1 },
+  // Built by tools/build_turn_north_back.py, already centred on the body.
+  turn_north_back: { src: '../assets/machi/giro_arriba_espalda/giro_sheet_ajustado.png', frames: 2, faces: -1, skip: 0, ax: 47, ay: 2 },
+};
+// Short in-between frames played when the view changes while moving. The
+// first and last frames of a turn sheet are left out because they duplicate
+// the views it connects; the opposite turn plays the same frames backwards.
+// `fps` overrides the default speed for a turn. A `pivot` turn reverses the
+// direction of travel, so the machi coasts to a stop and picks up speed again
+// while it plays instead of flipping her velocity instantly.
+const TURN_FPS = 12;
+const TURNS = {
+  // The down diagonal is frame 3 of this same turn sheet, so the turn splits
+  // into the half before it and the half after it.
+  'south>down': { sheet: 'turn_south_front', frames: [1, 2], fps: 14 },
+  'down>south': { sheet: 'turn_south_front', frames: [2, 1], fps: 14 },
+  'down>front': { sheet: 'turn_south_front', frames: [4, 5], fps: 14 },
+  'front>down': { sheet: 'turn_south_front', frames: [5, 4], fps: 14 },
+  'front>back': { sheet: 'turn_front_back', frames: [2, 3, 4] },
+  'back>front': { sheet: 'turn_front_back', frames: [4, 3, 2] },
+  'north>south': { sheet: 'turn_north_south', frames: [0, 1, 2, 3, 4], fps: 14, pivot: true },
+  'south>north': { sheet: 'turn_north_south', frames: [4, 3, 2, 1, 0], fps: 14, pivot: true },
+  // Changing side within the same diagonal view; -1 is left, 1 is right.
+  'front:-1>front:1': { sheet: 'flip_front', frames: [0, 1, 2, 3, 4], fps: 14, pivot: true },
+  'front:1>front:-1': { sheet: 'flip_front', frames: [4, 3, 2, 1, 0], fps: 14, pivot: true },
+  'down:-1>down:1':   { sheet: 'flip_down',  frames: [0, 1, 2, 3, 4], fps: 14, pivot: true },
+  'down:1>down:-1':   { sheet: 'flip_down',  frames: [4, 3, 2, 1, 0], fps: 14, pivot: true },
+  'back:-1>back:1':   { sheet: 'flip_back',  frames: [0, 1, 2, 3, 4], fps: 14, pivot: true },
+  'back:1>back:-1':   { sheet: 'flip_back',  frames: [4, 3, 2, 1, 0], fps: 14, pivot: true },
+  'north>back': { sheet: 'turn_north_back', frames: [0, 1] },
+  'back>north': { sheet: 'turn_north_back', frames: [1, 0] },
+};
+const SCALE = 2;          // screen pixels per sprite pixel
+const SPEED = 70;         // sprite pixels per second, horizontally
+const ISO_Y = 0.5;        // vertical foreshortening of the ground plane
+const ATTACK_SLOW = 0.33; // share of her speed she keeps while attacking
+const IDLE_REST = 2.5;    // seconds standing still between two plays of the idle gesture
+const PIVOT_DRIFT = 0.5;  // share of her speed she keeps when a pivot starts
+const PIVOT_STOP = 0.25;  // fraction of a pivot spent slowing down before she moves the new way
+const TILE_W = 32, TILE_H = 16; // ground diamond, in sprite pixels
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const stateEl = document.getElementById('state');
+
+function resize() {
+  canvas.width = Math.ceil(innerWidth / SCALE);
+  canvas.height = Math.ceil(innerHeight / SCALE);
+  ctx.imageSmoothingEnabled = false;
+}
+addEventListener('resize', resize);
+resize();
+
+for (const s of Object.values(SHEETS)) {
+  s.img = new Image();
+  s.img.src = s.src;
+}
+
+// Held directions, oldest first: when two opposite keys are down the most
+// recently pressed one wins, so rolling from W to S never reads as "stopped".
+const keys = new Set();
+const KEYMAP = { KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right',
+                 ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+addEventListener('keydown', e => {
+  const k = KEYMAP[e.code];
+  if (!k) return;
+  if (!e.repeat) { keys.delete(k); keys.add(k); }
+  e.preventDefault();
+});
+function axis(neg, pos) {
+  let v = 0;
+  for (const k of keys) if (k === neg) v = -1; else if (k === pos) v = 1;
+  return v;
+}
+addEventListener('keyup', e => keys.delete(KEYMAP[e.code]));
+// Holding space attacks: she slows down and, where the view has one, plays
+// the casting walk instead of the trot. Each press starts the cast on its
+// first frame and it repeats while the key is down.
+const ATTACK_TIME = 8 / FPS; // one full cast, in seconds
+let attackHeld = false;
+addEventListener('keydown', e => {
+  if (e.code !== 'Space') return;
+  e.preventDefault();
+  if (!e.repeat) attackHeld = true;
+});
+addEventListener('keyup', e => { if (e.code === 'Space') attackHeld = false; });
+addEventListener('blur', () => { keys.clear(); attackHeld = false; });
+
+// Position is in sprite pixels on screen; the feet are the anchor.
+const machi = { x: 0, y: 0, faceX: -1, faceY: 1, straight: false, level: true, moving: false, t: 0, turn: null, idle: 1, dir: { x: 0, y: 0 }, attack: null };
+const COAST_GRACE = 0.15; // a stop shorter than this still counts as "was moving"
+
+
+function viewOf() {
+  if (machi.straight) return machi.faceY < 0 ? 'north' : 'south';
+  if (machi.faceY < 0) return 'back';
+  return machi.level ? 'front' : 'down';
+}
+
+// Views in turning order, from facing the camera to facing away. A change
+// between two views that are not neighbours chains the turns in between;
+// neighbours without a turn sheet are simply skipped.
+const VIEW_ORDER = ['south', 'down', 'front', 'back', 'north'];
+function turnPath(from, to) {
+  if (TURNS[from + '>' + to]) return [from + '>' + to];
+  const a = VIEW_ORDER.indexOf(from), b = VIEW_ORDER.indexOf(to), step = Math.sign(b - a);
+  const path = [];
+  for (let i = a; i !== b; i += step) {
+    const key = VIEW_ORDER[i] + '>' + VIEW_ORDER[i + step];
+    if (TURNS[key]) path.push(key);
+  }
+  return path;
+}
+
+// machi.attack is the time into the current cast, or null when not attacking.
+// While the key is down the cast loops forward. Once it is released she
+// returns to rest the short way: unwinding the cast backwards, or, if the
+// light has already left the branch, letting the last frames play out.
+const ATTACK_UNWIND = 1.5;                   // speed of the backwards return
+function updateAttack(dt) {
+  if (attackHeld) {
+    machi.attack = machi.attack === null ? 0 : (machi.attack + dt) % ATTACK_TIME;
+  } else if (machi.attack !== null) {
+    const sheet = SHEETS['attack_' + viewOf()];
+    if (sheet && machi.attack >= sheet.cast / sheet.frames * ATTACK_TIME) {
+      machi.attack += dt;
+      if (machi.attack >= ATTACK_TIME) machi.attack = null;
+    } else {
+      machi.attack -= dt * ATTACK_UNWIND;
+      if (machi.attack <= 0) machi.attack = null;
+    }
+  }
+}
+
+function update(dt) {
+  updateAttack(dt);
+  const dx = axis('left', 'right'), dy = axis('up', 'down');
+  const wasMoving = machi.moving;
+  machi.moving = dx !== 0 || dy !== 0;
+  if (machi.moving !== wasMoving) machi.t = 0;
+  machi.t += dt;
+  if (!machi.moving) { machi.turn = null; machi.idle += dt; return; }
+  // Releasing one key just before pressing the next leaves a few frames with
+  // nothing held; that must not cancel the turn or its momentum.
+  const coasting = wasMoving || machi.idle < COAST_GRACE;
+  machi.idle = 0;
+  const prevView = viewOf(), prevFaceX = machi.faceX;
+
+  // Straight up/down has its own views. There is no pure side view, so a
+  // pure horizontal move always uses the front diagonal.
+  machi.straight = dx === 0;
+  machi.level = dy === 0; // moving purely sideways
+  if (dx) machi.faceX = dx;
+  machi.faceY = dy || 1;
+
+  const view = viewOf();
+  if (view !== prevView || machi.faceX !== prevFaceX) {
+    // Leaving a straight view can turn to either side; between two diagonal
+    // views a turn only makes sense if the side stays the same.
+    const sameSide = machi.faceX === prevFaceX || prevView === 'north' || prevView === 'south';
+    const flip = `${prevView}:${prevFaceX}>${view}:${machi.faceX}`;
+    const path = TURNS[flip] ? [flip] : sameSide ? turnPath(prevView, view) : [];
+    // `from` is the direction she was travelling in, for a pivot's drift.
+    machi.turn = path.length ? { key: path[0], rest: path.slice(1), t: 0, coasting, from: machi.dir } : null;
+  } else if (machi.turn) {
+    machi.turn.t += dt;
+    const turn = TURNS[machi.turn.key];
+    if (machi.turn.t * (turn.fps ?? TURN_FPS) >= turn.frames.length) {
+      machi.turn = machi.turn.rest.length
+        ? { ...machi.turn, key: machi.turn.rest[0], rest: machi.turn.rest.slice(1), t: 0 } : null;
+    }
+  }
+
+  // During a pivot she drifts the old way while slowing down (or stands
+  // still if she started from rest) only for the first PIVOT_STOP of the turn,
+  // then already moves the new way, picking up speed quickly so the middle of
+  // the turn is not static.
+  const len = Math.hypot(dx, dy);
+  let vx = dx / len, vy = dy / len;
+  const pivot = machi.turn && TURNS[machi.turn.key];
+  if (pivot && pivot.pivot) {
+    const p = machi.turn.t * (pivot.fps ?? TURN_FPS) / pivot.frames.length;
+    if (p >= PIVOT_STOP) {
+      const k = Math.sqrt((p - PIVOT_STOP) / (1 - PIVOT_STOP));
+      vx *= k; vy *= k;
+    } else {
+      const k = machi.turn.coasting ? (1 - p / PIVOT_STOP) * PIVOT_DRIFT : 0;
+      vx = machi.turn.from.x * k; vy = machi.turn.from.y * k;
+    }
+  } else {
+    machi.dir = { x: vx, y: vy };
+  }
+  const speed = SPEED * (machi.attack !== null ? ATTACK_SLOW : 1);
+  machi.x += vx * speed * dt;
+  machi.y += vy * speed * ISO_Y * dt;
+
+  const halfW = canvas.width / 2 - 12, top = -canvas.height / 2 + 70, bottom = canvas.height / 2 - 6;
+  machi.x = Math.max(-halfW, Math.min(halfW, machi.x));
+  machi.y = Math.max(top, Math.min(bottom, machi.y));
+}
+
+function drawGround(cx, cy) {
+  ctx.fillStyle = '#2b3524';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const cols = Math.ceil(canvas.width / TILE_W) + 2, rows = Math.ceil(canvas.height / TILE_H) + 2;
+  for (let r = -rows; r <= rows; r++) {
+    for (let c = -cols; c <= cols; c++) {
+      if ((r + c) % 2 === 0) continue;
+      // Diamond centred on a staggered grid.
+      const x = cx + c * TILE_W / 2, y = cy + r * TILE_H / 2;
+      const n = Math.abs((c * 73856093) ^ (r * 19349663)) % 5;
+      ctx.fillStyle = ['#303b27', '#2e3926', '#333e29', '#2c3624', '#35402a'][n];
+      ctx.beginPath();
+      ctx.moveTo(x, y - TILE_H / 2); ctx.lineTo(x + TILE_W / 2, y);
+      ctx.lineTo(x, y + TILE_H / 2); ctx.lineTo(x - TILE_W / 2, y);
+      ctx.fill();
+    }
+  }
+}
+
+// Switchable looks, to compare ways of hiding the differences between frames.
+// The choice is remembered between reloads.
+const EFFECTS = [
+  ['grain',   'Grano'],
+  ['palette', 'Paleta fija'],
+  ['dither',  'Dithering'],
+  ['outline', 'Contorno'],
+  ['light',   'Luz'],
+  ['crt',     'CRT'],
+];
+const FX_KEY = 'spritoro-fx-2'; // bumped when the defaults change, so they take effect
+const FX = Object.assign({ grain: true, palette: false, dither: false, outline: false, light: true, crt: true },
+  JSON.parse(localStorage.getItem(FX_KEY) || '{}'));
+const OUTLINE = '#07070b';
+const stamp = document.createElement('canvas'), stampCtx = stamp.getContext('2d');
+const edge = document.createElement('canvas'), edgeCtx = edge.getContext('2d');
+
+const fxBar = document.getElementById('fx');
+function applyFx() {
+  snapCache.clear(); // dithering changes what each colour snaps to
+  fxBar.querySelectorAll('button').forEach(b => b.classList.toggle('on', !!FX[b.dataset.fx]));
+  for (const id of ['dark', 'glow']) document.getElementById(id).classList.toggle('on', FX.light);
+  document.getElementById('crt').classList.toggle('on', FX.crt);
+  canvas.classList.toggle('crt', FX.crt);
+  localStorage.setItem(FX_KEY, JSON.stringify(FX));
+}
+function toggleFx(name) {
+  FX[name] = !FX[name];
+  // Dithering is a mode of the palette pass, so it needs it on, and the
+  // palette going off takes dithering with it.
+  if (name === 'dither' && FX.dither) FX.palette = true;
+  if (name === 'palette' && !FX.palette) FX.dither = false;
+  applyFx();
+}
+EFFECTS.forEach(([name, label], i) => {
+  const b = document.createElement('button');
+  b.dataset.fx = name;
+  b.innerHTML = `<b>${i + 1}</b>${label}`;
+  // Keep keyboard focus on the page so WASD and the number keys keep working.
+  b.addEventListener('mousedown', e => e.preventDefault());
+  b.addEventListener('click', () => toggleFx(name));
+  fxBar.appendChild(b);
+});
+addEventListener('keydown', e => {
+  if (e.repeat) return;
+  const n = /^Digit(\d)$/.exec(e.code);
+  if (!n) return;
+  if (n[1] === '0') { for (const [name] of EFFECTS) FX[name] = false; applyFx(); }
+  else if (EFFECTS[n[1] - 1]) toggleFx(EFFECTS[n[1] - 1][0]);
+});
+
+function drawMachi(cx, cy) {
+  const turn = machi.turn && TURNS[machi.turn.key];
+  let name = turn ? turn.sheet : (machi.moving ? 'trot' : 'idle') + '_' + viewOf();
+  const casting = machi.attack !== null && !turn && SHEETS['attack_' + viewOf()];
+  if (casting) name = 'attack_' + viewOf();
+  const s = SHEETS[name];
+  const x = Math.round(cx + machi.x), y = Math.round(cy + machi.y);
+
+  ctx.fillStyle = 'rgba(0,0,0,.28)';
+  ctx.beginPath(); ctx.ellipse(x, y - 1, 11, 4, 0, 0, Math.PI * 2); ctx.fill();
+
+  if (!s.img.complete || !s.img.naturalWidth) return name + ' (falta el sprite)';
+  const fw = s.img.naturalWidth / s.frames, fh = s.img.naturalHeight;
+  const count = s.frames - s.skip;
+  let frame;
+  if (turn) {
+    frame = turn.frames[Math.floor(machi.turn.t * (turn.fps ?? TURN_FPS))];
+  } else if (casting) {
+    frame = Math.min(s.frames - 1, Math.floor(machi.attack / ATTACK_TIME * s.frames));
+  } else if (s.still !== undefined) {
+    frame = s.still;
+  } else if (!machi.moving && !name.startsWith('attack')) {
+    // Idle: she holds the standing pose for IDLE_REST seconds, plays the
+    // gesture once, and rests again, instead of repeating it back to back.
+    const phase = machi.t % (IDLE_REST + count / FPS) - IDLE_REST;
+    frame = phase < 0 ? 0 : s.skip + Math.floor(phase * FPS) % count;
+  } else {
+    frame = s.skip + Math.floor(machi.t * FPS) % count;
+  }
+  const flip = s.faces !== 0 && machi.faceX !== s.faces;
+
+  // The frame goes through a scratch canvas with a 1 px margin so an outline
+  // has room on every side.
+  stamp.width = fw + 2; stamp.height = fh + 2;
+  stampCtx.drawImage(s.img, frame * fw, 0, fw, fh, 1, 1, fw, fh);
+  let src = stamp;
+  if (FX.outline) {
+    edge.width = stamp.width; edge.height = stamp.height;
+    for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) edgeCtx.drawImage(stamp, ox, oy);
+    edgeCtx.globalCompositeOperation = 'source-in';
+    edgeCtx.fillStyle = OUTLINE;
+    edgeCtx.fillRect(0, 0, edge.width, edge.height);
+    edgeCtx.globalCompositeOperation = 'source-over';
+    edgeCtx.drawImage(stamp, 0, 0);
+    src = edge;
+  }
+
+  ctx.save();
+  ctx.translate(x, y);
+  if (flip) ctx.scale(-1, 1);
+  const ax = Array.isArray(s.ax) ? s.ax[frame] : s.ax;
+  ctx.drawImage(src, -Math.round(ax) - 1, -fh - 1 + (s.ay ?? 0));
+  ctx.restore();
+  return name + (flip ? ' (espejado)' : '');
+}
+
+// Palette lock: every pixel of the finished frame snaps to the nearest colour
+// of one fixed palette, so tones that differ slightly between sheets become
+// identical. With dithering on, a 4x4 Bayer threshold is added first, which
+// turns in-between colours into a stable checker pattern instead of a flat
+// step. Results are cached per (colour, threshold) since few colours repeat.
+const PALETTE = [
+  [15, 15, 16], [58, 36, 30],                       // clothes and hair, shoes
+  [52, 65, 81], [36, 45, 60],                       // shawl
+  [203, 140, 101], [150, 100, 66],                  // skin
+  [188, 155, 101], [150, 118, 66],                  // drum
+  [140, 30, 30], [96, 16, 16],                      // sash
+  [240, 242, 245], [180, 183, 195], [112, 116, 128], [62, 63, 67], // silver, eyes
+  [78, 112, 63], [62, 90, 50], [46, 70, 38],        // branch
+  [53, 64, 42], [43, 53, 36], [31, 38, 26],         // ground and her shadow
+];
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+const DITHER_SPREAD = 40; // how far apart two colours can be and still mix
+const snapCache = new Map();
+function snap(r, g, b, t) {
+  const key = ((r << 16 | g << 8 | b) << 4) | t;
+  let hit = snapCache.get(key);
+  if (hit === undefined) {
+    const d = FX.dither ? (t / 16 - 0.47) * DITHER_SPREAD : 0;
+    let best = Infinity;
+    for (let i = 0; i < PALETTE.length; i++) {
+      const c = PALETTE[i], e = (r + d - c[0]) ** 2 + (g + d - c[1]) ** 2 + (b + d - c[2]) ** 2;
+      if (e < best) { best = e; hit = i; }
+    }
+    snapCache.set(key, hit);
+  }
+  return PALETTE[hit];
+}
+function drawPalette() {
+  if (!FX.palette) return;
+  const img = ctx.getImageData(0, 0, canvas.width, canvas.height), d = img.data, w = canvas.width;
+  for (let i = 0, n = 0; i < d.length; i += 4, n++) {
+    const t = FX.dither ? BAYER[((n / w | 0) & 3) * 4 + (n % w & 3)] : 0;
+    const c = snap(d[i], d[i + 1], d[i + 2], t);
+    d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2];
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+// Film-grain pass over the whole picture, on the sprite pixel grid. It is
+// drawn in two blends: `overlay` grains the mid-tones, and a much fainter
+// `screen` lifts some grain into the near-black clothes, which overlay alone
+// leaves untouched. The grain changes a few times a second, not every frame.
+const GRAIN = 0.16;       // 0 = off; strength of the overlay pass
+const GRAIN_DARK = 0.05;  // strength of the pass that reaches the blacks
+const GRAIN_FPS = 10;
+const GRAIN_TILE = 64;
+const grainTiles = Array.from({ length: 8 }, () => {
+  const c = document.createElement('canvas');
+  c.width = c.height = GRAIN_TILE;
+  const g = c.getContext('2d'), d = g.createImageData(GRAIN_TILE, GRAIN_TILE);
+  for (let i = 0; i < d.data.length; i += 4) {
+    d.data[i] = d.data[i + 1] = d.data[i + 2] = Math.random() * 256;
+    d.data[i + 3] = 255;
+  }
+  g.putImageData(d, 0, 0);
+  return c;
+});
+function drawGrain(now) {
+  if (!FX.grain || !GRAIN) return;
+  const step = Math.floor(now / 1000 * GRAIN_FPS);
+  // A different tile and offset each step, so the pattern never repeats in place.
+  const ox = (step * 37) % GRAIN_TILE, oy = (step * 53) % GRAIN_TILE;
+  ctx.save();
+  ctx.translate(-ox, -oy);
+  ctx.fillStyle = ctx.createPattern(grainTiles[step % grainTiles.length], 'repeat');
+  for (const [blend, alpha] of [['overlay', GRAIN], ['screen', GRAIN_DARK]]) {
+    ctx.globalCompositeOperation = blend;
+    ctx.globalAlpha = alpha;
+    ctx.fillRect(0, 0, canvas.width + GRAIN_TILE, canvas.height + GRAIN_TILE);
+  }
+  ctx.restore();
+}
+
+applyFx();
+
+let last = performance.now();
+function tick(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  update(dt);
+  const cx = Math.floor(canvas.width / 2), cy = Math.floor(canvas.height / 2) + 20;
+  drawGround(cx, cy);
+  stateEl.textContent = drawMachi(cx, cy);
+  drawPalette();
+  drawGrain(now);
+  if (FX.light) {
+    // The light overlays are in screen pixels; follow her chest.
+    const sx = innerWidth / canvas.width, sy = innerHeight / canvas.height;
+    document.body.style.setProperty('--lx', (cx + machi.x) * sx + 'px');
+    document.body.style.setProperty('--ly', (cy + machi.y - 45) * sy + 'px');
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

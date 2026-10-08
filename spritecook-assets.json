@@ -1,0 +1,268 @@
+{
+  "assets": [
+    {
+      "asset_id": "913d709b-f4ba-4d26-9db1-b69452d2d4fb",
+      "sha12": "a762fc1223bc",
+      "label": "machi_base",
+      "file": "assets/machi/machi_base.png"
+    },
+    {
+      "asset_id": "14f2804f-601f-4e75-aa3c-110c078f3a3e",
+      "sha12": "4694c05b1fd6",
+      "label": "machi_minimal",
+      "file": "assets/machi/machi_minimal.png"
+    },
+    {
+      "asset_id": "21a2dc47-24a5-46f8-bce0-692bb4a5cad2",
+      "sha12": "1ff00f7e4b5d",
+      "label": "machi_dark_a",
+      "file": "assets/machi/machi_dark_a.png"
+    },
+    {
+      "asset_id": "e2da0d50-c413-47ff-a56b-222fc66d23af",
+      "sha12": "7a032e89ec4f",
+      "label": "machi_dark_b",
+      "file": "assets/machi/machi_dark_b.png"
+    },
+    {
+      "asset_id": "4eb5c5cf-eb62-44a6-a884-e613cacc96a2",
+      "sha12": "ad53344e043b",
+      "label": "machi_stylized_a",
+      "file": "assets/machi/machi_stylized_a.png"
+    },
+    {
+      "asset_id": "afef7ee1-8262-4678-b307-119ad344d0b1",
+      "sha12": "5811fb8f0bea",
+      "label": "machi_stylized_b",
+      "file": "assets/machi/machi_stylized_b.png"
+    },
+    {
+      "asset_id": "4c4d6b84-ec31-4a29-a616-14a61d85cc7d",
+      "sha12": "22d93631f50d",
+      "label": "machi_flat_a",
+      "file": "assets/machi/machi_flat_a.png"
+    },
+    {
+      "asset_id": "691d481b-5dca-416d-b4d9-dd0f371ee412",
+      "sha12": "ef6c87e82ac7",
+      "label": "machi_flat_b",
+      "file": "assets/machi/machi_flat_b.png"
+    },
+    {
+      "asset_id": "06289640-e655-49c7-a2c5-c14c907ca83a",
+      "sha12": "62491d64e34c",
+      "label": "style_ref_children_of_morta_sprites",
+      "file": "references/children_of_morta_sprites.png"
+    },
+    {
+      "asset_id": "b4fa57a1-3746-44db-a8b6-702da8f5e16b",
+      "sha12": "f777c5a660a1",
+      "label": "machi_morta_a",
+      "file": "assets/machi/machi_morta_a.png"
+    },
+    {
+      "asset_id": "7789520a-404e-4ff0-b4ac-351a063c1ae9",
+      "sha12": "1314099aa064",
+      "label": "machi_morta_b",
+      "file": "assets/machi/machi_morta_b.png"
+    },
+    {
+      "asset_id": "d4ed054d-5fdc-461a-8c56-dfb7c6c17cb0",
+      "sha12": "8b4aecf3a1e7",
+      "label": "machi_morta_c",
+      "file": "assets/machi/machi_morta_c.png"
+    },
+    {
+      "asset_id": "ca9085bc-09f7-4566-ba0d-8da86464f06e",
+      "sha12": "10e7d64c289e",
+      "label": "machi_manto_a",
+      "file": "assets/machi/machi_manto_a.png"
+    },
+    {
+      "asset_id": "aaa3aebb-870c-4071-a67b-96f9dc77c70c",
+      "sha12": "1f47da625442",
+      "label": "machi_manto_b",
+      "file": "assets/machi/machi_manto_b.png"
+    },
+    {
+      "asset_id": "614aae7e-98b7-414e-af20-7754b0e84121",
+      "sha12": "4080847400fe",
+      "label": "machi_manto_b_flat (superseded by machi_full_a)",
+      "file": "assets/machi/machi_manto_b_flat.png"
+    },
+    {
+      "asset_id": "e66f98cd-1eb6-4d48-819a-d549cb06f4dd",
+      "sha12": "0c1e31c761bb",
+      "label": "machi_idle_v1 (discarded: feet cut off, lightning)",
+      "file": "assets/machi/idle/v1_cortada/idle_sheet.png"
+    },
+    {
+      "asset_id": "e13e65f7-f90f-4af3-8f60-f1ee4bd11d37",
+      "sha12": "16e1b3895eff",
+      "label": "machi_base_final (full body, no lightning; source for animations)",
+      "file": "assets/machi/machi_full_a.png"
+    },
+    {
+      "asset_id": "04e81f7b-8ec9-4801-bd13-7fb306527d1b",
+      "sha12": "6cfab3243cb8",
+      "label": "machi_full_b",
+      "file": "assets/machi/machi_full_b.png"
+    },
+    {
+      "asset_id": "fb6dab9e-dbb9-43f9-9879-a049ce6962e3",
+      "sha12": "f04d22868674",
+      "label": "machi_idle (8 frames, 94x94, 8 fps)",
+      "file": "assets/machi/idle/idle_sheet.png"
+    },
+    {
+      "asset_id": "92d1c23d-2e75-47d2-884b-10a8b8ae604c",
+      "sha12": "a0b1cb1b7520",
+      "label": "machi_trote (8 frames, 94x94, 8 fps)",
+      "file": "assets/machi/trote/trote_sheet.png"
+    },
+    {
+      "asset_id": "973a5c40-df50-4940-a46b-69d0ef387632",
+      "sha12": "0767750c8cd2",
+      "label": "machi_back_final (rear 3/4 view; source for back animations)",
+      "file": "assets/machi/machi_back_a.png"
+    },
+    {
+      "asset_id": "d98694fd-d5e7-414d-900e-446cf56c964e",
+      "sha12": "8e1879d33053",
+      "label": "machi_back_b",
+      "file": "assets/machi/machi_back_b.png"
+    },
+    {
+      "asset_id": "82a96bcf-198b-4c34-8365-d5e3f5e0b313",
+      "sha12": "ce358bf3c514",
+      "label": "machi_back_c",
+      "file": "assets/machi/machi_back_c.png"
+    },
+    {
+      "asset_id": "92844d65-7619-48f4-96bf-b61b376d6b86",
+      "sha12": "8a2a66da1dbe",
+      "label": "machi_idle_espalda (8 frames, 94x94, 8 fps) — local sheet recolored (shawl), this is the untouched SpriteCook output",
+      "file": "assets/machi/idle_espalda/idle_espalda_sheet_original.png"
+    },
+    {
+      "asset_id": "f41d1862-c6c2-4491-9812-03dcb83a7c41",
+      "sha12": "b3ac8d0be6a3",
+      "label": "machi_trote_espalda (8 frames, 94x94, 8 fps) — local sheet recolored (shawl), this is the untouched SpriteCook output",
+      "file": "assets/machi/trote_espalda/trote_espalda_sheet_original.png"
+    },
+    {
+      "asset_id": "2e51c2ae-57b4-411e-8fc3-18a5e787c05a",
+      "sha12": "c42c59a59bd9",
+      "label": "machi_south_final (straight front view; source for down animations)",
+      "file": "assets/machi/machi_south_d.png"
+    },
+    {
+      "asset_id": "52d9116f-23d2-488d-84fc-2ea59cbb9bdd",
+      "sha12": "9d2c23cfc582",
+      "label": "machi_north_final (straight back view; source for up animations)",
+      "file": "assets/machi/machi_north_c.png"
+    },
+    {
+      "asset_id": "8afa7999-b45b-4738-a032-53271c922247",
+      "sha12": "38e8bf9d870b",
+      "label": "machi_trote_abajo (8 frames, 94x94, 8 fps)",
+      "file": "assets/machi/trote_abajo/trote_abajo_sheet.png"
+    },
+    {
+      "asset_id": "dc31233e-ec6c-4e7e-88b8-63d04f00e947",
+      "sha12": "c730d2021b2e",
+      "label": "machi_trote_arriba (8 frames, 94x94, 8 fps) — local sheet recolored (shawl), this is the untouched SpriteCook output",
+      "file": "assets/machi/trote_arriba/trote_arriba_sheet_original.png"
+    },
+    {
+      "asset_id": "7b21c406-b4df-4d89-affc-b41b4c4f90b0",
+      "sha12": "55496d8790ad",
+      "label": "machi_giro_frente_espalda (6 frames, 94x94; turn from front diagonal to back diagonal)",
+      "file": "assets/machi/giro_frente_espalda/giro_sheet.png"
+    },
+    {
+      "asset_id": "127283d6-104c-4545-b6c1-8a782bbe0208",
+      "sha12": "e0f81515da56",
+      "label": "machi_giro_espalda_arriba (6 frames, 94x94; turn from back diagonal to straight back) — local sheet recolored (shawl), this is the untouched SpriteCook output",
+      "file": "assets/machi/giro_espalda_arriba/giro_sheet_original.png"
+    },
+    {
+      "asset_id": "7e3569db-f888-4ebe-bde5-089a541b788b",
+      "sha12": "de267d68c436",
+      "label": "machi_giro_arriba_espalda (6 frames, 94x94; turn from straight back to back diagonal) — untouched SpriteCook output",
+      "file": "assets/machi/giro_arriba_espalda/giro_sheet_original.png"
+    },
+    {
+      "asset_id": "d4f9dd5e-411f-4f37-b047-192e78f83cd9",
+      "sha12": "ace885ac5cc4",
+      "label": "machi_giro_abajo_frente (6 frames, 94x94; turn from straight front to front diagonal)",
+      "file": "assets/machi/giro_abajo_frente/giro_sheet.png"
+    },
+    {
+      "asset_id": "c440cf66-32e6-4d95-a97a-f966e64762df",
+      "sha12": "e033b1ef0e98",
+      "label": "machi_giro_arriba_abajo (8 frames, 94x94; half turn from straight back to straight front) — untouched SpriteCook output",
+      "file": "assets/machi/giro_arriba_abajo/giro_sheet_original.png"
+    },
+    {
+      "asset_id": "2eb90b7f-ff1a-4597-92df-eec23ad5fdfa",
+      "sha12": "9eba9cb0f427",
+      "label": "machi_ataque_caminata (pilot: slow walk while casting, front diagonal; 8 frames, 94x94) — discarded: gesture too small, no charge",
+      "file": "assets/machi/ataque_caminata/v1_sin_carga/ataque_caminata_sheet_original.png"
+    },
+    {
+      "asset_id": "ebaf18e4-babc-40f6-8dc2-97127d5dc7f7",
+      "sha12": "cbe82a8be126",
+      "label": "machi_ataque_caminata v2 (slow walk, aim + blue charge + release; front diagonal; 8 frames) — untouched SpriteCook output",
+      "file": "assets/machi/ataque_caminata/ataque_caminata_sheet_original.png"
+    },
+    {
+      "asset_id": "aae57bed-cd8f-4179-902b-ce076ddd7f51",
+      "sha12": "a97217904113",
+      "label": "machi_ataque_caminata_espalda (slow walk, aim + charge + release; 8 frames) — untouched SpriteCook output",
+      "file": "assets/machi/ataque_caminata_espalda/sheet_original.png"
+    },
+    {
+      "asset_id": "c813de42-370e-4410-865a-810251bd7d8a",
+      "sha12": "7926ce2e4e9e",
+      "label": "machi_ataque_caminata_abajo (slow walk, aim + charge + release; 8 frames) — untouched SpriteCook output",
+      "file": "assets/machi/ataque_caminata_abajo/sheet_original.png"
+    },
+    {
+      "asset_id": "2f7733ff-75a7-4e0e-903c-7a5b804d0192",
+      "sha12": "29db5b8c0416",
+      "label": "machi_ataque_caminata_arriba (slow walk, aim + charge + release; 8 frames) — untouched SpriteCook output — discarded: branch switches hands",
+      "file": "assets/machi/ataque_caminata_arriba/v1_cambia_de_mano/sheet_original.png"
+    },
+    {
+      "asset_id": "d244941b-fc51-4389-9a91-137fdd799967",
+      "sha12": "331b313aeb18",
+      "label": "machi_diag_abajo_base (down-diagonal view; frame 3 of giro_abajo_frente; source for its animations)",
+      "file": "assets/machi/machi_diag_abajo.png"
+    },
+    {
+      "asset_id": "cded74af-f571-4f0d-890d-7b0c5b7b7a34",
+      "sha12": "19739273b684",
+      "label": "machi_diag_abajo_trote (8 frames, 94x94) — untouched SpriteCook output",
+      "file": "assets/machi/diag_abajo/trote_sheet_original.png"
+    },
+    {
+      "asset_id": "2609a510-10dd-445f-8534-2eb319fc7551",
+      "sha12": "d9902e308d63",
+      "label": "machi_diag_abajo_idle (8 frames, 94x94) — untouched SpriteCook output",
+      "file": "assets/machi/diag_abajo/idle_sheet_original.png"
+    },
+    {
+      "asset_id": "e5cec269-df7f-472a-9dc3-9a4dea7a5e57",
+      "sha12": "1af7d0a6916a",
+      "label": "machi_diag_abajo_ataque (8 frames, 94x94) — untouched SpriteCook output",
+      "file": "assets/machi/diag_abajo/ataque_sheet_original.png"
+    },
+    {
+      "asset_id": "13de5082-aef7-4f22-8a2d-5376b9450c5b",
+      "sha12": "5a781bb68630",
+      "label": "machi_ataque_caminata_arriba v2 (branch stays in the left hand; 8 frames) — untouched SpriteCook output",
+      "file": "assets/machi/ataque_caminata_arriba/sheet_original.png"
+    }
+  ]
+}
