@@ -2,10 +2,10 @@ import { expect, test } from 'vitest';
 import { bosquePatagonico } from '../src/world/maps/bosque';
 import { extent, faults, middle, PLOT_H, PLOT_W, reachable, walk, zoneAt, type WorldMap } from '../src/world/zones';
 
-const grass = ['#000'];
 const map: WorldMap = {
   name: 'Prueba',
-  zones: { C: { name: 'Campamento', safe: true, ground: grass }, B: { name: 'Bosque', ground: grass } },
+  ground: ['#000'],
+  zones: { C: { name: 'Campamento', safe: true }, B: { name: 'Bosque' } },
   plots: [
     'CB.',
     '.B.',

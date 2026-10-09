@@ -5,11 +5,12 @@ import type { WorldMap } from '../zones';
 // each reached through a narrow neck of trees.
 export const bosquePatagonico: WorldMap = {
   name: 'Bosque patagónico',
+  ground: ['#303b27', '#2e3926', '#333e29', '#2c3624', '#35402a'],
   zones: {
-    C: { name: 'Campamento mapuche', safe: true, ground: ['#4a4130', '#463d2d', '#4e4533', '#43392a', '#514836'] },
-    B: { name: 'Bosque', ground: ['#303b27', '#2e3926', '#333e29', '#2c3624', '#35402a'] },
-    O: { name: 'Bosque oscuro', ground: ['#1c241f', '#1a221d', '#1f2722', '#18201b', '#212a24'] },
-    E: { name: 'Bosque de los espíritus', ground: ['#243a3c', '#22373a', '#273e40', '#203436', '#2a4244'] },
+    C: { name: 'Campamento mapuche', safe: true },
+    B: { name: 'Bosque' },
+    O: { name: 'Bosque oscuro' },
+    E: { name: 'Bosque de los espíritus' },
   },
   plots: [
     '................................................................................................',

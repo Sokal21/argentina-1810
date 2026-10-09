@@ -12,8 +12,6 @@ export interface Zone {
   name: string;
   /** Nothing hunts here. */
   safe?: boolean;
-  /** The colours its ground is patched from. */
-  ground: string[];
 }
 
 /** Something to find, and the plot it is in: column, then row. */
@@ -24,6 +22,8 @@ export interface Objective {
 
 export interface WorldMap {
   name: string;
+  /** The colours its ground is patched from, the same all over it. */
+  ground: string[];
   /** Each zone, by the letter that marks its plots. */
   zones: Record<string, Zone>;
   /** Rows of plots, north to south. */

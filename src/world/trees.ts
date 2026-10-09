@@ -7,8 +7,9 @@ import { letterAt, PLOT_H, PLOT_W, type WorldMap } from './zones';
 
 /** How many times its drawn size a tree is shown: in a zone, and in the wall at its edge. */
 export const STANDING = 2, WALL = 3;
-const DEPTH = 3;                 // plots of wall before the thick country is left bare
-const WALLED = [1, 0.7, 0.4];    // chance of a tree in a plot of the wall, by how far in it is
+/** Plots of wall before the thick country is left bare: more than is ever seen from the ground. */
+export const DEPTH = 5;
+const WALLED = [1, 0.85, 0.7, 0.6, 0.5]; // chance of a tree in a plot of the wall, by how far in it is
 const TWICE = 0.5;               // chance of a second tree in the plots right at the edge
 const SCATTERED = 0.12;          // chance of a tree in a plot of a zone that is not safe
 
