@@ -1,7 +1,7 @@
 // The machi's movement, turning and attack rules, with no rendering: feed it
 // the held directions each step and read back which frame to draw and where.
 import {
-  ATTACK_SLOW, ATTACK_TIME, ATTACK_UNWIND, COAST_GRACE, DASH_COOLDOWN, DASH_DISTANCE, DASH_TIME,
+  ATTACK_SLOW, ATTACK_TIME, ATTACK_UNWIND, COAST_GRACE, DASH_COOLDOWN, DASH_DISTANCE, DASH_TIME, DEATH_FPS,
   FPS, IDLE_REST, ISO_Y,
   PIVOT_DRIFT, PIVOT_STOP, RETREAT_BELOW, SHEETS, SNAP_STICK, SPEED, STANDING_TURNS, TURNS, TURN_FPS, VIEW_ORDER,
   type Sheet, type Turn, type View,
@@ -132,6 +132,8 @@ export class MachiController {
   private dashWait = 0;
   /** A ritual in progress: how long it has run and how long it takes. */
   private ritual: { t: number; time: number } | null = null;
+  /** Seconds since she fell dead, or null while she lives. */
+  private fallen: number | null = null;
 
   constructor(private bounds?: Bounds) {}
 
@@ -162,6 +164,22 @@ export class MachiController {
     this.faceY = 1;
   }
 
+  /** She dies where she stands: whatever she was doing ends, and she takes no more orders. */
+  fall(): void {
+    this.fallen = 0;
+    this.dash = null;
+    this.ritual = null;
+    this.attack = null;
+    this.turn = null;
+    this.moving = false;
+  }
+
+  /** She is back on her feet. */
+  rise(): void {
+    this.fallen = null;
+    this.t = 0;
+  }
+
   /** Breaks off a ritual under way. */
   stopChannel(): void {
     this.ritual = null;
@@ -175,6 +193,10 @@ export class MachiController {
   }
 
   update(dt: number, input: MachiInput): void {
+    if (this.fallen !== null) {
+      this.fallen += dt;
+      return;
+    }
     this.dashWait = Math.max(0, this.dashWait - dt);
     if (this.ritual) {
       this.ritual.t += dt;
@@ -394,6 +416,16 @@ export class MachiController {
   }
 
   pose(): MachiPose {
+    if (this.fallen !== null) {
+      // Drawn from the front only: whichever way she faced, she falls toward the viewer.
+      const s = SHEETS.death_front;
+      const frame = Math.min(s.frames - 1, Math.floor(this.fallen * DEATH_FPS));
+      return {
+        x: this.x, y: this.y, sheet: 'death_front', frame,
+        flip: s.faces !== 0 && this.faceX !== s.faces,
+        ax: Array.isArray(s.ax) ? s.ax[frame] : s.ax, ay: s.ay ?? 0,
+      };
+    }
     if (this.dash) return this.dashPose(this.dash.t / DASH_TIME);
     if (this.ritual) {
       const s = SHEETS.heal;

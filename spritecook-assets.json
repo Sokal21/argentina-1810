@@ -461,6 +461,12 @@
       "sha12": "1064854bd0d3",
       "label": "title: lady in mantilla walking, 8 frames — untouched",
       "file": "assets/titulo/original/dama.png"
+    },
+    {
+      "asset_id": "042434e0-9f79-4b54-8886-6124a8214c43",
+      "sha12": "d9fcdc395cae",
+      "label": "inti_muerte_frente (drops drum and branch, kneels, falls face down, 12 frames)",
+      "file": "assets/machi/muerte/frente.png"
     }
   ]
 }

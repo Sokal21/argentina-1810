@@ -25,7 +25,7 @@ const FEET: Pick<Footprint, 'hw' | 'hh'> = { hw: 7, hh: 3.5 }; // the ground she
 const TORSO = { up: 40, w: 14, h: 52 };
 const LIFE = 5;            // embers she can take
 const GRACE = 0.7;         // seconds she cannot be hurt again after a hit
-const RECOVER = 1.6;       // seconds she is down before getting back up
+const RECOVER = 3.4;       // seconds from her death until she is back: the fall, and a while lying there
 const FLASH = 0.25;        // seconds her red flash takes to fade
 // The echoes she leaves behind while dashing: how often one is dropped, how
 // long it lingers, how solid it starts and the colour it is washed with.
@@ -297,16 +297,17 @@ export class GameScene extends Phaser.Scene {
     return true;
   }
 
-  // Placeholder for being defeated: she vanishes, everything in the air
-  // bursts, and after a moment she is back where she started.
+  // She is defeated: she falls dead where she stands, everything in the air
+  // bursts, and after a while she is back where she started.
   private fall(): void {
+    this.machi.fall();
     this.abilities.reset();
-    this.machi.stopChannel();
     this.embers.clear();
     this.bolts.clear();
   }
 
   private rise(): void {
+    this.machi.rise();
     this.machi.x = this.start.x;
     this.machi.y = this.start.y;
     this.flash = 0;
@@ -376,7 +377,8 @@ export class GameScene extends Phaser.Scene {
     const standing = this.vitals.standing;
     // Flickers while she cannot be hurt again, so the grace can be seen.
     const blink = this.vitals.protected && Math.floor(this.time.now / 70) % 2 === 0;
-    this.sprite.setVisible(standing).setAlpha(blink ? 0.45 : 1);
+    // Dead, she stays where she fell; the shadow under her feet goes with her standing.
+    this.sprite.setAlpha(blink ? 0.45 : 1);
     this.shadow.setVisible(standing);
     if (this.hitFx) this.hitFx.amount = this.flash;
     this.hurtbox.setPosition(x, y - TORSO.up);

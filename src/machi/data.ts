@@ -77,6 +77,7 @@ export const RETREAT_BELOW = -0.3;
 
 export const DASH_DISTANCE = 84;  // sprite pixels a dash covers along the ground
 export const DASH_TIME = 0.32;    // seconds it lasts
+export const DEATH_FPS = 8;        // frames per second of her death
 export const DASH_COOLDOWN = 0.45; // seconds after one ends before the next can start
 
 export const BOLT_SPEED = 230;  // sprite pixels per second along the ground
@@ -171,6 +172,8 @@ Object.assign(SHEETS, {
   dash_north: { src: 'machi/dash/arriba.png',   frames: 6, faces: 0, skip: 0, ax: 45.8, order: DASH_ORDER },
   // The healing ritual, drawn facing the viewer only.
   heal: { src: 'machi/curacion/sheet.png', frames: 8, faces: 0, skip: 0, ax: 48 },
+  // Her death: she drops what she holds, falls to her knees and then on her face.
+  death_front: { src: 'machi/muerte/frente.png', frames: 12, faces: -1, skip: 0, ax: 55.6 },
 } satisfies Record<string, Sheet>);
 
 /**
