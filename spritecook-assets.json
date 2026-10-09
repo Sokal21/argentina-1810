@@ -1325,6 +1325,36 @@
       "sha12": "66ff69188c09",
       "label": "forest: araucaria redrawn from concept C, came back small (82px)",
       "file": "assets/bosque/concept/araucaria_e.png"
+    },
+    {
+      "asset_id": "2e943100-d749-459a-8096-9a78ae3f97d8",
+      "sha12": "039ba3f1185d",
+      "label": "pulpero concept (detailed), pulpero_a",
+      "file": "assets/pulpero/concept/pulpero_a.png"
+    },
+    {
+      "asset_id": "51854137-82fa-4d52-9a93-6cb81f916029",
+      "sha12": "320ba83e3824",
+      "label": "pulpero concept (detailed), pulpero_b",
+      "file": "assets/pulpero/concept/pulpero_b.png"
+    },
+    {
+      "asset_id": "6ebb24ee-2b8f-459a-9c07-28cf10b50b37",
+      "sha12": "5d505b7158bf",
+      "label": "pulpero concept (detailed), pulpero_c",
+      "file": "assets/pulpero/concept/pulpero_c.png"
+    },
+    {
+      "asset_id": "00613ab6-26e1-458b-b850-7dfb6a1903f7",
+      "sha12": "fbec227cbf11",
+      "label": "forest: araucaria in the chunky style of E, variant F (82px)",
+      "file": "assets/bosque/concept/araucaria_f.png"
+    },
+    {
+      "asset_id": "85355b78-e5d0-426d-aaf1-f8d5d84138c0",
+      "sha12": "994cc866cdd5",
+      "label": "forest: araucaria in the chunky style of E, variant G (82px)",
+      "file": "assets/bosque/concept/araucaria_g.png"
     }
   ]
 }
