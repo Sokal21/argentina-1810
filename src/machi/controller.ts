@@ -153,6 +153,10 @@ export class MachiController {
    */
   constructor(private bounds?: Bounds, private kit: Kit = INTI) {}
 
+  // How long this character's dash lasts and how far it goes.
+  private get dashTime(): number { return this.kit.dash?.time ?? DASH_TIME; }
+  private get dashDistance(): number { return this.kit.dash?.distance ?? DASH_DISTANCE; }
+
   get view(): View {
     if (this.straight) return this.faceY < 0 ? 'north' : 'south';
     if (this.faceY < 0) return 'back';
@@ -295,7 +299,7 @@ export class MachiController {
     } else {
       this.dir = { x: vx, y: vy };
     }
-    const speed = SPEED * (this.attack !== null ? ATTACK_SLOW : 1);
+    const speed = (this.kit.speed ?? SPEED) * (this.attack !== null ? ATTACK_SLOW : 1);
     this.x += vx * speed * dt;
     this.y += vy * speed * ISO_Y * dt;
 
@@ -332,22 +336,22 @@ export class MachiController {
   }
 
   // Fast at first and slowing to a stop, like a skid: the speed falls in a
-  // straight line to zero, and the whole of it adds up to DASH_DISTANCE.
+  // straight line to zero, and the whole of it adds up to the dash's distance.
   private updateDash(dt: number): void {
     const dash = this.dash!;
-    const from = dash.t / DASH_TIME;
-    dash.t = Math.min(DASH_TIME, dash.t + dt);
-    const to = dash.t / DASH_TIME;
+    const from = dash.t / this.dashTime;
+    dash.t = Math.min(this.dashTime, dash.t + dt);
+    const to = dash.t / this.dashTime;
     // Distance covered between two moments of the dash, as a share of the total.
     const covered = (p: number) => p * (2 - p);
-    const step = (covered(to) - covered(from)) * DASH_DISTANCE;
+    const step = (covered(to) - covered(from)) * this.dashDistance;
     this.x += dash.dir.x * step;
     this.y += dash.dir.y * step * ISO_Y;
     if (this.bounds) {
       this.x = Math.max(this.bounds.minX, Math.min(this.bounds.maxX, this.x));
       this.y = Math.max(this.bounds.minY, Math.min(this.bounds.maxY, this.y));
     }
-    if (dash.t >= DASH_TIME) {
+    if (dash.t >= this.dashTime) {
       this.dash = null;
       this.dashWait = DASH_COOLDOWN;
       // She comes out of it standing; walking resumes on the next step.
@@ -499,7 +503,7 @@ export class MachiController {
         ax: Array.isArray(s.ax) ? s.ax[frame] : s.ax, ay: s.ay ?? 0,
       };
     }
-    if (this.dash) return this.dashPose(this.dash.t / DASH_TIME);
+    if (this.dash) return this.dashPose(this.dash.t / this.dashTime);
     if (this.swing && this.kit.melee) {
       // A view whose cut has not been drawn yet stands still through it.
       const view = this.view;
@@ -537,8 +541,10 @@ export class MachiController {
     } else if (!this.moving) {
       // Idle: she holds the standing pose for IDLE_REST seconds, plays the
       // gesture once, and rests again, instead of repeating it back to back.
-      const phase = this.t % (IDLE_REST + count / FPS) - IDLE_REST;
-      frame = phase < 0 ? 0 : s.skip + Math.floor(phase * FPS) % count;
+      // A sheet may give the gesture as a list of frames instead of a run of them.
+      const steps = s.order ?? [...Array(count).keys()].map(i => s.skip + i);
+      const phase = this.t % (IDLE_REST + steps.length / FPS) - IDLE_REST;
+      frame = phase < 0 ? 0 : steps[Math.floor(phase * FPS) % steps.length];
     } else {
       frame = s.skip + Math.floor(this.t * FPS) % count;
     }

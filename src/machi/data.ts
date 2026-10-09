@@ -241,6 +241,10 @@ export interface Kit {
   pivots: Record<string, Turn>;
   /** Set for a character whose attack is a blow at arm's length, not a spell. */
   melee?: Melee;
+  /** Set for a character who does not walk at SPEED: sprite pixels per second. */
+  speed?: number;
+  /** Set for a character whose dash is not the usual length: seconds it lasts and ground it covers. */
+  dash?: { time: number; distance: number };
 }
 
 /** A blow struck standing still, which lands on everything in a cone in front. */
@@ -258,8 +262,8 @@ export interface Melee {
 
 export const INTI: Kit = { sheets: SHEETS, turns: TURNS, pivots: STANDING_TURNS };
 
-// Cabral, the grenadier. So far he only trots: standing still he holds one
-// frame of it. He has a turn for every change of view, walking; standing
+// Cabral, the grenadier. Standing still he squares his shoulders and sets
+// his shako straight now and then. He has a turn for every change of view, walking; standing
 // he uses the same ones.
 const cabralTrot = (file: string, faces: Sheet['faces'], ax: number, frames = 8): Sheet =>
   ({ src: `cabral/trote_${file}.png`, frames, faces, skip: 0, ax });
@@ -316,10 +320,22 @@ const CABRAL_TURNS: Record<string, Turn> = {
 const ROLL = [1, 2, 3, 4, 5];
 const cabralSheet = (file: string, frames: number, faces: Sheet['faces'], ax: number): Sheet =>
   ({ src: `cabral/${file}.png`, frames, faces, skip: 0, ax });
+// His rest. The gesture ends with his hand still up at his hat, so it is
+// played out and then back again to bring him to where he started.
+const REST = [0, 1, 2, 3, 4, 5, 6, 7, 7, 6, 5, 4, 3, 2, 1];
+const cabralRest = (file: string, faces: Sheet['faces'], ax: number): Sheet =>
+  ({ ...cabralSheet(`reposo_${file}`, 8, faces, ax), order: REST });
+const CABRAL_RESTS: Record<View, Sheet> = {
+  south: cabralRest('sur', 0, 47),
+  down: cabralRest('diagonal', 1, 45),
+  front: cabralRest('frente', 1, 47),
+  back: cabralRest('espalda', 1, 33.5),
+  north: cabralRest('norte', 0, 36.3),
+};
 export const CABRAL: Kit = {
   sheets: {
     ...Object.fromEntries(VIEW_ORDER.flatMap(view => [
-      [`idle_${view}`, { ...CABRAL_TROTS[view], still: 0 }],
+      [`idle_${view}`, CABRAL_RESTS[view]],
       [`trot_${view}`, CABRAL_TROTS[view]],
     ])),
     // His cut. Its frames are wider than the rest, to fit him lunging with
@@ -349,7 +365,12 @@ export const CABRAL: Kit = {
   pivots: CABRAL_TURNS,
   // His sabre: a lunging cut that lands as he comes down on his front leg,
   // the fifth of its eight frames.
-  melee: { time: 0.5, hit: 0.26, reach: 44, arc: Math.PI / 3, damage: 1 },
+  melee: { time: 0.5, hit: 0.26, reach: 84, arc: Math.PI * 5 / 12, damage: 2 },
+  // A roll takes longer than Inti's slide: at her pace its five frames went
+  // by too fast to read. It covers a little more ground for it.
+  dash: { time: 0.5, distance: 96 },
+  // He has to close with what he fights, so he covers ground faster than Inti.
+  speed: 84,
 };
 
 export const KITS = { inti: INTI, cabral: CABRAL };

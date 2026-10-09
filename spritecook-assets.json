@@ -653,6 +653,36 @@
       "sha12": "2acd306fff2c",
       "label": "cabral_rodada_norte (combat roll, his dash, 6 frames) — untouched",
       "file": "assets/cabral/rodada_norte_original.png"
+    },
+    {
+      "asset_id": "10bdc893-7619-4e7d-b30f-50c57390b303",
+      "sha12": "5c00153429cc",
+      "label": "cabral_reposo_frente (idle: squares his shoulders and sets his shako, 8 frames) — untouched",
+      "file": "assets/cabral/reposo_frente_original.png"
+    },
+    {
+      "asset_id": "5814644c-188d-442f-8cad-1b8cf90d6c56",
+      "sha12": "53daa3d4deca",
+      "label": "cabral_reposo_sur (idle: squares his shoulders and sets his shako, 8 frames) — untouched",
+      "file": "assets/cabral/reposo_sur_original.png"
+    },
+    {
+      "asset_id": "abbd7356-5b3d-4dfb-8523-011235ab8b4d",
+      "sha12": "1c00fbd723a0",
+      "label": "cabral_reposo_diagonal (idle: squares his shoulders and sets his shako, 8 frames) — untouched",
+      "file": "assets/cabral/reposo_diagonal_original.png"
+    },
+    {
+      "asset_id": "b0736d95-caab-43e4-8473-c1d89a088a08",
+      "sha12": "e8ffb53b9b55",
+      "label": "cabral_reposo_espalda (idle: squares his shoulders and sets his shako, 8 frames) — untouched",
+      "file": "assets/cabral/reposo_espalda_original.png"
+    },
+    {
+      "asset_id": "7f80b4ef-e8f8-4782-b959-9e4fa5f1067a",
+      "sha12": "3997ce125cba",
+      "label": "cabral_reposo_norte (idle: squares his shoulders and sets his shako, 8 frames) — untouched",
+      "file": "assets/cabral/reposo_norte_original.png"
     }
   ]
 }

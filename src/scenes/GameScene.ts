@@ -27,11 +27,13 @@ const LIFE = 5;            // embers she can take
 const GRACE = 0.7;         // seconds she cannot be hurt again after a hit
 const RECOVER = 3.4;       // seconds from her death until she is back: the fall, and a while lying there
 const FLASH = 0.25;        // seconds her red flash takes to fade
+// The flash of a blade: how long it lasts, how far above the ground it is
+// drawn, the colour around its white core and how many pieces its curve is made of.
+const CUT = { time: 0.2, up: 24, glow: 0xffb45a, steps: 16 };
 // The echoes she leaves behind while dashing: how often one is dropped, how
-// long it lingers, how solid it starts and the colour it is washed with.
-// The arc drawn where a blade swept: how long it lasts and how far above the ground.
-const CUT = { time: 0.16, up: 26 };
-const ECHO = { every: 0.03, fade: 260, alpha: 0.55, tint: 0x8fdcf0 };
+// long it lingers, how solid it starts and the colour it is washed with: the pale blue of her
+// spells for Inti, the orange of his fury for Cabral.
+const ECHO = { every: 0.03, fade: 260, alpha: 0.55, tint: { inti: 0x8fdcf0, cabral: 0xffa64d } };
 // Stand-in enemies, as offsets from where she starts.
 const CUBES: [number, number][] = [[-150, -40], [160, 70]];
 // Where the chonchones start, likewise.
@@ -59,9 +61,10 @@ export class GameScene extends Phaser.Scene {
   /** Where a strike would fall and where ones already cast are about to. */
   private marks!: Phaser.GameObjects.Graphics;
   private motes!: Phaser.GameObjects.Particles.ParticleEmitter;
-  /** Blows that have just landed, for the arc drawn where each swept. */
+  /** Blows that have just landed, for the flash drawn where each swept. */
   private cuts: (Strike & { t: number })[] = [];
   private slashes!: Phaser.GameObjects.Graphics;
+  private sparks!: Phaser.GameObjects.Particles.ParticleEmitter;
   private marker!: Phaser.GameObjects.Ellipse;
   private look?: LookFX;
   private label = '';
@@ -127,6 +130,19 @@ export class GameScene extends Phaser.Scene {
     this.lightning = new Lightning(this);
     this.marks = this.add.graphics().setDepth(-1000);
     this.slashes = this.add.graphics().setDepth(1e6).setBlendMode(Phaser.BlendModes.ADD);
+    const spark = this.textures.createCanvas('cut-spark', 2, 2)!;
+    spark.getContext().fillStyle = '#ffe2b0';
+    spark.getContext().fillRect(0, 0, 2, 2);
+    spark.refresh();
+    this.sparks = this.add.particles(0, 0, 'cut-spark', {
+      lifespan: { min: 160, max: 380 },
+      speedX: { min: -60, max: 60 },
+      speedY: { min: -80, max: 20 },
+      gravityY: 240,
+      scale: { start: 1.5, end: 0 },
+      alpha: { start: 1, end: 0 },
+      emitting: false,
+    }).setDepth(1e6).setBlendMode(Phaser.BlendModes.ADD);
     // Green motes for her healing: rising while she works, bursting when done.
     const mote = this.textures.createCanvas('lawen-mote', 2, 2)!;
     mote.getContext().fillStyle = '#8df07a';
@@ -235,8 +251,7 @@ export class GameScene extends Phaser.Scene {
   // frozen in the pose she had there and fading out: the eye reads the row of
   // them as speed.
   private trail(dt: number): void {
-    // The echoes are Inti's: her dash is a slide. Cabral's is a roll, drawn as one.
-    if (!this.machi.isDashing || this.hero !== 'inti') { this.echoIn = 0; return; }
+    if (!this.machi.isDashing) { this.echoIn = 0; return; }
     this.echoIn -= dt;
     if (this.echoIn > 0) return;
     this.echoIn = ECHO.every;
@@ -245,7 +260,7 @@ export class GameScene extends Phaser.Scene {
       .setFlipX(s.flipX)
       .setDisplayOrigin(s.displayOriginX, s.displayOriginY)
       .setDepth(s.depth - 0.1)   // just behind her
-      .setTint(ECHO.tint)
+      .setTint(ECHO.tint[this.hero])
       .setAlpha(ECHO.alpha);
     this.tweens.add({ targets: echo, alpha: 0, duration: ECHO.fade, onComplete: () => echo.destroy() });
   }
@@ -254,6 +269,7 @@ export class GameScene extends Phaser.Scene {
   // along the ground: what flies over that ground is caught too.
   private land(blow: Strike): void {
     this.cuts.push({ ...blow, t: 0 });
+    let struck = false;
     for (const enemy of [...this.enemies, ...this.chonchones]) {
       if (!enemy.alive) continue;
       const spot = enemy.ground;
@@ -264,25 +280,47 @@ export class GameScene extends Phaser.Scene {
       const off = far < enemy.girth ? 0 : Math.acos((x * blow.dx + y * blow.dy) / far);
       if (off > blow.arc) continue;
       for (let i = 0; i < blow.damage; i++) enemy.hit(x || blow.dx, y * ISO_Y);
+      // Sparks fly off what the blade bites, the way it was swung.
+      const { x: bx, y: by } = enemy.body;
+      for (let i = 0; i < 9; i++) {
+        const spark = this.sparks.emitParticleAt(bx + Phaser.Math.Between(-5, 5), by + Phaser.Math.Between(-6, 6), 1);
+        if (!spark) continue;
+        spark.velocityX += blow.dx * 90;
+        spark.velocityY += blow.dy * 45;
+      }
+      struck = true;
     }
+    // A blow that connects is felt.
+    if (struck) this.cameras.main.shake(70, 0.003);
   }
 
-  // The cut itself, drawn for a moment: the edge of the cone it covered,
-  // sweeping across and fading.
+  // The cut itself: a crescent of light that whips across in front of him at
+  // chest height and is gone. It follows the cone the blow covers without
+  // drawing it: thick in the middle, tapering to nothing at both ends, its
+  // head racing round and its tail catching up.
   private drawCuts(dt: number): void {
     this.slashes.clear();
     this.cuts = this.cuts.filter(cut => (cut.t += dt) < CUT.time);
     for (const cut of this.cuts) {
       const p = cut.t / CUT.time;
+      const head = Math.min(1, p / 0.4), tail = Math.max(0, (p - 0.3) / 0.7);
       const aim = Math.atan2(cut.dy, cut.dx);
-      // The blade has swept this much of the cone so far.
-      const from = aim - cut.arc, to = from + 2 * cut.arc * Math.min(1, p * 2);
-      const points: Phaser.Math.Vector2[] = [];
-      for (let a = from; a <= to + 1e-6; a += 0.12) {
-        points.push(new Phaser.Math.Vector2(
-          cut.x + Math.cos(a) * cut.reach, cut.y - CUT.up + Math.sin(a) * cut.reach * ISO_Y));
-      }
-      if (points.length > 1) this.slashes.lineStyle(2, 0xf2f4f8, 0.9 * (1 - p)).strokePoints(points);
+      // A crescent between two arcs, the inner one pulled in most at the middle.
+      const crescent = (thick: number) => {
+        const outer: Phaser.Math.Vector2[] = [], inner: Phaser.Math.Vector2[] = [];
+        for (let i = 0; i <= CUT.steps; i++) {
+          const u = tail + (head - tail) * i / CUT.steps;
+          const a = aim - cut.arc + 2 * cut.arc * u;
+          const at = (r: number) => new Phaser.Math.Vector2(
+            cut.x + Math.cos(a) * r, cut.y - CUT.up + Math.sin(a) * r * ISO_Y);
+          outer.push(at(cut.reach));
+          inner.push(at(cut.reach * (1 - thick * Math.sin(Math.PI * u))));
+        }
+        return [...outer, ...inner.reverse()];
+      };
+      const fade = 1 - p * p;
+      this.slashes.fillStyle(CUT.glow, 0.55 * fade).fillPoints(crescent(0.42), true);
+      this.slashes.fillStyle(0xffffff, 0.95 * fade).fillPoints(crescent(0.2), true);
     }
   }
 
