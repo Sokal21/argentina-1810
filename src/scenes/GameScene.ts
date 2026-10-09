@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { BALL, Bolts, EMBER } from '../bolts';
+import { BALL, Bolts, EMBER, SHOT } from '../bolts';
+import { Realista } from '../realista/Realista';
 import { Chonchon } from '../chonchon/Chonchon';
 import { Enemy } from '../enemies';
 import { FIRE_TALL, fireShader } from '../fx/fire';
@@ -69,6 +70,11 @@ const CUBES: [number, number][] = [[-150, -40], [160, 70]];
 const STURDY = { at: [60, -120] as [number, number], life: 40 };
 // Where the chonchones start, likewise.
 const CHONCHONES: [number, number][] = [[110, -70], [-90, 80]];
+// And the royalist soldiers, who are all Cabral meets.
+const REALISTAS: [number, number][] = [[190, 50], [-170, -60], [40, 150]];
+
+/** Anything that can be fought. */
+type Foe = Enemy | Chonchon | Realista;
 
 export class GameScene extends Phaser.Scene {
   private keys!: Keys;
@@ -90,7 +96,7 @@ export class GameScene extends Phaser.Scene {
   private grenades: Grenade[] = [];
   private fires: Fire[] = [];
   /** Enemies on fire: how much longer each burns, and when it next hurts. */
-  private alight = new Burning<Enemy | Chonchon>();
+  private alight = new Burning<Foe>();
   /** Embers drifting up from whatever is burning. */
   private embersUp!: Phaser.GameObjects.Particles.ParticleEmitter;
   /** The attack went down this step; it was down last step; it has fired the musket and must be let go before it cuts. */
@@ -109,6 +115,9 @@ export class GameScene extends Phaser.Scene {
   private echoIn = 0;
   private enemies: Enemy[] = [];
   private chonchones: Chonchon[] = [];
+  private realistas: Realista[] = [];
+  /** What the royalists fire. */
+  private shots!: Bolts;
   private abilities = new Abilities();
   /** Cabral's fury. It ebbs whoever is being played, so swapping away does not keep it. */
   private fury = new Fury();
@@ -140,6 +149,7 @@ export class GameScene extends Phaser.Scene {
       this.load.spritesheet(src, src, { frameWidth: w ?? FRAME, frameHeight: FRAME });
     }
     Chonchon.preload(this);
+    Realista.preload(this);
   }
 
   create(): void {
@@ -161,20 +171,26 @@ export class GameScene extends Phaser.Scene {
       this.hitFx = (Array.isArray(found) ? found[0] : found) as HitFX;
     }
     Enemy.setup(this);
-    this.enemies = CUBES.map(([dx, dy]) => new Enemy(this, this.machi.x + dx, this.machi.y + dy));
+    // Each of them has enemies of their own: Cabral the king's soldiers,
+    // Inti the stone blocks and the chonchones.
+    const his = this.hero === 'cabral';
+    const at = <T>(spots: [number, number][], make: (x: number, y: number) => T): T[] =>
+      spots.map(([dx, dy]) => make(this.machi.x + dx, this.machi.y + dy));
+    this.enemies = his ? [] : at(CUBES, (x, y) => new Enemy(this, x, y));
     // One that takes a great deal of killing, to try things out on.
-    this.enemies.push(new Enemy(this, this.machi.x + STURDY.at[0], this.machi.y + STURDY.at[1], STURDY.life));
+    if (!his) this.enemies.push(new Enemy(this, this.machi.x + STURDY.at[0], this.machi.y + STURDY.at[1], STURDY.life));
     // The physics engine reports a bolt's spot on the ground entering an
     // enemy's; the bolt ends there and the enemy takes the hit.
     const bounds = { minX: 0, maxX: WORLD_W, minY: 0, maxY: WORLD_H };
-    this.chonchones = CHONCHONES.map(([dx, dy]) => new Chonchon(this, this.machi.x + dx, this.machi.y + dy, bounds));
-    const zones = [...this.enemies, ...this.chonchones].map(e => e.zone);
+    this.chonchones = his ? [] : at(CHONCHONES, (x, y) => new Chonchon(this, x, y, bounds));
+    this.realistas = his ? at(REALISTAS, (x, y) => new Realista(this, x, y, bounds)) : [];
+    const zones = this.foes.map(e => e.zone);
     this.physics.add.overlap(this.bolts.bodies, zones, (a, b) => {
       // Phaser hands the pair over in either order when a group meets a
       // single object, so tell them apart by what they carry.
       const pair = [a, b] as Phaser.GameObjects.GameObject[];
       const spot = pair.find(o => o.getData('bolt'));
-      const enemy = pair.find(o => o.getData('enemy'))?.getData('enemy') as Enemy | Chonchon | undefined;
+      const enemy = pair.find(o => o.getData('enemy'))?.getData('enemy') as Foe | undefined;
       const heading = spot && enemy ? this.bolts.strike(spot) : null;
       if (heading && enemy) enemy.hit(heading.dx, heading.dy);
     });
@@ -188,6 +204,12 @@ export class GameScene extends Phaser.Scene {
       const spot = ([a, b] as Phaser.GameObjects.GameObject[]).find(o => o.getData('bolt'));
       // An ember that does not hurt her flies on.
       if (spot && this.hurt()) this.embers.strike(spot);
+    });
+
+    this.shots = new Bolts(this, WORLD_W, WORLD_H, SHOT);
+    this.physics.add.overlap(this.shots.bodies, this.hurtbox, (a, b) => {
+      const spot = ([a, b] as Phaser.GameObjects.GameObject[]).find(o => o.getData('bolt'));
+      if (spot && this.hurt()) this.shots.strike(spot);
     });
 
     this.lightning = new Lightning(this);
@@ -317,6 +339,12 @@ export class GameScene extends Phaser.Scene {
     for (const chonchon of this.chonchones) {
       if (chonchon.update(dt, feet)) this.hurt();
     }
+    // Royalists shoot from where they stand, and cut whoever is beside them.
+    for (const realista of this.realistas) {
+      const { shot, cut } = realista.update(dt, feet);
+      if (shot) this.shots.spawn(shot);
+      if (cut) this.hurt();
+    }
     this.useAbilities(dt, standing);
     this.fury.update(dt);
     const blow = this.machi.takeStrike();
@@ -331,17 +359,18 @@ export class GameScene extends Phaser.Scene {
         x: (this.machi.x + cast.x) / 2, y: (chestY + tipY) / 2,
         hw: Math.abs(cast.x - this.machi.x) / 2 + 2, hh: Math.abs(tipY - chestY) / 2 + 2,
       };
-      const blocker = [...this.enemies, ...this.chonchones].find(e => e.alive && overlaps(reach, e.body));
+      const blocker = this.foes.find(e => e.alive && overlaps(reach, e.body));
       if (blocker) blocker.hit(cast.dx, cast.dy * ISO_Y);
       else this.bolts.spawn(cast);
     }
     this.bolts.update(dt);
     this.embers.update(dt);
+    this.shots.update(dt);
     this.balls.update(dt);
     // A musket ball bursts on the first thing it is seen to touch, anywhere
     // along the stretch it flew this step.
     this.balls.sweep(4, (x, y) => {
-      const struck = [...this.enemies, ...this.chonchones].find(e => e.alive && overlaps({ x, y, hw: MUSKET.girth, hh: MUSKET.girth }, e.body));
+      const struck = this.foes.find(e => e.alive && overlaps({ x, y, hw: MUSKET.girth, hh: MUSKET.girth }, e.body));
       if (struck) this.blast(struck.ground, MUSKET.radius, MUSKET.damage);
       return !!struck;
     });
@@ -457,7 +486,7 @@ export class GameScene extends Phaser.Scene {
         this.embersUp.emitParticleAt(fire.x + Math.cos(a) * r, fire.y + Math.sin(a) * r * ISO_Y, 1);
       }
       // Whatever stands in it, or flies over it, catches.
-      for (const enemy of [...this.enemies, ...this.chonchones]) {
+      for (const enemy of this.foes) {
         if (enemy.alive && ground(fire, enemy.ground) <= GRENADE.radius + enemy.girth) this.alight.ignite(enemy);
       }
     }
@@ -496,7 +525,7 @@ export class GameScene extends Phaser.Scene {
   private blast(at: Vec, radius: number, damage: number, sets = false): void {
     this.blasts.push({ ...at, r: radius, t: 0 });
     this.cameras.main.shake(110, 0.005);
-    for (const enemy of [...this.enemies, ...this.chonchones]) {
+    for (const enemy of this.foes) {
       const spot = enemy.ground;
       if (!enemy.alive || ground(at, spot) > radius + enemy.girth) continue;
       for (let i = 0; i < damage; i++) enemy.hit(spot.x - at.x || 1, spot.y - at.y);
@@ -511,7 +540,7 @@ export class GameScene extends Phaser.Scene {
   private land(blow: Strike): void {
     this.cuts.push({ ...blow, t: 0 });
     let struck = false;
-    for (const enemy of [...this.enemies, ...this.chonchones]) {
+    for (const enemy of this.foes) {
       if (!enemy.alive) continue;
       const spot = enemy.ground;
       const x = spot.x - blow.x, y = (spot.y - blow.y) / ISO_Y;
@@ -616,7 +645,7 @@ export class GameScene extends Phaser.Scene {
     for (const patch of events.struck) {
       this.lightning.strike(patch.x, patch.y, STRIKE.radius);
       // Whatever stands on the patch, or flies over it, takes the bolt.
-      for (const enemy of [...this.enemies, ...this.chonchones]) {
+      for (const enemy of this.foes) {
         const spot = enemy.ground;
         if (!enemy.alive || ground(patch, spot) > STRIKE.radius + enemy.girth) continue;
         for (let i = 0; i < STRIKE.damage; i++) enemy.hit(spot.x - patch.x || 1, spot.y - patch.y);
@@ -683,6 +712,7 @@ export class GameScene extends Phaser.Scene {
     this.abilities.reset();
     this.fury.reset();
     this.embers.clear();
+    this.shots.clear();
     this.bolts.clear();
     this.balls.clear();
     this.readying = null;
@@ -720,6 +750,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** How much of her life is left, from 0 to 1. */
+  /** Everything there is to fight. */
+  private get foes(): Foe[] {
+    return [...this.enemies, ...this.chonchones, ...this.realistas];
+  }
+
   get life(): number {
     return this.vitals.life / LIFE;
   }

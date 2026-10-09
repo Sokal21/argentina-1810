@@ -10,6 +10,7 @@ diseñar a alguien que conviva con ellos.
 | **Inti** | Machi mapuche. Maga de rango, usa maná | [inti.md](inti.md) |
 | **Cabral** | Granadero a caballo. Guerrero cuerpo a cuerpo, usa furia | [cabral.md](cabral.md) |
 | **Chonchón** | Cabeza voladora de un kalku. Enemigo | [chonchon.md](chonchon.md) |
+| **Soldado realista** | Infante español. Enemigo: dispara de lejos, sable de cerca | [realista.md](realista.md) |
 
 ## El juego
 
@@ -35,6 +36,7 @@ favicon, pantalla de inicio) no se ata a ninguno de ellos.
 | Inti | Celeste `#46e6fa` | Luz de la rama, hechizos, rayo, orbe de maná, estela del dash |
 | Cabral | Naranja chillón `#ff7a00` | Furia, latigazo del sable, fuego, estela de la rodada |
 | Chonchón | Amarillo verdoso enfermo | Ojos |
+| Realista | Rojo sobre blanco crema | Vueltas de la casaca, escarapela |
 
 ## Cómo mantener estos documentos
 

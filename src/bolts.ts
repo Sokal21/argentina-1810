@@ -32,6 +32,11 @@ export const BALL: BoltKind = {
   key: 'ball', colours: ['#b9b2a3', '#4a4640', '#2a2724'], speed: 1500, range: 420,
 };
 
+/** A royalist's musket ball: fast, but not so fast it cannot be stepped out of. */
+export const SHOT: BoltKind = {
+  key: 'shot', colours: ['#d8cfb8', '#6b6458', '#2a2724'], speed: 330, range: 330,
+};
+
 interface Bolt {
   orb: Phaser.GameObjects.Image;
   shadow: Phaser.GameObjects.Ellipse;

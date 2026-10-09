@@ -995,6 +995,108 @@
       "sha12": "807fdec57e38",
       "label": "select background, camp animation (12 frames; source crop f3571214-4a3f-4980-9084-f5fdde59d4b4 at 176,58 of fondo_a)",
       "file": "assets/seleccion/original/campamento.webp"
+    },
+    {
+      "asset_id": "8beeb229-57a5-4d9f-b644-baab24ff9eb1",
+      "sha12": "5a10cfb7b67a",
+      "label": "royalist soldier concept (detailed), realista_a",
+      "file": "assets/realista/concept/realista_a.png"
+    },
+    {
+      "asset_id": "90d15de4-47ed-4c29-93d2-3027514885b1",
+      "sha12": "f5ab589834b4",
+      "label": "royalist soldier concept (detailed), realista_b",
+      "file": "assets/realista/concept/realista_b.png"
+    },
+    {
+      "asset_id": "5ac99e3c-8b47-418e-9881-623afca7e2a9",
+      "sha12": "bd1ec6f8c00b",
+      "label": "royalist soldier concept (detailed), realista_c",
+      "file": "assets/realista/concept/realista_c.png"
+    },
+    {
+      "asset_id": "98eaf9a7-890f-498c-9111-5c9f770fb81a",
+      "sha12": "cc8bf269ca97",
+      "label": "royalist soldier, simplified, simple_1",
+      "file": "assets/realista/concept/simple_1.png"
+    },
+    {
+      "asset_id": "67dcb6f3-3aa2-4bf9-b31d-7e3c4863a655",
+      "sha12": "2c5561b22533",
+      "label": "royalist soldier, simplified, simple_2",
+      "file": "assets/realista/concept/simple_2.png"
+    },
+    {
+      "asset_id": "cb85aff2-fb6e-4236-a164-a8e1aef20d6a",
+      "sha12": "e48079cb765a",
+      "label": "royalist soldier, simplified, simple_3",
+      "file": "assets/realista/concept/simple_3.png"
+    },
+    {
+      "asset_id": "485c6f5e-41df-4f35-98d5-92f4aa876b4a",
+      "sha12": "9d47e4d8e67b",
+      "label": "royalist soldier back 3/4 candidate, espalda_1",
+      "file": "assets/realista/concept/espalda_1.png"
+    },
+    {
+      "asset_id": "7db75f40-ea37-4f83-a82d-0a46b9b3995e",
+      "sha12": "e75386cff710",
+      "label": "royalist soldier back 3/4 candidate, espalda_2",
+      "file": "assets/realista/concept/espalda_2.png"
+    },
+    {
+      "asset_id": "98eaf9a7-890f-498c-9111-5c9f770fb81a",
+      "sha12": "cc8bf269ca97",
+      "label": "realista front 3/4 (final design, animation source)",
+      "file": "assets/realista/frente.png"
+    },
+    {
+      "asset_id": "485c6f5e-41df-4f35-98d5-92f4aa876b4a",
+      "sha12": "9d47e4d8e67b",
+      "label": "realista back 3/4 (animation source)",
+      "file": "assets/realista/espalda.png"
+    },
+    {
+      "asset_id": "ba375e09-e690-4d05-8aaa-15738b52b7a3",
+      "sha12": "53c11212129e",
+      "label": "realista_marcha_frente",
+      "file": "assets/realista/marcha_frente.png"
+    },
+    {
+      "asset_id": "c588c03b-ad96-4ad7-a332-9e41fc972037",
+      "sha12": "4d8f6be13f29",
+      "label": "realista_disparo_frente",
+      "file": "assets/realista/disparo_frente.png"
+    },
+    {
+      "asset_id": "8780d0df-8a20-4842-b111-f8d862475be0",
+      "sha12": "5e36e32b92f6",
+      "label": "realista_tajo_frente",
+      "file": "assets/realista/tajo_frente.png"
+    },
+    {
+      "asset_id": "26af6b1a-3bd2-41e5-acdd-ed394b62bd0f",
+      "sha12": "3a15661fe781",
+      "label": "realista_marcha_espalda",
+      "file": "assets/realista/marcha_espalda.png"
+    },
+    {
+      "asset_id": "575ba881-5049-4dc2-8e38-d17efdbc383d",
+      "sha12": "307f8cfee027",
+      "label": "realista_disparo_espalda",
+      "file": "assets/realista/disparo_espalda.png"
+    },
+    {
+      "asset_id": "5daa7087-47be-4f4e-b23e-257f3802d5b5",
+      "sha12": "c4a07b528fe0",
+      "label": "realista_tajo_espalda",
+      "file": "assets/realista/tajo_espalda.png"
+    },
+    {
+      "asset_id": "744535ed-7d21-494e-90ba-043b1b8359a1",
+      "sha12": "76ff58bed28a",
+      "label": "realista_muerte",
+      "file": "assets/realista/muerte.png"
     }
   ]
 }
