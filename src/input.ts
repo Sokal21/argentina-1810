@@ -13,12 +13,18 @@ const KEYMAP: Record<string, Dir> = {
 export class Keys {
   private held = new Set<Dir>();
   private attack = false;
+  /** Shift was pressed since the last read. */
+  private dash = false;
 
   constructor(target: Window = window) {
     target.addEventListener('keydown', e => {
       if (e.code === 'Space') {
         e.preventDefault();
         if (!e.repeat) this.attack = true;
+        return;
+      }
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+        if (!e.repeat) this.dash = true;
         return;
       }
       const dir = KEYMAP[e.code];
@@ -40,6 +46,9 @@ export class Keys {
   }
 
   read(): MachiInput {
-    return { dx: this.axis('left', 'right'), dy: this.axis('up', 'down'), attack: this.attack };
+    // A dash is one press, not a held key: it is reported once and forgotten.
+    const dash = this.dash;
+    this.dash = false;
+    return { dx: this.axis('left', 'right'), dy: this.axis('up', 'down'), attack: this.attack, dash };
   }
 }

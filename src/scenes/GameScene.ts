@@ -25,6 +25,9 @@ const GRACE = 0.7;         // seconds she cannot be hurt again after a hit
 const RECOVER = 1.6;       // seconds she is down before getting back up
 const FLASH = 0.25;        // seconds her red flash takes to fade
 const BAR = { w: 24, up: 90 }; // her life bar, and how far above her feet it sits
+// The echoes she leaves behind while dashing: how often one is dropped, how
+// long it lingers, how solid it starts and the colour it is washed with.
+const ECHO = { every: 0.03, fade: 260, alpha: 0.55, tint: 0x8fdcf0 };
 // Stand-in enemies, as offsets from where she starts.
 const CUBES: [number, number][] = [[-110, -30], [120, -50], [150, 60], [-60, 90], [0, -110]];
 
@@ -43,6 +46,7 @@ export class GameScene extends Phaser.Scene {
   private flash = 0;
   private hitFx?: HitFX;
   private start = { x: WORLD_W / 2, y: WORLD_H / 2 };
+  private echoIn = 0;
   private enemies: Enemy[] = [];
   private marker!: Phaser.GameObjects.Ellipse;
   private look?: LookFX;
@@ -99,8 +103,8 @@ export class GameScene extends Phaser.Scene {
     this.hurtbox.setData('machi', true);
     this.physics.add.overlap(this.embers.bodies, this.hurtbox, (a, b) => {
       const spot = ([a, b] as Phaser.GameObjects.GameObject[]).find(o => o.getData('bolt'));
-      // An ember that reaches her while she cannot be hurt flies on.
-      if (!spot || !this.vitals.hit()) return;
+      // An ember that reaches her mid-dash, or while she cannot be hurt, flies on.
+      if (!spot || this.machi.isDashing || !this.vitals.hit()) return;
       this.embers.strike(spot);
       this.flash = 1;
       if (!this.vitals.standing) this.fall();
@@ -177,6 +181,25 @@ export class GameScene extends Phaser.Scene {
     this.flash = Math.max(0, this.flash - dt / FLASH);
     this.shownLife += (this.vitals.life - this.shownLife) * Math.min(1, dt * 14);
     this.draw();
+    this.trail(dt);
+  }
+
+  // While she dashes she leaves copies of herself where she just was, each
+  // frozen in the pose she had there and fading out: the eye reads the row of
+  // them as speed.
+  private trail(dt: number): void {
+    if (!this.machi.isDashing) { this.echoIn = 0; return; }
+    this.echoIn -= dt;
+    if (this.echoIn > 0) return;
+    this.echoIn = ECHO.every;
+    const s = this.sprite;
+    const echo = this.add.image(s.x, s.y, s.texture.key, s.frame.name)
+      .setFlipX(s.flipX)
+      .setDisplayOrigin(s.displayOriginX, s.displayOriginY)
+      .setDepth(s.depth - 0.1)   // just behind her
+      .setTint(ECHO.tint)
+      .setAlpha(ECHO.alpha);
+    this.tweens.add({ targets: echo, alpha: 0, duration: ECHO.fade, onComplete: () => echo.destroy() });
   }
 
   // Placeholder for being defeated: she vanishes, everything in the air

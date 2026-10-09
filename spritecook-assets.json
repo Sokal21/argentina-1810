@@ -311,6 +311,36 @@
       "sha12": "d00522d64594",
       "label": "machi_ataque_retroceso_arriba (backing away while casting; 8 frames) — untouched SpriteCook output",
       "file": "assets/machi/ataque_retroceso/arriba_original.png"
+    },
+    {
+      "asset_id": "7c731411-1f01-4b1d-9efa-5cace35f3abe",
+      "sha12": "773738fe8bf9",
+      "label": "machi_dash_frente (sliding dash, 6 frames) — untouched SpriteCook output",
+      "file": "assets/machi/dash/frente_original.png"
+    },
+    {
+      "asset_id": "2a4b6bfb-f131-4804-abc4-d2378eb83df2",
+      "sha12": "eae67349b21d",
+      "label": "machi_dash_diagonal (sliding dash, 6 frames) — untouched SpriteCook output",
+      "file": "assets/machi/dash/diagonal_original.png"
+    },
+    {
+      "asset_id": "f3e7bd6f-d56c-4295-8874-9602fcb1604b",
+      "sha12": "ea5401d0d80f",
+      "label": "machi_dash_espalda (sliding dash, 6 frames) — untouched SpriteCook output",
+      "file": "assets/machi/dash/espalda_original.png"
+    },
+    {
+      "asset_id": "0c893bca-574b-4ee3-88e1-21b4ca8a147e",
+      "sha12": "7abcffc669ff",
+      "label": "machi_dash_abajo (sliding dash, 6 frames) — untouched SpriteCook output",
+      "file": "assets/machi/dash/abajo_original.png"
+    },
+    {
+      "asset_id": "44d14ba9-fe85-42ba-b309-8912543f8d43",
+      "sha12": "e348dcc8e988",
+      "label": "machi_dash_arriba (sliding dash, legs together like the south one, 6 frames) — untouched SpriteCook output",
+      "file": "assets/machi/dash/arriba_original.png"
     }
   ]
 }

@@ -1,7 +1,8 @@
 // The machi's movement, turning and attack rules, with no rendering: feed it
 // the held directions each step and read back which frame to draw and where.
 import {
-  ATTACK_SLOW, ATTACK_TIME, ATTACK_UNWIND, COAST_GRACE, FPS, IDLE_REST, ISO_Y,
+  ATTACK_SLOW, ATTACK_TIME, ATTACK_UNWIND, COAST_GRACE, DASH_COOLDOWN, DASH_DISTANCE, DASH_TIME,
+  FPS, IDLE_REST, ISO_Y,
   PIVOT_DRIFT, PIVOT_STOP, RETREAT_BELOW, SHEETS, SNAP_STICK, SPEED, STANDING_TURNS, TURNS, TURN_FPS, VIEW_ORDER,
   type Sheet, type Turn, type View,
 } from './data';
@@ -31,6 +32,8 @@ export interface MachiInput {
    * point of the picture, not a spot on the floor.
    */
   target?: Vec | null;
+  /** Start a dash this step: one press, not a held key. */
+  dash?: boolean;
 }
 
 export interface Bounds { minX: number; maxX: number; minY: number; maxY: number }
@@ -123,6 +126,10 @@ export class MachiController {
   private snappedAim: [number, number] | null = null;
   /** Walking against her aim, so she is drawn backing away. */
   private retreating = false;
+  /** The dash in progress: how long it has run and where it is going. */
+  private dash: { t: number; dir: Vec } | null = null;
+  /** Seconds until she can dash again. */
+  private dashWait = 0;
 
   constructor(private bounds?: Bounds) {}
 
@@ -134,6 +141,7 @@ export class MachiController {
 
   get isMoving(): boolean { return this.moving; }
   get isAttacking(): boolean { return this.attack !== null; }
+  get isDashing(): boolean { return this.dash !== null; }
 
   /** The spell released during the last update, if any. Reading it clears it. */
   takeCast(): Cast | null {
@@ -143,6 +151,12 @@ export class MachiController {
   }
 
   update(dt: number, input: MachiInput): void {
+    this.dashWait = Math.max(0, this.dashWait - dt);
+    if (input.dash && !this.dash && this.dashWait === 0) this.startDash(input);
+    if (this.dash) {
+      this.updateDash(dt);
+      return;
+    }
     this.updateAttack(dt, input.attack, input.aim ?? null, input.target ?? null);
 
     // A free walking direction is drawn as the nearest of the eight.
@@ -209,6 +223,55 @@ export class MachiController {
   // frame. Once it is released she returns to rest the short way: unwinding
   // the cast backwards, or, if the light has already left the branch, letting
   // the last frames play out.
+  // A dash goes the way she is walking, or the way she faces if she is
+  // standing. It drops whatever she was doing: no cast and no turn survive it.
+  private startDash(input: MachiInput): void {
+    let dir: Vec;
+    if (input.move) dir = input.move;
+    else if (input.dx || input.dy) {
+      const len = Math.hypot(input.dx, input.dy);
+      dir = { x: input.dx / len, y: input.dy / len };
+    } else {
+      const fx = this.straight ? 0 : this.faceX, fy = this.straight || !this.level ? this.faceY : 0;
+      const len = Math.hypot(fx, fy);
+      dir = { x: fx / len, y: fy / len };
+    }
+    const [dx, dy] = snap8(dir, null);
+    this.face(dx, dy);
+    this.turn = null;
+    this.attack = null;
+    this.cast = null;
+    this.snappedMove = this.snappedAim = null;
+    this.dash = { t: 0, dir };
+  }
+
+  // Fast at first and slowing to a stop, like a skid: the speed falls in a
+  // straight line to zero, and the whole of it adds up to DASH_DISTANCE.
+  private updateDash(dt: number): void {
+    const dash = this.dash!;
+    const from = dash.t / DASH_TIME;
+    dash.t = Math.min(DASH_TIME, dash.t + dt);
+    const to = dash.t / DASH_TIME;
+    // Distance covered between two moments of the dash, as a share of the total.
+    const covered = (p: number) => p * (2 - p);
+    const step = (covered(to) - covered(from)) * DASH_DISTANCE;
+    this.x += dash.dir.x * step;
+    this.y += dash.dir.y * step * ISO_Y;
+    if (this.bounds) {
+      this.x = Math.max(this.bounds.minX, Math.min(this.bounds.maxX, this.x));
+      this.y = Math.max(this.bounds.minY, Math.min(this.bounds.maxY, this.y));
+    }
+    if (dash.t >= DASH_TIME) {
+      this.dash = null;
+      this.dashWait = DASH_COOLDOWN;
+      // She comes out of it standing; walking resumes on the next step.
+      this.moving = false;
+      this.t = 0;
+      this.idle = 0;
+      this.dir = dash.dir;
+    }
+  }
+
   // Faces the given direction. If that changes the view, the turn frames
   // between the two start playing; otherwise a turn in progress moves on.
   private turnTo(dx: number, dy: number, dt: number, coasting: boolean): void {
@@ -301,6 +364,7 @@ export class MachiController {
   }
 
   pose(): MachiPose {
+    if (this.dash) return this.dashPose(this.dash.t / DASH_TIME);
     const turn = this.turn && this.turn.table[this.turn.key];
     const view = this.view;
     let name = turn ? turn.sheet : `${this.moving ? 'trot' : 'idle'}_${view}`;
@@ -326,6 +390,27 @@ export class MachiController {
       frame = s.skip + Math.floor(this.t * FPS) % count;
     }
 
+    return {
+      x: this.x,
+      y: this.y,
+      sheet: name,
+      frame,
+      flip: s.faces !== 0 && this.faceX !== s.faces,
+      ax: Array.isArray(s.ax) ? s.ax[frame] : s.ax,
+      ay: s.ay ?? 0,
+    };
+  }
+
+  // The dash plays its sheet once from start to end. A view whose dash has
+  // not been drawn yet holds a frame of its trot instead.
+  private dashPose(p: number): MachiPose {
+    const drawn = SHEETS[`dash_${this.view}`];
+    const name = drawn ? `dash_${this.view}` : `trot_${this.view}`;
+    const s = SHEETS[name];
+    const order = s.order ?? [...Array(s.frames).keys()];
+    const frame = drawn
+      ? order[Math.min(order.length - 1, Math.floor(p * order.length))]
+      : Math.min(s.frames - 1, s.skip + 1);
     return {
       x: this.x,
       y: this.y,

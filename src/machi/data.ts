@@ -27,6 +27,11 @@ export interface Sheet {
   ay?: number;
   /** Hold this single frame (views with no idle sheet of their own). */
   still?: number;
+  /**
+   * Frames in the order they are shown, spread evenly over the action, for a
+   * sheet that is not simply played from first to last.
+   */
+  order?: number[];
   /** Attack sheets: first frame after the light has left the branch. */
   cast?: number;
   /**
@@ -69,6 +74,10 @@ export const SNAP_STICK = 0.14;
 // instead of striding forwards. This is how far against: the cosine of the
 // angle between where she walks and where she aims.
 export const RETREAT_BELOW = -0.3;
+
+export const DASH_DISTANCE = 84;  // sprite pixels a dash covers along the ground
+export const DASH_TIME = 0.32;    // seconds it lasts
+export const DASH_COOLDOWN = 0.45; // seconds after one ends before the next can start
 
 export const BOLT_SPEED = 230;  // sprite pixels per second along the ground
 export const BOLT_RANGE = 260;  // ground distance it covers before fizzling out
@@ -147,6 +156,20 @@ const RETREATS: Record<View, Partial<Sheet> & { src: string }> = {
 for (const [view, measured] of Object.entries(RETREATS)) {
   SHEETS[`retreat_${view}`] = { ...SHEETS[`attack_${view}`], ...measured };
 }
+
+// The dash: a sideways skid. The sheets go from standing down into the
+// longest, lowest point of the slide and stop there, so they are played out
+// fast, held, and partly back: she is at full stretch while she is quickest
+// and has started to rise by the time she stops. The anchor stays on her
+// standing spot, so the lunge reaches forward from it.
+const DASH_ORDER = [1, 3, 4, 5, 5, 5, 4, 3, 2];
+Object.assign(SHEETS, {
+  dash_front: { src: 'machi/dash/frente.png',   frames: 6, faces: -1, skip: 0, ax: 55.6, order: DASH_ORDER },
+  dash_down:  { src: 'machi/dash/diagonal.png', frames: 6, faces: -1, skip: 0, ax: 51.1, order: DASH_ORDER },
+  dash_back:  { src: 'machi/dash/espalda.png',  frames: 6, faces: -1, skip: 0, ax: 50.4, order: DASH_ORDER },
+  dash_south: { src: 'machi/dash/abajo.png',    frames: 6, faces: 0, skip: 0, ax: 48, order: DASH_ORDER },
+  dash_north: { src: 'machi/dash/arriba.png',   frames: 6, faces: 0, skip: 0, ax: 45.8, order: DASH_ORDER },
+} satisfies Record<string, Sheet>);
 
 /**
  * Views in turning order, from facing the camera to facing away. A change
