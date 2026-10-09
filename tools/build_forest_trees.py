@@ -16,7 +16,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent / 'assets' / 'bosque'
 # The concept each tree comes from.
 TREES = {'araucaria_a': 'araucaria_e', 'araucaria_b': 'araucaria_f', 'araucaria_c': 'araucaria_g'}
-MARGIN = 3  # pixels of room at each side
+MARGIN = 8  # pixels of room at each side
 
 cut = {}
 for name, concept in TREES.items():

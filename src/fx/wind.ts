@@ -11,8 +11,8 @@ import Phaser from 'phaser';
 // A tree moves as one: where it stands and what sets it apart from the next
 // are told to the shader through its tint, which is not used as a colour.
 // Every drawing given it must be the same size.
-const STRENGTH = 1.6;   // how far a steady wind carries the very top, in pixels of the drawing
-const RUSTLE = 0.9;     // how readily the crown shivers, from 0 (never)
+const STRENGTH = 4;     // how far a steady wind carries the very top, in pixels of the drawing
+const RUSTLE = 1.6;     // how readily the crown shivers, from 0 (never)
 const fragShader = `
 #define SHADER_NAME WIND_FS
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -56,15 +56,15 @@ void main() {
 
   // Swells some nine hundred pixels long, passing from left to right.
   float gust = smoothstep(0.3, 0.8, drift(vec2(across / 900.0 - uTime * 0.35, 0.5)));
-  float lean = uStrength * (0.2 + gust);
-  lean += uStrength * 0.3 * (0.4 + gust) * sin(uTime * (1.5 + own) + own * 6.2832);
+  float lean = uStrength * (0.15 + gust);
+  lean += uStrength * 0.45 * (0.4 + gust) * sin(uTime * (1.8 + own) + own * 6.2832);
   // The whole tree bends from its foot, a little more steeply toward the top.
   // It is slid by whole pixels of the screen, so it moves smoothly at any size.
   float slid = floor(lean * pow(up, 1.3) * shown + 0.5) / shown;
 
   // The shiver, only up in the crown and only when it blows.
   float crown = step(0.45, up);
-  float shiver = drift(pixel * 0.22 + vec2(uTime * 1.7, uTime * 0.4) + own * 31.0) * 2.0 - 1.0;
+  float shiver = drift(pixel * 0.22 + vec2(uTime * 2.6, uTime * 0.6) + own * 31.0) * 2.0 - 1.0;
   slid += crown * floor(shiver * uRustle * (0.3 + gust) + 0.5);
 
   vec2 uv = vec2(outTexCoord.x - slid / uSize.x, outTexCoord.y);
