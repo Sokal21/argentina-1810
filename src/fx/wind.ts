@@ -14,8 +14,8 @@ import Phaser from 'phaser';
 // or colder than its neighbours.
 // Every drawing given it must be the same size.
 const STRENGTH = 4;     // how far a steady wind carries the very top, in pixels of the drawing
-const TONES = 0.24;     // how far apart the lightest tree and the darkest are
-const WARMTH = 0.14;    // and the warmest and the coldest
+const TONES = 0.5;      // how far apart the lightest tree and the darkest are
+const WARMTH = 0.32;    // and the warmest and the coldest
 const RUSTLE = 1.6;     // how readily the crown shivers, from 0 (never)
 const fragShader = `
 #define SHADER_NAME WIND_FS
