@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { orbShader } from '../fx/orb';
 import type { Ability } from '../machi/abilities';
+import type { Arm } from '../machi/controller';
 import type { Hero } from '../machi/data';
 import type { GameScene } from './GameScene';
 
@@ -23,7 +24,7 @@ interface Vessel {
   read: (game: GameScene) => number;
 }
 
-interface Skill { ability: Ability | 'musket'; icon: string; key: string }
+interface Skill { ability: Ability | Arm; icon: string; key: string }
 
 /** One character's HUD: its frame, what fills it and where its skills go. */
 interface Layout {
@@ -61,7 +62,10 @@ const LAYOUTS: Record<Hero, Layout> = {
       { key: 'fury', x: 395, y: 78, r: 36, colours: ['#a83400', '#ff7a00', '#ffc21a', '#fff1a8'], read: g => g.rage },
     ],
     slot: { x: 127, y: 58, step: 54.5 },
-    skills: [{ ability: 'musket', icon: 'hud/iconos/mosquete.png', key: 'Q' }],
+    skills: [
+      { ability: 'musket', icon: 'hud/iconos/mosquete.png', key: 'Q' },
+      { ability: 'grenade', icon: 'hud/iconos/granada.png', key: 'E' },
+    ],
   },
 };
 

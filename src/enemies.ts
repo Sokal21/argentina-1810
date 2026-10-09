@@ -27,7 +27,7 @@ export class Enemy {
   readonly body: Footprint;
   /** Invisible box over that body, which the physics engine tests against. */
   readonly zone: Phaser.GameObjects.Zone;
-  life = LIFE;
+  life: number;
 
   private sprite: Phaser.GameObjects.Image;
   private shadow: Phaser.GameObjects.Ellipse;
@@ -39,7 +39,7 @@ export class Enemy {
   /** Seconds since it was destroyed, or null while it stands. */
   private gone: number | null = null;
   /** Shown life, which slides down to the real one instead of jumping. */
-  private shown = LIFE;
+  private shown: number;
   /** Seconds since it last appeared; it grows in over the first APPEAR. */
   private age = APPEAR;
   /** Seconds until it next starts a throw. */
@@ -49,7 +49,9 @@ export class Enemy {
 
   private static chips: Phaser.GameObjects.Particles.ParticleEmitter;
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
+  /** @param max spells it takes to destroy, for one sturdier than the rest */
+  constructor(scene: Phaser.Scene, x: number, y: number, private max = LIFE) {
+    this.life = this.shown = max;
     this.footprint = { x, y, hw: W / 2 - 1, hh: W / 4 - 1 };
     this.shadow = scene.add.ellipse(x, y + 2, W + 6, W / 2 + 2, 0x000000, 0.25).setDepth(y - 0.5);
     this.sprite = scene.add.image(x, y, 'cube').setDisplayOrigin(W / 2, RISE + W / 4).setDepth(y);
@@ -74,6 +76,11 @@ export class Enemy {
     return this.footprint;
   }
   readonly girth = W / 2;
+
+  /** How strongly it smoulders, from 0 to 1, while it is on fire. */
+  set burning(amount: number) {
+    if (this.fx) this.fx.burn = amount;
+  }
 
   /** It stands and can be hit and walked into. */
   get alive(): boolean {
@@ -115,7 +122,7 @@ export class Enemy {
     this.windup = null;
     this.reload = Phaser.Math.FloatBetween(...RELOAD);
     this.age = 0;
-    this.life = this.shown = LIFE;
+    this.life = this.shown = this.max;
     this.flash = 0;
     (this.zone.body as Phaser.Physics.Arcade.StaticBody).enable = true;
     for (const part of [this.sprite, this.shadow, this.barBack, this.bar]) part.setVisible(true);
@@ -171,7 +178,7 @@ export class Enemy {
     }
 
     this.shown += (this.life - this.shown) * Math.min(1, dt * 14);
-    this.bar.setSize(Math.max(0, BAR_W * this.shown / LIFE), 2);
+    this.bar.setSize(Math.max(0, BAR_W * this.shown / this.max), 2);
 
     if (this.flash <= 0) return;
     this.flash = Math.max(0, this.flash - dt / FLASH);

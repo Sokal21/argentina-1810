@@ -2,15 +2,17 @@ import Phaser from 'phaser';
 import { BALL, Bolts, EMBER } from '../bolts';
 import { Chonchon } from '../chonchon/Chonchon';
 import { Enemy } from '../enemies';
+import { FIRE_TALL, fireShader } from '../fx/fire';
 import { HitFX } from '../fx/HitFX';
 import { Lightning } from '../fx/lightning';
 import { LookFX } from '../fx/LookFX';
 import { controls, fx } from '../fx/settings';
 import { Keys } from '../input';
 import { Abilities, ground, HEAL, MANA, STRIKE, type Ability } from '../machi/abilities';
-import { MachiController, type MachiInput, type Strike, type Vec } from '../machi/controller';
+import { MachiController, type Arm, type MachiInput, type Strike, type Vec } from '../machi/controller';
 import { FRAME, ISO_Y, KITS, type Hero } from '../machi/data';
 import { BLOW, FURY, Fury, WOUND } from '../machi/fury';
+import { GRENADE } from '../machi/grenade';
 import { MUSKET } from '../machi/musket';
 import { overlaps, pushOut, type Footprint } from '../world/footprint';
 import { Vitals } from '../world/vitals';
@@ -34,12 +36,36 @@ const FLASH = 0.25;        // seconds her red flash takes to fade
 const CUT = { time: 0.2, up: 24, glow: 0xffb45a, steps: 16 };
 // A musket ball's blast: how long it lasts and how far above the ground its fire sits.
 const BLAST = { time: 0.3, up: 14 };
+// Embers shed each second: by something that is burning, and by a patch of burning ground.
+const EMBERS = { shed: 26, patch: 34 };
+// What his musket and his grenade cost, and how long each takes to be ready again.
+const ARMS: Record<Arm, { cost: number; cooldown: number }> = { musket: MUSKET, grenade: GRENADE };
+
+/** A grenade in the air: where from and to, how long it takes and how high it climbs. */
+interface Grenade {
+  from: Vec;
+  to: Vec;
+  t: number;
+  time: number;
+  arc: number;
+  ball: Phaser.GameObjects.Image;
+  shadow: Phaser.GameObjects.Ellipse;
+}
+
+/** A patch of burning ground, and how long it has burned. */
+interface Fire extends Vec {
+  t: number;
+  shader?: Phaser.GameObjects.Shader;
+}
+
 // The echoes she leaves behind while dashing: how often one is dropped, how
 // long it lingers, how solid it starts and the colour it is washed with: the pale blue of her
 // spells for Inti, the orange of his fury for Cabral.
 const ECHO = { every: 0.03, fade: 260, alpha: 0.55, tint: { inti: 0x8fdcf0, cabral: 0xffa64d } };
 // Stand-in enemies, as offsets from where she starts.
 const CUBES: [number, number][] = [[-150, -40], [160, 70]];
+// A sturdy one among them: where it stands and how much it takes.
+const STURDY = { at: [60, -120] as [number, number], life: 40 };
 // Where the chonchones start, likewise.
 const CHONCHONES: [number, number][] = [[110, -70], [-90, 80]];
 
@@ -55,8 +81,17 @@ export class GameScene extends Phaser.Scene {
   /** Musket balls in flight. */
   private balls!: Bolts;
   /** Seconds until the musket can be fired again, and whether its key was down last step. */
-  private musketWait = 0;
-  private shouldering = false;
+  private armWait: Record<Arm, number> = { musket: 0, grenade: 0 };
+  /** Which of them he has readied, and which the shot now going off is. */
+  private readying: Arm | null = null;
+  private loosed: Arm = 'musket';
+  /** Grenades in the air, and the patches of ground left burning. */
+  private grenades: Grenade[] = [];
+  private fires: Fire[] = [];
+  /** Enemies on fire: how much longer each burns, and when it next hurts. */
+  private alight = new Map<Enemy | Chonchon, { t: number; next: number }>();
+  /** Embers drifting up from whatever is burning. */
+  private embersUp!: Phaser.GameObjects.Particles.ParticleEmitter;
   /** The attack went down this step; it was down last step; it has fired the musket and must be let go before it cuts. */
   private trigger = false;
   private attackWas = false;
@@ -64,7 +99,7 @@ export class GameScene extends Phaser.Scene {
   /** The spot on screen the shot under way is aimed through. */
   private shotAt: Vec = { x: 0, y: 0 };
   /** Blasts that have just gone off, for the burst drawn at each. */
-  private blasts: { x: number; y: number; t: number }[] = [];
+  private blasts: { x: number; y: number; r: number; t: number }[] = [];
   private vitals = new Vitals(LIFE, GRACE, RECOVER);
   private hurtbox!: Phaser.GameObjects.Zone;
   private flash = 0;
@@ -121,6 +156,8 @@ export class GameScene extends Phaser.Scene {
     }
     Enemy.setup(this);
     this.enemies = CUBES.map(([dx, dy]) => new Enemy(this, this.machi.x + dx, this.machi.y + dy));
+    // One that takes a great deal of killing, to try things out on.
+    this.enemies.push(new Enemy(this, this.machi.x + STURDY.at[0], this.machi.y + STURDY.at[1], STURDY.life));
     // The physics engine reports a bolt's spot on the ground entering an
     // enemy's; the bolt ends there and the enemy takes the hit.
     const bounds = { minX: 0, maxX: WORLD_W, minY: 0, maxY: WORLD_H };
@@ -150,6 +187,31 @@ export class GameScene extends Phaser.Scene {
     this.lightning = new Lightning(this);
     this.marks = this.add.graphics().setDepth(-1000);
     this.slashes = this.add.graphics().setDepth(1e6).setBlendMode(Phaser.BlendModes.ADD);
+    // The grenade: a ball of black iron with its fuse alight.
+    const bomb = this.textures.createCanvas('grenade', 5, 6)!;
+    const iron = bomb.getContext();
+    iron.fillStyle = '#18191b';
+    iron.fillRect(1, 1, 3, 5);
+    iron.fillRect(0, 2, 5, 3);
+    iron.fillStyle = '#4a4d52';
+    iron.fillRect(1, 2, 1, 1);
+    iron.fillStyle = '#ffb030';
+    iron.fillRect(2, 0, 1, 1);
+    bomb.refresh();
+    // Embers: specks of orange that drift up and wink out.
+    const speck = this.textures.createCanvas('burning-speck', 2, 2)!;
+    speck.getContext().fillStyle = '#ffffff';
+    speck.getContext().fillRect(0, 0, 2, 2);
+    speck.refresh();
+    this.embersUp = this.add.particles(0, 0, 'burning-speck', {
+      lifespan: { min: 500, max: 1100 },
+      speedX: { min: -10, max: 10 },
+      speedY: { min: -42, max: -16 },
+      scale: { start: 1, end: 0.5 },
+      alpha: { start: 1, end: 0 },
+      tint: [0xff7a0a, 0xffa01e, 0xffd060],
+      emitting: false,
+    }).setDepth(1e6).setBlendMode(Phaser.BlendModes.ADD);
     const spark = this.textures.createCanvas('cut-spark', 2, 2)!;
     spark.getContext().fillStyle = '#ffe2b0';
     spark.getContext().fillRect(0, 0, 2, 2);
@@ -227,7 +289,7 @@ export class GameScene extends Phaser.Scene {
     // from the sabre until it has been let go again.
     this.trigger = input.attack && !this.attackWas;
     this.attackWas = input.attack;
-    if (this.shouldering) this.spentAttack = true;
+    if (this.readying) this.spentAttack = true;
     if (!input.attack) this.spentAttack = false;
     if (this.spentAttack) input.attack = false;
     this.machi.update(dt, input);
@@ -274,10 +336,11 @@ export class GameScene extends Phaser.Scene {
     // along the stretch it flew this step.
     this.balls.sweep(4, (x, y) => {
       const struck = [...this.enemies, ...this.chonchones].find(e => e.alive && overlaps({ x, y, hw: MUSKET.girth, hh: MUSKET.girth }, e.body));
-      if (struck) this.burst(struck.ground);
+      if (struck) this.blast(struck.ground, MUSKET.radius, MUSKET.damage);
       return !!struck;
     });
     this.lightning.update(dt);
+    this.updateGrenades(dt);
     this.drawCuts(dt);
     this.flash = Math.max(0, this.flash - dt / FLASH);
     this.draw();
@@ -302,27 +365,36 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: echo, alpha: 0, duration: ECHO.fade, onComplete: () => echo.destroy() });
   }
 
-  // His musket. While its key is held he shoulders it and turns to the
-  // pointer; the attack then fires it, if he has the fury for it. Letting the
-  // key go without firing puts it away. The ball leaves on the frame the shot
-  // is drawn.
-  private useMusket(dt: number, held: boolean): void {
-    this.musketWait = Math.max(0, this.musketWait - dt);
+  // His musket and his grenade work alike. While its key is held he readies
+  // it and turns to the pointer; the attack then lets it fly, if he has the
+  // fury for it. Letting the key go first puts it away. It leaves on the
+  // frame the shot or the throw is drawn.
+  private useArms(dt: number, held: Record<Arm, boolean>): void {
+    this.armWait.musket = Math.max(0, this.armWait.musket - dt);
+    this.armWait.grenade = Math.max(0, this.armWait.grenade - dt);
     const pointer = this.input.activePointer;
-    if (held && !this.machi.isDashing) {
-      this.machi.shoulder({ x: pointer.worldX, y: pointer.worldY });
+    // He keeps to the one he has readied for as long as its key is down.
+    const want: Arm | null = this.readying && held[this.readying] ? this.readying
+      : held.musket ? 'musket' : held.grenade ? 'grenade' : null;
+    if (want && !this.machi.isDashing) {
+      this.machi.shoulder({ x: pointer.worldX, y: pointer.worldY }, want);
       this.shotAt = { x: pointer.worldX, y: pointer.worldY };
-      if (this.trigger && this.skill('musket').ready && this.fury.spend(MUSKET.cost)) {
-        this.musketWait = MUSKET.cooldown;
+      if (this.trigger && this.skill(want).ready && this.fury.spend(ARMS[want].cost)) {
+        this.armWait[want] = ARMS[want].cooldown;
+        this.loosed = want;
         this.machi.fire();
       }
-    } else if (this.shouldering) {
+    } else if (this.readying) {
       this.machi.lower();
     }
-    this.shouldering = held && this.machi.isShouldering;
+    this.readying = want && this.machi.isShouldering ? want : null;
     if (!this.machi.takeShot()) return;
-    // Aimed from where the barrel is seen to be, through the pointer.
     const { x, y } = this.machi;
+    if (this.loosed === 'grenade') {
+      this.lob({ x, y }, this.within({ x, y }, this.shotAt, GRENADE.range));
+      return;
+    }
+    // Aimed from where the barrel is seen to be, through the pointer.
     this.balls.spawn({
       x, y, height: MUSKET.height,
       dx: this.shotAt.x - x, dy: (this.shotAt.y - (y - MUSKET.height)) / ISO_Y,
@@ -330,15 +402,113 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.shake(60, 0.004);
   }
 
-  // A musket ball going off: everything within the blast is hurt, wherever
-  // the ball itself struck.
-  private burst(at: Vec): void {
-    this.blasts.push({ ...at, t: 0 });
+  // A spot on the ground, pulled in to a reach around another if it is beyond it.
+  private within(from: Vec, spot: Vec, reach: number): Vec {
+    const far = ground(from, spot);
+    if (far <= reach) return { ...spot };
+    return { x: from.x + (spot.x - from.x) * reach / far, y: from.y + (spot.y - from.y) * reach / far };
+  }
+
+  // A grenade leaves his hand for a spot on the ground. The further it has
+  // to go the longer it is in the air and the higher it climbs.
+  private lob(from: Vec, to: Vec): void {
+    const share = ground(from, to) / GRENADE.range;
+    this.grenades.push({
+      from, to, t: 0,
+      time: GRENADE.flight[0] + (GRENADE.flight[1] - GRENADE.flight[0]) * share,
+      arc: GRENADE.arc * (0.35 + 0.65 * share),
+      ball: this.add.image(from.x, from.y - GRENADE.hand, 'grenade'),
+      shadow: this.add.ellipse(from.x, from.y, 6, 3, 0x000000, 0.3),
+    });
+  }
+
+  // Grenades fly their arcs and go off where they land, leaving the ground
+  // burning; fires burn down, hurting what stands in them every so often.
+  private updateGrenades(dt: number): void {
+    for (const g of this.grenades) {
+      g.t += dt;
+      const p = Math.min(1, g.t / g.time);
+      const x = g.from.x + (g.to.x - g.from.x) * p, y = g.from.y + (g.to.y - g.from.y) * p;
+      // It leaves at the height of his hand, comes down to the ground, and arcs between.
+      const z = GRENADE.hand * (1 - p) + g.arc * Math.sin(Math.PI * p);
+      g.ball.setPosition(Math.round(x), Math.round(y - z)).setDepth(y).setRotation(g.t * 9);
+      g.shadow.setPosition(Math.round(x), Math.round(y)).setDepth(y - 0.5);
+      if (p < 1) continue;
+      g.ball.destroy();
+      g.shadow.destroy();
+      this.blast(g.to, GRENADE.radius, GRENADE.damage, true);
+      this.kindle(g.to);
+    }
+    this.grenades = this.grenades.filter(g => g.t < g.time);
+
+    for (const fire of this.fires) {
+      fire.t += dt;
+      fire.shader?.setUniform('life.value', Math.max(0, 1 - fire.t / GRENADE.burns));
+      if (fire.t >= GRENADE.burns) continue;
+      if (Math.random() < dt * EMBERS.patch) {
+        // From somewhere on the patch, which is an ellipse on screen.
+        const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * GRENADE.radius;
+        this.embersUp.emitParticleAt(fire.x + Math.cos(a) * r, fire.y + Math.sin(a) * r * ISO_Y, 1);
+      }
+      // Whatever stands in it, or flies over it, catches.
+      for (const enemy of [...this.enemies, ...this.chonchones]) {
+        if (enemy.alive && ground(fire, enemy.ground) <= GRENADE.radius + enemy.girth) this.ignite(enemy);
+      }
+    }
+
+    // What has caught fire goes on burning for a while wherever it goes,
+    // hurt every so often, with flames on it that die down as it burns out.
+    for (const [enemy, burn] of this.alight) {
+      burn.t -= dt;
+      burn.next -= dt;
+      // It smoulders, dying down at the end, and sheds embers as it does.
+      enemy.burning = burn.t > 0 && enemy.alive ? Math.min(1, burn.t / 0.8) : 0;
+      const { x, y, hw, hh } = enemy.body;
+      if (Math.random() < dt * EMBERS.shed) {
+        this.embersUp.emitParticleAt(x + Phaser.Math.FloatBetween(-hw, hw), y + Phaser.Math.FloatBetween(-hh, hh), 1);
+      }
+      if (burn.next <= 0 && enemy.alive) {
+        burn.next = GRENADE.scorch;
+        for (let i = 0; i < GRENADE.burn; i++) enemy.hit(0, -1);
+      }
+      if (burn.t > 0 && enemy.alive) continue;
+      this.alight.delete(enemy);
+    }
+    for (const fire of this.fires.filter(f => f.t >= GRENADE.burns)) fire.shader?.destroy();
+    this.fires = this.fires.filter(f => f.t < GRENADE.burns);
+  }
+
+  // Sets an enemy alight, or keeps it alight if it already is.
+  private ignite(enemy: Enemy | Chonchon): void {
+    const burn = this.alight.get(enemy);
+    if (burn) { burn.t = GRENADE.smoulder; return; }
+    this.alight.set(enemy, { t: GRENADE.smoulder, next: GRENADE.scorch });
+  }
+
+  // Sets a patch of ground alight. The flames are a shader on a quad whose
+  // lower part lies on the patch and whose upper part they rise into.
+  private kindle(at: Vec): void {
+    const fire: Fire = { ...at, t: 0 };
+    if (this.renderer.type === Phaser.WEBGL) {
+      // Drawn wider than the patch itself: its ragged edge and its fading out need the room.
+      const w = Math.round(GRENADE.radius * 2 * 1.5), h = Math.round(w * FIRE_TALL);
+      fire.shader = this.add.shader(fireShader('fire', Math.random() * 100), at.x, at.y - h / 2 + w / 4, w, h)
+        // It lies on the ground: under every sprite, whichever side of it they stand.
+        .setDepth(-900);
+    }
+    this.fires.push(fire);
+  }
+
+  // Something going off: everything within the blast is hurt, wherever the
+  // thing itself struck.
+  private blast(at: Vec, radius: number, damage: number, sets = false): void {
+    this.blasts.push({ ...at, r: radius, t: 0 });
     this.cameras.main.shake(110, 0.005);
     for (const enemy of [...this.enemies, ...this.chonchones]) {
       const spot = enemy.ground;
-      if (!enemy.alive || ground(at, spot) > MUSKET.radius + enemy.girth) continue;
-      for (let i = 0; i < MUSKET.damage; i++) enemy.hit(spot.x - at.x || 1, spot.y - at.y);
+      if (!enemy.alive || ground(at, spot) > radius + enemy.girth) continue;
+      for (let i = 0; i < damage; i++) enemy.hit(spot.x - at.x || 1, spot.y - at.y);
+      if (sets) this.ignite(enemy);
       const { x, y } = enemy.body;
       this.sparks.emitParticleAt(x, y, 10);
     }
@@ -404,9 +574,9 @@ export class GameScene extends Phaser.Scene {
     }
     // A blast: a ball of fire that swells and thins out over the ground it covered.
     this.blasts = this.blasts.filter(blast => (blast.t += dt) < BLAST.time);
-    for (const { x, y, t } of this.blasts) {
+    for (const { x, y, r: full, t } of this.blasts) {
       const p = t / BLAST.time, fade = 1 - p * p;
-      const r = MUSKET.radius * (0.35 + 0.65 * Math.sqrt(p));
+      const r = full * (0.35 + 0.65 * Math.sqrt(p));
       this.slashes.fillStyle(0xff7a1a, 0.55 * fade).fillEllipse(x, y - BLAST.up, r * 2, r * 2 * 0.8);
       this.slashes.fillStyle(0xffe9a8, 0.9 * fade * fade).fillEllipse(x, y - BLAST.up, r * 1.1, r * 1.1 * 0.8);
       this.slashes.lineStyle(2, 0xffffff, 0.8 * fade).strokeEllipse(x, y, r * 2, r * 2 * ISO_Y);
@@ -429,7 +599,8 @@ export class GameScene extends Phaser.Scene {
     const keys = this.hero === 'inti' ? pressed : { strike: false, heal: false };
     const pointer = this.input.activePointer;
     pointer.updateWorldPoint(this.cameras.main);
-    this.useMusket(dt, this.hero === 'cabral' && pressed.strike && standing);
+    const his = this.hero === 'cabral' && standing;
+    this.useArms(dt, { musket: his && pressed.strike, grenade: his && pressed.second });
     const at = { x: this.machi.x, y: this.machi.y };
     const events = this.abilities.update(dt, {
       ...keys,
@@ -463,7 +634,7 @@ export class GameScene extends Phaser.Scene {
     // Everything is an ellipse: a circle on the ground, seen from above at an angle.
     const ring = (x: number, y: number, r: number) => [x, y, r * 2, r * 2 * ISO_Y] as const;
     this.marks.clear();
-    if (this.shouldering) {
+    if (this.readying === 'musket') {
       // The line of the shot, from the barrel out as far as a ball carries, and
       // the size of the blast where the pointer is; dull when it cannot be paid for.
       const colour = this.skill('musket').ready ? 0xffb45a : 0x8a8478;
@@ -473,6 +644,14 @@ export class GameScene extends Phaser.Scene {
       this.marks.lineStyle(1, colour, 0.5).lineBetween(
         from.x, from.y, from.x + dx / far * BALL.range, from.y + dy / far * BALL.range * ISO_Y);
       this.marks.lineStyle(1, colour, 0.9).strokeEllipse(...ring(pointer.worldX, pointer.worldY, MUSKET.radius));
+    }
+    if (this.readying === 'grenade') {
+      // How far he can throw, and the patch it would land on and set alight.
+      const colour = this.skill('grenade').ready ? 0xffb45a : 0x8a8478;
+      const to = this.within(at, { x: pointer.worldX, y: pointer.worldY }, GRENADE.range);
+      this.marks.lineStyle(1, colour, 0.35).strokeEllipse(...ring(at.x, at.y, GRENADE.range));
+      this.marks.fillStyle(colour, 0.14).fillEllipse(...ring(to.x, to.y, GRENADE.radius));
+      this.marks.lineStyle(1, colour, 0.9).strokeEllipse(...ring(to.x, to.y, GRENADE.radius));
     }
     const aim = this.abilities.aim;
     if (aim) {
@@ -514,6 +693,7 @@ export class GameScene extends Phaser.Scene {
     this.embers.clear();
     this.bolts.clear();
     this.balls.clear();
+    this.readying = null;
   }
 
   private rise(): void {
@@ -568,11 +748,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** An ability's state for the HUD: whether it can be used, and how much cooldown is left (1 to 0). */
-  skill(ability: Ability | 'musket'): { ready: boolean; cooldown: number } {
-    if (ability === 'musket') {
+  skill(ability: Ability | Arm): { ready: boolean; cooldown: number } {
+    if (ability === 'musket' || ability === 'grenade') {
+      const { cost, cooldown } = ARMS[ability];
       return {
-        ready: this.musketWait === 0 && this.fury.value >= MUSKET.cost,
-        cooldown: this.musketWait / MUSKET.cooldown,
+        ready: this.armWait[ability] === 0 && this.fury.value >= cost,
+        cooldown: this.armWait[ability] / cooldown,
       };
     }
     return { ready: this.abilities.ready(ability), cooldown: this.abilities.cooldown(ability) };

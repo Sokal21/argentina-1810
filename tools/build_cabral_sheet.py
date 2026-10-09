@@ -16,6 +16,8 @@ More repairs can be asked for, for sheets that come back needing them:
 
   --no-plate=3,4   paints out brass left on the back of the shako in those frames.
 
+  --no-strays=5,6  clears whatever in those frames is not joined to his body,
+           such as a grenade drawn flying off.
   --wide=126   widens every frame to that many pixels before enlarging, for
            sheets where his sabre reaches the edge of the frame.
 
@@ -147,6 +149,34 @@ def blank_plate(frame):
                 px[x, y] = HAIR
 
 
+def drop_strays(frame):
+    """Clear everything that is not joined to his body.
+
+    A thrown grenade is drawn by the game; frames that also show it flying
+    off would have it twice. What is left is the largest joined-up shape.
+    """
+    px = frame.load()
+    w, h = frame.size
+    seen, shapes = set(), []
+    for start in ((x, y) for y in range(h) for x in range(w)):
+        if start in seen or not px[start][3]:
+            continue
+        shape, todo = [], [start]
+        seen.add(start)
+        while todo:
+            x, y = todo.pop()
+            shape.append((x, y))
+            for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1),
+                           (x + 1, y + 1), (x - 1, y - 1), (x + 1, y - 1), (x - 1, y + 1)):
+                if 0 <= nx < w and 0 <= ny < h and (nx, ny) not in seen and px[nx, ny][3]:
+                    seen.add((nx, ny))
+                    todo.append((nx, ny))
+        shapes.append(shape)
+    for shape in sorted(shapes, key=len)[:-1]:
+        for spot in shape:
+            px[spot] = (0, 0, 0, 0)
+
+
 def enlarge(frame):
     """Scale him up about the spot between his feet, by nearest pixel."""
     w, h = frame.size
@@ -184,6 +214,9 @@ if __name__ == "__main__":
             for pair in flag.split("=")[1].split(","):
                 donor, to = (int(n) for n in pair.split(">"))
                 lend_blade(frames[donor], frames[to])
+        if flag.startswith("--no-strays="):
+            for i in (int(n) for n in flag.split("=")[1].split(",")):
+                drop_strays(frames[i])
         if flag.startswith("--no-plate="):
             for i in (int(n) for n in flag.split("=")[1].split(",")):
                 blank_plate(frames[i])

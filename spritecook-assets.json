@@ -749,6 +749,42 @@
       "sha12": "6f5a210d6860",
       "label": "cabral_mosquete_diagonal, barrel pointing down the screen (8 frames) — untouched",
       "file": "assets/cabral/mosquete_diagonal_original.png"
+    },
+    {
+      "asset_id": "23af8297-0a80-48d8-8035-16c442aa1ff3",
+      "sha12": "decf8c2f5329",
+      "label": "cabral_granada_frente (readies and throws a grenade, 8 frames) — untouched",
+      "file": "assets/cabral/granada_frente_original.png"
+    },
+    {
+      "asset_id": "2c017c97-8031-4448-be17-6e900ca2f9f4",
+      "sha12": "e1b6eed631ea",
+      "label": "cabral_granada_sur (readies and throws a grenade, 8 frames) — untouched",
+      "file": "assets/cabral/granada_sur_original.png"
+    },
+    {
+      "asset_id": "fcf44aee-ea8d-43b2-a5f2-269e98753eeb",
+      "sha12": "624f6b857ab6",
+      "label": "cabral_granada_diagonal (readies and throws a grenade, 8 frames) — untouched",
+      "file": "assets/cabral/granada_diagonal_original.png"
+    },
+    {
+      "asset_id": "0cc50859-20e9-4e9a-8f77-1ca60bb82f24",
+      "sha12": "78a1a7d81ef5",
+      "label": "cabral_granada_espalda (readies and throws a grenade, 8 frames) — untouched",
+      "file": "assets/cabral/granada_espalda_original.png"
+    },
+    {
+      "asset_id": "0b774560-9632-40be-a45b-bd41685fb0b0",
+      "sha12": "df6c4219b8f4",
+      "label": "cabral_granada_norte (readies and throws a grenade, 8 frames) — untouched",
+      "file": "assets/cabral/granada_norte_original.png"
+    },
+    {
+      "asset_id": "24ad2564-f6bd-4d15-a722-7dc0d10ab94b",
+      "sha12": "e49579b9ad20",
+      "label": "ability icon: grenade — untouched SpriteCook output",
+      "file": "assets/hud/iconos/granada_original.png"
     }
   ]
 }

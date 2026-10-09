@@ -84,6 +84,11 @@ export class Chonchon {
     return this.brain.alive;
   }
 
+  /** How strongly it smoulders, from 0 to 1, while it is on fire. */
+  set burning(amount: number) {
+    if (this.fx) this.fx.burn = amount;
+  }
+
   /** The spot on the ground under it, and how far its body reaches from there. */
   get ground(): Vec {
     return { x: this.brain.x, y: this.brain.y };

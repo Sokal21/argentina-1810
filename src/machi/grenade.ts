@@ -9,6 +9,7 @@ export const GRENADE = {
   radius: 30,     // of the blast and of the fire it leaves
   damage: 2,      // of the blast
   burns: 4.5,     // seconds the fire lasts
-  scorch: 0.7,    // seconds between each time the fire hurts what stands in it
+  smoulder: 3,    // seconds something set alight goes on burning once it is out of the fire
+  scorch: 0.7,    // seconds between each time burning hurts
   burn: 1,        // how much it hurts each time
 };

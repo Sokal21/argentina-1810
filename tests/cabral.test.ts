@@ -226,3 +226,34 @@ describe("Cabral's musket", () => {
     expect(c.takeShot()).toBe(false);
   });
 });
+
+describe("Cabral's grenade", () => {
+  const still = { dx: 0, dy: 0, attack: false };
+
+  it('is readied and thrown like the musket, drawn from its own sheets', () => {
+    const c = new MachiController(undefined, CABRAL);
+    const aim = { x: c.x + 80, y: c.y };
+    const sheets = new Set<string>();
+    for (let t = 0; t < 0.5; t += DT) { c.shoulder(aim, 'grenade'); c.update(DT, still); sheets.add(c.pose().sheet); }
+    expect([...sheets]).toEqual(['grenade_front']);
+    expect(c.pose().frame).toBe(3);
+    c.fire();
+    let thrown = 0;
+    const frames = new Set<number>();
+    for (let t = 0; t < 1 && c.isShouldering; t += DT) { c.update(DT, still); if (c.takeShot()) thrown++; frames.add(c.pose().frame); }
+    expect(thrown).toBe(1);
+    // The frame where he is still wound up is passed over once the grenade has gone.
+    expect(frames.has(4)).toBe(false);
+    expect(frames.has(5)).toBe(true);
+  });
+
+  it('keeps to what he readied first', () => {
+    const c = new MachiController(undefined, CABRAL);
+    const aim = { x: c.x + 80, y: c.y };
+    c.shoulder(aim, 'grenade');
+    c.update(DT, still);
+    c.shoulder(aim, 'musket');
+    c.update(DT, still);
+    expect(c.pose().sheet).toBe('grenade_front');
+  });
+});
