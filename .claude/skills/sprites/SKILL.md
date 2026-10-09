@@ -1,12 +1,16 @@
 ---
 name: sprites
-description: How art for 1810: Argentina is generated with SpriteCook and made ready for the game. Use when designing a character or creature, generating or animating sprites, fixing a sheet that came back wrong, or wiring new art into a character's kit.
+description: How art for 1810: Argentina is generated with SpriteCook and made ready for the game. Use when designing a character or creature, generating or animating sprites, fixing a sheet that came back wrong, wiring new art into a character's kit, or making scenery or a map (trees, ground, zones, shadows, wind).
 ---
 
 # Making sprites for 1810: Argentina
 
 Everything here was learned the hard way on Inti, the chonchón and Cabral.
 Read it before spending credits.
+
+For scenery or a map (trees, ground, props, zones, what the game does to
+them), read [`SCENERY.md`](SCENERY.md) as well: what a map is, the look that
+was chosen, and why the ground is not generated.
 
 ## The look
 
