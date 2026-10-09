@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { HitFX } from './fx/HitFX';
+import type { Cast, Vec } from './machi/controller';
+import { ISO_Y } from './machi/data';
 import type { Footprint } from './world/footprint';
 
 const W = 28;        // width of the cube's base diamond
@@ -9,6 +11,9 @@ const NUDGE = 3;     // pixels it is knocked along the bolt's path, then springs
 const LIFE = 3;      // spells it takes to destroy
 const RESPAWN = 5;   // seconds until a destroyed one comes back, so there is always something to hit
 const APPEAR = 0.25; // seconds it takes to grow back in
+const SIGHT = 230;   // ground distance at which it starts throwing
+const RELOAD: [number, number] = [1.6, 2.8]; // seconds between throws, picked afresh each time
+const WINDUP = 0.45; // seconds it squashes down before throwing, as a warning
 const BAR_W = 18;    // life bar, in pixels
 const BAR_UP = RISE + W / 4 + 6; // how far above its base the bar sits
 
@@ -37,6 +42,10 @@ export class Enemy {
   private shown = LIFE;
   /** Seconds since it last appeared; it grows in over the first APPEAR. */
   private age = APPEAR;
+  /** Seconds until it next starts a throw. */
+  private reload = Phaser.Math.FloatBetween(...RELOAD);
+  /** Seconds into the squash before a throw, or null when not throwing. */
+  private windup: number | null = null;
 
   private static chips: Phaser.GameObjects.Particles.ParticleEmitter;
 
@@ -97,6 +106,8 @@ export class Enemy {
 
   private respawn(): void {
     this.gone = null;
+    this.windup = null;
+    this.reload = Phaser.Math.FloatBetween(...RELOAD);
     this.age = 0;
     this.life = this.shown = LIFE;
     this.flash = 0;
@@ -107,13 +118,46 @@ export class Enemy {
     else this.sprite.clearTint();
   }
 
-  update(dt: number): void {
+  /**
+   * Advances it. `target` is the point on screen it throws at, if there is
+   * anyone to throw at; the return value is the ember it lets go this step.
+   */
+  update(dt: number, target: Vec | null): Cast | null {
     if (this.gone !== null) {
       this.gone += dt;
       if (this.gone >= RESPAWN) this.respawn();
-      return;
+      return null;
     }
+    const thrown = this.throwAt(dt, target);
+    this.animate(dt);
+    return thrown;
+  }
 
+  // It waits out its reload, then squashes down for a moment so the throw
+  // can be seen coming, and lets go from its top toward where she is then.
+  private throwAt(dt: number, target: Vec | null): Cast | null {
+    const { x, y } = this.footprint;
+    const top = RISE + 4;
+    // Ground distance: the vertical gap on screen counts double.
+    const near = target && Math.hypot(target.x - x, (target.y - y) / ISO_Y) < SIGHT;
+    if (this.windup === null) {
+      this.reload -= dt;
+      if (this.reload <= 0 && near) this.windup = 0;
+      return null;
+    }
+    this.windup += dt;
+    const p = Math.min(1, this.windup / WINDUP);
+    this.sprite.setScale(1 + 0.14 * p, 1 - 0.2 * p);
+    if (p < 1) return null;
+    this.windup = null;
+    this.reload = Phaser.Math.FloatBetween(...RELOAD);
+    this.sprite.setScale(1);
+    if (!target) return null;
+    // Aimed from where the ember is seen to start, like her own spells.
+    return { x, y, height: top, dx: target.x - x, dy: (target.y - (y - top)) / ISO_Y };
+  }
+
+  private animate(dt: number): void {
     if (this.age < APPEAR) {
       this.age = Math.min(APPEAR, this.age + dt);
       const grown = this.age / APPEAR;

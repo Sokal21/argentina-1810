@@ -2,8 +2,26 @@ import Phaser from 'phaser';
 import type { Cast } from './machi/controller';
 import { BOLT_RANGE, BOLT_SPEED, ISO_Y } from './machi/data';
 
-// The colours of the light the attack sheets draw on the branch.
-const CYAN = '#46e6fa', PALE = '#bef8fc', WHITE = '#ffffff';
+/** What a kind of bolt looks like and how it flies. */
+export interface BoltKind {
+  /** Name for its textures. */
+  key: string;
+  /** Edge, middle and core of the orb; the sparks take the edge colour. */
+  colours: [string, string, string];
+  /** Sprite pixels per second along the ground. */
+  speed: number;
+  /** Ground distance it covers before fizzling out. */
+  range: number;
+}
+
+/** Her spell, in the colours of the light the attack sheets draw on the branch. */
+export const SPELL: BoltKind = {
+  key: 'spell', colours: ['#46e6fa', '#bef8fc', '#ffffff'], speed: BOLT_SPEED, range: BOLT_RANGE,
+};
+/** What the stand-in enemies throw: slow enough to step out of its way. */
+export const EMBER: BoltKind = {
+  key: 'ember', colours: ['#e2542a', '#f7a23b', '#ffe9a8'], speed: 95, range: 340,
+};
 
 interface Bolt {
   orb: Phaser.GameObjects.Image;
@@ -34,14 +52,18 @@ export class Bolts {
   private sparks: Phaser.GameObjects.Particles.ParticleEmitter;
   private burst: Phaser.GameObjects.Particles.ParticleEmitter;
 
-  constructor(private scene: Phaser.Scene, private width: number, private height: number) {
+  constructor(
+    private scene: Phaser.Scene, private width: number, private height: number,
+    private kind: BoltKind = SPELL,
+  ) {
     this.makeTextures();
     this.bodies = scene.physics.add.group();
-    this.sparks = scene.add.particles(0, 0, 'spark', {
+    const spark = `${kind.key}-spark`;
+    this.sparks = scene.add.particles(0, 0, spark, {
       lifespan: 260, speed: { min: 0, max: 10 }, scale: { start: 1, end: 0 },
       alpha: { start: 0.9, end: 0 }, emitting: false,
     }).setDepth(1e6);
-    this.burst = scene.add.particles(0, 0, 'spark', {
+    this.burst = scene.add.particles(0, 0, spark, {
       lifespan: { min: 180, max: 340 }, speed: { min: 25, max: 85 }, scale: { start: 1.5, end: 0 },
       alpha: { start: 1, end: 0 }, emitting: false,
     }).setDepth(1e6);
@@ -53,12 +75,12 @@ export class Bolts {
     const len = Math.hypot(cast.dx, cast.dy) || 1;
     const spot = this.scene.add.zone(cast.x, cast.y - cast.height, 7, 7);
     const bolt: Bolt = {
-      orb: this.scene.add.image(0, 0, 'bolt'),
+      orb: this.scene.add.image(0, 0, this.kind.key),
       shadow: this.scene.add.ellipse(cast.x, cast.y, 8, 4, 0x000000, 0.22),
       spot,
       x: cast.x, y: cast.y,
-      vx: cast.dx / len * BOLT_SPEED,
-      vy: cast.dy / len * BOLT_SPEED * ISO_Y,
+      vx: cast.dx / len * this.kind.speed,
+      vy: cast.dy / len * this.kind.speed * ISO_Y,
       z: cast.height,
       age: 0,
       spent: false,
@@ -88,7 +110,7 @@ export class Bolts {
       this.sparks.emitParticleAt(x, y - bolt.z, 1);
     }
 
-    const spent = (b: Bolt) => b.spent || b.age * BOLT_SPEED >= BOLT_RANGE
+    const spent = (b: Bolt) => b.spent || b.age * this.kind.speed >= this.kind.range
       || b.x < 0 || b.x > this.width || b.y < 0 || b.y > this.height;
     for (const bolt of this.live.filter(spent)) {
       this.burst.emitParticleAt(bolt.orb.x, bolt.orb.y, 10);
@@ -99,25 +121,32 @@ export class Bolts {
     this.live = this.live.filter(b => !spent(b));
   }
 
+  /** Ends every bolt in flight, each with its burst. */
+  clear(): void {
+    for (const bolt of this.live) bolt.spent = true;
+    this.update(0);
+  }
+
   // Drawn pixel by pixel instead of loaded, so they match the sheets' light
   // exactly and need no art of their own yet.
   private makeTextures(): void {
-    if (this.scene.textures.exists('bolt')) return;
+    const { key, colours: [edge, middle, core] } = this.kind;
+    if (this.scene.textures.exists(key)) return;
     const size = 9, mid = (size - 1) / 2;
-    const orb = this.scene.textures.createCanvas('bolt', size, size)!;
+    const orb = this.scene.textures.createCanvas(key, size, size)!;
     const g = orb.getContext();
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
         const d = Math.hypot(x - mid, y - mid);
         if (d > 4.3) continue;
-        g.fillStyle = d < 1.2 ? WHITE : d < 2.6 ? PALE : CYAN;
+        g.fillStyle = d < 1.2 ? core : d < 2.6 ? middle : edge;
         g.fillRect(x, y, 1, 1);
       }
     }
     orb.refresh();
 
-    const spark = this.scene.textures.createCanvas('spark', 2, 2)!;
-    spark.getContext().fillStyle = CYAN;
+    const spark = this.scene.textures.createCanvas(`${key}-spark`, 2, 2)!;
+    spark.getContext().fillStyle = edge;
     spark.getContext().fillRect(0, 0, 2, 2);
     spark.refresh();
   }

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Bolts } from '../bolts';
+import { Bolts, EMBER } from '../bolts';
 import { Enemy } from '../enemies';
 import { HitFX } from '../fx/HitFX';
 import { LookFX } from '../fx/LookFX';
@@ -8,6 +8,7 @@ import { Keys } from '../input';
 import { MachiController, type MachiInput, type Vec } from '../machi/controller';
 import { FRAME, ISO_Y, SHEETS } from '../machi/data';
 import { overlaps, pushOut, type Footprint } from '../world/footprint';
+import { Vitals } from '../world/vitals';
 
 const ZOOM = 2;            // screen pixels per sprite pixel
 const WORLD_W = 1280;      // world size, in sprite pixels
@@ -16,6 +17,14 @@ const TILE_W = 32, TILE_H = 16; // ground diamond, in sprite pixels
 const CHEST = 45;          // height of her chest above her feet, where the light sits
 const ARRIVE = 5;          // she stops this close to the pointer instead of jittering on it
 const FEET: Pick<Footprint, 'hw' | 'hh'> = { hw: 7, hh: 3.5 }; // the ground she stands on
+// The part of her an ember has to be seen to touch: her torso and head, a
+// little narrower than drawn so a near miss is a miss.
+const TORSO = { up: 40, w: 14, h: 52 };
+const LIFE = 5;            // embers she can take
+const GRACE = 0.7;         // seconds she cannot be hurt again after a hit
+const RECOVER = 1.6;       // seconds she is down before getting back up
+const FLASH = 0.25;        // seconds her red flash takes to fade
+const BAR = { w: 24, up: 90 }; // her life bar, and how far above her feet it sits
 // Stand-in enemies, as offsets from where she starts.
 const CUBES: [number, number][] = [[-110, -30], [120, -50], [150, 60], [-60, 90], [0, -110]];
 
@@ -25,6 +34,15 @@ export class GameScene extends Phaser.Scene {
   private sprite!: Phaser.GameObjects.Sprite;
   private shadow!: Phaser.GameObjects.Ellipse;
   private bolts!: Bolts;
+  private embers!: Bolts;
+  private vitals = new Vitals(LIFE, GRACE, RECOVER);
+  private hurtbox!: Phaser.GameObjects.Zone;
+  private lifeBack!: Phaser.GameObjects.Rectangle;
+  private lifeBar!: Phaser.GameObjects.Rectangle;
+  private shownLife = LIFE;
+  private flash = 0;
+  private hitFx?: HitFX;
+  private start = { x: WORLD_W / 2, y: WORLD_H / 2 };
   private enemies: Enemy[] = [];
   private marker!: Phaser.GameObjects.Ellipse;
   private look?: LookFX;
@@ -45,8 +63,8 @@ export class GameScene extends Phaser.Scene {
     this.drawGround();
 
     this.machi = new MachiController({ minX: 12, maxX: WORLD_W - 12, minY: FRAME, maxY: WORLD_H - 6 });
-    this.machi.x = WORLD_W / 2;
-    this.machi.y = WORLD_H / 2;
+    this.machi.x = this.start.x;
+    this.machi.y = this.start.y;
     this.keys = new Keys();
 
     this.shadow = this.add.ellipse(0, 0, 22, 8, 0x000000, 0.28);
@@ -55,6 +73,11 @@ export class GameScene extends Phaser.Scene {
 
     if (this.renderer.type === Phaser.WEBGL) {
       (this.renderer as Phaser.Renderer.WebGL.WebGLRenderer).pipelines.addPostPipeline('HitFX', HitFX);
+    }
+    this.sprite.setPostPipeline(HitFX);
+    if (this.renderer.type === Phaser.WEBGL) {
+      const found = this.sprite.getPostPipeline(HitFX);
+      this.hitFx = (Array.isArray(found) ? found[0] : found) as HitFX;
     }
     Enemy.setup(this);
     this.enemies = CUBES.map(([dx, dy]) => new Enemy(this, this.machi.x + dx, this.machi.y + dy));
@@ -69,6 +92,22 @@ export class GameScene extends Phaser.Scene {
       const heading = spot && enemy ? this.bolts.strike(spot) : null;
       if (heading && enemy) enemy.hit(heading.dx, heading.dy);
     });
+    // What the enemies throw, and the part of her it can hit.
+    this.embers = new Bolts(this, WORLD_W, WORLD_H, EMBER);
+    this.hurtbox = this.add.zone(this.machi.x, this.machi.y - TORSO.up, TORSO.w, TORSO.h);
+    this.physics.add.existing(this.hurtbox);
+    this.hurtbox.setData('machi', true);
+    this.physics.add.overlap(this.embers.bodies, this.hurtbox, (a, b) => {
+      const spot = ([a, b] as Phaser.GameObjects.GameObject[]).find(o => o.getData('bolt'));
+      // An ember that reaches her while she cannot be hurt flies on.
+      if (!spot || !this.vitals.hit()) return;
+      this.embers.strike(spot);
+      this.flash = 1;
+      if (!this.vitals.standing) this.fall();
+    });
+    this.lifeBack = this.add.rectangle(0, 0, BAR.w + 2, 4, 0x14110f, 0.85).setDepth(1e6);
+    this.lifeBar = this.add.rectangle(0, 0, BAR.w, 2, 0x8fd16a).setOrigin(0, 0.5).setDepth(1e6);
+
     // P shows the collision boxes.
     this.input.keyboard?.on('keydown-P', () => {
       const world = this.physics.world;
@@ -102,12 +141,18 @@ export class GameScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     // A long frame (tab in the background) must not teleport her.
     const dt = Math.min(0.05, delta / 1000);
-    this.machi.update(dt, this.readInput());
+    if (this.vitals.update(dt)) this.rise();
+    const standing = this.vitals.standing;
+    // Down, she takes no orders.
+    this.machi.update(dt, standing ? this.readInput() : { dx: 0, dy: 0, attack: false });
+    // Enemies throw at her chest while she is up.
     // She cannot walk through an enemy: each one she stands in pushes her
     // back out the short way. Done here rather than by the physics engine
     // because her position is set by her own controller, not by a velocity.
+    const target = standing ? { x: this.machi.x, y: this.machi.y - TORSO.up } : null;
     for (const enemy of this.enemies) {
-      enemy.update(dt);
+      const ember = enemy.update(dt, target);
+      if (ember) this.embers.spawn(ember);
       if (!enemy.alive) continue;
       const clear = pushOut({ x: this.machi.x, y: this.machi.y, ...FEET }, enemy.footprint);
       this.machi.x = clear.x;
@@ -128,7 +173,24 @@ export class GameScene extends Phaser.Scene {
       else this.bolts.spawn(cast);
     }
     this.bolts.update(dt);
+    this.embers.update(dt);
+    this.flash = Math.max(0, this.flash - dt / FLASH);
+    this.shownLife += (this.vitals.life - this.shownLife) * Math.min(1, dt * 14);
     this.draw();
+  }
+
+  // Placeholder for being defeated: she vanishes, everything in the air
+  // bursts, and after a moment she is back where she started.
+  private fall(): void {
+    this.embers.clear();
+    this.bolts.clear();
+  }
+
+  private rise(): void {
+    this.machi.x = this.start.x;
+    this.machi.y = this.start.y;
+    this.shownLife = this.vitals.life;
+    this.flash = 0;
   }
 
   // Keyboard input, plus the pointer when steering with it: holding the left
@@ -176,6 +238,18 @@ export class GameScene extends Phaser.Scene {
       .setPosition(x, y)
       .setDepth(y);
     this.label = pose.sheet + (pose.flip ? ' (espejado)' : '');
+
+    const standing = this.vitals.standing;
+    // Flickers while she cannot be hurt again, so the grace can be seen.
+    const blink = this.vitals.protected && Math.floor(this.time.now / 70) % 2 === 0;
+    this.sprite.setVisible(standing).setAlpha(blink ? 0.45 : 1);
+    this.shadow.setVisible(standing);
+    if (this.hitFx) this.hitFx.amount = this.flash;
+    this.hurtbox.setPosition(x, y - TORSO.up);
+    (this.hurtbox.body as Phaser.Physics.Arcade.Body).enable = standing;
+    this.lifeBack.setPosition(x, y - BAR.up).setVisible(standing);
+    this.lifeBar.setPosition(x - BAR.w / 2, y - BAR.up).setVisible(standing)
+      .setSize(Math.max(0, BAR.w * this.shownLife / LIFE), 2);
 
     if (this.look) {
       const cam = this.cameras.main;
