@@ -683,6 +683,72 @@
       "sha12": "3997ce125cba",
       "label": "cabral_reposo_norte (idle: squares his shoulders and sets his shako, 8 frames) — untouched",
       "file": "assets/cabral/reposo_norte_original.png"
+    },
+    {
+      "asset_id": "f7a39954-e113-4035-9643-fbc1e26b7162",
+      "sha12": "85b306d89703",
+      "label": "Cabral's HUD concept (flasks in iron cages, wood and stone, empanadas and musket balls) — source of assets/hud/marco_cabral.png",
+      "file": "assets/hud/concept/cabral_c2.png"
+    },
+    {
+      "asset_id": "609f7d3a-77c1-4db1-89d7-fec6497e78da",
+      "sha12": "4326292049c7",
+      "label": "Cabral's HUD, earlier concept B (powder horn and cartridges)",
+      "file": "assets/hud/concept/cabral_b.png"
+    },
+    {
+      "asset_id": "740c3f81-2f3b-44b8-a634-201ab3aab09c",
+      "sha12": "ee985297c038",
+      "label": "Cabral's HUD, earlier concept A (flasks in buckets)",
+      "file": "assets/hud/concept/cabral_a.png"
+    },
+    {
+      "asset_id": "63a82848-c623-43d7-86f6-fca8eba62de4",
+      "sha12": "3ac8ad8e59b1",
+      "label": "cabral_mosquete_frente (shoulders, aims and fires his musket, 8 frames) — untouched",
+      "file": "assets/cabral/mosquete_frente_original.png"
+    },
+    {
+      "asset_id": "dc7b47ce-689f-4f54-9deb-59339c111999",
+      "sha12": "bab45ccc2bc9",
+      "label": "cabral_mosquete_sur (shoulders, aims and fires his musket, 8 frames) — untouched — replaced: the barrel pointed at the viewer / sideways instead of down the screen",
+      "file": "(replaced)"
+    },
+    {
+      "asset_id": "439c6f6c-e25f-4655-a70b-d90b2c021d03",
+      "sha12": "5f8a5699c36b",
+      "label": "cabral_mosquete_diagonal (shoulders, aims and fires his musket, 8 frames) — untouched — replaced: the barrel pointed at the viewer / sideways instead of down the screen",
+      "file": "(replaced)"
+    },
+    {
+      "asset_id": "2a7e5746-ee0d-42ae-8730-8060af097b83",
+      "sha12": "8bf8aee75f3b",
+      "label": "cabral_mosquete_espalda (shoulders, aims and fires his musket, 8 frames) — untouched",
+      "file": "assets/cabral/mosquete_espalda_original.png"
+    },
+    {
+      "asset_id": "09cb1ed3-f270-437c-b959-f865567eb533",
+      "sha12": "fbc62a901211",
+      "label": "cabral_mosquete_norte (shoulders, aims and fires his musket, 8 frames) — untouched",
+      "file": "assets/cabral/mosquete_norte_original.png"
+    },
+    {
+      "asset_id": "3b707275-d378-4ec3-8e85-a1ea4ad2347b",
+      "sha12": "b0a67be512b8",
+      "label": "ability icon: musket shot — untouched SpriteCook output",
+      "file": "assets/hud/iconos/mosquete_original.png"
+    },
+    {
+      "asset_id": "385afae3-c670-49c4-92eb-45225774b7c8",
+      "sha12": "42b860742129",
+      "label": "cabral_mosquete_sur, barrel pointing down the screen (8 frames) — untouched",
+      "file": "assets/cabral/mosquete_sur_original.png"
+    },
+    {
+      "asset_id": "36b8e858-d36c-402d-a79a-7a1389ae2c16",
+      "sha12": "6f5a210d6860",
+      "label": "cabral_mosquete_diagonal, barrel pointing down the screen (8 frames) — untouched",
+      "file": "assets/cabral/mosquete_diagonal_original.png"
     }
   ]
 }

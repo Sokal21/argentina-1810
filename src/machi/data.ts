@@ -79,6 +79,8 @@ export const RETREAT_BELOW = -0.3;
 
 export const DASH_DISTANCE = 84;  // sprite pixels a dash covers along the ground
 export const DASH_TIME = 0.32;    // seconds it lasts
+export const SHOULDER_TIME = 0.25; // seconds to bring a musket up to the shoulder
+export const SHOT_TIME = 0.45;     // seconds from the shot until the musket is slung again
 export const DEATH_FPS = 8;        // frames per second of her death
 export const DASH_COOLDOWN = 0.45; // seconds after one ends before the next can start
 
@@ -345,6 +347,15 @@ export const CABRAL: Kit = {
     slash_front: { ...cabralSheet('tajo_frente', 8, 1, 63), w: 126 },
     slash_back: { ...cabralSheet('tajo_espalda', 8, 1, 50), w: 126 },
     slash_north: { ...cabralSheet('tajo_norte', 8, 0, 52), w: 126 },
+    // His musket: eight frames of standing, bringing it up, holding it
+    // level, the shot, and slinging it again.
+    // Seen from the front its third frame swings the barrel out sideways
+    // on the way up, which reads as aiming the wrong way: it is skipped.
+    musket_south: { ...cabralSheet('mosquete_sur', 8, 0, 63), w: 126, order: [0, 1, 3, 3, 4, 5, 6, 7] },
+    musket_down: { ...cabralSheet('mosquete_diagonal', 8, 1, 61), w: 126 },
+    musket_front: { ...cabralSheet('mosquete_frente', 8, 1, 63), w: 126 },
+    musket_back: { ...cabralSheet('mosquete_espalda', 8, 1, 50), w: 126 },
+    musket_north: { ...cabralSheet('mosquete_norte', 8, 0, 52), w: 126 },
     // His dash: he dives, rolls over his shoulder and comes up crouching.
     // The first frame of each is him standing, which a dash has no time for.
     dash_south: { ...cabralSheet('rodada_sur', 6, 0, 63), w: 126, order: ROLL },

@@ -1,7 +1,7 @@
 // The machi's movement, turning and attack rules, with no rendering: feed it
 // the held directions each step and read back which frame to draw and where.
 import {
-  ATTACK_SLOW, ATTACK_TIME, ATTACK_UNWIND, COAST_GRACE, DASH_COOLDOWN, DASH_DISTANCE, DASH_TIME, DEATH_FPS,
+  ATTACK_SLOW, ATTACK_TIME, ATTACK_UNWIND, COAST_GRACE, DASH_COOLDOWN, DASH_DISTANCE, DASH_TIME, DEATH_FPS, SHOT_TIME, SHOULDER_TIME,
   FPS, IDLE_REST, ISO_Y,
   PIVOT_DRIFT, PIVOT_STOP, RETREAT_BELOW, INTI, SNAP_STICK, SPEED, TURN_FPS, VIEW_ORDER,
   type Kit, type Melee, type Sheet, type Turn, type View,
@@ -58,6 +58,9 @@ export interface Strike extends Pick<Melee, 'reach' | 'arc' | 'damage'> {
   dx: number;
   dy: number;
 }
+
+/** What can be readied and let fly. */
+export type Arm = 'musket' | 'grenade';
 
 /** What to draw this step. Position is where her feet are. */
 export interface MachiPose {
@@ -146,6 +149,12 @@ export class MachiController {
   /** A blow being struck: how far into it, and the way it is aimed along the ground. */
   private swing: { t: number; dir: Vec } | null = null;
   private blow: Strike | null = null;
+  /**
+   * Something readied to let fly, a musket or a grenade: coming up, held
+   * ready, or just loosed. `loose` means it goes as soon as it is ready.
+   */
+  private gun: { kind: Arm; phase: 'raise' | 'aim' | 'fire'; t: number; loose: boolean } | null = null;
+  private shot = false;
 
   /**
    * @param kit whose art to pose: the sheets and turns of one character.
@@ -168,6 +177,44 @@ export class MachiController {
   get isDashing(): boolean { return this.dash !== null; }
   get isChanneling(): boolean { return this.ritual !== null; }
   get isSwinging(): boolean { return this.swing !== null; }
+
+  get isShouldering(): boolean { return this.gun !== null; }
+
+  /**
+   * Brings the musket up, or a grenade back, and keeps it there, aimed at a
+   * spot on the ground. Called every step the key is held: he stands where
+   * he is and turns to it.
+   */
+  shoulder(target: Vec, kind: Arm = 'musket'): void {
+    if (this.dash || this.fallen !== null || this.gun?.phase === 'fire') return;
+    this.gun ??= { kind, phase: 'raise', t: 0, loose: false };
+    this.swing = null;
+    const x = target.x - this.x, y = (target.y - this.y) / ISO_Y;
+    if (Math.hypot(x, y) > MIN_AIM) {
+      const [fx, fy] = snap8({ x, y }, this.snappedAim);
+      this.snappedAim = [fx, fy];
+      this.face(fx, fy);
+    }
+    this.turn = null;
+    this.moving = false;
+  }
+
+  /** Lets the shot go: at once if the musket is levelled, or the moment it is. */
+  fire(): void {
+    if (this.gun && this.gun.phase !== 'fire') this.gun.loose = true;
+  }
+
+  /** Puts the musket away without firing. */
+  lower(): void {
+    if (this.gun?.phase !== 'fire') this.gun = null;
+  }
+
+  /** Whether the shot went off during the last update. Reading it clears it. */
+  takeShot(): boolean {
+    const shot = this.shot;
+    this.shot = false;
+    return shot;
+  }
 
   /** The blow that landed during the last update, if any. Reading it clears it. */
   takeStrike(): Strike | null {
@@ -195,6 +242,7 @@ export class MachiController {
   /** She dies where she stands: whatever she was doing ends, and she takes no more orders. */
   fall(): void {
     this.fallen = 0;
+    this.gun = null;
     this.swing = null;
     this.dash = null;
     this.ritual = null;
@@ -234,12 +282,18 @@ export class MachiController {
       this.t = 0;
     }
     if (input.dash && !this.dash && this.dashWait === 0) {
-      // A dash gets him out of a swing he has started.
+      // A dash gets him out of a swing he has started, or of taking aim.
+      this.gun = null;
       this.swing = null;
       this.startDash(input);
     }
     if (this.dash) {
       this.updateDash(dt);
+      return;
+    }
+    if (this.gun) {
+      // With the musket up he stands where he is.
+      this.updateGun(dt, this.gun);
       return;
     }
     if (this.kit.melee) {
@@ -359,6 +413,25 @@ export class MachiController {
       this.t = 0;
       this.idle = 0;
       this.dir = dash.dir;
+    }
+  }
+
+  // The musket comes up, waits levelled for as long as it is held, and after
+  // the shot is slung again.
+  private updateGun(dt: number, gun: NonNullable<MachiController['gun']>): void {
+    gun.t += dt;
+    if (gun.phase === 'raise' && gun.t >= SHOULDER_TIME) {
+      gun.phase = 'aim';
+      gun.t = 0;
+    }
+    if (gun.phase === 'aim' && gun.loose) {
+      gun.phase = 'fire';
+      gun.t = 0;
+      this.shot = true;
+    }
+    if (gun.phase === 'fire' && gun.t >= SHOT_TIME) {
+      this.gun = null;
+      this.t = 0;
     }
   }
 
@@ -504,6 +577,25 @@ export class MachiController {
       };
     }
     if (this.dash) return this.dashPose(this.dash.t / this.dashTime);
+    if (this.gun) {
+      // The sheet runs: standing, two frames coming up, levelled, the shot,
+      // three frames going back. A view without one stands still.
+      const view = this.view;
+      const { kind, phase, t } = this.gun;
+      const drawn = !!this.kit.sheets[`${kind}_${view}`];
+      const name = drawn ? `${kind}_${view}` : `idle_${view}`;
+      const s = this.kit.sheets[name];
+      const step = !drawn ? 0
+        : phase === 'raise' ? Math.min(2, Math.floor(t / SHOULDER_TIME * 3))
+        : phase === 'aim' ? 3
+        : Math.min(7, 4 + Math.floor(t / SHOT_TIME * 4));
+      const frame = s.order && drawn ? s.order[step] : step;
+      return {
+        x: this.x, y: this.y, sheet: name, frame,
+        flip: s.faces !== 0 && this.faceX !== s.faces,
+        ax: Array.isArray(s.ax) ? s.ax[frame] : s.ax, ay: s.ay ?? 0,
+      };
+    }
     if (this.swing && this.kit.melee) {
       // A view whose cut has not been drawn yet stands still through it.
       const view = this.view;

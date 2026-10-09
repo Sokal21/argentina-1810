@@ -23,6 +23,15 @@ export const EMBER: BoltKind = {
   key: 'ember', colours: ['#e2542a', '#f7a23b', '#ffe9a8'], speed: 95, range: 340,
 };
 
+/**
+ * A musket ball: many times faster than a spell, trailing powder smoke. It
+ * covers more than an enemy's width in one step, so it is tested along its
+ * path with `sweep` rather than by the physics engine.
+ */
+export const BALL: BoltKind = {
+  key: 'ball', colours: ['#b9b2a3', '#4a4640', '#2a2724'], speed: 1500, range: 420,
+};
+
 interface Bolt {
   orb: Phaser.GameObjects.Image;
   shadow: Phaser.GameObjects.Ellipse;
@@ -31,6 +40,8 @@ interface Bolt {
   /** Position on the ground, and velocity along it. */
   x: number;
   y: number;
+  /** Where the orb was drawn before this step's move. */
+  from: { x: number; y: number };
   vx: number;
   vy: number;
   /** Height above the ground: it keeps the one the branch released it at. */
@@ -79,6 +90,7 @@ export class Bolts {
       shadow: this.scene.add.ellipse(cast.x, cast.y, 8, 4, 0x000000, 0.22),
       spot,
       x: cast.x, y: cast.y,
+      from: { x: cast.x, y: cast.y - cast.height },
       vx: cast.dx / len * this.kind.speed,
       vy: cast.dy / len * this.kind.speed * ISO_Y,
       z: cast.height,
@@ -100,7 +112,10 @@ export class Bolts {
 
   update(dt: number): void {
     for (const bolt of this.live) {
+      // One that has struck something stays where it did, to burst there.
+      if (bolt.spent) continue;
       bolt.age += dt;
+      bolt.from = { x: bolt.x, y: bolt.y - bolt.z };
       bolt.x += bolt.vx * dt;
       bolt.y += bolt.vy * dt;
       const x = Math.round(bolt.x), y = Math.round(bolt.y);
@@ -119,6 +134,31 @@ export class Bolts {
       bolt.spot.destroy();
     }
     this.live = this.live.filter(b => !spent(b));
+  }
+
+  /**
+   * Tests each bolt at points along the stretch it flew this step, `every`
+   * pixels apart, in order. Where `hit` says it struck something the bolt
+   * stops there and is spent. For bolts too fast to be caught where they
+   * happen to stand at the end of a step.
+   */
+  sweep(every: number, hit: (x: number, y: number) => boolean): void {
+    for (const bolt of this.live) {
+      if (bolt.spent) continue;
+      const to = { x: bolt.x, y: bolt.y - bolt.z };
+      const far = Math.hypot(to.x - bolt.from.x, to.y - bolt.from.y);
+      const steps = Math.max(1, Math.ceil(far / every));
+      for (let i = 1; i <= steps && !bolt.spent; i++) {
+        const x = bolt.from.x + (to.x - bolt.from.x) * i / steps;
+        const y = bolt.from.y + (to.y - bolt.from.y) * i / steps;
+        if (!hit(x, y)) continue;
+        bolt.spent = true;
+        // It goes no further than what it struck: its burst is drawn there.
+        bolt.x = x;
+        bolt.y = y + bolt.z;
+        bolt.orb.setPosition(Math.round(x), Math.round(y));
+      }
+    }
   }
 
   /** Ends every bolt in flight, each with its burst. */

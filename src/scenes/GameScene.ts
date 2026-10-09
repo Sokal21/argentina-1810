@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Bolts, EMBER } from '../bolts';
+import { BALL, Bolts, EMBER } from '../bolts';
 import { Chonchon } from '../chonchon/Chonchon';
 import { Enemy } from '../enemies';
 import { HitFX } from '../fx/HitFX';
@@ -10,6 +10,8 @@ import { Keys } from '../input';
 import { Abilities, ground, HEAL, MANA, STRIKE, type Ability } from '../machi/abilities';
 import { MachiController, type MachiInput, type Strike, type Vec } from '../machi/controller';
 import { FRAME, ISO_Y, KITS, type Hero } from '../machi/data';
+import { BLOW, FURY, Fury, WOUND } from '../machi/fury';
+import { MUSKET } from '../machi/musket';
 import { overlaps, pushOut, type Footprint } from '../world/footprint';
 import { Vitals } from '../world/vitals';
 
@@ -30,6 +32,8 @@ const FLASH = 0.25;        // seconds her red flash takes to fade
 // The flash of a blade: how long it lasts, how far above the ground it is
 // drawn, the colour around its white core and how many pieces its curve is made of.
 const CUT = { time: 0.2, up: 24, glow: 0xffb45a, steps: 16 };
+// A musket ball's blast: how long it lasts and how far above the ground its fire sits.
+const BLAST = { time: 0.3, up: 14 };
 // The echoes she leaves behind while dashing: how often one is dropped, how
 // long it lingers, how solid it starts and the colour it is washed with: the pale blue of her
 // spells for Inti, the orange of his fury for Cabral.
@@ -48,6 +52,19 @@ export class GameScene extends Phaser.Scene {
   private shadow!: Phaser.GameObjects.Ellipse;
   private bolts!: Bolts;
   private embers!: Bolts;
+  /** Musket balls in flight. */
+  private balls!: Bolts;
+  /** Seconds until the musket can be fired again, and whether its key was down last step. */
+  private musketWait = 0;
+  private shouldering = false;
+  /** The attack went down this step; it was down last step; it has fired the musket and must be let go before it cuts. */
+  private trigger = false;
+  private attackWas = false;
+  private spentAttack = false;
+  /** The spot on screen the shot under way is aimed through. */
+  private shotAt: Vec = { x: 0, y: 0 };
+  /** Blasts that have just gone off, for the burst drawn at each. */
+  private blasts: { x: number; y: number; t: number }[] = [];
   private vitals = new Vitals(LIFE, GRACE, RECOVER);
   private hurtbox!: Phaser.GameObjects.Zone;
   private flash = 0;
@@ -57,6 +74,8 @@ export class GameScene extends Phaser.Scene {
   private enemies: Enemy[] = [];
   private chonchones: Chonchon[] = [];
   private abilities = new Abilities();
+  /** Cabral's fury. It ebbs whoever is being played, so swapping away does not keep it. */
+  private fury = new Fury();
   private lightning!: Lightning;
   /** Where a strike would fall and where ones already cast are about to. */
   private marks!: Phaser.GameObjects.Graphics;
@@ -116,6 +135,7 @@ export class GameScene extends Phaser.Scene {
       const heading = spot && enemy ? this.bolts.strike(spot) : null;
       if (heading && enemy) enemy.hit(heading.dx, heading.dy);
     });
+    this.balls = new Bolts(this, WORLD_W, WORLD_H, BALL);
     // What the enemies throw, and the part of her it can hit.
     this.embers = new Bolts(this, WORLD_W, WORLD_H, EMBER);
     this.hurtbox = this.add.zone(this.machi.x, this.machi.y - TORSO.up, TORSO.w, TORSO.h);
@@ -202,7 +222,15 @@ export class GameScene extends Phaser.Scene {
     if (this.vitals.update(dt)) this.rise();
     const standing = this.vitals.standing;
     // Down, she takes no orders.
-    this.machi.update(dt, standing ? this.readInput() : { dx: 0, dy: 0, attack: false });
+    const input = standing ? this.readInput() : { dx: 0, dy: 0, attack: false };
+    // With the musket up the attack is its trigger, not a cut: it is kept
+    // from the sabre until it has been let go again.
+    this.trigger = input.attack && !this.attackWas;
+    this.attackWas = input.attack;
+    if (this.shouldering) this.spentAttack = true;
+    if (!input.attack) this.spentAttack = false;
+    if (this.spentAttack) input.attack = false;
+    this.machi.update(dt, input);
     // Enemies throw at her chest while she is up.
     // She cannot walk through an enemy: each one she stands in pushes her
     // back out the short way. Done here rather than by the physics engine
@@ -222,6 +250,7 @@ export class GameScene extends Phaser.Scene {
       if (chonchon.update(dt, feet)) this.hurt();
     }
     this.useAbilities(dt, standing);
+    this.fury.update(dt);
     const blow = this.machi.takeStrike();
     if (blow) this.land(blow);
     const cast = this.machi.takeCast();
@@ -240,6 +269,14 @@ export class GameScene extends Phaser.Scene {
     }
     this.bolts.update(dt);
     this.embers.update(dt);
+    this.balls.update(dt);
+    // A musket ball bursts on the first thing it is seen to touch, anywhere
+    // along the stretch it flew this step.
+    this.balls.sweep(4, (x, y) => {
+      const struck = [...this.enemies, ...this.chonchones].find(e => e.alive && overlaps({ x, y, hw: MUSKET.girth, hh: MUSKET.girth }, e.body));
+      if (struck) this.burst(struck.ground);
+      return !!struck;
+    });
     this.lightning.update(dt);
     this.drawCuts(dt);
     this.flash = Math.max(0, this.flash - dt / FLASH);
@@ -263,6 +300,48 @@ export class GameScene extends Phaser.Scene {
       .setTint(ECHO.tint[this.hero])
       .setAlpha(ECHO.alpha);
     this.tweens.add({ targets: echo, alpha: 0, duration: ECHO.fade, onComplete: () => echo.destroy() });
+  }
+
+  // His musket. While its key is held he shoulders it and turns to the
+  // pointer; the attack then fires it, if he has the fury for it. Letting the
+  // key go without firing puts it away. The ball leaves on the frame the shot
+  // is drawn.
+  private useMusket(dt: number, held: boolean): void {
+    this.musketWait = Math.max(0, this.musketWait - dt);
+    const pointer = this.input.activePointer;
+    if (held && !this.machi.isDashing) {
+      this.machi.shoulder({ x: pointer.worldX, y: pointer.worldY });
+      this.shotAt = { x: pointer.worldX, y: pointer.worldY };
+      if (this.trigger && this.skill('musket').ready && this.fury.spend(MUSKET.cost)) {
+        this.musketWait = MUSKET.cooldown;
+        this.machi.fire();
+      }
+    } else if (this.shouldering) {
+      this.machi.lower();
+    }
+    this.shouldering = held && this.machi.isShouldering;
+    if (!this.machi.takeShot()) return;
+    // Aimed from where the barrel is seen to be, through the pointer.
+    const { x, y } = this.machi;
+    this.balls.spawn({
+      x, y, height: MUSKET.height,
+      dx: this.shotAt.x - x, dy: (this.shotAt.y - (y - MUSKET.height)) / ISO_Y,
+    });
+    this.cameras.main.shake(60, 0.004);
+  }
+
+  // A musket ball going off: everything within the blast is hurt, wherever
+  // the ball itself struck.
+  private burst(at: Vec): void {
+    this.blasts.push({ ...at, t: 0 });
+    this.cameras.main.shake(110, 0.005);
+    for (const enemy of [...this.enemies, ...this.chonchones]) {
+      const spot = enemy.ground;
+      if (!enemy.alive || ground(at, spot) > MUSKET.radius + enemy.girth) continue;
+      for (let i = 0; i < MUSKET.damage; i++) enemy.hit(spot.x - at.x || 1, spot.y - at.y);
+      const { x, y } = enemy.body;
+      this.sparks.emitParticleAt(x, y, 10);
+    }
   }
 
   // A blow lands on everything within its reach and inside its cone, measured
@@ -289,6 +368,7 @@ export class GameScene extends Phaser.Scene {
         spark.velocityY += blow.dy * 45;
       }
       struck = true;
+      this.fury.gain(BLOW);
     }
     // A blow that connects is felt.
     if (struck) this.cameras.main.shake(70, 0.003);
@@ -322,6 +402,15 @@ export class GameScene extends Phaser.Scene {
       this.slashes.fillStyle(CUT.glow, 0.55 * fade).fillPoints(crescent(0.42), true);
       this.slashes.fillStyle(0xffffff, 0.95 * fade).fillPoints(crescent(0.2), true);
     }
+    // A blast: a ball of fire that swells and thins out over the ground it covered.
+    this.blasts = this.blasts.filter(blast => (blast.t += dt) < BLAST.time);
+    for (const { x, y, t } of this.blasts) {
+      const p = t / BLAST.time, fade = 1 - p * p;
+      const r = MUSKET.radius * (0.35 + 0.65 * Math.sqrt(p));
+      this.slashes.fillStyle(0xff7a1a, 0.55 * fade).fillEllipse(x, y - BLAST.up, r * 2, r * 2 * 0.8);
+      this.slashes.fillStyle(0xffe9a8, 0.9 * fade * fade).fillEllipse(x, y - BLAST.up, r * 1.1, r * 1.1 * 0.8);
+      this.slashes.lineStyle(2, 0xffffff, 0.8 * fade).strokeEllipse(x, y, r * 2, r * 2 * ISO_Y);
+    }
   }
 
   // Puts a character on the field at a spot, with their own art.
@@ -334,11 +423,13 @@ export class GameScene extends Phaser.Scene {
 
   // Her abilities: the keys, what they set off, and the marks on the ground.
   private useAbilities(dt: number, standing: boolean): void {
-    // Only Inti has abilities so far; the keys are still read, so a press is not kept for later.
+    // The same keys are each character's own abilities. They are read either
+    // way, so a press is not kept for later.
     const pressed = this.keys.abilities();
     const keys = this.hero === 'inti' ? pressed : { strike: false, heal: false };
     const pointer = this.input.activePointer;
     pointer.updateWorldPoint(this.cameras.main);
+    this.useMusket(dt, this.hero === 'cabral' && pressed.strike && standing);
     const at = { x: this.machi.x, y: this.machi.y };
     const events = this.abilities.update(dt, {
       ...keys,
@@ -372,6 +463,17 @@ export class GameScene extends Phaser.Scene {
     // Everything is an ellipse: a circle on the ground, seen from above at an angle.
     const ring = (x: number, y: number, r: number) => [x, y, r * 2, r * 2 * ISO_Y] as const;
     this.marks.clear();
+    if (this.shouldering) {
+      // The line of the shot, from the barrel out as far as a ball carries, and
+      // the size of the blast where the pointer is; dull when it cannot be paid for.
+      const colour = this.skill('musket').ready ? 0xffb45a : 0x8a8478;
+      const from = { x: at.x, y: at.y - MUSKET.height };
+      const dx = pointer.worldX - from.x, dy = (pointer.worldY - from.y) / ISO_Y;
+      const far = Math.hypot(dx, dy) || 1;
+      this.marks.lineStyle(1, colour, 0.5).lineBetween(
+        from.x, from.y, from.x + dx / far * BALL.range, from.y + dy / far * BALL.range * ISO_Y);
+      this.marks.lineStyle(1, colour, 0.9).strokeEllipse(...ring(pointer.worldX, pointer.worldY, MUSKET.radius));
+    }
     const aim = this.abilities.aim;
     if (aim) {
       // Her reach, and the patch the pointer picks inside it; dull when it cannot be cast.
@@ -394,6 +496,8 @@ export class GameScene extends Phaser.Scene {
   // does nothing; returns whether it counted.
   private hurt(): boolean {
     if (this.machi.isDashing || !this.vitals.hit()) return false;
+    // Being hurt angers him.
+    if (this.hero === 'cabral') this.fury.gain(WOUND);
     // A hit breaks the healing ritual.
     if (this.abilities.interrupt()) this.machi.stopChannel();
     this.flash = 1;
@@ -406,8 +510,10 @@ export class GameScene extends Phaser.Scene {
   private fall(): void {
     this.machi.fall();
     this.abilities.reset();
+    this.fury.reset();
     this.embers.clear();
     this.bolts.clear();
+    this.balls.clear();
   }
 
   private rise(): void {
@@ -451,8 +557,24 @@ export class GameScene extends Phaser.Scene {
     return this.abilities.mana / MANA;
   }
 
+  /** How much fury he has built up, from 0 to 1. */
+  get rage(): number {
+    return this.fury.value / FURY;
+  }
+
+  /** Who is being played, for the HUD to show what is theirs. */
+  get playing(): Hero {
+    return this.hero;
+  }
+
   /** An ability's state for the HUD: whether it can be used, and how much cooldown is left (1 to 0). */
-  skill(ability: Ability): { ready: boolean; cooldown: number } {
+  skill(ability: Ability | 'musket'): { ready: boolean; cooldown: number } {
+    if (ability === 'musket') {
+      return {
+        ready: this.musketWait === 0 && this.fury.value >= MUSKET.cost,
+        cooldown: this.musketWait / MUSKET.cooldown,
+      };
+    }
     return { ready: this.abilities.ready(ability), cooldown: this.abilities.cooldown(ability) };
   }
 

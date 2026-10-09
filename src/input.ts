@@ -18,6 +18,7 @@ export class Keys {
   /** Q is down, and E was pressed since the last read. */
   private strike = false;
   private heal = false;
+  private healHeld = false;
 
   constructor(target: Window = window) {
     target.addEventListener('keydown', e => {
@@ -31,7 +32,7 @@ export class Keys {
         return;
       }
       if (e.code === 'KeyQ') { this.strike = true; return; }
-      if (e.code === 'KeyE') { if (!e.repeat) this.heal = true; return; }
+      if (e.code === 'KeyE') { if (!e.repeat) this.heal = true; this.healHeld = true; return; }
       const dir = KEYMAP[e.code];
       if (!dir) return;
       e.preventDefault();
@@ -40,9 +41,10 @@ export class Keys {
     target.addEventListener('keyup', e => {
       if (e.code === 'Space') this.attack = false;
       else if (e.code === 'KeyQ') this.strike = false;
+      else if (e.code === 'KeyE') this.healHeld = false;
       else if (KEYMAP[e.code]) this.held.delete(KEYMAP[e.code]);
     });
-    target.addEventListener('blur', () => { this.held.clear(); this.attack = false; this.strike = false; });
+    target.addEventListener('blur', () => { this.held.clear(); this.attack = false; this.strike = false; this.healHeld = false; });
   }
 
   private axis(neg: Dir, pos: Dir): number {
@@ -51,11 +53,14 @@ export class Keys {
     return v;
   }
 
-  /** Her abilities' keys: the strike is held to aim, the heal is one press. */
-  abilities(): { strike: boolean; heal: boolean } {
+  /**
+   * The ability keys. Each character reads them their own way: `strike` is
+   * Q held down, `heal` is one press of E, and `second` is E held down.
+   */
+  abilities(): { strike: boolean; heal: boolean; second: boolean } {
     const heal = this.heal;
     this.heal = false;
-    return { strike: this.strike, heal };
+    return { strike: this.strike, heal, second: this.healHeld };
   }
 
   read(): MachiInput {

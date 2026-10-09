@@ -73,6 +73,11 @@ Writing the prompt:
   rolls, never leaves the ground, never turns round").
 - Say "in place, as if the camera follows", "same size, same flat colours",
   "no effects", and whether it loops.
+- Say where a thing points **on the picture** ("the barrel runs down the
+  middle of the image, muzzle at the bottom"), not relative to the character
+  ("pointing the way he faces"). Asked the second way, a musket aimed
+  toward the camera came back end-on and one aimed down a diagonal came
+  back horizontal.
 - Animate **from the exact pose of the view** it will be shown in, so its
   first frame matches.
 

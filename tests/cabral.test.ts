@@ -170,3 +170,59 @@ describe("Cabral's roll", () => {
     }
   });
 });
+
+describe("Cabral's musket", () => {
+  const still = { dx: 0, dy: 0, attack: false };
+  const run = (c: MachiController, seconds: number, each?: () => void) => {
+    for (let t = 0; t < seconds; t += DT) { each?.(); c.update(DT, still); }
+  };
+
+  it('comes up while it is held, turning him to the aim, and he stands still', () => {
+    const c = new MachiController(undefined, CABRAL);
+    walk(c, 0, 1, 0.5);
+    const at = { x: c.x, y: c.y };
+    const aim = { x: c.x + 80, y: c.y - 40 };
+    for (let t = 0; t < 1; t += DT) { c.shoulder(aim); c.update(DT, { dx: 1, dy: 0, attack: false }); }
+    expect(c.isShouldering).toBe(true);
+    expect(c.view).toBe('back');
+    expect({ x: c.x, y: c.y }).toEqual(at);
+    expect(c.takeShot()).toBe(false);
+  });
+
+  it('fires on being let go, once, and is slung again after', () => {
+    const c = new MachiController(undefined, CABRAL);
+    const aim = { x: c.x + 80, y: c.y };
+    run(c, 0.5, () => c.shoulder(aim));
+    c.fire();
+    let shots = 0;
+    run(c, 1, () => { if (c.takeShot()) shots++; });
+    expect(shots).toBe(1);
+    expect(c.isShouldering).toBe(false);
+  });
+
+  it('let go before it is level, fires as soon as it is', () => {
+    const c = new MachiController(undefined, CABRAL);
+    c.shoulder({ x: c.x + 80, y: c.y });
+    c.update(DT, still);
+    c.fire();
+    c.update(DT, still);
+    expect(c.takeShot()).toBe(false);
+    let shots = 0;
+    run(c, 1, () => { if (c.takeShot()) shots++; });
+    expect(shots).toBe(1);
+  });
+
+  it('is put away without a shot when lowered, or by a dash', () => {
+    const c = new MachiController(undefined, CABRAL);
+    const aim = { x: c.x + 80, y: c.y };
+    run(c, 0.5, () => c.shoulder(aim));
+    c.lower();
+    expect(c.isShouldering).toBe(false);
+    run(c, 0.5, () => c.shoulder(aim));
+    c.update(DT, { ...still, dash: true });
+    expect(c.isShouldering).toBe(false);
+    expect(c.isDashing).toBe(true);
+    run(c, 1);
+    expect(c.takeShot()).toBe(false);
+  });
+});
