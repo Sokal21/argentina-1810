@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { drawGround } from '../world/ground';
 import { bosquePatagonico } from '../world/maps/bosque';
-import { drawTrees, loadScenery } from '../world/scenery';
+import { Forest, loadScenery } from '../world/scenery';
 import { extent, faults, letterAt, middle, PLOT_H, PLOT_W, zoneAt, type WorldMap } from '../world/zones';
 
 // A page for looking at maps while they are being made. It paints the ground
@@ -36,7 +36,7 @@ class MapScene extends Phaser.Scene {
 
   create(): void {
     drawGround(this, map);
-    ({ trees: this.trees, shadows: this.shadows } = drawTrees(this, map));
+    ({ trees: this.trees, shadows: this.shadows } = new Forest(this, map));
     this.lines = this.add.graphics().setDepth(1e6);
     this.keys = this.input.keyboard!.addKeys('W,A,S,D') as typeof this.keys;
     this.pin();

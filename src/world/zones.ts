@@ -55,6 +55,19 @@ export function zoneAt(map: WorldMap, x: number, y: number): Zone | undefined {
   return letter === undefined ? undefined : map.zones[letter];
 }
 
+/**
+ * Where someone walking from one spot to another ends up. Country too thick
+ * to cross stops them, and they slide along its edge rather than stick to it.
+ */
+export function walk(map: WorldMap, from: { x: number; y: number }, to: { x: number; y: number }): { x: number; y: number } {
+  const open = (x: number, y: number) => zoneAt(map, x, y) !== undefined;
+  // Someone already off the ground is let back onto it, wherever they go.
+  if (open(to.x, to.y) || !open(from.x, from.y)) return { x: to.x, y: to.y };
+  if (open(to.x, from.y)) return { x: to.x, y: from.y };
+  if (open(from.x, to.y)) return { x: from.x, y: to.y };
+  return { x: from.x, y: from.y };
+}
+
 /** The letters of the zones that can be walked to from where the hero arrives. */
 export function reachable(map: WorldMap): Set<string> {
   const seen = new Set<string>(), letters = new Set<string>();

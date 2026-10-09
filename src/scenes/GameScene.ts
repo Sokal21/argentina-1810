@@ -22,11 +22,18 @@ import { Burning } from '../machi/burning';
 import { GRENADE } from '../machi/grenade';
 import { MUSKET } from '../machi/musket';
 import { overlaps, pushOut, type Footprint } from '../world/footprint';
+import { drawGround as layGround } from '../world/ground';
+import { bosquePatagonico } from '../world/maps/bosque';
+import { Forest, loadScenery } from '../world/scenery';
 import { Vitals } from '../world/vitals';
+import { extent, middle, walk, type WorldMap } from '../world/zones';
 
 const ZOOM = 2;            // screen pixels per sprite pixel
-const WORLD_W = 1280;      // world size, in sprite pixels
-const WORLD_H = 800;
+const FIELD = { width: 1280, height: 800 }; // the bare field, in sprite pixels
+// The map each hero walks; one who has none fights on the bare field.
+const MAPS: Partial<Record<Hero, WorldMap>> = { inti: bosquePatagonico };
+// Where a map's enemies wait, in plots from where the hero arrives: out of the camp.
+const HUNT: [number, number] = [11, 0];
 const TILE_W = 32, TILE_H = 16; // ground diamond, in sprite pixels
 const CHEST = 45;          // height of her chest above her feet, where the light sits
 const ARRIVE = 5;          // she stops this close to the pointer instead of jittering on it
@@ -132,7 +139,12 @@ export class GameScene extends Phaser.Scene {
   private hurtbox!: Phaser.GameObjects.Zone;
   private flash = 0;
   private hitFx?: HitFX;
-  private start = { x: WORLD_W / 2, y: WORLD_H / 2 };
+  /** The map being walked, if the hero has one, and the trees on it. */
+  private map?: WorldMap;
+  private forest?: Forest;
+  /** How far the world reaches, in sprite pixels. */
+  private size = FIELD;
+  private start = { x: FIELD.width / 2, y: FIELD.height / 2 };
   private echoIn = 0;
   private enemies: Enemy[] = [];
   private chonchones: Chonchon[] = [];
@@ -172,17 +184,23 @@ export class GameScene extends Phaser.Scene {
     Chonchon.preload(this);
     Realista.preload(this);
     Nahuel.preload(this);
+    loadScenery(this);
   }
 
   create(): void {
-    this.drawGround();
+    this.map = MAPS[this.hero];
+    this.size = this.map ? extent(this.map) : FIELD;
+    this.start = this.map ? middle(this.map.start) : { x: FIELD.width / 2, y: FIELD.height / 2 };
+    this.forest = this.map && new Forest(this, this.map);
+    if (this.map) layGround(this, this.map);
+    else this.drawGround();
 
     this.machi = this.enter(this.hero, this.start);
     this.keys = new Keys();
 
     this.shadow = this.add.ellipse(0, 0, 22, 8, 0x000000, 0.28);
     this.sprite = this.add.sprite(0, 0, KITS[this.hero].sheets.idle_front.src, 0);
-    this.bolts = new Bolts(this, WORLD_W, WORLD_H);
+    this.bolts = new Bolts(this, this.size.width, this.size.height);
 
     if (this.renderer.type === Phaser.WEBGL) {
       (this.renderer as Phaser.Renderer.WebGL.WebGLRenderer).pipelines.addPostPipeline('HitFX', HitFX);
@@ -196,20 +214,22 @@ export class GameScene extends Phaser.Scene {
     // Each of them has enemies of their own: Cabral the king's soldiers,
     // Inti the stone blocks and the chonchones.
     const his = this.hero === 'cabral';
+    // On a map they wait out in the forest: nothing hunts in the camp.
+    const field = this.map ? middle([this.map.start[0] + HUNT[0], this.map.start[1] + HUNT[1]]) : this.start;
     const at = <T>(spots: [number, number][], make: (x: number, y: number) => T): T[] =>
-      spots.map(([dx, dy]) => make(this.machi.x + dx, this.machi.y + dy));
+      spots.map(([dx, dy]) => make(field.x + dx, field.y + dy));
     this.enemies = his ? [] : at(CUBES, (x, y) => new Enemy(this, x, y));
     // One that takes a great deal of killing, to try things out on.
-    if (!his) this.enemies.push(new Enemy(this, this.machi.x + STURDY.at[0], this.machi.y + STURDY.at[1], STURDY.life));
+    if (!his) this.enemies.push(new Enemy(this, field.x + STURDY.at[0], field.y + STURDY.at[1], STURDY.life));
     // The physics engine reports a bolt's spot on the ground entering an
     // enemy's; the bolt ends there and the enemy takes the hit.
-    const bounds = { minX: 0, maxX: WORLD_W, minY: 0, maxY: WORLD_H };
+    const bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
     this.chonchones = his ? [] : at(CHONCHONES, (x, y) => new Chonchon(this, x, y, bounds));
     this.realistas = his ? at(REALISTAS, (x, y) => new Realista(this, x, y, bounds)) : [];
     for (const foe of this.foes) this.physics.add.overlap(this.bolts.bodies, foe.zone, this.struck);
-    this.balls = new Bolts(this, WORLD_W, WORLD_H, BALL);
+    this.balls = new Bolts(this, this.size.width, this.size.height, BALL);
     // What the enemies throw, and the part of her it can hit.
-    this.embers = new Bolts(this, WORLD_W, WORLD_H, EMBER);
+    this.embers = new Bolts(this, this.size.width, this.size.height, EMBER);
     this.hurtbox = this.add.zone(this.machi.x, this.machi.y - TORSO.up, TORSO.w, TORSO.h);
     this.physics.add.existing(this.hurtbox);
     this.hurtbox.setData('machi', true);
@@ -219,7 +239,7 @@ export class GameScene extends Phaser.Scene {
       if (spot && this.hurt()) this.embers.strike(spot);
     });
 
-    this.shots = new Bolts(this, WORLD_W, WORLD_H, SHOT);
+    this.shots = new Bolts(this, this.size.width, this.size.height, SHOT);
     this.physics.add.overlap(this.shots.bodies, this.hurtbox, (a, b) => {
       const spot = ([a, b] as Phaser.GameObjects.GameObject[]).find(o => o.getData('bolt'));
       if (spot && this.hurt()) this.shots.strike(spot);
@@ -316,7 +336,7 @@ export class GameScene extends Phaser.Scene {
 
     const cam = this.cameras.main;
     cam.setZoom(ZOOM);
-    cam.setBounds(0, 0, WORLD_W, WORLD_H);
+    cam.setBounds(0, 0, this.size.width, this.size.height);
     cam.setRoundPixels(true);
     // Follow her feet, framed a little above them so her body is centred.
     cam.startFollow(this.shadow, true, 1, 1, 0, CHEST);
@@ -349,6 +369,7 @@ export class GameScene extends Phaser.Scene {
     if (this.spentAttack) input.attack = false;
     this.machi.pace = tune.speed * (this.wrath.active ? RAGE.pace : 1);
     this.machi.haste = this.wrath.active ? RAGE.haste : 1;
+    const from = { x: this.machi.x, y: this.machi.y };
     this.machi.update(dt, input);
     // Enemies throw at her chest while she is up.
     // She cannot walk through an enemy: each one she stands in pushes her
@@ -367,6 +388,18 @@ export class GameScene extends Phaser.Scene {
       this.machi.x = clear.x;
       this.machi.y = clear.y;
     }
+    // Nor through the trunk of a tree, nor into country too thick to cross.
+    for (const trunk of this.forest?.trunks ?? []) {
+      const clear = pushOut({ x: this.machi.x, y: this.machi.y, ...FEET }, trunk);
+      this.machi.x = clear.x;
+      this.machi.y = clear.y;
+    }
+    if (this.map) {
+      const held = walk(this.map, from, this.machi);
+      this.machi.x = held.x;
+      this.machi.y = held.y;
+    }
+    this.forest?.reveal(this.machi, dt);
     // Chonchones go for where she stands; their teeth miss her mid-dash.
     for (const chonchon of this.chonchones) {
       const drawn = feet && this.nahuel.lures(chonchon.ground, feet);
@@ -650,7 +683,7 @@ export class GameScene extends Phaser.Scene {
 
   // Puts a character on the field at a spot, with their own art.
   private enter(hero: Hero, at: Vec): MachiController {
-    const body = new MachiController({ minX: 12, maxX: WORLD_W - 12, minY: FRAME, maxY: WORLD_H - 6 }, KITS[hero]);
+    const body = new MachiController({ minX: 12, maxX: this.size.width - 12, minY: FRAME, maxY: this.size.height - 6 }, KITS[hero]);
     body.x = at.x;
     body.y = at.y;
     return body;
@@ -911,9 +944,9 @@ export class GameScene extends Phaser.Scene {
   /** For trying things out: one more enemy, a little way off from the hero. */
   spawn(kind: 'realista' | 'chonchon' | 'cubo'): void {
     const angle = Math.random() * Math.PI * 2;
-    const x = Phaser.Math.Clamp(this.machi.x + Math.cos(angle) * 150, 30, WORLD_W - 30);
-    const y = Phaser.Math.Clamp(this.machi.y + Math.sin(angle) * 150 * ISO_Y, FRAME, WORLD_H - 20);
-    const bounds = { minX: 0, maxX: WORLD_W, minY: 0, maxY: WORLD_H };
+    const x = Phaser.Math.Clamp(this.machi.x + Math.cos(angle) * 150, 30, this.size.width - 30);
+    const y = Phaser.Math.Clamp(this.machi.y + Math.sin(angle) * 150 * ISO_Y, FRAME, this.size.height - 20);
+    const bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
     let foe: Foe;
     if (kind === 'realista') this.realistas.push(foe = new Realista(this, x, y, bounds));
     else if (kind === 'chonchon') this.chonchones.push(foe = new Chonchon(this, x, y, bounds));
@@ -1021,12 +1054,12 @@ export class GameScene extends Phaser.Scene {
   // Diamonds on a staggered grid, each in one of five close greens picked by
   // a hash of its cell, drawn once into a texture the size of the world.
   private drawGround(): void {
-    const tex = this.textures.createCanvas('ground', WORLD_W, WORLD_H)!;
+    const tex = this.textures.createCanvas('ground', this.size.width, this.size.height)!;
     const g = tex.getContext();
     g.fillStyle = '#2b3524';
-    g.fillRect(0, 0, WORLD_W, WORLD_H);
+    g.fillRect(0, 0, this.size.width, this.size.height);
     const greens = ['#303b27', '#2e3926', '#333e29', '#2c3624', '#35402a'];
-    const cols = Math.ceil(WORLD_W / TILE_W) + 2, rows = Math.ceil(WORLD_H / TILE_H) + 2;
+    const cols = Math.ceil(this.size.width / TILE_W) + 2, rows = Math.ceil(this.size.height / TILE_H) + 2;
     for (let r = -1; r <= rows * 2; r++) {
       for (let c = -1; c <= cols * 2; c++) {
         if ((r + c) % 2 === 0) continue;
