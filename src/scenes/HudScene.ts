@@ -45,7 +45,7 @@ export class HudScene extends Phaser.Scene {
   private slots: { ability: Ability; icon: Phaser.GameObjects.Image; shade: Phaser.GameObjects.Rectangle }[] = [];
 
   constructor() {
-    super({ key: 'hud', active: true });
+    super('hud');
   }
 
   preload(): void {

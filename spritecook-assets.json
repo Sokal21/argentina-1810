@@ -419,6 +419,48 @@
       "sha12": "12868028738b",
       "label": "ability icon: lawen (healing) — untouched SpriteCook output",
       "file": "assets/hud/iconos/lawen_original.png"
+    },
+    {
+      "asset_id": "df69f4b5-526d-42ee-a30d-2a7303e85f12",
+      "sha12": "fa3d82fe720d",
+      "label": "title background: the Cabildo at night — source of assets/titulo/cabildo.png",
+      "file": "assets/titulo/concept/cabildo_lejos_1.png"
+    },
+    {
+      "asset_id": "2d37b622-1643-4d32-aa83-65c0d8294fbf",
+      "sha12": "dcea989c7b05",
+      "label": "title background concept A (closer view)",
+      "file": "assets/titulo/concept/cabildo_a.png"
+    },
+    {
+      "asset_id": "84deee86-8a9e-42fe-b3b4-25ba6cfc36dd",
+      "sha12": "b5102c3cce4c",
+      "label": "title logo '1810: ARGENTINA' — source of assets/titulo/logo.png",
+      "file": "assets/titulo/concept/logo_b.png"
+    },
+    {
+      "asset_id": "7f89ab4d-8ee3-4521-a246-857b8d283492",
+      "sha12": "87265e6163c4",
+      "label": "Sol de Mayo emblem",
+      "file": "assets/titulo/sol.png"
+    },
+    {
+      "asset_id": "f9fe585f-8fac-4bf9-8996-3766c7e6a084",
+      "sha12": "f8ac743e8cda",
+      "label": "title: coach and horses trotting, 8 frames — untouched",
+      "file": "assets/titulo/original/carruaje.png"
+    },
+    {
+      "asset_id": "d901c8b8-e37f-44e3-a9a5-506d1085d79d",
+      "sha12": "57648c97f5f5",
+      "label": "title: gentleman in top hat walking, 8 frames — untouched",
+      "file": "assets/titulo/original/caballero.png"
+    },
+    {
+      "asset_id": "9abc27ca-4641-40f4-98e8-c62ffb27a747",
+      "sha12": "1064854bd0d3",
+      "label": "title: lady in mantilla walking, 8 frames — untouched",
+      "file": "assets/titulo/original/dama.png"
     }
   ]
 }
