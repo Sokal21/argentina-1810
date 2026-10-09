@@ -12,6 +12,7 @@ import { Abilities, ground, HEAL, MANA, STRIKE, type Ability } from '../machi/ab
 import { MachiController, type Arm, type MachiInput, type Strike, type Vec } from '../machi/controller';
 import { FRAME, ISO_Y, KITS, type Hero } from '../machi/data';
 import { BLOW, FURY, Fury, WOUND } from '../machi/fury';
+import { Burning } from '../machi/burning';
 import { GRENADE } from '../machi/grenade';
 import { MUSKET } from '../machi/musket';
 import { overlaps, pushOut, type Footprint } from '../world/footprint';
@@ -89,7 +90,7 @@ export class GameScene extends Phaser.Scene {
   private grenades: Grenade[] = [];
   private fires: Fire[] = [];
   /** Enemies on fire: how much longer each burns, and when it next hurts. */
-  private alight = new Map<Enemy | Chonchon, { t: number; next: number }>();
+  private alight = new Burning<Enemy | Chonchon>();
   /** Embers drifting up from whatever is burning. */
   private embersUp!: Phaser.GameObjects.Particles.ParticleEmitter;
   /** The attack went down this step; it was down last step; it has fired the musket and must be let go before it cuts. */
@@ -125,6 +126,11 @@ export class GameScene extends Phaser.Scene {
 
   constructor() {
     super('game');
+  }
+
+  /** Who is played is chosen before the game starts. */
+  init(data: { hero?: Hero }): void {
+    this.hero = data.hero ?? 'inti';
   }
 
   preload(): void {
@@ -239,8 +245,8 @@ export class GameScene extends Phaser.Scene {
       emitting: false,
     }).setDepth(1e6).setBlendMode(Phaser.BlendModes.ADD);
 
-    // Tab swaps who is played, where they stand.
-    this.input.keyboard?.on('keydown-TAB', (event: KeyboardEvent) => {
+    // While developing, Tab swaps who is played, where they stand.
+    if (import.meta.env.DEV) this.input.keyboard?.on('keydown-TAB', (event: KeyboardEvent) => {
       event.preventDefault();
       if (!this.vitals.standing || this.machi.isDashing) return;
       this.hero = this.hero === 'inti' ? 'cabral' : 'inti';
@@ -452,37 +458,23 @@ export class GameScene extends Phaser.Scene {
       }
       // Whatever stands in it, or flies over it, catches.
       for (const enemy of [...this.enemies, ...this.chonchones]) {
-        if (enemy.alive && ground(fire, enemy.ground) <= GRENADE.radius + enemy.girth) this.ignite(enemy);
+        if (enemy.alive && ground(fire, enemy.ground) <= GRENADE.radius + enemy.girth) this.alight.ignite(enemy);
       }
     }
 
     // What has caught fire goes on burning for a while wherever it goes,
-    // hurt every so often, with flames on it that die down as it burns out.
-    for (const [enemy, burn] of this.alight) {
-      burn.t -= dt;
-      burn.next -= dt;
-      // It smoulders, dying down at the end, and sheds embers as it does.
-      enemy.burning = burn.t > 0 && enemy.alive ? Math.min(1, burn.t / 0.8) : 0;
+    // hurt every so often, smouldering and shedding embers as it does.
+    this.alight.update(dt, enemy => enemy.alive, (enemy, glow, hurt) => {
+      enemy.burning = glow;
       const { x, y, hw, hh } = enemy.body;
-      if (Math.random() < dt * EMBERS.shed) {
+      if (glow > 0 && Math.random() < dt * EMBERS.shed) {
         this.embersUp.emitParticleAt(x + Phaser.Math.FloatBetween(-hw, hw), y + Phaser.Math.FloatBetween(-hh, hh), 1);
       }
-      if (burn.next <= 0 && enemy.alive) {
-        burn.next = GRENADE.scorch;
-        for (let i = 0; i < GRENADE.burn; i++) enemy.hit(0, -1);
-      }
-      if (burn.t > 0 && enemy.alive) continue;
-      this.alight.delete(enemy);
-    }
+      for (let i = 0; i < hurt; i++) enemy.hit(0, -1);
+      if (hurt) this.sparks.emitParticleAt(x, y, 4);
+    });
     for (const fire of this.fires.filter(f => f.t >= GRENADE.burns)) fire.shader?.destroy();
     this.fires = this.fires.filter(f => f.t < GRENADE.burns);
-  }
-
-  // Sets an enemy alight, or keeps it alight if it already is.
-  private ignite(enemy: Enemy | Chonchon): void {
-    const burn = this.alight.get(enemy);
-    if (burn) { burn.t = GRENADE.smoulder; return; }
-    this.alight.set(enemy, { t: GRENADE.smoulder, next: GRENADE.scorch });
   }
 
   // Sets a patch of ground alight. The flames are a shader on a quad whose
@@ -508,7 +500,7 @@ export class GameScene extends Phaser.Scene {
       const spot = enemy.ground;
       if (!enemy.alive || ground(at, spot) > radius + enemy.girth) continue;
       for (let i = 0; i < damage; i++) enemy.hit(spot.x - at.x || 1, spot.y - at.y);
-      if (sets) this.ignite(enemy);
+      if (sets) this.alight.ignite(enemy);
       const { x, y } = enemy.body;
       this.sparks.emitParticleAt(x, y, 10);
     }
