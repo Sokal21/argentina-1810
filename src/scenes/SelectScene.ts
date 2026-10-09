@@ -24,9 +24,9 @@ interface Card {
 }
 
 const CARDS: Card[] = [
-  { hero: 'inti', name: 'INTI', calling: 'Machi · maná', accent: 0x46e6fa, w: 183, h: 320,
+  { hero: 'inti', name: 'Inti', calling: 'Machi · maná', accent: 0x46e6fa, w: 183, h: 320,
     icons: ['hud/iconos/rayo.png', 'hud/iconos/lawen.png'] },
-  { hero: 'cabral', name: 'CABRAL', calling: 'Granadero · furia', accent: 0xff7a00, w: 178, h: 314,
+  { hero: 'cabral', name: 'Cabral', calling: 'Granadero · furia', accent: 0xff7a00, w: 178, h: 314,
     icons: ['hud/iconos/mosquete.png', 'hud/iconos/granada.png'] },
 ];
 
@@ -35,7 +35,10 @@ const CARDS: Card[] = [
 const BACK = { src: 'seleccion/fondo.png', w: 480, h: 270 };
 const CAMP = { src: 'seleccion/campamento.png', x: 176, y: 58, w: 300, h: 150, fps: 8 };
 
-const SERIF = "Georgia, 'Times New Roman', serif";
+// The game's pixel blackletter. It lands on its grid only at 21px, so the
+// small lines are that size drawn at half scale.
+const GOTHIC = "'Jacquard 12', Georgia, serif";
+const BIG = '21px', HALF = 0.5;
 const hex = (colour: number) => `#${colour.toString(16).padStart(6, '0')}`;
 
 interface Shown {
@@ -85,12 +88,12 @@ export class SelectScene extends Phaser.Scene {
       this.add.sprite(CAMP.x - BACK.w / 2, CAMP.y - BACK.h / 2, CAMP.src).setOrigin(0).play(CAMP.src),
     ]);
 
-    this.texts.push(this.add.text(W / 2, 16, 'ELEGÍ TU DESTINO', {
-      fontFamily: SERIF, fontSize: '15px', color: '#e2c478', stroke: '#0d0b12', strokeThickness: 3,
-    }).setOrigin(0.5).setLetterSpacing(4));
-    this.texts.push(this.add.text(W / 2, H - 10, '◄ ►  elegir     ·     ENTER o clic  jugar', {
-      fontFamily: SERIF, fontSize: '9px', color: '#b8ad98', stroke: '#0d0b12', strokeThickness: 2,
+    this.texts.push(this.add.text(W / 2, 15, 'Elegí tu destino', {
+      fontFamily: GOTHIC, fontSize: BIG, color: '#e2c478', stroke: '#0d0b12', strokeThickness: 4,
     }).setOrigin(0.5).setLetterSpacing(1));
+    this.texts.push(this.add.text(W / 2, H - 10, 'Flechas para elegir   ·   Enter o clic para jugar', {
+      fontFamily: GOTHIC, fontSize: BIG, color: '#b8ad98', stroke: '#0d0b12', strokeThickness: 4,
+    }).setOrigin(0.5).setScale(HALF));
 
     CARDS.forEach((card, i) => {
       const x = W / 2 + (i === 0 ? -APART : APART);
@@ -103,12 +106,12 @@ export class SelectScene extends Phaser.Scene {
         .setStrokeStyle(2, card.accent).setFillStyle();
       const below = CARD_Y + picture.height / 2;
       const left = x - picture.width / 2;
-      const name = this.add.text(left + 2, below + 14, card.name, {
-        fontFamily: SERIF, fontSize: '16px', color: '#f0e3c4', stroke: '#0d0b12', strokeThickness: 3,
-      }).setOrigin(0, 0.5).setLetterSpacing(3);
-      const calling = this.add.text(left + 2, below + 29, card.calling, {
-        fontFamily: SERIF, fontSize: '9px', color: hex(card.accent), stroke: '#0d0b12', strokeThickness: 2,
+      const name = this.add.text(left + 2, below + 13, card.name, {
+        fontFamily: GOTHIC, fontSize: BIG, color: '#f0e3c4', stroke: '#0d0b12', strokeThickness: 4,
       }).setOrigin(0, 0.5).setLetterSpacing(1);
+      const calling = this.add.text(left + 2, below + 29, card.calling, {
+        fontFamily: GOTHIC, fontSize: BIG, color: hex(card.accent), stroke: '#0d0b12', strokeThickness: 4,
+      }).setOrigin(0, 0.5).setScale(HALF);
       const icons = card.icons.map((icon, n) =>
         this.add.image(x + picture.width / 2 - 10 - (card.icons.length - 1 - n) * 21, below + 20, icon).setScale(ICON));
       this.texts.push(name, calling);

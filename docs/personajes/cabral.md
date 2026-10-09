@@ -186,6 +186,26 @@ Al centro, una placa de bronce con la granada llameante de los granaderos.
 
 Vida en rojo a la izquierda, furia en naranja a la derecha.
 
+## Su carta de selección
+
+La ilustración grande con que se lo elige antes de jugar. Ahí sí tiene cara:
+**agresivo sin perder la compostura**, ceño bajo, mandíbula apretada, boca
+cerrada. De cuerpo entero y tan alto en la carta como Inti, en plena
+estocada: el sable bajo deja un arco naranja, y en la otra mano lleva una
+granada con la mecha encendida; brasas y fuego en el suelo. Detrás, la pampa
+al atardecer: un ombú con un nido de hornero, el **Sol de Mayo**, un corral
+de palos, un pueblo colonial, la celeste y blanca en una lanza, pastos y
+cardos.
+
+En la carta lleva las correas cruzadas; en el juego, una sola bandolera. El
+morrión se achicó respecto de la primera versión, que lo tenía exagerado. Se
+sacó un gaucho a caballo del fondo para no tener que animarlo cruzando la
+carta.
+
+Archivo: `assets/seleccion/cabral.png` (12 cuadros de 178×314). Carta fija
+`209fe64b-5b41-41d4-8af1-909671538756`; animación
+`ff736333-9dbd-422d-9238-638576d333ef`.
+
 ## Animaciones que tiene
 
 Las mismas cinco vistas que Inti.

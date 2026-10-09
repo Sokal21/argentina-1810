@@ -2,6 +2,8 @@
 
 ![La pantalla de inicio: el Cabildo de Buenos Aires de noche, bajo el Sol de Mayo](docs/portada.png)
 
+**Jugalo en [1810.turbiocity.com](https://1810.turbiocity.com)**
+
 Un RPG de acción en pixel art, en vista isométrica, ambientado en la
 Argentina de 1810 con una vuelta fantástica y oscura. Se juega en el
 navegador.
@@ -13,8 +15,8 @@ jugables y sus enemigos.
 
 | | Qué es | Cómo pelea |
 |---|---|---|
-| **Inti** | Machi mapuche | De lejos. Lanza hechizos con su rama de canelo, hace caer el rayo del Pillán y se cura con lawen. Gasta **maná**. |
-| **Cabral** | Granadero a caballo | Cuerpo a cuerpo. Sable corvo, tiro de mosquete y granada que deja el suelo ardiendo. Carga **furia** peleando. |
+| **Inti** | Machi mapuche | De lejos. Lanza hechizos con su rama de canelo, hace caer el rayo del Pillán y se cura con lawen. Gasta **maná**. Su definitiva llama al **nahuel**, un jaguar espíritu que caza a su lado. |
+| **Cabral** | Granadero a caballo | Cuerpo a cuerpo. Sable corvo, tiro de mosquete y granada que deja el suelo ardiendo. Carga **furia** peleando. Su definitiva es la **furia desatada**: por unos segundos no puede morir. |
 
 Cada uno tiene sus propios enemigos: a Inti la persiguen los **chonchones**,
 cabezas voladoras de brujo; a Cabral lo enfrentan los **soldados
@@ -31,6 +33,7 @@ Quién es cada uno, cómo se ve y por qué se decidió así está en
 | Atacar | Clic o `Espacio` |
 | Esquivar | `Shift` |
 | Habilidades | `Q` y `E` |
+| Definitiva | `R`, cuando está cargada |
 | Pausa | `Esc` |
 
 Con Inti, mantener `Q` muestra dónde va a caer el rayo y soltarla lo lanza.
@@ -66,6 +69,7 @@ src/
   machi/      los personajes jugables: datos, control, habilidades
   chonchon/   el chonchón
   realista/   el soldado realista
+  nahuel/     el jaguar espíritu que invoca Inti
   fx/         shaders
 assets/       el arte, servido como raíz del sitio
 docs/         los documentos de personajes

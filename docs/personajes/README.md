@@ -28,6 +28,9 @@ favicon, pantalla de inicio) no se ata a ninguno de ellos.
 - **En las ilustraciones** (selección de personaje y similares): al revés.
   Ahí sí tienen cara, expresión, sombreado y textura.
 - Tono serio y algo oscuro. Nunca tierno ni caricaturesco.
+- **Letra:** Jacquard 12, una gótica en píxeles, para todo lo que el jugador
+  lee (título, selección, pausa, notas del HUD). Solo queda nítida a 21 px y
+  sus múltiplos. Las teclas de los casilleros van en Silkscreen.
 - Cada personaje tiene **un color de acento** que es el único que brilla en
   él, y que se repite en sus efectos y en su HUD.
 
@@ -36,6 +39,7 @@ favicon, pantalla de inicio) no se ata a ninguno de ellos.
 | Inti | Celeste `#46e6fa` | Luz de la rama, hechizos, rayo, orbe de maná, estela del dash |
 | Cabral | Naranja chillón `#ff7a00` | Furia, latigazo del sable, fuego, estela de la rodada |
 | Chonchón | Amarillo verdoso enfermo | Ojos |
+| Nahuel | El celeste de Inti | Anillos, ojos, halo y fuego fatuo |
 | Realista | Rojo sobre blanco crema | Vueltas de la casaca, escarapela |
 
 ## Cómo mantener estos documentos

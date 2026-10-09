@@ -147,6 +147,23 @@ ramas, hojas, hongos y musgo. Entre los dos, un tronco caído con cuatro
 casilleros enmarcados en ramitas, y un colgante tejido mapuche al centro.
 Vida en rojo a la izquierda, maná en celeste a la derecha.
 
+## Su carta de selección
+
+La ilustración grande con que se la elige antes de jugar. Ahí sí tiene cara:
+serena y compuesta, **esbelta y alta**, de cuerpo entero. Levanta la rama de
+canelo encendida en celeste y sostiene el kultrún al costado, envuelto en la
+luz verde de la curación. Detrás, la Patagonia de noche: araucarias, un
+volcán nevado, un lago, la Cruz del Sur, un guanaco, y el **Sol de Mayo**
+asomando entre las nubes; pastos y ceibos en flor al frente.
+
+Se probó con un rayo cayendo a su espalda y se sacó de la imagen quieta: el
+rayo aparece solo en la animación, cuando la carta está elegida.
+
+Archivo: `assets/seleccion/inti.png` (12 cuadros de 183×320). Carta fija
+`c201955f-57ed-4ce5-9cc6-07ac1b23323e`; la que se animó,
+`7162bd0d-ff15-43cd-9eb9-59c3aa7f0c7e`; animación
+`c83fcc28-10a1-43dc-9282-2f936f51c75c`.
+
 ## Animaciones que tiene
 
 Cinco vistas dibujadas (abajo, diagonal abajo, costado, diagonal arriba,
