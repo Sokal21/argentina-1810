@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { blow } from '../fx/wind';
-import { fenceRuns, stakes } from './fences';
+import { palisade, walls } from './fences';
 import type { Footprint } from './footprint';
 import { plantCountry } from './plants';
 import { castShadow, mirrored } from './scenery';
@@ -24,6 +24,10 @@ const GROWN: Record<string, number> = { tala: 1.6 };
 // The ground a plant in the way takes up, for one shown at its drawn size.
 const FOOT = { hw: 9, hh: 4 };
 const SHADOW_ALPHA = 0.32;
+// A clump of grass touches the ground all along its foot, not at a trunk: a shadow laid toward the
+// viewer shows under its whole width and it seems to float. So here the light falls from in front,
+// and shadows lie long and behind.
+const LIGHT = { across: 0.6, down: -0.12 };
 const FIGURE = 80;     // how tall someone standing behind a plant is, in sprite pixels
 const THINNED = 0.4;   // how much is left of one that hides someone
 const THINNING = 8;    // how fast it thins and fills in again, per second
@@ -50,7 +54,7 @@ export class Country {
       const plant = { ...planted, size: planted.size * (GROWN[planted.kind] ?? 1) };
       const drawing = drawings[Math.floor(plant.which * drawings.length)];
       const name = plant.flipped ? mirrored(scene, drawing) : drawing;
-      const shadow = castShadow(scene, name);
+      const shadow = castShadow(scene, name, LIGHT);
       this.shadows.push(scene.add.image(plant.x, plant.y, shadow.key)
         .setOrigin(shadow.footX, shadow.footY).setScale(plant.size).setAlpha(SHADOW_ALPHA).setDepth(-1e6 + 2));
       this.plants.push(scene.add.image(plant.x, plant.y, name).setOrigin(0.5, 1).setScale(plant.size).setDepth(plant.y));
@@ -102,7 +106,9 @@ export function raiseBuildings(scene: Phaser.Scene, map: WorldMap): Footprint[] 
 
 // The pieces a fence and a wall are chained from, by the name each is loaded under.
 const POSTS = ['cerca_palo_0', 'cerca_palo_1', 'cerca_palo_2', 'cerca_palo_3', 'cerca_palo_4', 'cerca_palo_5'];
-const PIECES = ['cerca_frente', 'tapia_frente', 'tapia_arriba', 'tapia_punta', ...POSTS];
+const PIECES = ['tapia_frente', ...POSTS];
+/** How thick a wall is: how wide each slice of it is drawn, in pixels. */
+const THICK = 10;
 
 /** Fetches the fences' and walls' drawings; to be called while a scene is loading. */
 export function loadFences(scene: Phaser.Scene): void {
@@ -110,31 +116,27 @@ export function loadFences(scene: Phaser.Scene): void {
 }
 
 /**
- * Puts up a map's fences and walls from their drawn pieces. A stretch seen
- * from the front is one drawing repeated along it. One that runs away up the
- * screen is, for a fence, its posts stood one behind another, and for a
- * wall, its coping seen from above with the end of the wall at the near end.
- * Each stands in front of whatever is further up the screen.
+ * Puts up a map's fences and walls from their drawn pieces. A fence is its
+ * posts, stood one by one along a line of its own. A wall is thin slices of
+ * its drawing stood side by side along its line: seen from the front they
+ * join into the wall's face, and where it runs away up the screen only the
+ * coping of each shows above the one in front. Each stands in front of
+ * whatever is further up the screen.
  */
 export function raiseFences(scene: Phaser.Scene, map: WorldMap): void {
-  const runs = fenceRuns(map);
-  const size = (name: string) => scene.textures.get(name).getSourceImage() as HTMLImageElement;
-  for (const post of stakes(runs)) {
+  for (const post of palisade(map)) {
     scene.add.image(post.x, post.y, POSTS[Math.floor(post.which * POSTS.length)]).setOrigin(0.5, 1).setDepth(post.y);
   }
-  for (const run of runs) {
-    const level = run.y0 === run.y1;
-    if (level) {
-      const name = run.kind === 'stakes' ? 'cerca_frente' : 'tapia_frente';
-      scene.add.tileSprite(run.x0, run.y0, run.x1 - run.x0, size(name).height, name)
-        // Begun wherever the stretch begins along the ground, so stretches side by side join.
-        .setTilePosition(run.x0, 0).setOrigin(0, 1).setDepth(run.y0);
-    } else if (run.kind === 'wall') {
-      const top = size('tapia_arriba'), end = size('tapia_punta');
-      const up = end.height - 6;   // how high above the ground the coping lies
-      scene.add.tileSprite(run.x0, run.y0 - up, top.width, run.y1 - run.y0, 'tapia_arriba')
-        .setTilePosition(0, run.y0).setOrigin(0.5, 0).setDepth(run.y1 - 1);
-      scene.add.image(run.x0, run.y1, 'tapia_punta').setOrigin(0.5, 1).setDepth(run.y1);
-    }
+  // The wall's drawing twice over side by side, so a slice can begin anywhere along it.
+  const front = scene.textures.get('tapia_frente').getSourceImage() as HTMLImageElement;
+  if (!scene.textures.exists('tapia')) {
+    const twice = scene.textures.createCanvas('tapia', front.width * 2, front.height)!;
+    twice.getContext().drawImage(front, 0, 0);
+    twice.getContext().drawImage(front, front.width, 0);
+    twice.refresh();
+    for (let from = 0; from < front.width; from++) twice.add(from, 0, from, 0, THICK, front.height);
+  }
+  for (const slice of walls(map)) {
+    scene.add.image(slice.x, slice.y, 'tapia', Math.floor(slice.along) % front.width).setOrigin(0.5, 1).setDepth(slice.y);
   }
 }

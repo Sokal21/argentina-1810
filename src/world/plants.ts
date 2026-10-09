@@ -11,6 +11,8 @@ import { letterAt, PLOT_H, PLOT_W, type WorldMap } from './zones';
 export const DEPTH = 4;
 /** Plants in a plot of the thicket, by how far in it is. */
 export const THICK = [5, 4, 3, 2];
+/** Behind a fence the fence closes the zone, not the thicket: a plot there holds one plant, this often. */
+export const BEHIND_FENCE = 0.3;
 /** No two are quite the same height: each is this share taller or shorter, at most. */
 export const UNEVEN = 0.18;
 /** What grows in deep water, whatever the zone beside it is closed with. */
@@ -91,6 +93,10 @@ export function plantCountry(map: WorldMap, seed = 1): Plant[] {
     if (zone.fence && far === 1) return;
     // In deep water only reeds grow, and fewer of them.
     const deep = water[row][col] === DEEP;
+    if (zone.fence) {
+      if (chance(col, row, seed + 60) < BEHIND_FENCE) plant(col, row, deep ? REEDS : kinds[Math.floor(chance(col, row, seed + 40) * kinds.length)], 0, false);
+      return;
+    }
     for (let n = 0; n < (deep ? Math.ceil(THICK[far - 1] / 2) : THICK[far - 1]); n++) {
       plant(col, row, deep ? REEDS : kinds[Math.floor(chance(col, row, seed + 40 + n) * kinds.length)], n, false);
     }

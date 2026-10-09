@@ -326,16 +326,27 @@ límite define por dónde no se pasa, y eso es lo que esta etapa decide.*
   ya estaba: el arroyo, el bañado, el pajonal. Lo que la historia tiene de
   verdad del lugar también vale para sus cercos.
 - **Las cercas dibujadas por código no pasaron.** La primera versión las
-  armaba con rectángulos, estaca por estaca; seguían cualquier contorno,
-  pero no eran del mismo mundo que las plantas y el usuario las rechazó.
-  Ahora se arman **encadenando piezas dibujadas** (`tools/build_cercas.py`
-  las corta de una hoja de concepto; `src/world/fences.ts` dice por dónde
-  corren y `country.ts` las pone): un tramo de frente que se repite para lo
-  que corre a lo ancho, y postes sueltos, uno detrás de otro, para lo que
-  se aleja. El tapial igual: un paño de frente, un lomo visto de arriba y
-  una punta.
-- **Donde hay cerca, el pajonal arranca una parcela más atrás:** la
-  primera vez la tapaba entera.
+  armaba con rectángulos, estaca por estaca; no eran del mismo mundo que
+  las plantas y el usuario las rechazó. La segunda encadenaba piezas
+  dibujadas a lo largo de los lados de las parcelas: ya eran del mismo
+  mundo, pero quedaban rectas y en escalones.
+- **La cerca no sigue las parcelas: sigue una línea propia**
+  (`src/world/fences.ts`). Se toma el borde de la zona como una sola línea,
+  se le sacan los escalones, se le redondean las esquinas, se la hace vagar
+  un poco y se planta **poste por poste** sobre ella. La parcela sigue
+  diciendo por dónde no se pasa; la cerca se corre hacia afuera hasta que
+  ningún poste queda sobre suelo que se pisa, y un test lo comprueba. Fue
+  lo primero de los límites que el usuario aprobó sin vueltas.
+- **El tapial, igual, pero más liso:** una pared se hace a cordel, así que
+  se aparta más de las parcelas para correr en pocas curvas largas. Se
+  arma con **rebanadas finas** del dibujo de frente puestas una al lado de
+  la otra: de frente se unen en la pared, y donde se aleja solo asoma la
+  teja de cada una.
+- **Detrás de una cerca casi no hay plantas.** La cerca cierra la zona; el
+  pajonal tupido atrás no tenía sentido y la tapaba.
+- **Las sombras del campo caen hacia atrás.** Echadas hacia adelante, como
+  en el bosque, una mata que toca el suelo a todo lo ancho parecía flotar
+  sobre su sombra. Siguen siendo largas, pero arrancan del pie.
 - **El agua sale del mapa, no se dibuja** (`src/world/water.ts`). El mapa
   dice entre qué filas corre el arroyo y qué zonas son vado o bañado; de
   ahí sale cuánta agua tiene cada parcela: honda donde no se cruza, baja en

@@ -62,3 +62,10 @@ test("Cabral's map is planted with every kind it names, and the thistles are whe
   expect(all.length).toBeGreaterThan(3000);
   expect(all.length).toBeLessThan(14000);
 });
+
+test('behind a fence the country is thin: the fence closes the zone, not the thicket', () => {
+  const open: WorldMap = { name: 'Prueba', ground: ['#000'], zones: { P: { name: 'Pueblo', edge: ['cortadera'] } }, plots: Array.from({ length: 12 }, (_, r) => r > 3 && r < 8 ? '.....PPPPPP.....' : '................'), start: [6, 5], objectives: [] };
+  const fenced: WorldMap = { ...open, zones: { P: { ...open.zones.P, fence: 'stakes' } } };
+  expect(plantCountry(fenced).length).toBeLessThan(plantCountry(open).length / 4);
+  expect(plantCountry(fenced).length).toBeGreaterThan(0);
+});

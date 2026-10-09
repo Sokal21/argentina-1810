@@ -199,7 +199,7 @@ class MapScene extends Phaser.Scene {
   }
 }
 
-new Phaser.Game({
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
   backgroundColor: '#14110f',
@@ -207,3 +207,6 @@ new Phaser.Game({
   scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
   scene: [MapScene],
 });
+
+// Within reach of the console while developing.
+if (import.meta.env.DEV) Object.assign(window, { game });

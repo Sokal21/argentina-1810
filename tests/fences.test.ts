@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { APART, fenceRuns, SET_BACK, stakes } from '../src/world/fences';
+import { edges, palisade, SLICE, walls } from '../src/world/fences';
 import { vadoDeLasVizcachas as vado } from '../src/world/maps/vado';
 import { PLOT_H, PLOT_W, zoneAt, type WorldMap } from '../src/world/zones';
 
@@ -17,31 +17,67 @@ const map: WorldMap = {
 };
 
 test('a fenced zone is closed where it meets ground nobody can cross, and open where it meets another zone', () => {
-  const runs = fenceRuns(map);
   // The village plot has wild above, below and to its left, and the farm to its right.
-  expect(runs).toHaveLength(3);
-  expect(runs.some(r => r.x0 === r.x1 && r.x0 > 2 * PLOT_W - SET_BACK)).toBe(false);
+  const [line] = edges(map, 'stakes');
+  expect(line.closed).toBe(false);
+  expect(line.points).toHaveLength(4);
+  for (const post of palisade(map)) expect(post.x).toBeLessThan(2 * PLOT_W + 12);
 });
 
 test('a zone nobody fenced has no fence', () => {
-  expect(fenceRuns({ ...map, zones: { ...map.zones, P: { name: 'Pueblo', safe: true } } })).toEqual([]);
+  expect(palisade({ ...map, zones: { ...map.zones, P: { name: 'Pueblo', safe: true } } })).toEqual([]);
 });
 
-test('the posts of a fence going away stand outside the zone, on ground nobody walks', () => {
-  const posts = stakes(fenceRuns(map));
-  // The one side of the village plot that runs up the screen: its left.
-  expect(posts.length).toBeGreaterThan(PLOT_H / APART);
-  for (const s of posts) expect(zoneAt(map, s.x, s.y)).toBeUndefined();
+const village: WorldMap = {
+  ...map,
+  plots: [
+    '..........',
+    '...PPP....',
+    '..PPPPP...',
+    '.PPPPPPPH.',
+    '..PPPPP...',
+    '...PPP....',
+    '..........',
+  ],
+};
+
+test('the edge of a fenced zone is one line, open at its gate', () => {
+  const lines = edges(village, 'stakes');
+  expect(lines).toHaveLength(1);
+  expect(lines[0].closed).toBe(false);
 });
 
-test('where two stretches meet they share their posts: none stands twice', () => {
-  const tall: WorldMap = { ...map, plots: ['....', '.PH.', '.PH.', '....'] };
-  const all = stakes(fenceRuns(tall));
-  expect(new Set(all.map(s => `${s.x},${s.y}`)).size).toBe(all.length);
+test('no post of a fence stands on ground that is walked', () => {
+  const posts = palisade(village);
+  expect(posts.length).toBeGreaterThan(100);
+  for (const s of posts) expect(zoneAt(village, s.x, s.y)).toBeUndefined();
+});
+
+test('a fence does not follow the steps of the plots: most of its posts stand off their lines', () => {
+  const posts = palisade(village);
+  const onGrid = posts.filter(s => Math.abs(s.x / PLOT_W - Math.round(s.x / PLOT_W)) * PLOT_W < 12 || Math.abs(s.y / PLOT_H - Math.round(s.y / PLOT_H)) * PLOT_H < 12);
+  // Stood along plot sides, as it once was, every post would be within a few pixels of one.
+  expect(onGrid.length).toBeLessThan(posts.length * 0.75);
+});
+
+test('a fence is the same every time for the same map', () => {
+  expect(palisade(village)).toEqual(palisade(village));
 });
 
 test("on Cabral's map the village is staked and the chapel walled, and both have a way in", () => {
-  const runs = fenceRuns(vado);
-  expect(runs.filter(r => r.kind === 'stakes').length).toBeGreaterThan(20);
-  expect(runs.filter(r => r.kind === 'wall').length).toBeGreaterThan(20);
+  const posts = palisade(vado);
+  expect(posts.length).toBeGreaterThan(300);
+  for (const s of posts) expect(zoneAt(vado, s.x, s.y)).toBeUndefined();
+  const slices = walls(vado);
+  expect(slices.length).toBeGreaterThan(300);
+  for (const s of slices) expect(zoneAt(vado, s.x, s.y)).toBeUndefined();
+});
+
+test('a wall has no gaps: each slice of it stands right beside the last', () => {
+  const walled: WorldMap = { ...village, zones: { ...village.zones, P: { name: 'Capilla', safe: true, fence: 'wall' } } };
+  const slices = walls(walled);
+  for (let i = 1; i < slices.length; i++) {
+    expect(Math.abs(slices[i].x - slices[i - 1].x)).toBeLessThanOrEqual(SLICE + 2);
+    expect(Math.abs(slices[i].y - slices[i - 1].y)).toBeLessThanOrEqual(SLICE + 2);
+  }
 });

@@ -45,11 +45,11 @@ export function mirrored(scene: Phaser.Scene, name: string): string {
 }
 
 // Lays a drawing's shape over on the ground, once; every tree drawn from it shares the picture.
-export function castShadow(scene: Phaser.Scene, name: string): Shadow {
-  const key = `shadow:${name}`;
+export function castShadow(scene: Phaser.Scene, name: string, light = LIGHT): Shadow {
+  const key = `shadow:${name}:${light.across}:${light.down}`;
   const source = scene.textures.get(name).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
   const w = source.width, h = source.height;
-  const reach = LIGHT.across * h, drop = LIGHT.down * h;
+  const reach = light.across * h, drop = light.down * h;
   const width = Math.ceil(w + Math.abs(reach)), height = Math.ceil(Math.abs(drop)) + 1;
   // The foot of the trunk, in the shadow's own picture.
   const footX = w / 2 - Math.min(0, reach), footY = -Math.min(0, drop);
@@ -58,7 +58,7 @@ export function castShadow(scene: Phaser.Scene, name: string): Shadow {
     const g = tex.getContext();
     g.imageSmoothingEnabled = false;
     // A pixel `up` above the foot and `out` from the trunk lands at foot + out + up * light.
-    g.setTransform(1, 0, -LIGHT.across, -LIGHT.down, footX - w / 2 + reach, footY + drop);
+    g.setTransform(1, 0, -light.across, -light.down, footX - w / 2 + reach, footY + drop);
     g.drawImage(source, 0, 0);
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.globalCompositeOperation = 'source-in';
