@@ -1313,6 +1313,18 @@
       "sha12": "e8000ce52f9c",
       "label": "forest style test: grass texture B (fine litter)",
       "file": "assets/bosque/concept/pasto_b.png"
+    },
+    {
+      "asset_id": "a9153cd5-1918-43aa-916a-a11c03e197a5",
+      "sha12": "5e664dda8b2f",
+      "label": "forest: araucaria redrawn from concept C at full size (198px, detailed) — candidate",
+      "file": "assets/bosque/concept/araucaria_d.png"
+    },
+    {
+      "asset_id": "3fe3e896-8081-48df-85d5-0f5f42b93fa4",
+      "sha12": "66ff69188c09",
+      "label": "forest: araucaria redrawn from concept C, came back small (82px)",
+      "file": "assets/bosque/concept/araucaria_e.png"
     }
   ]
 }
