@@ -1,3 +1,5 @@
+import { chance } from './chance';
+
 // The ground of a zone, painted by rule rather than drawn: broad quiet drifts
 // of a few close colours, and here and there a tuft. It is the same at each
 // edge as at the one across, so a patch of it repeats without a seam.
@@ -13,13 +15,6 @@ type Rgb = [number, number, number];
 const rgb = (hex: string): Rgb => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)) as Rgb;
 const weight = ([r, g, b]: Rgb) => r * 0.3 + g * 0.59 + b * 0.11;
 const scaled = (colour: Rgb, by: number) => colour.map(v => Math.min(255, Math.round(v * by))) as Rgb;
-
-/** A number from 0 up to 1 that is always the same for the same place and seed. */
-function chance(x: number, y: number, seed: number): number {
-  let h = Math.imul(x, 73856093) ^ Math.imul(y, 19349663) ^ Math.imul(seed, 83492791);
-  h = Math.imul(h ^ (h >>> 13), 1274126177);
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-}
 
 // A value that drifts smoothly from cell to cell, and comes round again after `cols` by `rows` of them.
 function drift(x: number, y: number, cw: number, ch: number, cols: number, rows: number, seed: number): number {

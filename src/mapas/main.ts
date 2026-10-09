@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { drawGround } from '../world/ground';
 import { bosquePatagonico } from '../world/maps/bosque';
+import { drawTrees, loadScenery } from '../world/scenery';
 import { extent, faults, letterAt, middle, PLOT_H, PLOT_W, zoneAt, type WorldMap } from '../world/zones';
 
 // A page for looking at maps while they are being made. It paints the ground
@@ -25,10 +26,16 @@ class MapScene extends Phaser.Scene {
   private keys!: Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>;
   private grid = false;
   private frame = true;
+  private trees: Phaser.GameObjects.Image[] = [];
+
+  preload(): void {
+    loadScenery(this);
+  }
 
   create(): void {
     drawGround(this, map);
-    this.lines = this.add.graphics();
+    this.trees = drawTrees(this, map);
+    this.lines = this.add.graphics().setDepth(1e6);
     this.keys = this.input.keyboard!.addKeys('W,A,S,D') as typeof this.keys;
     this.pin();
     this.fit();
@@ -46,6 +53,10 @@ class MapScene extends Phaser.Scene {
       if (e.code === 'KeyF') this.fit();
       if (e.code === 'KeyG') this.grid = !this.grid;
       if (e.code === 'KeyV') this.frame = !this.frame;
+      if (e.code === 'KeyT') {
+        const shown = !this.trees[0]?.visible;
+        for (const tree of this.trees) tree.setVisible(shown);
+      }
       if (e.code === 'Digit2') {
         const p = this.input.activePointer;
         this.zoomAt(p.x, p.y, GAME_ZOOM);
