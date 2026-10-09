@@ -12,12 +12,30 @@ export interface Zone {
   name: string;
   /** Nothing hunts here. */
   safe?: boolean;
+  /** In open country: what grows thick along its edge and closes it, by name; several are mixed. */
+  edge?: string[];
+  /** And what stands here and there on its own ground: the chance of each in a plot. */
+  scatter?: Record<string, number>;
+  /** What people have put up along its edge, where it meets ground nobody can cross. */
+  fence?: 'stakes' | 'wall';
 }
 
 /** Something to find, and the plot it is in: column, then row. */
 export interface Objective {
   name: string;
   plot: [number, number];
+}
+
+/** Something built, and the plot it stands in: for now a plain block of its size, until it is drawn. */
+export interface Building {
+  name: string;
+  /** The plot the middle of its front foot is in: column, then row. */
+  plot: [number, number];
+  /** Across, back and up, in world pixels. */
+  wide: number;
+  deep: number;
+  tall: number;
+  colour: number;
 }
 
 export interface WorldMap {
@@ -31,6 +49,9 @@ export interface WorldMap {
   /** The plot the hero arrives in: column, then row. */
   start: [number, number];
   objectives: Objective[];
+  /** Open country: no forest is planted on it, and what cannot be crossed is only shaded. */
+  bare?: boolean;
+  buildings?: Building[];
 }
 
 /** How far the map reaches, in world pixels. */

@@ -1397,6 +1397,120 @@
       "sha12": "f95c78f46093",
       "label": "dialogue portrait, Cabral, cabral_2",
       "file": "assets/dialogo/concept/cabral_2.png"
+    },
+    {
+      "asset_id": "e0607a7b-7de8-491c-a815-43f9d8d73399",
+      "sha12": "0e00169de4c0",
+      "label": "pampa scenery concept sheet: eight border pieces in the manner of araucaria_e",
+      "file": "assets/campo/concept/hoja_b.png"
+    },
+    {
+      "asset_id": "40535ee5-efcc-4517-a361-dc3cb7cf9736",
+      "sha12": "8d902d6484c7",
+      "label": "pampa scenery: cortadera, variant 1",
+      "file": "assets/campo/concept/cortadera_1.png"
+    },
+    {
+      "asset_id": "aba7f078-b0a3-46c8-9ecd-0d9a640f4b15",
+      "sha12": "37fb10b40fa0",
+      "label": "pampa scenery: cortadera, variant 2",
+      "file": "assets/campo/concept/cortadera_2.png"
+    },
+    {
+      "asset_id": "0b757421-60fe-461d-b9ad-2c816527c5a8",
+      "sha12": "6b51bca19775",
+      "label": "pampa scenery: cortadera, variant 3",
+      "file": "assets/campo/concept/cortadera_3.png"
+    },
+    {
+      "asset_id": "343c7a5f-dc91-4bd5-abe6-446e39d368af",
+      "sha12": "9f7f6423a945",
+      "label": "pampa scenery: cardo, variant 1",
+      "file": "assets/campo/concept/cardo_1.png"
+    },
+    {
+      "asset_id": "616057fd-6be4-4815-b645-c37ee267982a",
+      "sha12": "2a5c5f3d7675",
+      "label": "pampa scenery: cardo, variant 2",
+      "file": "assets/campo/concept/cardo_2.png"
+    },
+    {
+      "asset_id": "fc4b80cc-b08f-4c1d-b67a-e58f0c972be3",
+      "sha12": "90c742cf262b",
+      "label": "pampa scenery: cardo, variant 3",
+      "file": "assets/campo/concept/cardo_3.png"
+    },
+    {
+      "asset_id": "c7d1dc48-0a25-47d5-af8a-afe2eba83ddb",
+      "sha12": "fd2412d15b2b",
+      "label": "pampa scenery: tuna, variant 1",
+      "file": "assets/campo/concept/tuna_1.png"
+    },
+    {
+      "asset_id": "a20dc41a-2d56-4d0c-8d14-1f35fc0c7a09",
+      "sha12": "dafa47fa8620",
+      "label": "pampa scenery: tuna, variant 2",
+      "file": "assets/campo/concept/tuna_2.png"
+    },
+    {
+      "asset_id": "4ae60dfe-a0cd-4c23-aba4-2b2b0c627deb",
+      "sha12": "a2fdcb8bbc24",
+      "label": "pampa scenery: tuna, variant 3",
+      "file": "assets/campo/concept/tuna_3.png"
+    },
+    {
+      "asset_id": "eb7157ff-1485-463e-b0f8-7d0ef7c6688f",
+      "sha12": "4d5755586a81",
+      "label": "pampa scenery: maiz, variant 1",
+      "file": "assets/campo/concept/maiz_1.png"
+    },
+    {
+      "asset_id": "9dac33e6-9122-4bd1-88ee-266e465e138d",
+      "sha12": "f8dbc1b536e7",
+      "label": "pampa scenery: maiz, variant 2",
+      "file": "assets/campo/concept/maiz_2.png"
+    },
+    {
+      "asset_id": "aea3ac80-0788-4fe2-b7b9-1d16ca9b35fc",
+      "sha12": "a85e664e994c",
+      "label": "pampa scenery: maiz, variant 3",
+      "file": "assets/campo/concept/maiz_3.png"
+    },
+    {
+      "asset_id": "8606bd02-b0a0-40ba-9683-4e4c20d8d499",
+      "sha12": "9a281cb95662",
+      "label": "pampa scenery: tala, variant 1",
+      "file": "assets/campo/concept/tala_1.png"
+    },
+    {
+      "asset_id": "48129540-ca6c-4d71-8742-f46f2537b5b5",
+      "sha12": "6778feabf7d6",
+      "label": "pampa scenery: tala, variant 2",
+      "file": "assets/campo/concept/tala_2.png"
+    },
+    {
+      "asset_id": "0055bfde-2161-405e-a01d-6541d4288549",
+      "sha12": "5c9ac5e96696",
+      "label": "pampa scenery: tala, variant 3",
+      "file": "assets/campo/concept/tala_3.png"
+    },
+    {
+      "asset_id": "25385545-06cb-468e-82ae-c2ef157b9f58",
+      "sha12": "345eb1479544",
+      "label": "pampa scenery: junco, variant 1",
+      "file": "assets/campo/concept/junco_1.png"
+    },
+    {
+      "asset_id": "9491442b-72d3-4513-a963-9d5b8ba85d63",
+      "sha12": "b401e5215e0d",
+      "label": "pampa scenery: junco, variant 2",
+      "file": "assets/campo/concept/junco_2.png"
+    },
+    {
+      "asset_id": "3298fedc-407f-4243-a96e-a41ba85eca90",
+      "sha12": "72ab14c70f82",
+      "label": "pampa scenery: junco, variant 3",
+      "file": "assets/campo/concept/junco_3.png"
     }
   ]
 }

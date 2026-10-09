@@ -27,11 +27,11 @@ export function loadScenery(scene: Phaser.Scene): void {
 }
 
 /** The shadow a drawing casts, and where in it the foot of the thing stands, as shares of its size. */
-interface Shadow { key: string; footX: number; footY: number }
+export interface Shadow { key: string; footX: number; footY: number }
 
 // A drawing the other way round, made once. The wind slides a drawing's rows
 // one way, so a tree is turned by drawing it turned, not by showing it turned.
-function mirrored(scene: Phaser.Scene, name: string): string {
+export function mirrored(scene: Phaser.Scene, name: string): string {
   const key = `${name}:mirrored`;
   if (!scene.textures.exists(key)) {
     const source = scene.textures.get(name).getSourceImage() as HTMLImageElement;
@@ -45,7 +45,7 @@ function mirrored(scene: Phaser.Scene, name: string): string {
 }
 
 // Lays a drawing's shape over on the ground, once; every tree drawn from it shares the picture.
-function castShadow(scene: Phaser.Scene, name: string): Shadow {
+export function castShadow(scene: Phaser.Scene, name: string): Shadow {
   const key = `shadow:${name}`;
   const source = scene.textures.get(name).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
   const w = source.width, h = source.height;

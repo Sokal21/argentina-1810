@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { drawGround } from '../world/ground';
+import { Country, loadCountry, raiseBuildings, raiseFences } from '../world/country';
 import { bosquePatagonico } from '../world/maps/bosque';
+import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
 import { extent, faults, letterAt, middle, PLOT_H, PLOT_W, zoneAt, type WorldMap } from '../world/zones';
 
@@ -12,7 +14,9 @@ const NEAR = 6, FAR = 0.08;        // how close and how far the map can be seen 
 const PAN = 900;                   // screen pixels a second, on the keys
 const LINE = 0xf0e3c4;
 
-const map: WorldMap = bosquePatagonico;
+// Which map is looked at: ?mapa=vado for Cabral's, otherwise Inti's forest.
+const MAPS: Record<string, WorldMap> = { bosque: bosquePatagonico, vado: vadoDeLasVizcachas };
+const map: WorldMap = MAPS[new URLSearchParams(location.search).get('mapa') ?? ''] ?? bosquePatagonico;
 const wrong = faults(map);
 const info = document.getElementById('info')!;
 const labels = document.getElementById('labels')!;
@@ -32,11 +36,16 @@ class MapScene extends Phaser.Scene {
 
   preload(): void {
     loadScenery(this);
+    loadCountry(this);
   }
 
   create(): void {
     drawGround(this, map);
-    ({ trees: this.trees, shadows: this.shadows } = new Forest(this, map));
+    if (map.bare) {
+      ({ plants: this.trees, shadows: this.shadows } = new Country(this, map));
+    } else ({ trees: this.trees, shadows: this.shadows } = new Forest(this, map));
+    raiseBuildings(this, map);
+    if (map.bare) raiseFences(this, map);
     this.lines = this.add.graphics().setDepth(1e6);
     this.keys = this.input.keyboard!.addKeys('W,A,S,D') as typeof this.keys;
     this.pin();

@@ -278,3 +278,67 @@ escribe al cerrarla.
   campo pelado de antes, hasta la etapa 1.
 - **Qué enseñó:** si dos trabajos tocan el mismo repo a la vez, cada uno
   commitea solo lo suyo, y se comprueba el conjunto antes de subir.
+
+## Etapa 1 · El mapa: la forma
+
+*Hecha, esperando el visto bueno.*
+
+- **Qué se hizo:** el mapa de Cabral en el formato de parcelas
+  (`src/world/maps/vado.ts`, 132 × 53), con sus catorce zonas, los dieciocho
+  lugares de referencia y seis edificios como bloques lisos con cartel.
+  Cabral aparece en la puerta de la posada.
+- **Cómo se llegó a la forma:** se dibujó con un script chico que traza
+  cada tramo como una franja a lo largo de una línea, y manchas para los
+  lugares anchos. Así se puede cambiar un tramo sin redibujar el resto.
+- **Lo que hubo que agregarle al sistema de mapas**, que estaba pensado para
+  un bosque:
+  - un mapa puede declararse **campo abierto** (`bare`): no se le planta el
+    muro de araucarias. Al principio lo que no se cruza se sombreaba para
+    que el camino se viera; quedaba feo, en bloques oscuros, y se sacó en
+    cuanto hubo plantas en los bordes;
+  - un mapa puede tener **edificios** (`buildings`), que por ahora son
+    bloques de su tamaño y que no se atraviesan.
+  Las dos cosas viven en `src/world/country.ts`. Son provisorias: la etapa 2
+  cambia la sombra por pajonal y bañado, y la 12, los bloques por dibujos.
+- **Cómo se comprueba que el mapa es lo que la historia pide**
+  (`tests/vado.test.ts`). No se prueba el dibujo, se prueba la promesa:
+  - de la posada a la capilla hay más de 110 parcelas de camino;
+  - **ningún tramo se puede rodear:** sacando el cardal, el campo de
+    batalla, el monte o la senda, no hay paso;
+  - después del campo de batalla hay dos caminos, y el bañado es el corto;
+  - al vado se llega solo por la Loma del Medio.
+- **Cómo se mira:** `/mapas.html?mapa=vado` muestra el mapa entero con los
+  nombres; `/?jugar=cabral` entra a caminarlo.
+- **Qué enseñó:** un lugar de referencia quedó en una parcela que no se
+  pisa, y lo encontró la comprobación de fallas del propio sistema de mapas
+  antes de que nadie lo viera. Conviene escribir los tests de la forma
+  antes de mirar el mapa en pantalla.
+
+## Etapa 2 · El mapa: cómo se ve
+
+*En curso. Falta el agua, la zanja y el ombú.*
+
+- **El concepto primero, en una sola hoja.** Antes de generar pieza por
+  pieza se pidió una hoja con las ocho piezas de borde juntas, usando la
+  araucaria del bosque como referencia de manera, y se la mostró sobre un
+  suelo pintado como lo pinta el juego. Costó 32 créditos y cerró el estilo
+  de una vez.
+- **Las plantas vienen grandes.** Pedidas a 96 píxeles llegaron de 190, el
+  doble que un personaje y en píxeles más finos. `tools/build_campo.py` las
+  baja a la altura que les toca y las vuelve a sus propios colores. Los
+  árboles se dejan como vienen y el juego los agranda.
+- **Los bordes se plantan solos** (`src/world/plants.ts`): cada zona nombra
+  con qué se cierra, y eso se reparte tupido contra el camino y raleando
+  hacia afuera. Son unas 7.600 plantas y ninguna está puesta a mano.
+- **Las cercas se dibujan por código** (`src/world/fences.ts`), estaca por
+  estaca, a lo largo de cada lado de una zona cercada que da a lo
+  intransitable. Así siguen cualquier contorno. Donde hay cerca, el pajonal
+  arranca una parcela más atrás: la primera vez la tapaba entera.
+- **El pasto es un shader** (`src/fx/meadow.ts`): matas de tres briznas que
+  se inclinan desde la raíz, con el viento cruzando en oleadas. La primera
+  versión, de pasto parejo en hileras, salió como ruido a rayas; se rehízo
+  como matas sueltas.
+- **Lo que se sacó:** el sombreado de lo intransitable, que quedaba como
+  bloques oscuros; y el tono oliva del suelo, que pasó a amarillo paja.
+- **Qué enseñó:** lo provisorio de una etapa hay que sacarlo en cuanto la
+  siguiente lo reemplaza, no dejarlo debajo.

@@ -201,7 +201,7 @@ Columna y fila de la parcela, contando desde arriba a la izquierda.
 | Las tres picadas | 38, 40 | Cardal | Donde el camino se abre en tres |
 | **El cañón volcado** | 58, 37 | Campo de batalla | Posta. El poncho de Tobías está al lado |
 | El malherido | 64, 39 | Campo de batalla | Un realista contra una rueda |
-| La bifurcación | 70, 36 | Campo de batalla | Al sureste el bañado, al noreste el camino real |
+| La bifurcación | 69, 36 | Campo de batalla | Al sureste el bañado, al noreste el camino real |
 | **La tapera** | 92, 32 | Monte | Posta. Un rancho sin techo |
 | El campamento del sargento | 97, 31 | Monte | Fogón, pabellón de fusiles |
 | El pie de la senda | 102, 29 | Senda | Donde empieza la subida |

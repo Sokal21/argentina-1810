@@ -24,7 +24,10 @@ import { GRENADE } from '../machi/grenade';
 import { MUSKET } from '../machi/musket';
 import { overlaps, pushOut, type Footprint } from '../world/footprint';
 import { drawGround as layGround } from '../world/ground';
+import { Meadow } from '../fx/meadow';
+import { Country, loadCountry, raiseBuildings, raiseFences } from '../world/country';
 import { bosquePatagonico } from '../world/maps/bosque';
+import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
 import { Vitals } from '../world/vitals';
 import { extent, middle, walk, type WorldMap } from '../world/zones';
@@ -32,7 +35,7 @@ import { extent, middle, walk, type WorldMap } from '../world/zones';
 const ZOOM = 2;            // screen pixels per sprite pixel
 const FIELD = { width: 1280, height: 800 }; // the bare field, in sprite pixels
 // The map each hero walks; one who has none fights on the bare field.
-const MAPS: Partial<Record<Hero, WorldMap>> = { inti: bosquePatagonico };
+const MAPS: Partial<Record<Hero, WorldMap>> = { inti: bosquePatagonico, cabral: vadoDeLasVizcachas };
 // Where a map's enemies wait, in plots from where the hero arrives: out of the camp.
 const HUNT: [number, number] = [11, 0];
 const TILE_W = 32, TILE_H = 16; // ground diamond, in sprite pixels
@@ -150,6 +153,12 @@ export class GameScene extends Phaser.Scene {
   /** The map being walked, if the hero has one, and the trees on it. */
   private map?: WorldMap;
   private forest?: Forest;
+  /** Or, in open country, its plants. */
+  private country?: Country;
+  /** And the long grass all over it. */
+  private meadow?: Meadow;
+  /** The ground taken up by what is built on the map. */
+  private built: Footprint[] = [];
   /** How far the world reaches, in sprite pixels. */
   private size = FIELD;
   private start = { x: FIELD.width / 2, y: FIELD.height / 2 };
@@ -193,6 +202,7 @@ export class GameScene extends Phaser.Scene {
     Realista.preload(this);
     Nahuel.preload(this);
     loadScenery(this);
+    loadCountry(this);
     this.load.image(PULPERO.src, PULPERO.src);
   }
 
@@ -200,9 +210,15 @@ export class GameScene extends Phaser.Scene {
     this.map = MAPS[this.hero];
     this.size = this.map ? extent(this.map) : FIELD;
     this.start = this.map ? middle(this.map.start) : { x: FIELD.width / 2, y: FIELD.height / 2 };
-    this.forest = this.map && new Forest(this, this.map);
+    // Open country has no forest: what cannot be crossed is shaded, and what is built stands as blocks.
+    this.forest = this.map && !this.map.bare ? new Forest(this, this.map) : undefined;
     if (this.map) layGround(this, this.map);
     else this.drawGround();
+    this.built = this.map ? raiseBuildings(this, this.map) : [];
+    if (this.map?.bare) raiseFences(this, this.map);
+    this.country = this.map?.bare ? new Country(this, this.map) : undefined;
+    this.meadow = this.map?.bare ? new Meadow(this, this.map.ground) : undefined;
+    this.built.push(...(this.country?.feet ?? []));
 
     this.machi = this.enter(this.hero, this.start);
     this.keys = new Keys();
@@ -413,7 +429,7 @@ export class GameScene extends Phaser.Scene {
       this.machi.y = clear.y;
     }
     // Nor through the trunk of a tree, nor into country too thick to cross.
-    for (const trunk of this.forest?.trunks ?? []) {
+    for (const trunk of [...(this.forest?.trunks ?? []), ...this.built]) {
       const clear = pushOut({ x: this.machi.x, y: this.machi.y, ...FEET }, trunk);
       this.machi.x = clear.x;
       this.machi.y = clear.y;
@@ -424,6 +440,8 @@ export class GameScene extends Phaser.Scene {
       this.machi.y = held.y;
     }
     this.forest?.reveal(this.machi, dt);
+    this.country?.reveal(this.machi, dt);
+    this.meadow?.follow();
     // Chonchones go for where she stands; their teeth miss her mid-dash.
     for (const chonchon of this.chonchones) {
       const drawn = feet && this.nahuel.lures(chonchon.ground, feet);
