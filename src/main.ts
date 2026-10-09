@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { controls, EFFECTS, fx, setEffect, setMouseControl, type Effect } from './fx/settings';
 import { GameScene } from './scenes/GameScene';
 import { HudScene } from './scenes/HudScene';
+import { SelectScene } from './scenes/SelectScene';
 import { TitleScene } from './scenes/TitleScene';
 
 const game = new Phaser.Game({
@@ -13,7 +14,7 @@ const game = new Phaser.Game({
   scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
   physics: { default: 'arcade' },
   // Only the first starts by itself; it starts the others.
-  scene: [TitleScene, GameScene, HudScene],
+  scene: [TitleScene, SelectScene, GameScene, HudScene],
 });
 
 // Handy from the browser console while developing.
