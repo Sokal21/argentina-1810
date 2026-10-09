@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import { blow } from '../fx/wind';
 import type { Footprint } from './footprint';
 import { plantTrees } from './trees';
 import { zoneAt, type WorldMap } from './zones';
@@ -28,10 +29,25 @@ export function loadScenery(scene: Phaser.Scene): void {
 /** The shadow a drawing casts, and where in it the foot of the thing stands, as shares of its size. */
 interface Shadow { key: string; footX: number; footY: number }
 
+// A drawing the other way round, made once. The wind slides a drawing's rows
+// one way, so a tree is turned by drawing it turned, not by showing it turned.
+function mirrored(scene: Phaser.Scene, name: string): string {
+  const key = `${name}:mirrored`;
+  if (!scene.textures.exists(key)) {
+    const source = scene.textures.get(name).getSourceImage() as HTMLImageElement;
+    const tex = scene.textures.createCanvas(key, source.width, source.height)!;
+    const g = tex.getContext();
+    g.setTransform(-1, 0, 0, 1, source.width, 0);
+    g.drawImage(source, 0, 0);
+    tex.refresh();
+  }
+  return key;
+}
+
 // Lays a drawing's shape over on the ground, once; every tree drawn from it shares the picture.
-function castShadow(scene: Phaser.Scene, name: string, flipped: boolean): Shadow {
-  const key = `shadow:${name}:${flipped ? 'flipped' : 'drawn'}`;
-  const source = scene.textures.get(name).getSourceImage() as HTMLImageElement;
+function castShadow(scene: Phaser.Scene, name: string): Shadow {
+  const key = `shadow:${name}`;
+  const source = scene.textures.get(name).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
   const w = source.width, h = source.height;
   const reach = LIGHT.across * h, drop = LIGHT.down * h;
   const width = Math.ceil(w + Math.abs(reach)), height = Math.ceil(Math.abs(drop)) + 1;
@@ -42,8 +58,7 @@ function castShadow(scene: Phaser.Scene, name: string, flipped: boolean): Shadow
     const g = tex.getContext();
     g.imageSmoothingEnabled = false;
     // A pixel `up` above the foot and `out` from the trunk lands at foot + out + up * light.
-    const side = flipped ? -1 : 1;
-    g.setTransform(side, 0, -LIGHT.across, -LIGHT.down, footX - side * w / 2 + reach, footY + drop);
+    g.setTransform(1, 0, -LIGHT.across, -LIGHT.down, footX - w / 2 + reach, footY + drop);
     g.drawImage(source, 0, 0);
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.globalCompositeOperation = 'source-in';
@@ -56,7 +71,7 @@ function castShadow(scene: Phaser.Scene, name: string, flipped: boolean): Shadow
 
 /**
  * A map's trees, stood on it: each in front of whatever is further up the
- * screen, with its shadow on the ground under everything.
+ * screen, with its shadow on the ground under everything, and the wind in it.
  */
 export class Forest {
   readonly trees: Phaser.GameObjects.Image[] = [];
@@ -66,7 +81,8 @@ export class Forest {
 
   constructor(scene: Phaser.Scene, map: WorldMap) {
     for (const tree of plantTrees(map, TREES.length)) {
-      const name = TREES[tree.kind], shadow = castShadow(scene, name, tree.flipped);
+      const name = tree.flipped ? mirrored(scene, TREES[tree.kind]) : TREES[tree.kind];
+      const shadow = castShadow(scene, name);
       this.shadows.push(scene.add.image(tree.x, tree.y, shadow.key)
         .setOrigin(shadow.footX, shadow.footY)
         .setScale(tree.size)
@@ -75,13 +91,13 @@ export class Forest {
       this.trees.push(scene.add.image(tree.x, tree.y, name)
         .setOrigin(0.5, 1)
         .setScale(tree.size)
-        .setFlipX(tree.flipped)
         .setDepth(tree.y));
       if (zoneAt(map, tree.x, tree.y)) {
         const hh = TRUNK.hh * tree.size;
         this.trunks.push({ x: tree.x, y: tree.y - hh, hw: TRUNK.hw * tree.size, hh });
       }
     }
+    blow(scene, this.trees);
   }
 
   /** Thins the trees whose crowns hide whoever stands at a spot, and fills the others in again. */
