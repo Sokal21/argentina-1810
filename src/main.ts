@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { controls, EFFECTS, fx, setEffect, setMouseControl, type Effect } from './fx/settings';
 import { GameScene } from './scenes/GameScene';
+import { HudScene } from './scenes/HudScene';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -10,7 +11,7 @@ const game = new Phaser.Game({
   roundPixels: true,
   scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
   physics: { default: 'arcade' },
-  scene: [GameScene],
+  scene: [GameScene, HudScene],
 });
 
 // Handy from the browser console while developing.

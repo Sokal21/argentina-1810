@@ -395,6 +395,12 @@
       "sha12": "91d312fcc838",
       "label": "chonchon_picada_espalda (warning + dive from behind, 8 frames)",
       "file": "assets/chonchon/picada_espalda.png"
+    },
+    {
+      "asset_id": "54263e5e-ba25-4597-8d55-7f1e71c8af52",
+      "sha12": "256e181fbed7",
+      "label": "hud concept (two orbs held by roots, skill bar between) — source of assets/hud/marco.png",
+      "file": "assets/hud/concept/hud_a.png"
     }
   ]
 }

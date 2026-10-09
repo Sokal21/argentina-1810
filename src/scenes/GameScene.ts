@@ -25,7 +25,6 @@ const LIFE = 5;            // embers she can take
 const GRACE = 0.7;         // seconds she cannot be hurt again after a hit
 const RECOVER = 1.6;       // seconds she is down before getting back up
 const FLASH = 0.25;        // seconds her red flash takes to fade
-const BAR = { w: 24, up: 90 }; // her life bar, and how far above her feet it sits
 // The echoes she leaves behind while dashing: how often one is dropped, how
 // long it lingers, how solid it starts and the colour it is washed with.
 const ECHO = { every: 0.03, fade: 260, alpha: 0.55, tint: 0x8fdcf0 };
@@ -43,9 +42,6 @@ export class GameScene extends Phaser.Scene {
   private embers!: Bolts;
   private vitals = new Vitals(LIFE, GRACE, RECOVER);
   private hurtbox!: Phaser.GameObjects.Zone;
-  private lifeBack!: Phaser.GameObjects.Rectangle;
-  private lifeBar!: Phaser.GameObjects.Rectangle;
-  private shownLife = LIFE;
   private flash = 0;
   private hitFx?: HitFX;
   private start = { x: WORLD_W / 2, y: WORLD_H / 2 };
@@ -114,8 +110,6 @@ export class GameScene extends Phaser.Scene {
       // An ember that does not hurt her flies on.
       if (spot && this.hurt()) this.embers.strike(spot);
     });
-    this.lifeBack = this.add.rectangle(0, 0, BAR.w + 2, 4, 0x14110f, 0.85).setDepth(1e6);
-    this.lifeBar = this.add.rectangle(0, 0, BAR.w, 2, 0x8fd16a).setOrigin(0, 0.5).setDepth(1e6);
 
     // P shows the collision boxes.
     this.input.keyboard?.on('keydown-P', () => {
@@ -189,7 +183,6 @@ export class GameScene extends Phaser.Scene {
     this.bolts.update(dt);
     this.embers.update(dt);
     this.flash = Math.max(0, this.flash - dt / FLASH);
-    this.shownLife += (this.vitals.life - this.shownLife) * Math.min(1, dt * 14);
     this.draw();
     this.trail(dt);
   }
@@ -231,7 +224,6 @@ export class GameScene extends Phaser.Scene {
   private rise(): void {
     this.machi.x = this.start.x;
     this.machi.y = this.start.y;
-    this.shownLife = this.vitals.life;
     this.flash = 0;
   }
 
@@ -257,6 +249,16 @@ export class GameScene extends Phaser.Scene {
     input.attack ||= pointer.leftButtonDown();
     if (pointer.rightButtonDown()) input.move = toward(this.machi.x, this.machi.y, ARRIVE);
     return input;
+  }
+
+  /** How much of her life is left, from 0 to 1. */
+  get life(): number {
+    return this.vitals.life / LIFE;
+  }
+
+  /** How much of her mana is left, from 0 to 1. Nothing spends it yet. */
+  get mana(): number {
+    return 1;
   }
 
   /** Name of the animation on screen, for the debug readout. */
@@ -289,9 +291,6 @@ export class GameScene extends Phaser.Scene {
     if (this.hitFx) this.hitFx.amount = this.flash;
     this.hurtbox.setPosition(x, y - TORSO.up);
     (this.hurtbox.body as Phaser.Physics.Arcade.Body).enable = standing;
-    this.lifeBack.setPosition(x, y - BAR.up).setVisible(standing);
-    this.lifeBar.setPosition(x - BAR.w / 2, y - BAR.up).setVisible(standing)
-      .setSize(Math.max(0, BAR.w * this.shownLife / LIFE), 2);
 
     if (this.look) {
       const cam = this.cameras.main;
