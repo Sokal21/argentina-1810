@@ -1511,6 +1511,30 @@
       "sha12": "72ab14c70f82",
       "label": "pampa scenery: junco, variant 3",
       "file": "assets/campo/concept/junco_3.png"
+    },
+    {
+      "asset_id": "41690d8f-1513-4abd-adf8-134ff0410499",
+      "sha12": "35cf9fd86e18",
+      "label": "pampa scenery: cerca costado 1 (run going away from the viewer)",
+      "file": "assets/campo/concept/cerca_costado_1.png"
+    },
+    {
+      "asset_id": "5c231f4f-7216-4139-af11-5ada278e6d6c",
+      "sha12": "47766feb7661",
+      "label": "pampa scenery: cerca costado 2 (run going away from the viewer)",
+      "file": "assets/campo/concept/cerca_costado_2.png"
+    },
+    {
+      "asset_id": "8c1c2247-2345-4870-9bf8-44f2b6010ff8",
+      "sha12": "d676ceab1ce5",
+      "label": "pampa scenery: tapia costado 1 (run going away from the viewer)",
+      "file": "assets/campo/concept/tapia_costado_1.png"
+    },
+    {
+      "asset_id": "d88b4ca2-5de3-453d-a649-e2a6d68c8586",
+      "sha12": "7c22e0e9f8df",
+      "label": "pampa scenery: tapia costado 2 (run going away from the viewer)",
+      "file": "assets/campo/concept/tapia_costado_2.png"
     }
   ]
 }

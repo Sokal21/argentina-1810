@@ -18,6 +18,12 @@ export interface Zone {
   scatter?: Record<string, number>;
   /** What people have put up along its edge, where it meets ground nobody can cross. */
   fence?: 'stakes' | 'wall';
+  /**
+   * Water: `ford` is shallow water one wades through, `marsh` wet ground
+   * with standing pools, and `shore` dry ground beside water, which makes
+   * the ground nobody can cross next to it deep water.
+   */
+  water?: 'ford' | 'marsh' | 'shore';
 }
 
 /** Something to find, and the plot it is in: column, then row. */
@@ -52,6 +58,8 @@ export interface WorldMap {
   /** Open country: no forest is planted on it, and what cannot be crossed is only shaded. */
   bare?: boolean;
   buildings?: Building[];
+  /** Rows of plots a stream runs along, first and last: whatever of them nobody can cross is deep water. */
+  stream?: [number, number];
 }
 
 /** How far the map reaches, in world pixels. */

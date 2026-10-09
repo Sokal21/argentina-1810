@@ -36,27 +36,23 @@ export function fenceRuns(map: WorldMap): Run[] {
   return runs;
 }
 
-/** A stake of a fence: where its foot is, how tall it stands, and which of the drawings it is. */
-export interface Stake { x: number; y: number; tall: number; which: number }
+/** A post of a fence: where its foot is, and which of the drawings it is, as a share from 0 up to 1. */
+export interface Stake { x: number; y: number; which: number }
 
-/** How far apart stakes stand along the ground, across the screen and up it. */
-export const APART = { across: 5, up: 3 };
+/** How far apart the posts of a fence going away up the screen stand, in pixels of screen. */
+export const APART = 4;
 
-/** The stakes of every stretch of stake fence, the same each time for the same map. */
+/**
+ * The posts of every stretch of stake fence that runs away up the screen.
+ * A stretch seen from the front is one drawing repeated; one going away is
+ * its posts stood one behind another. The same each time for the same map.
+ */
 export function stakes(runs: Run[], seed = 1): Stake[] {
   const found = new Map<string, Stake>();
-  for (const run of runs.filter(r => r.kind === 'stakes')) {
-    const level = run.y0 === run.y1;
-    const step = level ? APART.across : APART.up;
-    const from = level ? run.x0 : run.y0, to = level ? run.x1 : run.y1;
-    // On a grid of their own spacing, so stretches that meet share their stakes.
-    for (let at = Math.ceil(from / step) * step; at <= to; at += step) {
-      const x = level ? at : run.x0, y = level ? run.y0 : at;
-      found.set(`${x},${y}`, {
-        x, y,
-        tall: 15 + Math.floor(chance(x, y, seed) * 8),
-        which: chance(x, y, seed + 1),
-      });
+  for (const run of runs.filter(r => r.kind === 'stakes' && r.x0 === r.x1)) {
+    // On a grid of their own spacing, so stretches that meet share their posts.
+    for (let y = Math.ceil(run.y0 / APART) * APART; y <= run.y1; y += APART) {
+      found.set(`${run.x0},${y}`, { x: run.x0, y, which: chance(run.x0, y, seed) });
     }
   }
   return [...found.values()];

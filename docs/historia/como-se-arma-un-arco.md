@@ -279,9 +279,12 @@ escribe al cerrarla.
 - **Qué enseñó:** si dos trabajos tocan el mismo repo a la vez, cada uno
   commitea solo lo suyo, y se comprueba el conjunto antes de subir.
 
-## Etapa 1 · El mapa: la forma
+## Etapa 1 · El mapa: la forma y sus límites
 
-*Hecha, esperando el visto bueno.*
+*En curso. La forma del camino está; se están cerrando sus límites: el
+agua, las cercas y los tapiales. Al mostrarla por primera vez quedó claro
+que con qué se cierra un mapa es parte de su forma y no de su decorado: un
+límite define por dónde no se pasa, y eso es lo que esta etapa decide.*
 
 - **Qué se hizo:** el mapa de Cabral en el formato de parcelas
   (`src/world/maps/vado.ts`, 132 × 53), con sus catorce zonas, los dieciocho
@@ -314,9 +317,44 @@ escribe al cerrarla.
   antes de que nadie lo viera. Conviene escribir los tests de la forma
   antes de mirar el mapa en pantalla.
 
+### Los límites
+
+- **Qué había en 1810.** No había alambre: el alambrado llega al campo
+  argentino hacia 1845. Un campo se cerraba con **palo a pique** (postes
+  clavados uno al lado del otro, caro, para corrales), **tapial** de barro,
+  **cercos vivos** de tuna o de tala, **zanjas**, y sobre todo con lo que
+  ya estaba: el arroyo, el bañado, el pajonal. Lo que la historia tiene de
+  verdad del lugar también vale para sus cercos.
+- **Las cercas dibujadas por código no pasaron.** La primera versión las
+  armaba con rectángulos, estaca por estaca; seguían cualquier contorno,
+  pero no eran del mismo mundo que las plantas y el usuario las rechazó.
+  Ahora se arman **encadenando piezas dibujadas** (`tools/build_cercas.py`
+  las corta de una hoja de concepto; `src/world/fences.ts` dice por dónde
+  corren y `country.ts` las pone): un tramo de frente que se repite para lo
+  que corre a lo ancho, y postes sueltos, uno detrás de otro, para lo que
+  se aleja. El tapial igual: un paño de frente, un lomo visto de arriba y
+  una punta.
+- **Donde hay cerca, el pajonal arranca una parcela más atrás:** la
+  primera vez la tapaba entera.
+- **El agua sale del mapa, no se dibuja** (`src/world/water.ts`). El mapa
+  dice entre qué filas corre el arroyo y qué zonas son vado o bañado; de
+  ahí sale cuánta agua tiene cada parcela: honda donde no se cruza, baja en
+  el vado, charcos en el bañado, y honda otra vez alrededor de los dos. Los
+  tests comprueban la promesa: el arroyo cruza el mapa entero y **el vado
+  es lo único que se pisa** de una orilla a la otra.
+- **El agua es un shader** (`src/fx/water.ts`) que lee esa cuenta como una
+  imagen de un píxel por parcela, suavizada, y le mueve la orilla con ruido
+  para que no termine donde termina una parcela. En lo hondo solo crecen
+  juncos.
+- **Qué enseñó:** al objeto `Shader` de Phaser una textura hecha en un
+  lienzo se le pasa sin opciones; con opciones la vuelve a subir vacía, y
+  el agua no aparecía sin dar ningún error. Se encontró pintando en
+  pantalla lo que el shader leía.
+
 ## Etapa 2 · El mapa: cómo se ve
 
-*En curso. Falta el agua, la zanja y el ombú.*
+*Empezada antes de tiempo, mientras se mostraba la 1. Falta la zanja y el
+ombú.*
 
 - **El concepto primero, en una sola hoja.** Antes de generar pieza por
   pieza se pidió una hoja con las ocho piezas de borde juntas, usando la
@@ -330,10 +368,6 @@ escribe al cerrarla.
 - **Los bordes se plantan solos** (`src/world/plants.ts`): cada zona nombra
   con qué se cierra, y eso se reparte tupido contra el camino y raleando
   hacia afuera. Son unas 7.600 plantas y ninguna está puesta a mano.
-- **Las cercas se dibujan por código** (`src/world/fences.ts`), estaca por
-  estaca, a lo largo de cada lado de una zona cercada que da a lo
-  intransitable. Así siguen cualquier contorno. Donde hay cerca, el pajonal
-  arranca una parcela más atrás: la primera vez la tapaba entera.
 - **El pasto es un shader** (`src/fx/meadow.ts`): matas de tres briznas que
   se inclinan desde la raíz, con el viento cruzando en oleadas. La primera
   versión, de pasto parejo en hileras, salió como ruido a rayas; se rehízo

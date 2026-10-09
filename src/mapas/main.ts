@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
+import { Water } from '../fx/water';
 import { drawGround } from '../world/ground';
-import { Country, loadCountry, raiseBuildings, raiseFences } from '../world/country';
+import { Country, loadCountry, loadFences, raiseBuildings, raiseFences } from '../world/country';
 import { bosquePatagonico } from '../world/maps/bosque';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
@@ -33,10 +34,12 @@ class MapScene extends Phaser.Scene {
   private shaded = true;
   private trees: Phaser.GameObjects.Image[] = [];
   private shadows: Phaser.GameObjects.Image[] = [];
+  private water?: Water;
 
   preload(): void {
     loadScenery(this);
     loadCountry(this);
+    loadFences(this);
   }
 
   create(): void {
@@ -46,6 +49,7 @@ class MapScene extends Phaser.Scene {
     } else ({ trees: this.trees, shadows: this.shadows } = new Forest(this, map));
     raiseBuildings(this, map);
     if (map.bare) raiseFences(this, map);
+    if (map.bare) this.water = new Water(this, map);
     this.lines = this.add.graphics().setDepth(1e6);
     this.keys = this.input.keyboard!.addKeys('W,A,S,D') as typeof this.keys;
     this.pin();
@@ -81,6 +85,7 @@ class MapScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    this.water?.follow();
     const cam = this.cameras.main, step = PAN * delta / 1000 / cam.zoom;
     cam.scrollX += (Number(this.keys.D.isDown) - Number(this.keys.A.isDown)) * step;
     cam.scrollY += (Number(this.keys.S.isDown) - Number(this.keys.W.isDown)) * step;

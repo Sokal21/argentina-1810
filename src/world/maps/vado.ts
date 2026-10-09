@@ -16,7 +16,7 @@ export const vadoDeLasVizcachas: WorldMap = {
     H: { name: 'Las chacras', edge: ['tuna', 'maiz'], scatter: { maiz: 0.05 } },
     D: { name: 'El cardal', edge: ['cardo'] },
     B: { name: 'El campo de batalla', edge: ['cortadera'] },
-    M: { name: 'El bañado', edge: ['junco'], scatter: { junco: 0.08 } },
+    M: { name: 'El bañado', edge: ['junco'], scatter: { junco: 0.08 }, water: 'marsh' },
     C: { name: 'El camino real', edge: ['cortadera'], scatter: { cortadera: 0.03 } },
     T: { name: 'El monte de talas', edge: ['tala'], scatter: { tala: 0.16 } },
     S: { name: 'La senda', edge: ['cardo'] },
@@ -24,7 +24,7 @@ export const vadoDeLasVizcachas: WorldMap = {
     1: { name: 'La Loma del Oeste', edge: ['cortadera'] },
     2: { name: 'La Loma del Medio', edge: ['cortadera', 'cardo'] },
     3: { name: 'La Loma del Este', edge: ['cortadera'] },
-    V: { name: 'El vado', edge: ['junco'] },
+    V: { name: 'El vado', edge: ['junco'], water: 'ford' },
     N: { name: 'La orilla norte', edge: ['cortadera', 'junco'] },
   },
   plots: [
@@ -82,6 +82,8 @@ export const vadoDeLasVizcachas: WorldMap = {
     '........PPPPP.......................................................................................................................',
     '....................................................................................................................................',
   ],
+  // The stream of the Vizcachas crosses the whole map, and the ford is the one way over it.
+  stream: [8, 11],
   // He arrives at the inn's door.
   start: [11, 46],
   objectives: [

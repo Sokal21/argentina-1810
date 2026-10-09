@@ -25,7 +25,8 @@ import { MUSKET } from '../machi/musket';
 import { overlaps, pushOut, type Footprint } from '../world/footprint';
 import { drawGround as layGround } from '../world/ground';
 import { Meadow } from '../fx/meadow';
-import { Country, loadCountry, raiseBuildings, raiseFences } from '../world/country';
+import { Water } from '../fx/water';
+import { Country, loadCountry, loadFences, raiseBuildings, raiseFences } from '../world/country';
 import { bosquePatagonico } from '../world/maps/bosque';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
@@ -157,6 +158,7 @@ export class GameScene extends Phaser.Scene {
   private country?: Country;
   /** And the long grass all over it. */
   private meadow?: Meadow;
+  private water?: Water;
   /** The ground taken up by what is built on the map. */
   private built: Footprint[] = [];
   /** How far the world reaches, in sprite pixels. */
@@ -203,6 +205,7 @@ export class GameScene extends Phaser.Scene {
     Nahuel.preload(this);
     loadScenery(this);
     loadCountry(this);
+    loadFences(this);
     this.load.image(PULPERO.src, PULPERO.src);
   }
 
@@ -218,6 +221,7 @@ export class GameScene extends Phaser.Scene {
     if (this.map?.bare) raiseFences(this, this.map);
     this.country = this.map?.bare ? new Country(this, this.map) : undefined;
     this.meadow = this.map?.bare ? new Meadow(this, this.map.ground) : undefined;
+    this.water = this.map?.bare ? new Water(this, this.map) : undefined;
     this.built.push(...(this.country?.feet ?? []));
 
     this.machi = this.enter(this.hero, this.start);
@@ -442,6 +446,7 @@ export class GameScene extends Phaser.Scene {
     this.forest?.reveal(this.machi, dt);
     this.country?.reveal(this.machi, dt);
     this.meadow?.follow();
+    this.water?.follow();
     // Chonchones go for where she stands; their teeth miss her mid-dash.
     for (const chonchon of this.chonchones) {
       const drawn = feet && this.nahuel.lures(chonchon.ground, feet);

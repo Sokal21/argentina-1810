@@ -1,4 +1,5 @@
 import { chance } from './chance';
+import { DEEP, waterLevels } from './water';
 import { letterAt, PLOT_H, PLOT_W, type WorldMap } from './zones';
 
 // Where the plants of open country stand. As in the forest, nobody places
@@ -12,6 +13,8 @@ export const DEPTH = 4;
 export const THICK = [5, 4, 3, 2];
 /** No two are quite the same height: each is this share taller or shorter, at most. */
 export const UNEVEN = 0.18;
+/** What grows in deep water, whatever the zone beside it is closed with. */
+export const REEDS = 'junco';
 
 export interface Plant {
   /** Its foot, in world pixels. */
@@ -72,6 +75,7 @@ export function plantCountry(map: WorldMap, seed = 1): Plant[] {
       inTheWay,
     });
   };
+  const water = waterLevels(map);
   nearest(map).forEach((line, row) => line.forEach(({ far, letter }, col) => {
     const zone = map.zones[letter];
     if (!zone) return;
@@ -85,8 +89,10 @@ export function plantCountry(map: WorldMap, seed = 1): Plant[] {
     if (far > DEPTH || !kinds.length) return;
     // Where people have put up a fence the ground beside it is kept clear, so it can be seen.
     if (zone.fence && far === 1) return;
-    for (let n = 0; n < THICK[far - 1]; n++) {
-      plant(col, row, kinds[Math.floor(chance(col, row, seed + 40 + n) * kinds.length)], n, false);
+    // In deep water only reeds grow, and fewer of them.
+    const deep = water[row][col] === DEEP;
+    for (let n = 0; n < (deep ? Math.ceil(THICK[far - 1] / 2) : THICK[far - 1]); n++) {
+      plant(col, row, deep ? REEDS : kinds[Math.floor(chance(col, row, seed + 40 + n) * kinds.length)], n, false);
     }
   }));
   return plants;

@@ -100,70 +100,41 @@ export function raiseBuildings(scene: Phaser.Scene, map: WorldMap): Footprint[] 
   return taken;
 }
 
-// A stake fence and an adobe wall, in the colours of the drawings they were designed from.
-const WOOD = ['#6e4f33', '#7c5a3a', '#5f432b'];
-const WOOD_DARK = '#3f2c1c', WOOD_LIGHT = '#94714b', RAWHIDE = '#a88b5e';
-const WALL = { tall: 17, thick: 7, face: '#d9d3c2', shade: '#b9b2a0', top: '#ece7da', tile: '#b55b3c', tileDark: '#8f4329' };
-const STAKE_W = 3, TALLEST = 23;
+// The pieces a fence and a wall are chained from, by the name each is loaded under.
+const POSTS = ['cerca_palo_0', 'cerca_palo_1', 'cerca_palo_2', 'cerca_palo_3', 'cerca_palo_4', 'cerca_palo_5'];
+const PIECES = ['cerca_frente', 'tapia_frente', 'tapia_arriba', 'tapia_punta', ...POSTS];
 
-// A stake of each height and colour, drawn once: a post with a pale edge, a dark one and a cut top.
-function stakeKey(scene: Phaser.Scene, tall: number, colour: number): string {
-  const key = `stake:${tall}:${colour}`;
-  if (!scene.textures.exists(key)) {
-    const tex = scene.textures.createCanvas(key, STAKE_W, TALLEST)!;
-    const g = tex.getContext(), top = TALLEST - tall;
-    g.fillStyle = WOOD[colour];
-    g.fillRect(0, top + 1, STAKE_W, tall - 1);
-    g.fillRect(1, top, 1, 1);
-    g.fillStyle = WOOD_LIGHT;
-    g.fillRect(0, top + 1, 1, tall - 2);
-    g.fillStyle = WOOD_DARK;
-    g.fillRect(STAKE_W - 1, top + 2, 1, tall - 2);
-    tex.refresh();
-  }
-  return key;
+/** Fetches the fences' and walls' drawings; to be called while a scene is loading. */
+export function loadFences(scene: Phaser.Scene): void {
+  for (const name of PIECES) scene.load.image(name, `campo/${name}.png`);
 }
 
 /**
- * Puts up a map's fences: stakes driven in one by one along the edge of a
- * fenced zone, lashed with two runs of rawhide, and low whitewashed walls
- * with a tiled coping. Each stands in front of whatever is further up the screen.
+ * Puts up a map's fences and walls from their drawn pieces. A stretch seen
+ * from the front is one drawing repeated along it. One that runs away up the
+ * screen is, for a fence, its posts stood one behind another, and for a
+ * wall, its coping seen from above with the end of the wall at the near end.
+ * Each stands in front of whatever is further up the screen.
  */
 export function raiseFences(scene: Phaser.Scene, map: WorldMap): void {
   const runs = fenceRuns(map);
-  for (const stake of stakes(runs)) {
-    scene.add.image(stake.x, stake.y, stakeKey(scene, stake.tall, Math.floor(stake.which * WOOD.length)))
-      .setOrigin(0.5, 1).setDepth(stake.y);
+  const size = (name: string) => scene.textures.get(name).getSourceImage() as HTMLImageElement;
+  for (const post of stakes(runs)) {
+    scene.add.image(post.x, post.y, POSTS[Math.floor(post.which * POSTS.length)]).setOrigin(0.5, 1).setDepth(post.y);
   }
   for (const run of runs) {
     const level = run.y0 === run.y1;
-    if (run.kind === 'stakes') {
-      // The lashings: two lines along the fence, a little in front of the stakes they bind.
-      const g = scene.add.graphics().setDepth(run.y1 + 0.5);
-      g.fillStyle(Phaser.Display.Color.HexStringToColor(RAWHIDE).color, 1);
-      if (level) {
-        g.fillRect(run.x0, run.y0 - 6, run.x1 - run.x0, 1);
-        g.fillRect(run.x0, run.y0 - 12, run.x1 - run.x0, 1);
-      }
-      continue;
-    }
-    const g = scene.add.graphics().setDepth(run.y1);
-    const fill = (hex: string) => g.fillStyle(Phaser.Display.Color.HexStringToColor(hex).color, 1);
     if (level) {
-      // Seen from the front: its face, a darker foot, and the coping over it.
-      const w = run.x1 - run.x0, top = run.y0 - WALL.tall;
-      fill(WALL.face).fillRect(run.x0, top, w, WALL.tall);
-      fill(WALL.shade).fillRect(run.x0, run.y0 - 3, w, 3);
-      fill(WALL.tile).fillRect(run.x0 - 1, top - 3, w + 2, 4);
-      fill(WALL.tileDark).fillRect(run.x0 - 1, top, w + 2, 1);
-    } else {
-      // Running away up the screen: its top is seen along its length, and its end at the near end.
-      const x = run.x0 - Math.floor(WALL.thick / 2), top = run.y0 - WALL.tall;
-      fill(WALL.tile).fillRect(x - 1, top - 3, WALL.thick + 2, run.y1 - run.y0 + 3);
-      fill(WALL.tileDark).fillRect(x + WALL.thick, top - 3, 1, run.y1 - run.y0 + 3);
-      fill(WALL.face).fillRect(x, run.y1 - WALL.tall, WALL.thick, WALL.tall);
-      fill(WALL.shade).fillRect(x, run.y1 - 3, WALL.thick, 3);
-      fill(WALL.tile).fillRect(x - 1, run.y1 - WALL.tall - 3, WALL.thick + 2, 4);
+      const name = run.kind === 'stakes' ? 'cerca_frente' : 'tapia_frente';
+      scene.add.tileSprite(run.x0, run.y0, run.x1 - run.x0, size(name).height, name)
+        // Begun wherever the stretch begins along the ground, so stretches side by side join.
+        .setTilePosition(run.x0, 0).setOrigin(0, 1).setDepth(run.y0);
+    } else if (run.kind === 'wall') {
+      const top = size('tapia_arriba'), end = size('tapia_punta');
+      const up = end.height - 6;   // how high above the ground the coping lies
+      scene.add.tileSprite(run.x0, run.y0 - up, top.width, run.y1 - run.y0, 'tapia_arriba')
+        .setTilePosition(0, run.y0).setOrigin(0.5, 0).setDepth(run.y1 - 1);
+      scene.add.image(run.x0, run.y1, 'tapia_punta').setOrigin(0.5, 1).setDepth(run.y1);
     }
   }
 }

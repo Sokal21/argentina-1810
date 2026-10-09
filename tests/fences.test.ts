@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { fenceRuns, SET_BACK, stakes } from '../src/world/fences';
+import { APART, fenceRuns, SET_BACK, stakes } from '../src/world/fences';
 import { vadoDeLasVizcachas as vado } from '../src/world/maps/vado';
 import { PLOT_H, PLOT_W, zoneAt, type WorldMap } from '../src/world/zones';
 
@@ -27,19 +27,17 @@ test('a zone nobody fenced has no fence', () => {
   expect(fenceRuns({ ...map, zones: { ...map.zones, P: { name: 'Pueblo', safe: true } } })).toEqual([]);
 });
 
-test('the stakes stand outside the zone, on ground nobody walks', () => {
-  for (const s of stakes(fenceRuns(map))) expect(zoneAt(map, s.x, s.y)).toBeUndefined();
+test('the posts of a fence going away stand outside the zone, on ground nobody walks', () => {
+  const posts = stakes(fenceRuns(map));
+  // The one side of the village plot that runs up the screen: its left.
+  expect(posts.length).toBeGreaterThan(PLOT_H / APART);
+  for (const s of posts) expect(zoneAt(map, s.x, s.y)).toBeUndefined();
 });
 
-test('where two stretches meet they share their stakes: none stands twice', () => {
-  const all = stakes(fenceRuns(map));
+test('where two stretches meet they share their posts: none stands twice', () => {
+  const tall: WorldMap = { ...map, plots: ['....', '.PH.', '.PH.', '....'] };
+  const all = stakes(fenceRuns(tall));
   expect(new Set(all.map(s => `${s.x},${s.y}`)).size).toBe(all.length);
-  // Round three sides of one plot, with the corners closed.
-  expect(all.length).toBeGreaterThan((PLOT_W * 2 + PLOT_H) / 5);
-});
-
-test('no two stakes need be the same height', () => {
-  expect(new Set(stakes(fenceRuns(map)).map(s => s.tall)).size).toBeGreaterThan(4);
 });
 
 test("on Cabral's map the village is staked and the chapel walled, and both have a way in", () => {
