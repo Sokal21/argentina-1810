@@ -2,7 +2,7 @@ import type Phaser from 'phaser';
 import { blow } from '../fx/wind';
 import type { Footprint } from './footprint';
 import { plantTrees } from './trees';
-import { zoneAt, type WorldMap } from './zones';
+import { extent, zoneAt, type WorldMap } from './zones';
 
 /** The drawings of a tree, by the name each is loaded under. */
 const TREES = ['araucaria_a', 'araucaria_b', 'araucaria_c'];
@@ -97,7 +97,7 @@ export class Forest {
         this.trunks.push({ x: tree.x, y: tree.y - hh, hw: TRUNK.hw * tree.size, hh });
       }
     }
-    blow(scene, this.trees);
+    blow(scene, this.trees, extent(map).width);
   }
 
   /** Thins the trees whose crowns hide whoever stands at a spot, and fills the others in again. */
