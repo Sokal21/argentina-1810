@@ -32,6 +32,9 @@ Read it before spending credits.
    `edit_asset_id` changes too little; a fresh generation from a reference
    works.
 4. Only then make the other views and animate.
+5. Write what was decided into `docs/personajes/NAME.md` (what it is, how it
+   looks, how it fights, the choices the user made and the ids of its base
+   poses), and keep that document up to date whenever any of it changes.
 
 Costs: a still is 12 to 16 credits per variation, an animation 26 whatever
 its length. `width`/`height` are hints: the same request can return 82px or
