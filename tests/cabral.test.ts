@@ -257,3 +257,23 @@ describe("Cabral's grenade", () => {
     expect(c.pose().sheet).toBe('grenade_front');
   });
 });
+
+describe("Cabral's death", () => {
+  it('plays once from his own sheet, whichever way he faced, and holds its last frame', () => {
+    for (const [dx, dy] of [[1, 0], [-1, -1], [0, -1]]) {
+      const c = new MachiController(undefined, CABRAL);
+      walk(c, dx, dy, 0.5);
+      c.fall();
+      const frames: number[] = [];
+      for (let t = 0; t < 3; t += DT) {
+        c.update(DT, { dx, dy, attack: true, dash: true });
+        expect(c.pose().sheet).toBe('death_front');
+        if (frames[frames.length - 1] !== c.pose().frame) frames.push(c.pose().frame);
+      }
+      expect(frames).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+      c.rise();
+      c.update(DT, { dx: 0, dy: 0, attack: false });
+      expect(c.pose().sheet).toMatch(/^idle_/);
+    }
+  });
+});

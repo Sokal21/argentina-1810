@@ -785,6 +785,12 @@
       "sha12": "e49579b9ad20",
       "label": "ability icon: grenade — untouched SpriteCook output",
       "file": "assets/hud/iconos/granada_original.png"
+    },
+    {
+      "asset_id": "7fea763a-6bcd-44ae-8806-6108a2bc138b",
+      "sha12": "02a472d7c7b7",
+      "label": "cabral_muerte (clutches his belly, kneels and folds over his legs, 12 frames) — untouched",
+      "file": "assets/cabral/muerte_original.png"
     }
   ]
 }

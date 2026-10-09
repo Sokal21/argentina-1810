@@ -364,6 +364,9 @@ export const CABRAL: Kit = {
     grenade_front: { ...cabralSheet('granada_frente', 8, 1, 63), w: 126, order: [0, 1, 2, 3, 5, 5, 6, 7] },
     grenade_back: { ...cabralSheet('granada_espalda', 8, 1, 50), w: 126 },
     grenade_north: { ...cabralSheet('granada_norte', 8, 0, 52), w: 126 },
+    // His death, drawn from the front only: he drops his sabre, clutches his
+    // belly, falls to his knees and folds over them.
+    death_front: cabralSheet('muerte', 12, 1, 47),
     // His dash: he dives, rolls over his shoulder and comes up crouching.
     // The first frame of each is him standing, which a dash has no time for.
     dash_south: { ...cabralSheet('rodada_sur', 6, 0, 63), w: 126, order: ROLL },
