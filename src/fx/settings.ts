@@ -1,16 +1,18 @@
 // Which screen effects are on. Remembered between reloads.
-export type Effect = 'grain' | 'light' | 'crt';
+export type Effect = 'grain' | 'light' | 'crt' | 'snow' | 'leaves';
 
 export const EFFECTS: [Effect, string][] = [
   ['grain', 'Grano'],
   ['light', 'Luz'],
   ['crt', 'CRT'],
+  ['snow', 'Nieve'],
+  ['leaves', 'Otoño'],
 ];
 
 const KEY = 'argentina-1810-fx';
 
 function load(): Record<Effect, boolean> {
-  const defaults = { grain: true, light: true, crt: true };
+  const defaults = { grain: true, light: true, crt: true, snow: false, leaves: false };
   try {
     return { ...defaults, ...JSON.parse(localStorage.getItem(KEY) ?? '{}') };
   } catch {
