@@ -4,6 +4,8 @@ import { Realista } from '../realista/Realista';
 import { cheats, tune } from '../tuning';
 import { Charge, ULTIMATE } from '../machi/ultimate';
 import { RAGE, Rage } from '../machi/rage';
+import { NAHUEL } from '../nahuel/brain';
+import { Nahuel } from '../nahuel/Nahuel';
 import { Chonchon } from '../chonchon/Chonchon';
 import { Enemy } from '../enemies';
 import { FIRE_TALL, fireShader } from '../fx/fire';
@@ -119,6 +121,10 @@ export class GameScene extends Phaser.Scene {
   private charge = new Charge();
   /** Cabral's, once he lets it go. */
   private wrath = new Rage();
+  /** Inti's: the spirit jaguar she calls up. */
+  private nahuel!: Nahuel;
+  /** Seconds until it answers her drum, or null when she is not calling. */
+  private calling: number | null = null;
   /** The orbs Inti's kills leave on the ground for a while. */
   private orbs: Orb[] = [];
   /** Which enemies stood at the last step, to tell when one falls. */
@@ -165,6 +171,7 @@ export class GameScene extends Phaser.Scene {
     }
     Chonchon.preload(this);
     Realista.preload(this);
+    Nahuel.preload(this);
   }
 
   create(): void {
@@ -294,6 +301,8 @@ export class GameScene extends Phaser.Scene {
       this.machi = this.enter(this.hero, this.machi);
     });
 
+    this.nahuel = new Nahuel(this, this.sparks, ZOOM);
+
     // P shows the collision boxes.
     this.input.keyboard?.on('keydown-P', () => {
       const world = this.physics.world;
@@ -346,8 +355,12 @@ export class GameScene extends Phaser.Scene {
     // back out the short way. Done here rather than by the physics engine
     // because her position is set by her own controller, not by a velocity.
     const target = standing ? { x: this.machi.x, y: this.machi.y - TORSO.up } : null;
+    const feet = standing ? { x: this.machi.x, y: this.machi.y } : null;
     for (const enemy of this.enemies) {
-      const ember = enemy.update(dt * tune.foes, target);
+      // Whatever the nahuel is nearer to than she is goes for it instead.
+      const drawn = feet && this.nahuel.lures(enemy.ground, feet);
+      const beast = this.nahuel.ground;
+      const ember = enemy.update(dt * tune.foes, drawn ? { x: beast.x, y: beast.y - 20 } : target);
       if (ember) this.embers.spawn(ember);
       if (!enemy.alive) continue;
       const clear = pushOut({ x: this.machi.x, y: this.machi.y, ...FEET }, enemy.footprint);
@@ -355,15 +368,17 @@ export class GameScene extends Phaser.Scene {
       this.machi.y = clear.y;
     }
     // Chonchones go for where she stands; their teeth miss her mid-dash.
-    const feet = standing ? { x: this.machi.x, y: this.machi.y } : null;
     for (const chonchon of this.chonchones) {
-      if (chonchon.update(dt * tune.foes, feet)) this.hurt();
+      const drawn = feet && this.nahuel.lures(chonchon.ground, feet);
+      // Its teeth do nothing to a spirit.
+      if (chonchon.update(dt * tune.foes, drawn ? this.nahuel.ground : feet) && !drawn) this.hurt();
     }
     // Royalists shoot from where they stand, and cut whoever is beside them.
     for (const realista of this.realistas) {
-      const { shot, cut } = realista.update(dt * tune.foes, feet);
+      const drawn = feet && this.nahuel.lures(realista.ground, feet);
+      const { shot, cut } = realista.update(dt * tune.foes, drawn ? this.nahuel.ground : feet);
       if (shot) this.shots.spawn(shot);
-      if (cut) this.hurt();
+      if (cut && !drawn) this.hurt();
     }
     this.useAbilities(dt, standing);
     this.unleash(dt, standing);
@@ -743,6 +758,7 @@ export class GameScene extends Phaser.Scene {
     this.fury.reset();
     this.embers.clear();
     this.shots.clear();
+    this.nahuel.dismiss();
     this.bolts.clear();
     this.balls.clear();
     this.readying = null;
@@ -806,7 +822,8 @@ export class GameScene extends Phaser.Scene {
       orb.shadow.setPosition(Math.round(orb.x), Math.round(orb.y)).setDepth(orb.y - 0.5);
       const near = ground(orb, this.machi) <= ORB.reach;
       if (near && this.vitals.standing) {
-        this.charge.add(ULTIMATE / tune.orbs);
+        // While the nahuel is out she is not yet gathering for the next.
+        if (!this.nahuel.present) this.charge.add(ULTIMATE / tune.orbs);
         this.sparks.emitParticleAt(orb.glow.x, orb.glow.y, 8);
         orb.t = Infinity;
       }
@@ -823,8 +840,26 @@ export class GameScene extends Phaser.Scene {
   // stands close to him is scorched. It hurts them; it does not set them alight.
   private unleash(dt: number, standing: boolean): void {
     const called = this.keys.unleash();
-    if (called && standing && this.hero === 'cabral' && !this.wrath.active && !this.machi.isDashing
-      && this.charge.spend()) {
+    const free = called && standing && !this.machi.isDashing;
+    // Inti's is the nahuel: it comes out of the light at her side.
+    // She calls it by beating her kultrún; it comes on the beat.
+    if (free && this.hero === 'inti' && !this.nahuel.present && this.calling === null && this.charge.spend()) {
+      this.machi.channel(NAHUEL.call, 'call');
+      this.calling = NAHUEL.comes;
+    }
+    if (this.calling !== null && (this.calling -= dt) <= 0) {
+      this.calling = null;
+      this.nahuel.summon({ x: this.machi.x + 34, y: this.machi.y + 6 }, tune.beast);
+      this.cameras.main.shake(200, 0.004);
+    }
+    const torn = this.nahuel.update(dt, this.foes.map(f => ({ ...f.ground, girth: f.girth, alive: f.alive, foe: f })), this.machi);
+    if (torn) {
+      const { foe } = torn as typeof torn & { foe: Foe };
+      const at = this.nahuel.ground;
+      for (let i = 0; i < NAHUEL.damage; i++) foe.hit(foe.ground.x - at.x || 1, foe.ground.y - at.y);
+      this.sparks.emitParticleAt(foe.body.x, foe.body.y, 8);
+    }
+    if (free && this.hero === 'cabral' && !this.wrath.active && this.charge.spend()) {
       this.wrath.start(tune.rage);
       this.readying = null;
       this.machi.lower();
@@ -854,8 +889,12 @@ export class GameScene extends Phaser.Scene {
 
   /** How near their greatest power is, from 0 to 1. */
   get ultimate(): number {
-    // While it burns the slot shows what is left of it instead.
-    return this.wrath.active ? this.wrath.share(tune.rage) : this.charge.value / ULTIMATE;
+    // While it lasts the slot shows what is left of it instead.
+    if (this.wrath.active) return this.wrath.share(tune.rage);
+    // The HUD asks before this scene has finished loading, when there is no nahuel yet.
+    const nahuel = this.nahuel as Nahuel | undefined;
+    if (nahuel?.present) return nahuel.share(tune.beast);
+    return this.charge.value / ULTIMATE;
   }
 
   // A spell has been seen to touch an enemy: the spell ends there and the

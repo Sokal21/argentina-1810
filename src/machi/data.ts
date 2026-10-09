@@ -178,6 +178,8 @@ Object.assign(SHEETS, {
   dash_north: { src: 'machi/dash/arriba.png',   frames: 6, faces: 0, skip: 0, ax: 45.8, order: DASH_ORDER },
   // The healing ritual, drawn facing the viewer only.
   heal: { src: 'machi/curacion/sheet.png', frames: 8, faces: 0, skip: 0, ax: 48 },
+  // Beating her kultrún to call the nahuel.
+  call: { src: 'machi/invocacion/sheet.png', frames: 8, faces: 0, skip: 0, ax: 48 },
   // Her death: she drops what she holds, falls to her knees and then on her face.
   death_front: { src: 'machi/muerte/frente.png', frames: 12, faces: -1, skip: 0, ax: 55.6 },
 } satisfies Record<string, Sheet>);

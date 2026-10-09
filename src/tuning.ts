@@ -20,6 +20,7 @@ export const DIALS = {
   orbLife: { label: 'Segundos que dura un orbe', min: 1, max: 15, step: 0.5, value: 3.5 },
   blows:   { label: 'Sablazos a furia llena para cargar (Cabral)', min: 1, max: 60, step: 1, value: 22 },
   rage:    { label: 'Segundos de furia desatada (Cabral)', min: 2, max: 30, step: 0.5, value: 8 },
+  beast:   { label: 'Segundos que se queda el nahuel (Inti)', min: 2, max: 40, step: 0.5, value: 12 },
 } satisfies Record<string, Dial>;
 
 export type DialName = keyof typeof DIALS;

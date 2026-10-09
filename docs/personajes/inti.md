@@ -94,8 +94,45 @@ hasta él, lo junta. Hacen falta 14 para cargarla.
 La gracia es la tensión: ella pelea de lejos, pero para cargar tiene que ir
 hasta donde cayó el enemigo.
 
-La carga no se pierde con el tiempo ni al morir. Qué hace la definitiva
-todavía no está definido. Los números viven en `src/tuning.ts`.
+La carga no se pierde con el tiempo ni al morir. Mientras el nahuel está
+afuera, los orbes que junte no cargan el siguiente.
+
+### R — Nahuel
+
+Su definitiva: llama al **nahuel**, el jaguar de los mapuches, como
+espíritu. Lo llama **tocando el kultrún**: lo levanta frente al pecho y lo
+golpea con la rama de canelo como palillo. Sobre el golpe, el nahuel sale de
+un destello celeste a su lado, y se queda 12 segundos.
+
+- **Caza solo.** Corre hacia el enemigo más cercano y lo ataca a zarpazos (2
+  de daño cada uno); cuando cae, va por el siguiente. Sin nada que cazar,
+  vuelve junto a ella.
+- **Se lleva el agro.** Los enemigos que estén más cerca de él que de Inti
+  lo atacan a él. Los que queden cerca de ella la siguen buscando: le saca
+  de encima a una parte, no a todos.
+- **No se lo puede matar:** es un espíritu, y lo que le tiren no le hace
+  nada.
+
+Es lo opuesto a la de Cabral: él se vuelve imparable de cerca; ella pone a
+alguien entre los enemigos y ella, y sigue peleando de lejos.
+
+**Cómo se ve:** pelaje azul pizarra en tonos planos, más claro en el lomo y
+más oscuro abajo, con anillos celestes (el color de los hechizos de Inti),
+ojos y punta de la cola celestes, hocico crema y una cinta roja en la pata.
+**Sin contornos**: la profundidad sale solo de las sombras planas. La
+generación insiste en devolverle líneas oscuras; `tools/build_nahuel_sheet.py`
+las repinta en cada hoja.
+
+Lo que lo hace espíritu se le agrega por shader, sin tocar el dibujo
+(`src/fx/SpiritFX.ts`): un halo de su propio celeste alrededor del cuerpo, un
+fuego fatuo leve que le sube del lomo, los ojos y los anillos que laten
+hacia el blanco, y una luz que proyecta sobre el suelo.
+
+Dos vistas, de frente y de espalda, espejadas, con carrera y ataque. Los
+números viven en `src/nahuel/brain.ts` y `src/tuning.ts`. Poses base: frente
+`1aa586cf-d718-4bcd-ab88-3085e4a4c4bd`, espalda
+`464d1717-d854-420c-832d-2891eac9477a`; concepto detallado
+`15578683-1789-487b-8074-f72201f8269c`.
 
 ### Muerte
 
@@ -123,6 +160,7 @@ arriba), espejadas para cubrir ocho direcciones.
 - Ataque caminando, ataque parada y ataque retrocediendo
 - Dash
 - Curación (solo de frente)
+- Llamado del nahuel, tocando el kultrún (solo de frente)
 - Muerte (solo de frente)
 
 ## Poses base en SpriteCook

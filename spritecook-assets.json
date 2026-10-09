@@ -1145,6 +1145,144 @@
       "sha12": "d8511f2960aa",
       "label": "ability icon: unleashed fury (Cabral ultimate) — untouched SpriteCook output",
       "file": "assets/hud/iconos/furia_original.png"
+    },
+    {
+      "asset_id": "15578683-1789-487b-8074-f72201f8269c",
+      "sha12": "b687882b410c",
+      "label": "nahuel (spirit jaguar) concept, detailed, nahuel_a",
+      "file": "assets/nahuel/concept/nahuel_a.png"
+    },
+    {
+      "asset_id": "dcb0eaa4-2386-498b-86cb-726cbce0283b",
+      "sha12": "849d4aa04886",
+      "label": "nahuel (spirit jaguar) concept, detailed, nahuel_b",
+      "file": "assets/nahuel/concept/nahuel_b.png"
+    },
+    {
+      "asset_id": "2b4a4a26-944d-414a-b2b1-3f65f28d1526",
+      "sha12": "6763a726dc54",
+      "label": "nahuel (spirit jaguar) concept, detailed, nahuel_c",
+      "file": "assets/nahuel/concept/nahuel_c.png"
+    },
+    {
+      "asset_id": "c02a0219-1c3a-497f-b65b-23def9ea56a5",
+      "sha12": "cbde10a6a637",
+      "label": "nahuel, simplified, simple_1",
+      "file": "assets/nahuel/concept/simple_1.png"
+    },
+    {
+      "asset_id": "55ea7d86-7174-418b-8d39-77700ebb541b",
+      "sha12": "a5dda0e1fb55",
+      "label": "nahuel, simplified, simple_2",
+      "file": "assets/nahuel/concept/simple_2.png"
+    },
+    {
+      "asset_id": "d5786d5f-4b9f-4ded-b6bc-2643cbcaa834",
+      "sha12": "2c5768c4a1c8",
+      "label": "nahuel, simplified, simple_3",
+      "file": "assets/nahuel/concept/simple_3.png"
+    },
+    {
+      "asset_id": "6357f25b-d71b-4258-acc8-173e0993eafb",
+      "sha12": "a8220cc545dc",
+      "label": "nahuel, flat with no outlines, plano_1",
+      "file": "assets/nahuel/concept/plano_1.png"
+    },
+    {
+      "asset_id": "32069853-b986-4c87-b0ec-d159a5726d1d",
+      "sha12": "9f3486a7ebee",
+      "label": "nahuel, flat with no outlines, plano_2",
+      "file": "assets/nahuel/concept/plano_2.png"
+    },
+    {
+      "asset_id": "4925a62f-0443-4a82-befd-4fbe720aad58",
+      "sha12": "6a929c8aa8e6",
+      "label": "nahuel, flat with no outlines, plano_3",
+      "file": "assets/nahuel/concept/plano_3.png"
+    },
+    {
+      "asset_id": "873f03af-8909-452a-9320-11ec598efb0c",
+      "sha12": "777c0d9af268",
+      "label": "nahuel, flat, long proportions, largo_1",
+      "file": "assets/nahuel/concept/largo_1.png"
+    },
+    {
+      "asset_id": "d6c26550-46c8-4181-8233-7ddc2ff69152",
+      "sha12": "605ae76396ff",
+      "label": "nahuel, flat, long proportions, largo_2",
+      "file": "assets/nahuel/concept/largo_2.png"
+    },
+    {
+      "asset_id": "27468fd3-809c-4107-9a3e-bfb376a2825d",
+      "sha12": "a98f123ceb71",
+      "label": "nahuel, flat, long proportions, largo_3",
+      "file": "assets/nahuel/concept/largo_3.png"
+    },
+    {
+      "asset_id": "c5f28809-15cd-4d74-bf12-b4989212dac0",
+      "sha12": "e086a8ffc682",
+      "label": "nahuel, flat with more tones in the coat, color_1",
+      "file": "assets/nahuel/concept/color_1.png"
+    },
+    {
+      "asset_id": "ddf563e5-71d8-4a46-a2b9-b8587e01c323",
+      "sha12": "4d7c2a9dd9a4",
+      "label": "nahuel, flat with more tones in the coat, color_2",
+      "file": "assets/nahuel/concept/color_2.png"
+    },
+    {
+      "asset_id": "6ade2644-a3d2-49cd-a23b-7cafa5d21b22",
+      "sha12": "97f4b2d1afb9",
+      "label": "nahuel, flat with more tones in the coat, color_3",
+      "file": "assets/nahuel/concept/color_3.png"
+    },
+    {
+      "asset_id": "1aa586cf-d718-4bcd-ab88-3085e4a4c4bd",
+      "sha12": "f298dc89e304",
+      "label": "nahuel front 3/4 (final, animation source; cleaned from color_3 6ade2644-a3d2-49cd-a23b-7cafa5d21b22)",
+      "file": "assets/nahuel/frente.png"
+    },
+    {
+      "asset_id": "464d1717-d854-420c-832d-2891eac9477a",
+      "sha12": "06377830a6c1",
+      "label": "nahuel back 3/4 (animation source)",
+      "file": "assets/nahuel/espalda.png"
+    },
+    {
+      "asset_id": "cc1da095-bd62-40ba-81b6-2055ca59aec3",
+      "sha12": "43f368391675",
+      "label": "nahuel_carrera_frente",
+      "file": "assets/nahuel/carrera_frente.png"
+    },
+    {
+      "asset_id": "e813d865-309f-46ff-8c0c-c80eb5791968",
+      "sha12": "6816c32e58fd",
+      "label": "nahuel_ataque_frente",
+      "file": "assets/nahuel/ataque_frente.png"
+    },
+    {
+      "asset_id": "28092891-e2db-45fa-9181-8f4b5d8436b6",
+      "sha12": "f9bdd704a2f7",
+      "label": "nahuel_carrera_espalda",
+      "file": "assets/nahuel/carrera_espalda.png"
+    },
+    {
+      "asset_id": "9c26b15d-f6fd-45e6-9ffd-f2b3acfe6eeb",
+      "sha12": "fc8e4f966988",
+      "label": "nahuel_ataque_espalda",
+      "file": "assets/nahuel/ataque_espalda.png"
+    },
+    {
+      "asset_id": "0cb41c3f-e796-487c-8e86-db36a1fffa89",
+      "sha12": "c8b2cafcc6d5",
+      "label": "machi_invocacion (beats the kultrún to call the nahuel, 8 frames, from the south pose)",
+      "file": "assets/machi/invocacion/sheet_original.png"
+    },
+    {
+      "asset_id": "bf7b7aa6-fa42-4b6c-a45f-8332bed55032",
+      "sha12": "a03fb311ed12",
+      "label": "ability icon: nahuel (Inti ultimate) — untouched SpriteCook output",
+      "file": "assets/hud/iconos/nahuel_original.png"
     }
   ]
 }

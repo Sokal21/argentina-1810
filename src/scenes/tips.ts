@@ -27,9 +27,9 @@ export const TIPS: Record<Hero, Tip[]> = {
       says: 'Un ritual de hierbas: se queda quieta un momento y recupera vida. Si la golpean en el medio, se corta.',
     },
     {
-      name: 'Poder mayor',
-      terms: 'R · todavía sin definir',
-      says: 'Se carga juntando los orbes que dejan los enemigos al caer, antes de que se apaguen.',
+      name: 'Nahuel',
+      terms: 'R · se carga juntando los orbes que dejan los enemigos',
+      says: 'Llama al espíritu del jaguar. Por unos segundos caza al enemigo más cercano y atrae hacia él a los que tenga cerca, mientras ella ataca de lejos.',
     },
   ],
   cabral: [

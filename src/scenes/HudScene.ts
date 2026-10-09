@@ -61,6 +61,7 @@ const LAYOUTS: Record<Hero, Layout> = {
     ],
     slot: { x: 146, y: 72, step: 54 },
     accent: 0x46e6fa,
+    ultimate: 'hud/iconos/nahuel.png',
     skills: [
       { ability: 'strike', icon: 'hud/iconos/rayo.png', key: 'Q' },
       { ability: 'heal', icon: 'hud/iconos/lawen.png', key: 'E' },
