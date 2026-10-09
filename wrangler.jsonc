@@ -1,0 +1,8 @@
+// Cloudflare Worker that serves the built game as static files.
+{
+  "name": "argentina-1810",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist"
+  }
+}
