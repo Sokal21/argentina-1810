@@ -281,10 +281,10 @@ escribe al cerrarla.
 
 ## Etapa 1 · El mapa: la forma y sus límites
 
-*En curso. La forma del camino está; se están cerrando sus límites: el
-agua, las cercas y los tapiales. Al mostrarla por primera vez quedó claro
-que con qué se cierra un mapa es parte de su forma y no de su decorado: un
-límite define por dónde no se pasa, y eso es lo que esta etapa decide.*
+*Cerrada. Al mostrarla por primera vez quedó claro que con qué se cierra
+un mapa es parte de su forma y no de su decorado: un límite define por
+dónde no se pasa, y eso es lo que esta etapa decide. Por eso el agua, las
+cercas y los tapiales se hicieron acá y no en la etapa 2.*
 
 - **Qué se hizo:** el mapa de Cabral en el formato de parcelas
   (`src/world/maps/vado.ts`, 132 × 53), con sus catorce zonas, los dieciocho
