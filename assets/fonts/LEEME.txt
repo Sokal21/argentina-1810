@@ -1,0 +1,7 @@
+Las tipografías pixel del juego. Las dos son libres, bajo la SIL Open Font License 1.1
+(https://openfontlicense.org), y vienen de Google Fonts (https://github.com/google/fonts).
+
+Jacquard12-Regular.ttf   Jacquard 12, de Sarah Cadigan-Fried. Gótica, con mayúsculas y minúsculas.
+                         Cae justa en la grilla a 21 px. Es la letra de las notas del HUD.
+Silkscreen-Regular.ttf   Silkscreen, de Jason Kottke. Solo mayúsculas. Cae justa en la grilla a 8 px.
+                         Es la de las teclas de los casilleros.

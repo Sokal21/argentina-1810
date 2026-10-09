@@ -1133,6 +1133,18 @@
       "sha12": "0ae0f292fb71",
       "label": "realista_marcha_sur (last 8 of 12 frames; the first turn him to face the viewer)",
       "file": "assets/realista/marcha_sur.png"
+    },
+    {
+      "asset_id": "ec099edf-eed1-4f8c-bf4e-271189dd2202",
+      "sha12": "121b30420d03",
+      "label": "cabral_grito (war cry, sabre raised; 8 frames of 126, edge margin 25)",
+      "file": "assets/cabral/grito_original.png"
+    },
+    {
+      "asset_id": "043af488-563d-423d-be39-ecafe7a4cfa5",
+      "sha12": "d8511f2960aa",
+      "label": "ability icon: unleashed fury (Cabral ultimate) — untouched SpriteCook output",
+      "file": "assets/hud/iconos/furia_original.png"
     }
   ]
 }

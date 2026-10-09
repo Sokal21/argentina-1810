@@ -80,7 +80,7 @@ export function mountDevPanel(game: Phaser.Game): void {
   (['speed', 'foes'] as DialName[]).forEach(slider);
 
   heading('Definitiva');
-  (['orbs', 'orbLife', 'blows'] as DialName[]).forEach(slider);
+  (['orbs', 'orbLife', 'blows', 'rage'] as DialName[]).forEach(slider);
 
   heading('Enemigos');
   const foes = row();

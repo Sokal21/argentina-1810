@@ -143,7 +143,7 @@ export class MachiController {
   /** Seconds until she can dash again. */
   private dashWait = 0;
   /** A ritual in progress: how long it has run and how long it takes. */
-  private ritual: { t: number; time: number } | null = null;
+  private ritual: { t: number; time: number; sheet: string } | null = null;
   /** Seconds since she fell dead, or null while she lives. */
   private fallen: number | null = null;
   /** A blow being struck: how far into it, and the way it is aimed along the ground. */
@@ -165,6 +165,8 @@ export class MachiController {
   // How long this character's dash lasts and how far it goes.
   /** How fast it walks, as a share of its usual speed. */
   pace = 1;
+  /** And how fast it cuts. */
+  haste = 1;
 
   private get dashTime(): number { return this.kit.dash?.time ?? DASH_TIME; }
   private get dashDistance(): number { return this.kit.dash?.distance ?? DASH_DISTANCE; }
@@ -231,9 +233,10 @@ export class MachiController {
    * viewer: it is drawn from that side only. Nothing moves her until it ends
    * or is broken.
    */
-  channel(time: number): void {
+  channel(time: number, sheet = 'heal'): void {
     if (this.dash) return;
-    this.ritual = { t: 0, time };
+    this.ritual = { t: 0, time, sheet };
+    this.swing = null;
     this.attack = null;
     this.turn = null;
     this.moving = false;
@@ -458,7 +461,7 @@ export class MachiController {
       this.t = 0;
     }
     const before = this.swing.t;
-    this.swing.t += dt;
+    this.swing.t += dt * this.haste;
     if (before < melee.hit && this.swing.t >= melee.hit) {
       const { reach, arc, damage } = melee;
       this.blow = { x: this.x, y: this.y, dx: this.swing.dir.x, dy: this.swing.dir.y, reach, arc, damage };
@@ -613,9 +616,9 @@ export class MachiController {
       };
     }
     if (this.ritual) {
-      const s = this.kit.sheets.heal;
+      const s = this.kit.sheets[this.ritual.sheet];
       const frame = Math.min(s.frames - 1, Math.floor(this.ritual.t / this.ritual.time * s.frames));
-      return { x: this.x, y: this.y, sheet: 'heal', frame, flip: false, ax: s.ax as number, ay: s.ay ?? 0 };
+      return { x: this.x, y: this.y, sheet: this.ritual.sheet, frame, flip: false, ax: s.ax as number, ay: s.ay ?? 0 };
     }
     const turn = this.turn && this.turn.table[this.turn.key];
     const view = this.view;

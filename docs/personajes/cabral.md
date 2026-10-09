@@ -141,8 +141,27 @@ construye aguantando la furia al tope, y cada vez que la gasta en el
 mosquete o la granada deja de cargar. Con la furia llena hacen falta siempre 22
 sablazos.
 
-La carga no se pierde con el tiempo ni al morir. Qué hace la definitiva
-todavía no está definido. Los números viven en `src/tuning.ts`.
+La carga no se pierde con el tiempo ni al morir.
+
+### R — Furia desatada
+
+Su definitiva. Da un **grito de guerra** con el sable en alto y durante 8
+segundos deja de administrar la furia y simplemente arrasa:
+
+- **No puede morir.** Los golpes le pegan y le bajan la vida, pero nunca por
+  debajo de 1. Cuando termina, queda con la vida que le haya quedado. Se
+  eligió esto en vez de hacerlo invulnerable: premia usarla en el peor
+  momento y deja tensión para cuando se acaba.
+- **La furia se llena** al máximo y no baja hasta que termina.
+- **Más rápido:** camina un 55% más veloz y sus sablazos salen un 55% más
+  seguido.
+- **Solo sable.** No puede usar el mosquete ni la granada.
+- **Aura que quema.** Lo que esté pegado a él (a 52 o menos) recibe 1 de
+  daño cada medio segundo. Lastima, pero **no prende fuego** a los enemigos.
+- Mientras dura no carga la próxima.
+
+Se lo ve ardiendo en naranja, soltando brasas y dejando su estela todo el
+tiempo. Los números viven en `src/machi/rage.ts` y `src/tuning.ts`.
 
 ### Muerte
 
@@ -180,6 +199,7 @@ Las mismas cinco vistas que Inti.
 - Rodada
 - Mosquete: sube, apunta, dispara, guarda
 - Granada: saca, carga, arroja, vuelve
+- Grito de guerra (solo de frente), en un cuadro más alto por el sable en alto
 - Muerte (solo de frente)
 
 ## Poses base en SpriteCook

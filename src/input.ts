@@ -15,6 +15,7 @@ export class Keys {
   private attack = false;
   /** Shift was pressed since the last read. */
   private dash = false;
+  private ultimate = false;
   /** Q is down, and E was pressed since the last read. */
   private strike = false;
   private heal = false;
@@ -32,6 +33,7 @@ export class Keys {
         return;
       }
       if (e.code === 'KeyQ') { this.strike = true; return; }
+      if (e.code === 'KeyR') { if (!e.repeat) this.ultimate = true; return; }
       if (e.code === 'KeyE') { if (!e.repeat) this.heal = true; this.healHeld = true; return; }
       const dir = KEYMAP[e.code];
       if (!dir) return;
@@ -57,6 +59,13 @@ export class Keys {
    * The ability keys. Each character reads them their own way: `strike` is
    * Q held down, `heal` is one press of E, and `second` is E held down.
    */
+  /** Whether their greatest power was called for since last asked: one press, then forgotten. */
+  unleash(): boolean {
+    const pressed = this.ultimate;
+    this.ultimate = false;
+    return pressed;
+  }
+
   abilities(): { strike: boolean; heal: boolean; second: boolean } {
     const heal = this.heal;
     this.heal = false;

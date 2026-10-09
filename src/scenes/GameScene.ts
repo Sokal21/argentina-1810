@@ -3,6 +3,7 @@ import { BALL, Bolts, EMBER, SHOT } from '../bolts';
 import { Realista } from '../realista/Realista';
 import { cheats, tune } from '../tuning';
 import { Charge, ULTIMATE } from '../machi/ultimate';
+import { RAGE, Rage } from '../machi/rage';
 import { Chonchon } from '../chonchon/Chonchon';
 import { Enemy } from '../enemies';
 import { FIRE_TALL, fireShader } from '../fx/fire';
@@ -116,6 +117,8 @@ export class GameScene extends Phaser.Scene {
   private vitals = new Vitals(LIFE, GRACE, RECOVER);
   /** How near their greatest power is. */
   private charge = new Charge();
+  /** Cabral's, once he lets it go. */
+  private wrath = new Rage();
   /** The orbs Inti's kills leave on the ground for a while. */
   private orbs: Orb[] = [];
   /** Which enemies stood at the last step, to tell when one falls. */
@@ -157,8 +160,8 @@ export class GameScene extends Phaser.Scene {
   preload(): void {
     // Several animations share a sheet, so textures are keyed by file.
     const sheets = Object.values(KITS).flatMap(kit => Object.values(kit.sheets));
-    for (const { src, w } of new Map(sheets.map(s => [s.src, s])).values()) {
-      this.load.spritesheet(src, src, { frameWidth: w ?? FRAME, frameHeight: FRAME });
+    for (const { src, w, h } of new Map(sheets.map(s => [s.src, s])).values()) {
+      this.load.spritesheet(src, src, { frameWidth: w ?? FRAME, frameHeight: h ?? FRAME });
     }
     Chonchon.preload(this);
     Realista.preload(this);
@@ -335,7 +338,8 @@ export class GameScene extends Phaser.Scene {
     if (this.readying) this.spentAttack = true;
     if (!input.attack) this.spentAttack = false;
     if (this.spentAttack) input.attack = false;
-    this.machi.pace = tune.speed;
+    this.machi.pace = tune.speed * (this.wrath.active ? RAGE.pace : 1);
+    this.machi.haste = this.wrath.active ? RAGE.haste : 1;
     this.machi.update(dt, input);
     // Enemies throw at her chest while she is up.
     // She cannot walk through an enemy: each one she stands in pushes her
@@ -362,7 +366,10 @@ export class GameScene extends Phaser.Scene {
       if (cut) this.hurt();
     }
     this.useAbilities(dt, standing);
-    this.fury.update(dt);
+    this.unleash(dt, standing);
+    // In his rage his fury neither ebbs nor is spent.
+    if (this.wrath.active) this.fury.gain(FURY);
+    else this.fury.update(dt);
     const blow = this.machi.takeStrike();
     if (blow) this.land(blow);
     const cast = this.machi.takeCast();
@@ -403,7 +410,8 @@ export class GameScene extends Phaser.Scene {
   // frozen in the pose she had there and fading out: the eye reads the row of
   // them as speed.
   private trail(dt: number): void {
-    if (!this.machi.isDashing) { this.echoIn = 0; return; }
+    // In his rage he trails them wherever he goes.
+    if (!this.machi.isDashing && !this.wrath.active) { this.echoIn = 0; return; }
     this.echoIn -= dt;
     if (this.echoIn > 0) return;
     this.echoIn = ECHO.every;
@@ -581,7 +589,7 @@ export class GameScene extends Phaser.Scene {
       struck = true;
       this.fury.gain(BLOW);
     }
-    if (struck && brimming) this.charge.add(ULTIMATE / tune.blows);
+    if (struck && brimming && !this.wrath.active) this.charge.add(ULTIMATE / tune.blows);
     // A blow that connects is felt.
     if (struck) this.cameras.main.shake(70, 0.003);
   }
@@ -641,7 +649,8 @@ export class GameScene extends Phaser.Scene {
     const keys = this.hero === 'inti' ? pressed : { strike: false, heal: false };
     const pointer = this.input.activePointer;
     pointer.updateWorldPoint(this.cameras.main);
-    const his = this.hero === 'cabral' && standing;
+    // In his rage he uses nothing but the sabre.
+    const his = this.hero === 'cabral' && standing && !this.wrath.active;
     this.useArms(dt, { musket: his && pressed.strike, grenade: his && pressed.second });
     const at = { x: this.machi.x, y: this.machi.y };
     const events = this.abilities.update(dt, {
@@ -716,7 +725,7 @@ export class GameScene extends Phaser.Scene {
   // Something reached her. Mid-dash, or while she cannot be hurt again, it
   // does nothing; returns whether it counted.
   private hurt(): boolean {
-    if (cheats.unhurt || this.machi.isDashing || !this.vitals.hit()) return false;
+    if (cheats.unhurt || this.machi.isDashing || !this.vitals.hit(this.wrath.active)) return false;
     // Being hurt angers him.
     if (this.hero === 'cabral') this.fury.gain(WOUND);
     // A hit breaks the healing ritual.
@@ -809,6 +818,35 @@ export class GameScene extends Phaser.Scene {
     this.orbs = this.orbs.filter(o => o.t < tune.orbLife);
   }
 
+  // R lets a hero's greatest power go once it is charged. Cabral's is his
+  // rage: he roars with his sabre raised, and until it burns out whatever
+  // stands close to him is scorched. It hurts them; it does not set them alight.
+  private unleash(dt: number, standing: boolean): void {
+    const called = this.keys.unleash();
+    if (called && standing && this.hero === 'cabral' && !this.wrath.active && !this.machi.isDashing
+      && this.charge.spend()) {
+      this.wrath.start(tune.rage);
+      this.readying = null;
+      this.machi.lower();
+      this.machi.channel(RAGE.roar, 'roar');
+      this.cameras.main.shake(260, 0.006);
+    }
+    const hurt = this.wrath.update(dt);
+    if (!this.wrath.active) return;
+    if (!standing) { this.wrath.stop(); return; }
+    const { x, y } = this.machi;
+    if (Math.random() < dt * EMBERS.shed * 0.7) {
+      this.embersUp.emitParticleAt(x + Phaser.Math.FloatBetween(-9, 9), y - Phaser.Math.FloatBetween(8, 70), 1);
+    }
+    if (!hurt) return;
+    for (const foe of this.foes) {
+      const spot = foe.ground;
+      if (!foe.alive || ground({ x, y }, spot) > RAGE.aura + foe.girth) continue;
+      for (let i = 0; i < hurt; i++) foe.hit(spot.x - x || 1, spot.y - y);
+      this.sparks.emitParticleAt(foe.body.x, foe.body.y, 5);
+    }
+  }
+
   /** For trying things out: their greatest power, fully charged. */
   chargeUp(): void {
     this.charge.add(ULTIMATE);
@@ -816,7 +854,8 @@ export class GameScene extends Phaser.Scene {
 
   /** How near their greatest power is, from 0 to 1. */
   get ultimate(): number {
-    return this.charge.value / ULTIMATE;
+    // While it burns the slot shows what is left of it instead.
+    return this.wrath.active ? this.wrath.share(tune.rage) : this.charge.value / ULTIMATE;
   }
 
   // A spell has been seen to touch an enemy: the spell ends there and the
@@ -915,7 +954,11 @@ export class GameScene extends Phaser.Scene {
     // Dead, she stays where she fell; the shadow under her feet goes with her standing.
     this.sprite.setAlpha(blink ? 0.45 : 1);
     this.shadow.setVisible(standing);
-    if (this.hitFx) this.hitFx.amount = this.flash;
+    if (this.hitFx) {
+      this.hitFx.amount = this.flash;
+      // He burns with it, dying down as it runs out.
+      this.hitFx.burn = this.wrath.active ? RAGE.glow * Math.min(1, this.wrath.left / 0.8) : 0;
+    }
     this.hurtbox.setPosition(x, y - TORSO.up);
     (this.hurtbox.body as Phaser.Physics.Arcade.Body).enable = standing;
 

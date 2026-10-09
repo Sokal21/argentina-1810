@@ -11,6 +11,8 @@ export interface Sheet {
   frames: number;
   /** Width of a frame, for sheets wider than FRAME: a sabre at full stretch needs the room. */
   w?: number;
+  /** Height of a frame, for sheets taller than FRAME: a sabre raised overhead needs the room. */
+  h?: number;
   /** Horizontal direction the art looks at; the other is drawn mirrored. 0 = never mirrored. */
   faces: -1 | 0 | 1;
   /** Leading frames left out of the loop because they repeat the standing pose. */
@@ -367,6 +369,8 @@ export const CABRAL: Kit = {
     // His death, drawn from the front only: he drops his sabre, clutches his
     // belly, falls to his knees and folds over them.
     death_front: cabralSheet('muerte', 12, 1, 47),
+    // His war cry, sabre raised: drawn in a taller frame, so anchored lower.
+    roar: { ...cabralSheet('grito', 8, 0, 63), w: 126, h: 126, ay: FRAME - 126 },
     // His dash: he dives, rolls over his shoulder and comes up crouching.
     // The first frame of each is him standing, which a dash has no time for.
     dash_south: { ...cabralSheet('rodada_sur', 6, 0, 63), w: 126, order: ROLL },

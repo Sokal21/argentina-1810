@@ -5,6 +5,10 @@ import { HudScene } from './scenes/HudScene';
 import { SelectScene } from './scenes/SelectScene';
 import { TitleScene } from './scenes/TitleScene';
 
+// The pixel type is fetched now, so it is there by the time anything is written in it.
+void document.fonts.load("8px 'Silkscreen'");
+void document.fonts.load("21px 'Jacquard 12'");
+
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
