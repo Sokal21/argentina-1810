@@ -23,6 +23,8 @@ export class Keys {
 
   constructor(target: Window = window) {
     target.addEventListener('keydown', e => {
+      // Typing in a box is not playing.
+      if ((e.target as { tagName?: string } | null)?.tagName === 'INPUT') return;
       if (e.code === 'Space') {
         e.preventDefault();
         if (!e.repeat) this.attack = true;

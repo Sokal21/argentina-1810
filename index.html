@@ -48,12 +48,56 @@
   @media (min-width: 900px) { #start { font-size: 42px; } }
   body.title #start { display: block; }
   @keyframes blink { 50% { opacity: 0; } }
+
+  /* Talking to someone: the world behind stops and darkens, the two of them
+     stand in large to either side, and what is said goes in the box below. */
+  #dialog { position: fixed; inset: 0; z-index: 30; background: rgba(8, 7, 10, .68); user-select: none; }
+  #dialog[hidden] { display: none; }
+  #dialog img { position: absolute; bottom: 30vh; height: 52vh; image-rendering: pixelated; transition: filter .2s, transform .2s; }
+  #dialog-hero { left: 6vw; }
+  #dialog-hero.framed { box-shadow: 0 0 0 3px var(--hero), 0 0 0 6px #0a0807; }
+  #dialog-npc { right: 6vw; }
+  /* Whoever is not speaking falls back into shadow. */
+  #dialog[data-speaker=npc] #dialog-hero, #dialog[data-speaker=hero] #dialog-npc { filter: brightness(.45) saturate(.5); transform: scale(.96); }
+  #dialog .box {
+    position: absolute; left: 50%; bottom: 4vh; transform: translateX(-50%); width: min(1040px, 90vw); min-height: 20vh;
+    box-sizing: border-box; padding: 26px 28px 16px; background: #16120f; color: #f0e3c4;
+    box-shadow: 0 0 0 3px var(--npc), 0 0 0 6px #0a0807; font: 21px/1.25 'Jacquard 12', Georgia, serif;
+  }
+  #dialog-name {
+    position: absolute; right: 22px; top: -20px; padding: 5px 16px 6px; background: #2a2018; color: var(--npc);
+    box-shadow: 0 0 0 3px var(--npc), 0 0 0 6px #0a0807; letter-spacing: .04em;
+  }
+  /* The plate sits on the side of whoever is speaking. */
+  #dialog[data-speaker=hero] #dialog-name { color: var(--hero); box-shadow: 0 0 0 3px var(--hero), 0 0 0 6px #0a0807; right: auto; left: 22px; }
+  #dialog-text { min-height: 2.5em; }
+  #dialog-note { min-height: 1.3em; margin-top: 6px; color: #8fd18a; }
+  #dialog form { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding-top: 10px; border-top: 2px solid #3a3027; }
+  #dialog form span { color: var(--hero); }
+  #dialog input {
+    flex: 1; min-width: 0; background: none; border: 0; outline: 0; color: #f0e3c4; caret-color: var(--hero);
+    font: inherit; user-select: text;
+  }
+  #dialog input::placeholder { color: #6b5c44; }
+  #dialog small { font-size: 21px; color: #6b5c44; white-space: nowrap; }
+  /* Twice the size where there is room: the letter is only crisp at multiples of 21px. */
+  @media (min-width: 1100px) and (min-height: 700px) { #dialog .box { font-size: 42px; padding-top: 34px; } #dialog-name { top: -34px; } }
 </style>
 </head>
 <body>
 <div id="game"></div>
 <div id="fx"></div>
 <div id="start">Presioná cualquier tecla</div>
+<div id="dialog" hidden>
+  <img id="dialog-hero" alt="">
+  <img id="dialog-npc" alt="">
+  <div class="box">
+    <div id="dialog-name"></div>
+    <div id="dialog-text"></div>
+    <div id="dialog-note"></div>
+    <form id="dialog-form"><span>&rsaquo;</span><input id="dialog-input" autocomplete="off" spellcheck="false" maxlength="220" placeholder="Escribí lo que le decís…"><small>Enter · Esc para irte</small></form>
+  </div>
+</div>
 <div id="pause" hidden>Pausa<small>Esc para seguir</small></div>
 <div id="hud"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o clic derecho mover · <kbd>Clic</kbd> o <kbd>Espacio</kbd> atacar · <kbd>Shift</kbd> dash · <kbd>Q</kbd> <kbd>E</kbd> habilidades · <kbd>Esc</kbd> pausa · <kbd>1</kbd>–<kbd>5</kbd> efectos · <kbd>0</kbd> ninguno · <kbd>P</kbd> colisiones · <span id="state"></span></div>
 <script type="module" src="/src/main.ts"></script>

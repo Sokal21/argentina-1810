@@ -12,6 +12,9 @@ diseñar a alguien que conviva con ellos.
 | **Chonchón** | Cabeza voladora de un kalku. Enemigo | [chonchon.md](chonchon.md) |
 | **Soldado realista** | Infante español. Enemigo: dispara de lejos, sable de cerca | [realista.md](realista.md) |
 
+La historia de Cabral, con su gente, sus misiones y su mapa, está en
+[`docs/historia/`](../historia/).
+
 ## El juego
 
 RPG de acción en vista isométrica, pixel art, ambientado en la Argentina de

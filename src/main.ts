@@ -65,7 +65,8 @@ const togglePause = () => {
 };
 
 addEventListener('keydown', e => {
-  if (e.repeat) return;
+  // Typing to someone is not pressing the game's keys.
+  if (e.repeat || (e.target as { tagName?: string } | null)?.tagName === 'INPUT') return;
   if (e.code === 'Escape') { togglePause(); return; }
   if (e.code === 'KeyM') { setMouseControl(!controls.mouse); refresh(); return; }
   const digit = /^Digit(\d)$/.exec(e.code);

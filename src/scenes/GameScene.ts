@@ -6,6 +6,7 @@ import { Charge, ULTIMATE } from '../machi/ultimate';
 import { RAGE, Rage } from '../machi/rage';
 import { NAHUEL } from '../nahuel/brain';
 import { Nahuel } from '../nahuel/Nahuel';
+import { openDialog } from '../npc/dialog';
 import { Chonchon } from '../chonchon/Chonchon';
 import { Enemy } from '../enemies';
 import { FIRE_TALL, fireShader } from '../fx/fire';
@@ -89,6 +90,11 @@ const REALISTAS: [number, number][] = [[190, 50], [-170, -60], [40, 150]];
 const ORB = { height: 12, reach: 22, warning: 1.2 };
 interface Orb extends Vec { t: number; glow: Phaser.GameObjects.Image; shadow: Phaser.GameObjects.Ellipse }
 
+// The pulpero, who can be talked to: where he stands from the start, how
+// near one has to be, and where his feet are in his picture. For now he is
+// only there while developing, voiced by a model on this machine.
+const PULPERO = { src: 'pulpero/sprite.png', at: [-140, -80] as [number, number], near: 52 };
+
 /** Anything that can be fought. */
 type Foe = Enemy | Chonchon | Realista;
 
@@ -132,6 +138,8 @@ export class GameScene extends Phaser.Scene {
   private nahuel!: Nahuel;
   /** Seconds until it answers her drum, or null when she is not calling. */
   private calling: number | null = null;
+  /** The pulpero's spot, and the sign over him when one is near enough to talk. */
+  private pulpero?: { x: number; y: number; hint: Phaser.GameObjects.Text };
   /** The orbs Inti's kills leave on the ground for a while. */
   private orbs: Orb[] = [];
   /** Which enemies stood at the last step, to tell when one falls. */
@@ -185,6 +193,7 @@ export class GameScene extends Phaser.Scene {
     Realista.preload(this);
     Nahuel.preload(this);
     loadScenery(this);
+    this.load.image(PULPERO.src, PULPERO.src);
   }
 
   create(): void {
@@ -323,6 +332,21 @@ export class GameScene extends Phaser.Scene {
 
     this.nahuel = new Nahuel(this, this.sparks, ZOOM);
 
+    if (import.meta.env.DEV) {
+      const x = this.start.x + PULPERO.at[0], y = this.start.y + PULPERO.at[1];
+      this.add.ellipse(x, y, 22, 8, 0x000000, 0.28).setDepth(y - 0.5);
+      this.add.image(x, y, PULPERO.src).setOrigin(0.5, 1).setDepth(y);
+      const hint = this.add.text(x, y - 92, 'F · hablar', {
+        fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4',
+        stroke: '#14110f', strokeThickness: 3,
+      }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false);
+      this.pulpero = { x, y, hint };
+      this.input.keyboard?.on('keydown-F', () => {
+        if (!this.pulpero?.hint.visible || !this.vitals.standing) return;
+        openDialog(this.game, this.hero, { potion: () => this.vitals.heal(LIFE) });
+      });
+    }
+
     // P shows the collision boxes.
     this.input.keyboard?.on('keydown-P', () => {
       const world = this.physics.world;
@@ -448,6 +472,7 @@ export class GameScene extends Phaser.Scene {
     this.lightning.update(dt);
     this.updateGrenades(dt);
     this.updateOrbs(dt);
+    this.pulpero?.hint.setVisible(ground(this.pulpero, this.machi) <= PULPERO.near);
     this.drawCuts(dt);
     this.flash = Math.max(0, this.flash - dt / FLASH);
     this.draw();

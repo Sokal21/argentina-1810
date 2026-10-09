@@ -7,5 +7,8 @@ export default defineConfig({
   base: './',
   publicDir: 'assets',
   build: { chunkSizeWarningLimit: 2000 },
+  // While developing, the characters one can talk to are voiced by a model
+  // running on this machine: /ollama is passed on to it.
+  server: { proxy: { '/ollama': { target: 'http://127.0.0.1:11434', changeOrigin: true, rewrite: path => path.replace(/^\/ollama/, '') } } },
   test: { include: ['tests/**/*.test.ts'] },
 });

@@ -1355,6 +1355,48 @@
       "sha12": "994cc866cdd5",
       "label": "forest: araucaria in the chunky style of E, variant G (82px)",
       "file": "assets/bosque/concept/araucaria_g.png"
+    },
+    {
+      "asset_id": "1773b718-85ac-457b-9ddc-fb533b53276f",
+      "sha12": "1a4e4a66d0a0",
+      "label": "pulpero simplified, simple_1",
+      "file": "assets/pulpero/concept/simple_1.png"
+    },
+    {
+      "asset_id": "2649ca3f-fd75-4b30-92cc-714dd918c1be",
+      "sha12": "df747bde2aaa",
+      "label": "pulpero simplified, simple_2",
+      "file": "assets/pulpero/concept/simple_2.png"
+    },
+    {
+      "asset_id": "de419121-3847-407f-b410-12ae832f501b",
+      "sha12": "f6b5b8bcbb3d",
+      "label": "pulpero simplified, simple_3",
+      "file": "assets/pulpero/concept/simple_3.png"
+    },
+    {
+      "asset_id": "6642c1ff-0c81-4e16-bad8-71ede296c121",
+      "sha12": "55fa3195699b",
+      "label": "pulpero dialogue portrait, retrato_1",
+      "file": "assets/pulpero/concept/retrato_1.png"
+    },
+    {
+      "asset_id": "7f5b9748-524b-454e-a853-5d460c9ab0ae",
+      "sha12": "8c9feffced5f",
+      "label": "pulpero dialogue portrait, retrato_2",
+      "file": "assets/pulpero/concept/retrato_2.png"
+    },
+    {
+      "asset_id": "54157f74-fd20-4805-81d3-294e6b9a722f",
+      "sha12": "b80b071fca65",
+      "label": "dialogue portrait, Cabral, cabral_1",
+      "file": "assets/dialogo/concept/cabral_1.png"
+    },
+    {
+      "asset_id": "9f1583c5-1f93-46be-a691-b9c2afe6b72c",
+      "sha12": "f95c78f46093",
+      "label": "dialogue portrait, Cabral, cabral_2",
+      "file": "assets/dialogo/concept/cabral_2.png"
     }
   ]
 }
