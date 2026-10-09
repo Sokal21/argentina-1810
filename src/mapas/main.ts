@@ -26,7 +26,9 @@ class MapScene extends Phaser.Scene {
   private keys!: Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>;
   private grid = false;
   private frame = true;
+  private shaded = true;
   private trees: Phaser.GameObjects.Image[] = [];
+  private shadows: Phaser.GameObjects.Image[] = [];
 
   preload(): void {
     loadScenery(this);
@@ -34,7 +36,7 @@ class MapScene extends Phaser.Scene {
 
   create(): void {
     drawGround(this, map);
-    this.trees = drawTrees(this, map);
+    ({ trees: this.trees, shadows: this.shadows } = drawTrees(this, map));
     this.lines = this.add.graphics().setDepth(1e6);
     this.keys = this.input.keyboard!.addKeys('W,A,S,D') as typeof this.keys;
     this.pin();
@@ -56,6 +58,11 @@ class MapScene extends Phaser.Scene {
       if (e.code === 'KeyT') {
         const shown = !this.trees[0]?.visible;
         for (const tree of this.trees) tree.setVisible(shown);
+        for (const shadow of this.shadows) shadow.setVisible(shown && this.shaded);
+      }
+      if (e.code === 'KeyO') {
+        this.shaded = !this.shaded;
+        for (const shadow of this.shadows) shadow.setVisible(this.shaded && !!this.trees[0]?.visible);
       }
       if (e.code === 'Digit2') {
         const p = this.input.activePointer;
