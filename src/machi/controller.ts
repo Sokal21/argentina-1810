@@ -3,8 +3,8 @@
 import {
   ATTACK_SLOW, ATTACK_TIME, ATTACK_UNWIND, COAST_GRACE, DASH_COOLDOWN, DASH_DISTANCE, DASH_TIME, DEATH_FPS,
   FPS, IDLE_REST, ISO_Y,
-  PIVOT_DRIFT, PIVOT_STOP, RETREAT_BELOW, SHEETS, SNAP_STICK, SPEED, STANDING_TURNS, TURNS, TURN_FPS, VIEW_ORDER,
-  type Sheet, type Turn, type View,
+  PIVOT_DRIFT, PIVOT_STOP, RETREAT_BELOW, INTI, SNAP_STICK, SPEED, TURN_FPS, VIEW_ORDER,
+  type Kit, type Sheet, type Turn, type View,
 } from './data';
 
 /** A direction on the ground, any angle. x is right, y is toward the camera. */
@@ -135,7 +135,11 @@ export class MachiController {
   /** Seconds since she fell dead, or null while she lives. */
   private fallen: number | null = null;
 
-  constructor(private bounds?: Bounds) {}
+  /**
+   * @param kit whose art to pose: the sheets and turns of one character.
+   *            The rest, how she moves and what the keys do, is shared.
+   */
+  constructor(private bounds?: Bounds, private kit: Kit = INTI) {}
 
   get view(): View {
     if (this.straight) return this.faceY < 0 ? 'north' : 'south';
@@ -335,7 +339,7 @@ export class MachiController {
       // views a turn only makes sense if the side stays the same.
       const sameSide = this.faceX === prevFaceX || prevView === 'north' || prevView === 'south';
       const flip = `${prevView}:${prevFaceX}>${view}:${this.faceX}`;
-      const table = this.moving ? TURNS : STANDING_TURNS;
+      const table = this.moving ? this.kit.turns : this.kit.pivots;
       const path = table[flip] ? [flip] : sameSide ? turnPath(table, prevView, view) : [];
       this.turn = path.length
         ? { table, key: path[0], rest: path.slice(1), t: 0, coasting, from: this.dir } : null;
@@ -412,33 +416,35 @@ export class MachiController {
   }
 
   private castSheet(): Sheet | undefined {
-    return SHEETS[this.castName()];
+    return this.kit.sheets[this.castName()];
   }
 
   pose(): MachiPose {
     if (this.fallen !== null) {
       // Drawn from the front only: whichever way she faced, she falls toward the viewer.
-      const s = SHEETS.death_front;
+      // A character whose death has not been drawn yet just stands there.
+      const name = this.kit.sheets.death_front ? 'death_front' : `idle_${this.view}`;
+      const s = this.kit.sheets[name];
       const frame = Math.min(s.frames - 1, Math.floor(this.fallen * DEATH_FPS));
       return {
-        x: this.x, y: this.y, sheet: 'death_front', frame,
+        x: this.x, y: this.y, sheet: name, frame,
         flip: s.faces !== 0 && this.faceX !== s.faces,
         ax: Array.isArray(s.ax) ? s.ax[frame] : s.ax, ay: s.ay ?? 0,
       };
     }
     if (this.dash) return this.dashPose(this.dash.t / DASH_TIME);
     if (this.ritual) {
-      const s = SHEETS.heal;
+      const s = this.kit.sheets.heal;
       const frame = Math.min(s.frames - 1, Math.floor(this.ritual.t / this.ritual.time * s.frames));
       return { x: this.x, y: this.y, sheet: 'heal', frame, flip: false, ax: s.ax as number, ay: s.ay ?? 0 };
     }
     const turn = this.turn && this.turn.table[this.turn.key];
     const view = this.view;
     let name = turn ? turn.sheet : `${this.moving ? 'trot' : 'idle'}_${view}`;
-    const casting = this.attack !== null && !turn && !!SHEETS[`attack_${view}`];
+    const casting = this.attack !== null && !turn && !!this.kit.sheets[`attack_${view}`];
     // Standing still she casts with her feet planted.
     if (casting) name = this.castName();
-    const s = SHEETS[name];
+    const s = this.kit.sheets[name];
     const count = s.frames - s.skip;
 
     let frame: number;
@@ -471,9 +477,9 @@ export class MachiController {
   // The dash plays its sheet once from start to end. A view whose dash has
   // not been drawn yet holds a frame of its trot instead.
   private dashPose(p: number): MachiPose {
-    const drawn = SHEETS[`dash_${this.view}`];
+    const drawn = this.kit.sheets[`dash_${this.view}`];
     const name = drawn ? `dash_${this.view}` : `trot_${this.view}`;
-    const s = SHEETS[name];
+    const s = this.kit.sheets[name];
     const order = s.order ?? [...Array(s.frames).keys()];
     const frame = drawn
       ? order[Math.min(order.length - 1, Math.floor(p * order.length))]

@@ -230,3 +230,30 @@ export const STANDING_TURNS: Record<string, Turn> = {
   'back:-1>back:1':   { sheet: 'pivot_flip_back',  frames: [0, 1, 2, 3, 4], fps: 14 },
   'back:1>back:-1':   { sheet: 'pivot_flip_back',  frames: [4, 3, 2, 1, 0], fps: 14 },
 };
+
+/** One character's art: the sheets to pose from and the turns between views. */
+export interface Kit {
+  sheets: Record<string, Sheet>;
+  turns: Record<string, Turn>;
+  /** Turns made on the spot. */
+  pivots: Record<string, Turn>;
+}
+
+export const INTI: Kit = { sheets: SHEETS, turns: TURNS, pivots: STANDING_TURNS };
+
+// Cabral, the grenadier. So far only his trot seen from the front is drawn,
+// so every view shows it, mirrored to the side he is heading, and standing
+// still he holds one frame of it. There are no turns yet: he snaps round.
+// Unlike Inti's front view, his is drawn heading right.
+const CABRAL_TROT = { src: 'cabral/trote.png', frames: 8, faces: 1, skip: 0, ax: 47 } satisfies Sheet;
+export const CABRAL: Kit = {
+  sheets: Object.fromEntries(VIEW_ORDER.flatMap(view => [
+    [`idle_${view}`, { ...CABRAL_TROT, still: 0 }],
+    [`trot_${view}`, CABRAL_TROT],
+  ])),
+  turns: {},
+  pivots: {},
+};
+
+export const KITS = { inti: INTI, cabral: CABRAL };
+export type Hero = keyof typeof KITS;

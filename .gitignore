@@ -6,3 +6,8 @@ dist/
 .DS_Store
 __pycache__/
 .tmp/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key

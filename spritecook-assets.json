@@ -467,6 +467,48 @@
       "sha12": "d9fcdc395cae",
       "label": "inti_muerte_frente (drops drum and branch, kneels, falls face down, 12 frames)",
       "file": "assets/machi/muerte/frente.png"
+    },
+    {
+      "asset_id": "81eed72a-b96f-4f1d-bde8-ee082485e0c3",
+      "sha12": "27443669e645",
+      "label": "cabral front 3/4 (final simplified design)",
+      "file": "assets/cabral/frente.png"
+    },
+    {
+      "asset_id": "991b3e63-1c8b-4de7-a9b2-dc723cfdb96a",
+      "sha12": "acc11bd1c1e3",
+      "label": "cabral south (straight front)",
+      "file": "assets/cabral/sur.png"
+    },
+    {
+      "asset_id": "fc9170ac-fde5-447b-af32-832aacb92aa5",
+      "sha12": "f38994a9c0e9",
+      "label": "cabral down-diagonal",
+      "file": "assets/cabral/diagonal.png"
+    },
+    {
+      "asset_id": "73a9483f-62e1-428d-abc1-7e9e193d307c",
+      "sha12": "042a3fc71dd2",
+      "label": "cabral back 3/4",
+      "file": "assets/cabral/espalda.png"
+    },
+    {
+      "asset_id": "6f102160-c876-49c8-97b5-0d6b860141d7",
+      "sha12": "d5bc55421fde",
+      "label": "cabral north (straight back)",
+      "file": "assets/cabral/norte.png"
+    },
+    {
+      "asset_id": "ac5ce9ba-98c6-4581-92a8-6b305129f42c",
+      "sha12": "738d93e03c72",
+      "label": "cabral concept C (detailed, design source)",
+      "file": "assets/cabral/concept/cabral_c.png"
+    },
+    {
+      "asset_id": "cf52264a-b36f-45d9-81c4-0e29882b8932",
+      "sha12": "3b72bc3e4bfc",
+      "label": "cabral_trote front (8 frames) — untouched SpriteCook output",
+      "file": "assets/cabral/trote_original.png"
     }
   ]
 }

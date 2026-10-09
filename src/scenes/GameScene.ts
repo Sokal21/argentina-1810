@@ -9,7 +9,7 @@ import { controls, fx } from '../fx/settings';
 import { Keys } from '../input';
 import { Abilities, ground, HEAL, MANA, STRIKE, type Ability } from '../machi/abilities';
 import { MachiController, type MachiInput, type Vec } from '../machi/controller';
-import { FRAME, ISO_Y, SHEETS } from '../machi/data';
+import { FRAME, ISO_Y, KITS, type Hero } from '../machi/data';
 import { overlaps, pushOut, type Footprint } from '../world/footprint';
 import { Vitals } from '../world/vitals';
 
@@ -37,6 +37,8 @@ const CHONCHONES: [number, number][] = [[110, -70], [-90, 80]];
 
 export class GameScene extends Phaser.Scene {
   private keys!: Keys;
+  /** Who is being played. The controller is theirs; much else is still Inti's alone. */
+  private hero: Hero = 'inti';
   private machi!: MachiController;
   private sprite!: Phaser.GameObjects.Sprite;
   private shadow!: Phaser.GameObjects.Ellipse;
@@ -65,7 +67,8 @@ export class GameScene extends Phaser.Scene {
 
   preload(): void {
     // Several animations share a sheet, so textures are keyed by file.
-    for (const src of new Set(Object.values(SHEETS).map(s => s.src))) {
+    const sheets = Object.values(KITS).flatMap(kit => Object.values(kit.sheets));
+    for (const src of new Set(sheets.map(s => s.src))) {
       this.load.spritesheet(src, src, { frameWidth: FRAME, frameHeight: FRAME });
     }
     Chonchon.preload(this);
@@ -74,13 +77,11 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     this.drawGround();
 
-    this.machi = new MachiController({ minX: 12, maxX: WORLD_W - 12, minY: FRAME, maxY: WORLD_H - 6 });
-    this.machi.x = this.start.x;
-    this.machi.y = this.start.y;
+    this.machi = this.enter(this.hero, this.start);
     this.keys = new Keys();
 
     this.shadow = this.add.ellipse(0, 0, 22, 8, 0x000000, 0.28);
-    this.sprite = this.add.sprite(0, 0, SHEETS.idle_front.src, 0);
+    this.sprite = this.add.sprite(0, 0, KITS[this.hero].sheets.idle_front.src, 0);
     this.bolts = new Bolts(this, WORLD_W, WORLD_H);
 
     if (this.renderer.type === Phaser.WEBGL) {
@@ -134,6 +135,15 @@ export class GameScene extends Phaser.Scene {
       emitting: false,
     }).setDepth(1e6).setBlendMode(Phaser.BlendModes.ADD);
 
+    // Tab swaps who is played, where they stand.
+    this.input.keyboard?.on('keydown-TAB', (event: KeyboardEvent) => {
+      event.preventDefault();
+      if (!this.vitals.standing || this.machi.isDashing) return;
+      this.hero = this.hero === 'inti' ? 'cabral' : 'inti';
+      this.abilities.reset();
+      this.machi = this.enter(this.hero, this.machi);
+    });
+
     // P shows the collision boxes.
     this.input.keyboard?.on('keydown-P', () => {
       const world = this.physics.world;
@@ -170,7 +180,10 @@ export class GameScene extends Phaser.Scene {
     if (this.vitals.update(dt)) this.rise();
     const standing = this.vitals.standing;
     // Down, she takes no orders.
-    this.machi.update(dt, standing ? this.readInput() : { dx: 0, dy: 0, attack: false });
+    const input = standing ? this.readInput() : { dx: 0, dy: 0, attack: false };
+    // Cabral has no attack drawn yet.
+    if (this.hero !== 'inti') input.attack = false;
+    this.machi.update(dt, input);
     // Enemies throw at her chest while she is up.
     // She cannot walk through an enemy: each one she stands in pushes her
     // back out the short way. Done here rather than by the physics engine
@@ -230,9 +243,19 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: echo, alpha: 0, duration: ECHO.fade, onComplete: () => echo.destroy() });
   }
 
+  // Puts a character on the field at a spot, with their own art.
+  private enter(hero: Hero, at: Vec): MachiController {
+    const body = new MachiController({ minX: 12, maxX: WORLD_W - 12, minY: FRAME, maxY: WORLD_H - 6 }, KITS[hero]);
+    body.x = at.x;
+    body.y = at.y;
+    return body;
+  }
+
   // Her abilities: the keys, what they set off, and the marks on the ground.
   private useAbilities(dt: number, standing: boolean): void {
-    const keys = this.keys.abilities();
+    // Only Inti has abilities so far; the keys are still read, so a press is not kept for later.
+    const pressed = this.keys.abilities();
+    const keys = this.hero === 'inti' ? pressed : { strike: false, heal: false };
     const pointer = this.input.activePointer;
     pointer.updateWorldPoint(this.cameras.main);
     const at = { x: this.machi.x, y: this.machi.y };
@@ -365,7 +388,7 @@ export class GameScene extends Phaser.Scene {
     // Things further down the screen are in front.
     this.shadow.setPosition(x, y - 1).setDepth(y - 0.5);
     this.sprite
-      .setTexture(SHEETS[pose.sheet].src, pose.frame)
+      .setTexture(KITS[this.hero].sheets[pose.sheet].src, pose.frame)
       .setFlipX(pose.flip)
       // The origin is her feet under the body's centre. Flipping mirrors the
       // frame inside its own box, so the centre moves to the other side.
