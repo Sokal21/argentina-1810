@@ -58,7 +58,15 @@ test('each tree is one of the drawings there are', () => {
   for (const tree of plantTrees(bosquePatagonico, 3)) expect([0, 1, 2]).toContain(tree.kind);
 });
 
-test('no two trees are quite the same height', () => {
-  const sizes = new Set(plantTrees(bosquePatagonico, 3).map(tree => tree.size));
-  expect(sizes.size).toBeGreaterThan(100);
+test('trees differ in height, in the forest as much as in the wall', () => {
+  const trees = plantTrees(bosquePatagonico, 3);
+  for (const [about, group] of [
+    [STANDING, trees.filter(t => zoneAt(bosquePatagonico, t.x, t.y))],
+    [WALL, trees.filter(t => !zoneAt(bosquePatagonico, t.x, t.y))],
+  ] as const) {
+    const sizes = group.map(tree => tree.size / about);
+    // They reach nearly to both ends of what is allowed, not huddled at one.
+    expect(Math.min(...sizes)).toBeLessThan(1 - UNEVEN * 0.8);
+    expect(Math.max(...sizes)).toBeGreaterThan(1 + UNEVEN * 0.8);
+  }
 });

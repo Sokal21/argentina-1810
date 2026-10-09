@@ -8,7 +8,7 @@ import { letterAt, PLOT_H, PLOT_W, type WorldMap } from './zones';
 /** How many times its drawn size a tree is shown, give or take: in a zone, and in the wall at its edge. */
 export const STANDING = 2, WALL = 3;
 /** No two trees are quite the same height: each is this share taller or shorter, at most. */
-export const UNEVEN = 0.14;
+export const UNEVEN = 0.2;
 /** Plots of wall before the thick country is left bare: more than is ever seen from the ground. */
 export const DEPTH = 5;
 const WALLED = [1, 0.85, 0.7, 0.6, 0.5]; // chance of a tree in a plot of the wall, by how far in it is
@@ -59,7 +59,8 @@ export function plantTrees(map: WorldMap, kinds: number, seed = 1): Tree[] {
   const trees: Tree[] = [];
   const far = depths(map);
   const plant = (col: number, row: number, size: number, n: number) => {
-    const s = seed + n * 10;
+    // Numbered well clear of the draws below that decide whether a tree is planted at all.
+    const s = seed + 100 + n * 10;
     trees.push({
       x: Math.floor((col + chance(col, row, s)) * PLOT_W),
       y: Math.floor((row + chance(col, row, s + 1)) * PLOT_H),
