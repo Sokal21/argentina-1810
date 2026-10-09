@@ -23,12 +23,20 @@
   }
   #fx button b { color: #6b5c44; font-weight: normal; margin-right: 5px; }
   #fx button.on { background: #cdbfa3; color: #1a1512; border-color: #f0e3c4; }
+  #pause {
+    position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; background: rgba(12, 10, 8, .62); color: #f0e3c4; user-select: none;
+    font: 28px/1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .3em;
+  }
+  #pause[hidden] { display: none; }
+  #pause small { font-size: 12px; letter-spacing: .05em; color: #a89a80; }
 </style>
 </head>
 <body>
 <div id="game"></div>
 <div id="fx"></div>
-<div id="hud"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o clic izquierdo mover · <kbd>Espacio</kbd> o clic derecho atacar · <kbd>Shift</kbd> dash · <kbd>1</kbd>–<kbd>3</kbd> efectos · <kbd>0</kbd> ninguno · <kbd>P</kbd> colisiones · <span id="state"></span></div>
+<div id="pause" hidden>PAUSA<small>Esc para seguir</small></div>
+<div id="hud"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o clic derecho mover · <kbd>Clic</kbd> o <kbd>Espacio</kbd> atacar · <kbd>Shift</kbd> dash · <kbd>Esc</kbd> pausa · <kbd>1</kbd>–<kbd>3</kbd> efectos · <kbd>0</kbd> ninguno · <kbd>P</kbd> colisiones · <span id="state"></span></div>
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

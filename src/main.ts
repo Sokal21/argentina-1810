@@ -40,8 +40,19 @@ mouseButton.addEventListener('click', () => { setMouseControl(!controls.mouse); 
 bar.appendChild(mouseButton);
 refresh();
 
+// Escape stops the game where it is, and starts it again.
+const pause = document.getElementById('pause')!;
+let paused = false;
+const togglePause = () => {
+  paused = !paused;
+  if (paused) game.scene.pause('game');
+  else game.scene.resume('game');
+  pause.hidden = !paused;
+};
+
 addEventListener('keydown', e => {
   if (e.repeat) return;
+  if (e.code === 'Escape') { togglePause(); return; }
   if (e.code === 'KeyM') { setMouseControl(!controls.mouse); refresh(); return; }
   const digit = /^Digit(\d)$/.exec(e.code);
   if (!digit) return;

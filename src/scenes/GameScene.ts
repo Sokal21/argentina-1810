@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { Bolts, EMBER } from '../bolts';
+import { Chonchon } from '../chonchon/Chonchon';
 import { Enemy } from '../enemies';
 import { HitFX } from '../fx/HitFX';
 import { LookFX } from '../fx/LookFX';
@@ -29,7 +30,9 @@ const BAR = { w: 24, up: 90 }; // her life bar, and how far above her feet it si
 // long it lingers, how solid it starts and the colour it is washed with.
 const ECHO = { every: 0.03, fade: 260, alpha: 0.55, tint: 0x8fdcf0 };
 // Stand-in enemies, as offsets from where she starts.
-const CUBES: [number, number][] = [[-110, -30], [120, -50], [150, 60], [-60, 90], [0, -110]];
+const CUBES: [number, number][] = [[-150, -40], [160, 70]];
+// Where the chonchones start, likewise.
+const CHONCHONES: [number, number][] = [[110, -70], [-90, 80]];
 
 export class GameScene extends Phaser.Scene {
   private keys!: Keys;
@@ -48,6 +51,7 @@ export class GameScene extends Phaser.Scene {
   private start = { x: WORLD_W / 2, y: WORLD_H / 2 };
   private echoIn = 0;
   private enemies: Enemy[] = [];
+  private chonchones: Chonchon[] = [];
   private marker!: Phaser.GameObjects.Ellipse;
   private look?: LookFX;
   private label = '';
@@ -61,6 +65,7 @@ export class GameScene extends Phaser.Scene {
     for (const src of new Set(Object.values(SHEETS).map(s => s.src))) {
       this.load.spritesheet(src, src, { frameWidth: FRAME, frameHeight: FRAME });
     }
+    Chonchon.preload(this);
   }
 
   create(): void {
@@ -87,12 +92,15 @@ export class GameScene extends Phaser.Scene {
     this.enemies = CUBES.map(([dx, dy]) => new Enemy(this, this.machi.x + dx, this.machi.y + dy));
     // The physics engine reports a bolt's spot on the ground entering an
     // enemy's; the bolt ends there and the enemy takes the hit.
-    this.physics.add.overlap(this.bolts.bodies, this.enemies.map(e => e.zone), (a, b) => {
+    const bounds = { minX: 0, maxX: WORLD_W, minY: 0, maxY: WORLD_H };
+    this.chonchones = CHONCHONES.map(([dx, dy]) => new Chonchon(this, this.machi.x + dx, this.machi.y + dy, bounds));
+    const zones = [...this.enemies, ...this.chonchones].map(e => e.zone);
+    this.physics.add.overlap(this.bolts.bodies, zones, (a, b) => {
       // Phaser hands the pair over in either order when a group meets a
       // single object, so tell them apart by what they carry.
       const pair = [a, b] as Phaser.GameObjects.GameObject[];
       const spot = pair.find(o => o.getData('bolt'));
-      const enemy = pair.find(o => o.getData('enemy'))?.getData('enemy') as Enemy | undefined;
+      const enemy = pair.find(o => o.getData('enemy'))?.getData('enemy') as Enemy | Chonchon | undefined;
       const heading = spot && enemy ? this.bolts.strike(spot) : null;
       if (heading && enemy) enemy.hit(heading.dx, heading.dy);
     });
@@ -103,11 +111,8 @@ export class GameScene extends Phaser.Scene {
     this.hurtbox.setData('machi', true);
     this.physics.add.overlap(this.embers.bodies, this.hurtbox, (a, b) => {
       const spot = ([a, b] as Phaser.GameObjects.GameObject[]).find(o => o.getData('bolt'));
-      // An ember that reaches her mid-dash, or while she cannot be hurt, flies on.
-      if (!spot || this.machi.isDashing || !this.vitals.hit()) return;
-      this.embers.strike(spot);
-      this.flash = 1;
-      if (!this.vitals.standing) this.fall();
+      // An ember that does not hurt her flies on.
+      if (spot && this.hurt()) this.embers.strike(spot);
     });
     this.lifeBack = this.add.rectangle(0, 0, BAR.w + 2, 4, 0x14110f, 0.85).setDepth(1e6);
     this.lifeBar = this.add.rectangle(0, 0, BAR.w, 2, 0x8fd16a).setOrigin(0, 0.5).setDepth(1e6);
@@ -162,6 +167,11 @@ export class GameScene extends Phaser.Scene {
       this.machi.x = clear.x;
       this.machi.y = clear.y;
     }
+    // Chonchones go for where she stands; their teeth miss her mid-dash.
+    const feet = standing ? { x: this.machi.x, y: this.machi.y } : null;
+    for (const chonchon of this.chonchones) {
+      if (chonchon.update(dt, feet)) this.hurt();
+    }
     const cast = this.machi.takeCast();
     if (cast) {
       // The branch reaches well in front of her, so against something she is
@@ -172,7 +182,7 @@ export class GameScene extends Phaser.Scene {
         x: (this.machi.x + cast.x) / 2, y: (chestY + tipY) / 2,
         hw: Math.abs(cast.x - this.machi.x) / 2 + 2, hh: Math.abs(tipY - chestY) / 2 + 2,
       };
-      const blocker = this.enemies.find(e => e.alive && overlaps(reach, e.body));
+      const blocker = [...this.enemies, ...this.chonchones].find(e => e.alive && overlaps(reach, e.body));
       if (blocker) blocker.hit(cast.dx, cast.dy * ISO_Y);
       else this.bolts.spawn(cast);
     }
@@ -202,6 +212,15 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: echo, alpha: 0, duration: ECHO.fade, onComplete: () => echo.destroy() });
   }
 
+  // Something reached her. Mid-dash, or while she cannot be hurt again, it
+  // does nothing; returns whether it counted.
+  private hurt(): boolean {
+    if (this.machi.isDashing || !this.vitals.hit()) return false;
+    this.flash = 1;
+    if (!this.vitals.standing) this.fall();
+    return true;
+  }
+
   // Placeholder for being defeated: she vanishes, everything in the air
   // bursts, and after a moment she is back where she started.
   private fall(): void {
@@ -216,8 +235,8 @@ export class GameScene extends Phaser.Scene {
     this.flash = 0;
   }
 
-  // Keyboard input, plus the pointer when steering with it: holding the left
-  // button walks toward the pointer and spells fly at it, both at any angle.
+  // Keyboard input, plus the pointer when steering with it: the left button
+  // casts at the pointer and the right one walks toward it, both at any angle.
   private readInput(): MachiInput {
     const input: MachiInput = this.keys.read();
     this.marker.setVisible(controls.mouse);
@@ -235,8 +254,8 @@ export class GameScene extends Phaser.Scene {
     };
     input.aim = toward(this.machi.x, this.machi.y - CHEST, 1);
     input.target = { x: pointer.worldX, y: pointer.worldY };
-    if (pointer.leftButtonDown()) input.move = toward(this.machi.x, this.machi.y, ARRIVE);
-    input.attack ||= pointer.rightButtonDown();
+    input.attack ||= pointer.leftButtonDown();
+    if (pointer.rightButtonDown()) input.move = toward(this.machi.x, this.machi.y, ARRIVE);
     return input;
   }
 

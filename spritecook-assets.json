@@ -341,6 +341,60 @@
       "sha12": "e348dcc8e988",
       "label": "machi_dash_arriba (sliding dash, legs together like the south one, 6 frames) — untouched SpriteCook output",
       "file": "assets/machi/dash/arriba_original.png"
+    },
+    {
+      "asset_id": "86a6541e-2e2c-4eb0-905a-9522b7a1cd6b",
+      "sha12": "a2935c172fec",
+      "label": "chonchon front 3/4 (final simplified design)",
+      "file": "assets/chonchon/frente.png"
+    },
+    {
+      "asset_id": "9dfc0e07-a680-4754-aa63-888db7c9058f",
+      "sha12": "eeaac112dbf3",
+      "label": "chonchon back 3/4",
+      "file": "assets/chonchon/espalda.png"
+    },
+    {
+      "asset_id": "90371287-9078-4de6-b335-8822dc588994",
+      "sha12": "4e585e41d092",
+      "label": "chonchon concept A (detailed, design source)",
+      "file": "assets/chonchon/concept/concept_a.png"
+    },
+    {
+      "asset_id": "9e2f463f-76bc-40ea-b431-f349526fafd4",
+      "sha12": "9c8234840252",
+      "label": "chonchon_vuelo (hover flap loop, 8 frames)",
+      "file": "assets/chonchon/vuelo.png"
+    },
+    {
+      "asset_id": "c5b066ca-ee4b-450b-a510-2b478776723d",
+      "sha12": "edf425fd597c",
+      "label": "chonchon_vuelo_espalda (hover flap loop from behind, 8 frames)",
+      "file": "assets/chonchon/vuelo_espalda.png"
+    },
+    {
+      "asset_id": "45c7f70a-3ca8-4dcd-95da-43ec98336abb",
+      "sha12": "820ada9ef02c",
+      "label": "chonchon_picada (warning + dive, 8 frames)",
+      "file": "assets/chonchon/picada.png"
+    },
+    {
+      "asset_id": "ebea520a-b801-433f-bd12-cefe3a28aa9c",
+      "sha12": "c3a3f311621a",
+      "label": "chonchon_mordida (bite, 6 frames)",
+      "file": "assets/chonchon/mordida.png"
+    },
+    {
+      "asset_id": "d6c300b3-bf2e-4618-8a7b-849280e555b8",
+      "sha12": "c4e53896ca5d",
+      "label": "chonchon_muerte (struck and falls, 8 frames)",
+      "file": "assets/chonchon/muerte.png"
+    },
+    {
+      "asset_id": "d4ecdb54-eb42-4bf6-8a85-077f35a73262",
+      "sha12": "91d312fcc838",
+      "label": "chonchon_picada_espalda (warning + dive from behind, 8 frames)",
+      "file": "assets/chonchon/picada_espalda.png"
     }
   ]
 }
