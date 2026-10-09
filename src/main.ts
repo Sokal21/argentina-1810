@@ -18,7 +18,11 @@ const game = new Phaser.Game({
 });
 
 // Handy from the browser console while developing.
-if (import.meta.env.DEV) (globalThis as { game?: Phaser.Game }).game = game;
+if (import.meta.env.DEV) {
+  (globalThis as { game?: Phaser.Game }).game = game;
+  // The panel and its sliders exist only here; the published build drops them.
+  void import('./devPanel').then(({ mountDevPanel }) => mountDevPanel(game));
+}
 
 // Effect buttons and their number keys; 0 turns everything off.
 const bar = document.getElementById('fx')!;

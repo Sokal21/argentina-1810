@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BALL, Bolts, EMBER, SHOT } from '../bolts';
 import { Realista } from '../realista/Realista';
+import { cheats, tune } from '../tuning';
 import { Chonchon } from '../chonchon/Chonchon';
 import { Enemy } from '../enemies';
 import { FIRE_TALL, fireShader } from '../fx/fire';
@@ -184,16 +185,7 @@ export class GameScene extends Phaser.Scene {
     const bounds = { minX: 0, maxX: WORLD_W, minY: 0, maxY: WORLD_H };
     this.chonchones = his ? [] : at(CHONCHONES, (x, y) => new Chonchon(this, x, y, bounds));
     this.realistas = his ? at(REALISTAS, (x, y) => new Realista(this, x, y, bounds)) : [];
-    const zones = this.foes.map(e => e.zone);
-    this.physics.add.overlap(this.bolts.bodies, zones, (a, b) => {
-      // Phaser hands the pair over in either order when a group meets a
-      // single object, so tell them apart by what they carry.
-      const pair = [a, b] as Phaser.GameObjects.GameObject[];
-      const spot = pair.find(o => o.getData('bolt'));
-      const enemy = pair.find(o => o.getData('enemy'))?.getData('enemy') as Foe | undefined;
-      const heading = spot && enemy ? this.bolts.strike(spot) : null;
-      if (heading && enemy) enemy.hit(heading.dx, heading.dy);
-    });
+    for (const foe of this.foes) this.physics.add.overlap(this.bolts.bodies, foe.zone, this.struck);
     this.balls = new Bolts(this, WORLD_W, WORLD_H, BALL);
     // What the enemies throw, and the part of her it can hit.
     this.embers = new Bolts(this, WORLD_W, WORLD_H, EMBER);
@@ -320,6 +312,7 @@ export class GameScene extends Phaser.Scene {
     if (this.readying) this.spentAttack = true;
     if (!input.attack) this.spentAttack = false;
     if (this.spentAttack) input.attack = false;
+    this.machi.pace = tune.speed;
     this.machi.update(dt, input);
     // Enemies throw at her chest while she is up.
     // She cannot walk through an enemy: each one she stands in pushes her
@@ -327,7 +320,7 @@ export class GameScene extends Phaser.Scene {
     // because her position is set by her own controller, not by a velocity.
     const target = standing ? { x: this.machi.x, y: this.machi.y - TORSO.up } : null;
     for (const enemy of this.enemies) {
-      const ember = enemy.update(dt, target);
+      const ember = enemy.update(dt * tune.foes, target);
       if (ember) this.embers.spawn(ember);
       if (!enemy.alive) continue;
       const clear = pushOut({ x: this.machi.x, y: this.machi.y, ...FEET }, enemy.footprint);
@@ -337,11 +330,11 @@ export class GameScene extends Phaser.Scene {
     // Chonchones go for where she stands; their teeth miss her mid-dash.
     const feet = standing ? { x: this.machi.x, y: this.machi.y } : null;
     for (const chonchon of this.chonchones) {
-      if (chonchon.update(dt, feet)) this.hurt();
+      if (chonchon.update(dt * tune.foes, feet)) this.hurt();
     }
     // Royalists shoot from where they stand, and cut whoever is beside them.
     for (const realista of this.realistas) {
-      const { shot, cut } = realista.update(dt, feet);
+      const { shot, cut } = realista.update(dt * tune.foes, feet);
       if (shot) this.shots.spawn(shot);
       if (cut) this.hurt();
     }
@@ -695,7 +688,7 @@ export class GameScene extends Phaser.Scene {
   // Something reached her. Mid-dash, or while she cannot be hurt again, it
   // does nothing; returns whether it counted.
   private hurt(): boolean {
-    if (this.machi.isDashing || !this.vitals.hit()) return false;
+    if (cheats.unhurt || this.machi.isDashing || !this.vitals.hit()) return false;
     // Being hurt angers him.
     if (this.hero === 'cabral') this.fury.gain(WOUND);
     // A hit breaks the healing ritual.
@@ -750,6 +743,37 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** How much of her life is left, from 0 to 1. */
+  // A spell has been seen to touch an enemy: the spell ends there and the
+  // enemy takes the hit. Phaser hands the pair over in either order, so they
+  // are told apart by what they carry.
+  private struck = (a: unknown, b: unknown): void => {
+    const pair = [a, b] as Phaser.GameObjects.GameObject[];
+    const spot = pair.find(o => o.getData('bolt'));
+    const enemy = pair.find(o => o.getData('enemy'))?.getData('enemy') as Foe | undefined;
+    const heading = spot && enemy ? this.bolts.strike(spot) : null;
+    if (heading && enemy) enemy.hit(heading.dx, heading.dy);
+  };
+
+  /** For trying things out: one more enemy, a little way off from the hero. */
+  spawn(kind: 'realista' | 'chonchon' | 'cubo'): void {
+    const angle = Math.random() * Math.PI * 2;
+    const x = Phaser.Math.Clamp(this.machi.x + Math.cos(angle) * 150, 30, WORLD_W - 30);
+    const y = Phaser.Math.Clamp(this.machi.y + Math.sin(angle) * 150 * ISO_Y, FRAME, WORLD_H - 20);
+    const bounds = { minX: 0, maxX: WORLD_W, minY: 0, maxY: WORLD_H };
+    let foe: Foe;
+    if (kind === 'realista') this.realistas.push(foe = new Realista(this, x, y, bounds));
+    else if (kind === 'chonchon') this.chonchones.push(foe = new Chonchon(this, x, y, bounds));
+    else this.enemies.push(foe = new Enemy(this, x, y));
+    this.physics.add.overlap(this.bolts.bodies, foe.zone, this.struck);
+  }
+
+  /** For trying things out: full life, and mana or fury to the brim. */
+  restore(): void {
+    this.vitals.heal(LIFE);
+    this.abilities.mana = MANA;
+    this.fury.gain(FURY);
+  }
+
   /** Everything there is to fight. */
   private get foes(): Foe[] {
     return [...this.enemies, ...this.chonchones, ...this.realistas];
@@ -823,6 +847,9 @@ export class GameScene extends Phaser.Scene {
       const cam = this.cameras.main;
       this.look.grain = fx.grain ? 1 : 0;
       this.look.light = fx.light ? 1 : 0;
+      this.look.dark = tune.dark;
+      this.look.reach = tune.reach;
+      this.look.glow = tune.glow;
       this.look.crt = fx.crt ? 1 : 0;
       this.look.snow = fx.snow ? 1 : 0;
       this.look.leaves = fx.leaves ? 1 : 0;

@@ -163,6 +163,9 @@ export class MachiController {
   constructor(private bounds?: Bounds, private kit: Kit = INTI) {}
 
   // How long this character's dash lasts and how far it goes.
+  /** How fast it walks, as a share of its usual speed. */
+  pace = 1;
+
   private get dashTime(): number { return this.kit.dash?.time ?? DASH_TIME; }
   private get dashDistance(): number { return this.kit.dash?.distance ?? DASH_DISTANCE; }
 
@@ -353,7 +356,7 @@ export class MachiController {
     } else {
       this.dir = { x: vx, y: vy };
     }
-    const speed = (this.kit.speed ?? SPEED) * (this.attack !== null ? ATTACK_SLOW : 1);
+    const speed = (this.kit.speed ?? SPEED) * this.pace * (this.attack !== null ? ATTACK_SLOW : 1);
     this.x += vx * speed * dt;
     this.y += vy * speed * ISO_Y * dt;
 

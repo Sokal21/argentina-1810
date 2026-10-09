@@ -22,6 +22,9 @@ uniform float uTime;      // seconds
 uniform float uPixel;     // screen pixels per sprite pixel
 uniform float uGrain;
 uniform float uLight;
+uniform float uDark;      // how dark it gets away from her, 0 to 1
+uniform float uReach;     // how far her light carries, in screen heights
+uniform float uGlow;      // how strong the warm glow round her is
 uniform float uCrt;
 uniform float uSnow;
 uniform float uLeaves;
@@ -142,9 +145,9 @@ void main() {
 
   if (uLight > 0.0) {
     float d = distance(px, uLightPos) / vmin;
-    float glow = ramp(d / 0.20, 0.75, 0.28, 0.0);
+    float glow = ramp(d / 0.20, uGlow, uGlow * 0.37, 0.0);
     col = mix(col, softLight(col, vec3(1.0, 0.78, 0.5)), glow * uLight);
-    float dark = ramp(d / 0.36, 0.0, 0.25, 0.78);
+    float dark = ramp(d / uReach, 0.0, uDark * 0.32, uDark);
     col = mix(col, vec3(0.024, 0.031, 0.078), dark * uLight);
   }
 
@@ -179,6 +182,10 @@ export class LookFX extends Phaser.Renderer.WebGL.Pipelines.PostFXPipeline {
   pixel = 2;
   lightX = 0;
   lightY = 0;
+  /** How dark it gets away from the light, how far the light carries and how warm it glows. */
+  dark = 0.51;
+  reach = 0.52;
+  glow = 0.68;
 
   constructor(game: Phaser.Game) {
     super({ game, name: 'LookFX', fragShader });
@@ -191,6 +198,9 @@ export class LookFX extends Phaser.Renderer.WebGL.Pipelines.PostFXPipeline {
     this.set1f('uPixel', this.pixel);
     this.set1f('uGrain', this.grain);
     this.set1f('uLight', this.light);
+    this.set1f('uDark', this.dark);
+    this.set1f('uReach', this.reach);
+    this.set1f('uGlow', this.glow);
     this.set1f('uCrt', this.crt);
     this.set1f('uSnow', this.snow);
     this.set1f('uLeaves', this.leaves);
