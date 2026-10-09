@@ -10,8 +10,12 @@ import Phaser from 'phaser';
 //  - the rustle: in a gust, bits of its crown shiver a pixel either way.
 // A tree moves as one: where it stands and what sets it apart from the next
 // are told to the shader through its tint, which is not used as a colour.
+// That number of its own also makes each a little lighter or darker, warmer
+// or colder than its neighbours.
 // Every drawing given it must be the same size.
 const STRENGTH = 4;     // how far a steady wind carries the very top, in pixels of the drawing
+const TONES = 0.24;     // how far apart the lightest tree and the darkest are
+const WARMTH = 0.14;    // and the warmest and the coldest
 const RUSTLE = 1.6;     // how readily the crown shivers, from 0 (never)
 const fragShader = `
 #define SHADER_NAME WIND_FS
@@ -27,6 +31,8 @@ uniform float uSpan;     // how wide the ground is, in sprite pixels
 uniform vec2 uSize;      // the drawing, in its own pixels
 uniform float uStrength;
 uniform float uRustle;
+uniform float uTones;
+uniform float uWarmth;
 
 varying vec2 outTexCoord;
 varying float outTintEffect;
@@ -71,6 +77,10 @@ void main() {
   vec4 texture = texture2D(uMainSampler, uv);
   // Nothing is carried in from beyond the drawing's edge.
   if (uv.x < 0.0 || uv.x > 1.0) texture = vec4(0.0);
+  // Each tree in a shade and a warmth of its own.
+  float shade = 1.0 + (fract(own * 7.31) - 0.6) * uTones;
+  float warmth = (fract(own * 13.7) - 0.5) * uWarmth;
+  texture.rgb *= shade * vec3(1.0 + warmth, 1.0, 1.0 - warmth);
   gl_FragColor = texture * outTint.a;
 }
 `;
@@ -91,6 +101,8 @@ export class Wind extends Phaser.Renderer.WebGL.Pipelines.SinglePipeline {
     this.set2f('uSize', this.drawn.width, this.drawn.height);
     this.set1f('uStrength', STRENGTH);
     this.set1f('uRustle', RUSTLE);
+    this.set1f('uTones', TONES);
+    this.set1f('uWarmth', WARMTH);
   }
 }
 

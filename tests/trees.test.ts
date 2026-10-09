@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { bosquePatagonico } from '../src/world/maps/bosque';
-import { DEPTH, plantTrees, STANDING, WALL } from '../src/world/trees';
+import { DEPTH, plantTrees, STANDING, UNEVEN, WALL } from '../src/world/trees';
 import { PLOT_H, PLOT_W, zoneAt, type WorldMap } from '../src/world/zones';
 
 // Two plots of ground, a camp and a stretch of forest, deep in thick country.
@@ -31,7 +31,7 @@ test('the thick country is walled with great trees right where it meets the grou
       if (row === MARGIN && (col === MARGIN || col === MARGIN + 1)) continue;
       const here = trees.filter(t => Math.floor(t.x / PLOT_W) === col && Math.floor(t.y / PLOT_H) === row);
       expect(here.length).toBeGreaterThan(0);
-      for (const tree of here) expect(tree.size).toBe(WALL);
+      for (const tree of here) expect(Math.abs(tree.size / WALL - 1)).toBeLessThanOrEqual(UNEVEN);
     }
   }
 });
@@ -50,10 +50,15 @@ test('nothing grows in the camp, and only smaller trees in the forest', () => {
   expect(standing.length).toBeGreaterThan(0);
   for (const tree of standing) {
     expect(zoneAt(bosquePatagonico, tree.x, tree.y)!.safe).toBeFalsy();
-    expect(tree.size).toBe(STANDING);
+    expect(Math.abs(tree.size / STANDING - 1)).toBeLessThanOrEqual(UNEVEN);
   }
 });
 
 test('each tree is one of the drawings there are', () => {
   for (const tree of plantTrees(bosquePatagonico, 3)) expect([0, 1, 2]).toContain(tree.kind);
+});
+
+test('no two trees are quite the same height', () => {
+  const sizes = new Set(plantTrees(bosquePatagonico, 3).map(tree => tree.size));
+  expect(sizes.size).toBeGreaterThan(100);
 });
