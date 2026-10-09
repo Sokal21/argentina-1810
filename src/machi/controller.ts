@@ -4,7 +4,7 @@ import {
   ATTACK_SLOW, ATTACK_TIME, ATTACK_UNWIND, COAST_GRACE, DASH_COOLDOWN, DASH_DISTANCE, DASH_TIME, DEATH_FPS,
   FPS, IDLE_REST, ISO_Y,
   PIVOT_DRIFT, PIVOT_STOP, RETREAT_BELOW, INTI, SNAP_STICK, SPEED, TURN_FPS, VIEW_ORDER,
-  type Kit, type Sheet, type Turn, type View,
+  type Kit, type Melee, type Sheet, type Turn, type View,
 } from './data';
 
 /** A direction on the ground, any angle. x is right, y is toward the camera. */
@@ -46,6 +46,15 @@ export interface Cast {
   /** Height of the branch tip above that point. */
   height: number;
   /** Direction along the ground; not necessarily unit length. */
+  dx: number;
+  dy: number;
+}
+
+/** A blow landing: where it was struck from, which way, and what it covers. */
+export interface Strike extends Pick<Melee, 'reach' | 'arc' | 'damage'> {
+  x: number;
+  y: number;
+  /** Unit direction along the ground. */
   dx: number;
   dy: number;
 }
@@ -134,6 +143,9 @@ export class MachiController {
   private ritual: { t: number; time: number } | null = null;
   /** Seconds since she fell dead, or null while she lives. */
   private fallen: number | null = null;
+  /** A blow being struck: how far into it, and the way it is aimed along the ground. */
+  private swing: { t: number; dir: Vec } | null = null;
+  private blow: Strike | null = null;
 
   /**
    * @param kit whose art to pose: the sheets and turns of one character.
@@ -151,6 +163,14 @@ export class MachiController {
   get isAttacking(): boolean { return this.attack !== null; }
   get isDashing(): boolean { return this.dash !== null; }
   get isChanneling(): boolean { return this.ritual !== null; }
+  get isSwinging(): boolean { return this.swing !== null; }
+
+  /** The blow that landed during the last update, if any. Reading it clears it. */
+  takeStrike(): Strike | null {
+    const blow = this.blow;
+    this.blow = null;
+    return blow;
+  }
 
   /**
    * She stands rooted for `time` seconds performing a ritual, facing the
@@ -171,6 +191,7 @@ export class MachiController {
   /** She dies where she stands: whatever she was doing ends, and she takes no more orders. */
   fall(): void {
     this.fallen = 0;
+    this.swing = null;
     this.dash = null;
     this.ritual = null;
     this.attack = null;
@@ -208,12 +229,21 @@ export class MachiController {
       else return;
       this.t = 0;
     }
-    if (input.dash && !this.dash && this.dashWait === 0) this.startDash(input);
+    if (input.dash && !this.dash && this.dashWait === 0) {
+      // A dash gets him out of a swing he has started.
+      this.swing = null;
+      this.startDash(input);
+    }
     if (this.dash) {
       this.updateDash(dt);
       return;
     }
-    this.updateAttack(dt, input.attack, input.aim ?? null, input.target ?? null);
+    if (this.kit.melee) {
+      // Striking, he stands where he is until the swing is over.
+      if (this.updateSwing(dt, this.kit.melee, input)) return;
+    } else {
+      this.updateAttack(dt, input.attack, input.aim ?? null, input.target ?? null);
+    }
 
     // A free walking direction is drawn as the nearest of the eight.
     let { dx, dy } = input;
@@ -328,6 +358,43 @@ export class MachiController {
     }
   }
 
+  // A blow struck with the attack held. It is aimed where the pointer is on
+  // the ground, or the way he faces without one, and he turns to it at once:
+  // no turn plays into a cut. Returns whether he is mid-swing.
+  private updateSwing(dt: number, melee: Melee, input: MachiInput): boolean {
+    if (!this.swing) {
+      if (!input.attack) return false;
+      let dir = this.facing();
+      if (input.target) {
+        const x = input.target.x - this.x, y = (input.target.y - this.y) / ISO_Y;
+        const far = Math.hypot(x, y);
+        if (far > MIN_AIM) dir = { x: x / far, y: y / far };
+      }
+      this.swing = { t: 0, dir };
+      const [fx, fy] = snap8(dir, null);
+      this.face(fx, fy);
+      this.turn = null;
+      this.moving = false;
+      this.t = 0;
+    }
+    const before = this.swing.t;
+    this.swing.t += dt;
+    if (before < melee.hit && this.swing.t >= melee.hit) {
+      const { reach, arc, damage } = melee;
+      this.blow = { x: this.x, y: this.y, dx: this.swing.dir.x, dy: this.swing.dir.y, reach, arc, damage };
+    }
+    if (this.swing.t < melee.time) return true;
+    this.swing = null;
+    return false;
+  }
+
+  // The way she faces, as a unit direction along the ground.
+  private facing(): Vec {
+    if (this.straight) return { x: 0, y: this.faceY };
+    if (this.level) return { x: this.faceX, y: 0 };
+    return { x: this.faceX * Math.SQRT1_2, y: this.faceY * Math.SQRT1_2 };
+  }
+
   // Faces the given direction. If that changes the view, the turn frames
   // between the two start playing; otherwise a turn in progress moves on.
   private turnTo(dx: number, dy: number, dt: number, coasting: boolean): void {
@@ -433,6 +500,19 @@ export class MachiController {
       };
     }
     if (this.dash) return this.dashPose(this.dash.t / DASH_TIME);
+    if (this.swing && this.kit.melee) {
+      // A view whose cut has not been drawn yet stands still through it.
+      const view = this.view;
+      const name = this.kit.sheets[`slash_${view}`] ? `slash_${view}` : `idle_${view}`;
+      const s = this.kit.sheets[name];
+      const p = this.swing.t / this.kit.melee.time;
+      const frame = name.startsWith('slash') ? Math.min(s.frames - 1, Math.floor(p * s.frames)) : s.still ?? 0;
+      return {
+        x: this.x, y: this.y, sheet: name, frame,
+        flip: s.faces !== 0 && this.faceX !== s.faces,
+        ax: Array.isArray(s.ax) ? s.ax[frame] : s.ax, ay: s.ay ?? 0,
+      };
+    }
     if (this.ritual) {
       const s = this.kit.sheets.heal;
       const frame = Math.min(s.frames - 1, Math.floor(this.ritual.t / this.ritual.time * s.frames));

@@ -14,7 +14,12 @@ More repairs can be asked for, for sheets that come back needing them:
   --blade=1>0,7>6   a frame can come back with his sabre missing; this
            draws frame 1's blade into frame 0, and frame 7's into frame 6.
 
-Usage: python3 tools/build_cabral_sheet.py assets/cabral/NAME.png [--plume] [--head] [--blade=...]
+  --no-plate=3,4   paints out brass left on the back of the shako in those frames.
+
+  --wide=126   widens every frame to that many pixels before enlarging, for
+           sheets where his sabre reaches the edge of the frame.
+
+Usage: python3 tools/build_cabral_sheet.py assets/cabral/NAME.png [--plume] [--head] [--blade=...] [--no-plate=...] [--wide=N]
        reads NAME_original.png beside it, writes NAME.png
 """
 import sys
@@ -128,6 +133,20 @@ def lend_blade(donor, frame):
                     dst[x + ox, y + oy] = src[x, y]
 
 
+def blank_plate(frame):
+    """Paint out brass on the shako, for frames that show the back of it.
+
+    The plate is on the front; turning him round, the animation sometimes
+    leaves a band of it across the back of the hat.
+    """
+    px = frame.load()
+    w, h = frame.size
+    for y in range(h * 2 // 5):
+        for x in range(w):
+            if near(px[x, y], (202, 167, 63), 45):
+                px[x, y] = HAIR
+
+
 def enlarge(frame):
     """Scale him up about the spot between his feet, by nearest pixel."""
     w, h = frame.size
@@ -148,20 +167,32 @@ if __name__ == "__main__":
     flags = set(sys.argv[2:])
     src = Image.open(out.with_name(out.stem + "_original.png")).convert("RGBA")
     size = src.height
-    sheet = Image.new("RGBA", src.size)
     plumes = []
     frames = [src.crop((i * size, 0, (i + 1) * size, size)) for i in range(src.width // size)]
+    wide = next((int(f.split("=")[1]) for f in flags if f.startswith("--wide=")), size)
+    if wide != size:
+        # Room either side, so a blade at full stretch is not cut off when he is enlarged.
+        padded = []
+        for frame in frames:
+            canvas = Image.new("RGBA", (wide, size))
+            canvas.paste(frame, ((wide - size) // 2, 0))
+            padded.append(canvas)
+        frames = padded
+    sheet = Image.new("RGBA", (wide * len(frames), size))
     for flag in flags:
         if flag.startswith("--blade="):
             for pair in flag.split("=")[1].split(","):
                 donor, to = (int(n) for n in pair.split(">"))
                 lend_blade(frames[donor], frames[to])
+        if flag.startswith("--no-plate="):
+            for i in (int(n) for n in flag.split("=")[1].split(",")):
+                blank_plate(frames[i])
     for i, frame in enumerate(frames):
         plumes.append(plume_height(frame))
         if "--plume" in flags:
             trim_plume(frame)
         if "--head" in flags:
             mirror_head(frame)
-        sheet.paste(enlarge(frame), (i * size, 0))
+        sheet.paste(enlarge(frame), (i * wide, 0))
     sheet.save(out)
-    print(f"{out}: {src.width // size} frames of {size}, enlarged x{SCALE}; plume rows as drawn: {plumes}")
+    print(f"{out}: {len(frames)} frames of {wide}x{size}, enlarged x{SCALE}; plume rows as drawn: {plumes}")

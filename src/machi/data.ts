@@ -6,9 +6,11 @@
 export type View = 'south' | 'down' | 'front' | 'back' | 'north';
 
 export interface Sheet {
-  /** Path under assets/. One row of FRAME x FRAME frames. */
+  /** Path under assets/. One row of frames, FRAME tall. */
   src: string;
   frames: number;
+  /** Width of a frame, for sheets wider than FRAME: a sabre at full stretch needs the room. */
+  w?: number;
   /** Horizontal direction the art looks at; the other is drawn mirrored. 0 = never mirrored. */
   faces: -1 | 0 | 1;
   /** Leading frames left out of the loop because they repeat the standing pose. */
@@ -237,30 +239,117 @@ export interface Kit {
   turns: Record<string, Turn>;
   /** Turns made on the spot. */
   pivots: Record<string, Turn>;
+  /** Set for a character whose attack is a blow at arm's length, not a spell. */
+  melee?: Melee;
+}
+
+/** A blow struck standing still, which lands on everything in a cone in front. */
+export interface Melee {
+  /** Seconds the whole swing takes, during which they do not walk. */
+  time: number;
+  /** Seconds into it at which the blow lands. */
+  hit: number;
+  /** How far along the ground it reaches. */
+  reach: number;
+  /** Half the cone's width, in radians. */
+  arc: number;
+  damage: number;
 }
 
 export const INTI: Kit = { sheets: SHEETS, turns: TURNS, pivots: STANDING_TURNS };
 
 // Cabral, the grenadier. So far he only trots: standing still he holds one
-// frame of it. His down-diagonal is not drawn apart from his front view, and
-// there are no turns yet: he snaps round.
-const cabralTrot = (file: string, faces: Sheet['faces'], ax: number): Sheet =>
-  ({ src: `cabral/trote_${file}.png`, frames: 8, faces, skip: 0, ax });
+// frame of it. He has a turn for every change of view, walking; standing
+// he uses the same ones.
+const cabralTrot = (file: string, faces: Sheet['faces'], ax: number, frames = 8): Sheet =>
+  ({ src: `cabral/trote_${file}.png`, frames, faces, skip: 0, ax });
 const CABRAL_TROTS: Record<View, Sheet> = {
   south: cabralTrot('sur', 0, 47),
   // Unlike Inti's, his front views are drawn heading right.
-  down: cabralTrot('frente', 1, 47),
+  // Its last two frames repeat the first two, which made him take the same
+  // step twice running: the cycle is the first six.
+  down: cabralTrot('diagonal', 1, 45, 6),
   front: cabralTrot('frente', 1, 47),
   back: cabralTrot('espalda', 1, 44),
   north: cabralTrot('norte', 0, 44),
 };
+// Played fast: at Inti's pace they felt stiff, since he has few frames to
+// spare for easing in and out.
+const CABRAL_TURN_FPS = 20;
+const cabralTurn = (sheet: string, frames: number[], pivot = false): Turn =>
+  ({ sheet, frames, fps: CABRAL_TURN_FPS, ...(pivot && { pivot }) });
+const forth = (n: number) => [...Array(n).keys()];
+const back = (n: number) => forth(n).reverse();
+const CABRAL_TURNS: Record<string, Turn> = {
+  // Straight on to three-quarters, drawn in twelve small steps. It reaches
+  // the down diagonal on its fourth frame and three-quarters by its sixth,
+  // then overshoots into a profile; the frames between those poses are used.
+  // The short ones also show the frame nearest the view they are reaching:
+  // one frame alone lasts a twentieth of a second and cannot be seen.
+  'south>down': cabralTurn('turn_south_front', [2, 3]),
+  'down>south': cabralTurn('turn_south_front', [2, 1]),
+  'down>front': cabralTurn('turn_south_front', [4, 5]),
+  'front>down': cabralTurn('turn_south_front', [4, 3]),
+  'south>front': cabralTurn('turn_south_front', [2, 3, 4]),
+  'front>south': cabralTurn('turn_south_front', [4, 3, 2]),
+  // From his chest to his back, through a profile. Only the two frames
+  // either side of the profile: with all four in between it was drawn in
+  // more detail than his other turns, and stood out from them.
+  'front>back': cabralTurn('turn_front_back', [2, 3]),
+  'back>front': cabralTurn('turn_front_back', [3, 2]),
+  // A small one, squaring his back to the viewer. Its first frame is the
+  // three-quarter view itself, without his sabre.
+  'back>north': cabralTurn('turn_back_north', [1, 2, 3]),
+  'north>back': cabralTurn('turn_back_north', [3, 2, 1]),
+  // Turning right round, and changing side: assembled from the turns above
+  // by tools/build_cabral_turns.py. He slows to a stop and sets off again
+  // while they play, instead of sliding the new way with his back to it.
+  'north>south': cabralTurn('about_turn', forth(8), true),
+  'south>north': cabralTurn('about_turn', back(8), true),
+  'front:-1>front:1': cabralTurn('flip_front', forth(7), true),
+  'front:1>front:-1': cabralTurn('flip_front', back(7), true),
+  'down:-1>down:1': cabralTurn('flip_down', forth(3), true),
+  'down:1>down:-1': cabralTurn('flip_down', back(3), true),
+  'back:-1>back:1': cabralTurn('flip_back', forth(7), true),
+  'back:1>back:-1': cabralTurn('flip_back', back(7), true),
+};
+const ROLL = [1, 2, 3, 4, 5];
+const cabralSheet = (file: string, frames: number, faces: Sheet['faces'], ax: number): Sheet =>
+  ({ src: `cabral/${file}.png`, frames, faces, skip: 0, ax });
 export const CABRAL: Kit = {
-  sheets: Object.fromEntries(VIEW_ORDER.flatMap(view => [
-    [`idle_${view}`, { ...CABRAL_TROTS[view], still: 0 }],
-    [`trot_${view}`, CABRAL_TROTS[view]],
-  ])),
-  turns: {},
-  pivots: {},
+  sheets: {
+    ...Object.fromEntries(VIEW_ORDER.flatMap(view => [
+      [`idle_${view}`, { ...CABRAL_TROTS[view], still: 0 }],
+      [`trot_${view}`, CABRAL_TROTS[view]],
+    ])),
+    // His cut. Its frames are wider than the rest, to fit him lunging with
+    // the blade at full stretch.
+    slash_south: { ...cabralSheet('tajo_sur', 8, 0, 63), w: 126 },
+    slash_down: { ...cabralSheet('tajo_diagonal', 8, 1, 61), w: 126 },
+    slash_front: { ...cabralSheet('tajo_frente', 8, 1, 63), w: 126 },
+    slash_back: { ...cabralSheet('tajo_espalda', 8, 1, 50), w: 126 },
+    slash_north: { ...cabralSheet('tajo_norte', 8, 0, 52), w: 126 },
+    // His dash: he dives, rolls over his shoulder and comes up crouching.
+    // The first frame of each is him standing, which a dash has no time for.
+    dash_south: { ...cabralSheet('rodada_sur', 6, 0, 63), w: 126, order: ROLL },
+    dash_down: { ...cabralSheet('rodada_diagonal', 6, 1, 61), w: 126, order: ROLL },
+    dash_front: { ...cabralSheet('rodada_frente', 6, 1, 63), w: 126, order: ROLL },
+    dash_back: { ...cabralSheet('rodada_espalda', 6, 1, 50), w: 126, order: ROLL },
+    dash_north: { ...cabralSheet('rodada_norte', 6, 0, 52), w: 126, order: ROLL },
+    turn_south_front: cabralSheet('giro_sur_frente_fino', 12, 1, 46),
+    turn_front_back: cabralSheet('giro_frente_espalda', 6, 1, 47),
+    turn_back_north: cabralSheet('giro_espalda_norte', 6, 1, 45),
+    // Assembled, never mirrored, already centred on his body.
+    about_turn: cabralSheet('giro_norte_sur', 8, 0, 47),
+    flip_front: cabralSheet('giro_lado_frente', 7, 0, 47),
+    flip_down: cabralSheet('giro_lado_diagonal', 3, 0, 47),
+    flip_back: cabralSheet('giro_lado_espalda', 7, 0, 47),
+  },
+  turns: CABRAL_TURNS,
+  pivots: CABRAL_TURNS,
+  // His sabre: a lunging cut that lands as he comes down on his front leg,
+  // the fifth of its eight frames.
+  melee: { time: 0.5, hit: 0.26, reach: 44, arc: Math.PI / 3, damage: 1 },
 };
 
 export const KITS = { inti: INTI, cabral: CABRAL };

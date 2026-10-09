@@ -8,7 +8,7 @@ import { LookFX } from '../fx/LookFX';
 import { controls, fx } from '../fx/settings';
 import { Keys } from '../input';
 import { Abilities, ground, HEAL, MANA, STRIKE, type Ability } from '../machi/abilities';
-import { MachiController, type MachiInput, type Vec } from '../machi/controller';
+import { MachiController, type MachiInput, type Strike, type Vec } from '../machi/controller';
 import { FRAME, ISO_Y, KITS, type Hero } from '../machi/data';
 import { overlaps, pushOut, type Footprint } from '../world/footprint';
 import { Vitals } from '../world/vitals';
@@ -29,6 +29,8 @@ const RECOVER = 3.4;       // seconds from her death until she is back: the fall
 const FLASH = 0.25;        // seconds her red flash takes to fade
 // The echoes she leaves behind while dashing: how often one is dropped, how
 // long it lingers, how solid it starts and the colour it is washed with.
+// The arc drawn where a blade swept: how long it lasts and how far above the ground.
+const CUT = { time: 0.16, up: 26 };
 const ECHO = { every: 0.03, fade: 260, alpha: 0.55, tint: 0x8fdcf0 };
 // Stand-in enemies, as offsets from where she starts.
 const CUBES: [number, number][] = [[-150, -40], [160, 70]];
@@ -57,6 +59,9 @@ export class GameScene extends Phaser.Scene {
   /** Where a strike would fall and where ones already cast are about to. */
   private marks!: Phaser.GameObjects.Graphics;
   private motes!: Phaser.GameObjects.Particles.ParticleEmitter;
+  /** Blows that have just landed, for the arc drawn where each swept. */
+  private cuts: (Strike & { t: number })[] = [];
+  private slashes!: Phaser.GameObjects.Graphics;
   private marker!: Phaser.GameObjects.Ellipse;
   private look?: LookFX;
   private label = '';
@@ -68,8 +73,8 @@ export class GameScene extends Phaser.Scene {
   preload(): void {
     // Several animations share a sheet, so textures are keyed by file.
     const sheets = Object.values(KITS).flatMap(kit => Object.values(kit.sheets));
-    for (const src of new Set(sheets.map(s => s.src))) {
-      this.load.spritesheet(src, src, { frameWidth: FRAME, frameHeight: FRAME });
+    for (const { src, w } of new Map(sheets.map(s => [s.src, s])).values()) {
+      this.load.spritesheet(src, src, { frameWidth: w ?? FRAME, frameHeight: FRAME });
     }
     Chonchon.preload(this);
   }
@@ -121,6 +126,7 @@ export class GameScene extends Phaser.Scene {
 
     this.lightning = new Lightning(this);
     this.marks = this.add.graphics().setDepth(-1000);
+    this.slashes = this.add.graphics().setDepth(1e6).setBlendMode(Phaser.BlendModes.ADD);
     // Green motes for her healing: rising while she works, bursting when done.
     const mote = this.textures.createCanvas('lawen-mote', 2, 2)!;
     mote.getContext().fillStyle = '#8df07a';
@@ -180,10 +186,7 @@ export class GameScene extends Phaser.Scene {
     if (this.vitals.update(dt)) this.rise();
     const standing = this.vitals.standing;
     // Down, she takes no orders.
-    const input = standing ? this.readInput() : { dx: 0, dy: 0, attack: false };
-    // Cabral has no attack drawn yet.
-    if (this.hero !== 'inti') input.attack = false;
-    this.machi.update(dt, input);
+    this.machi.update(dt, standing ? this.readInput() : { dx: 0, dy: 0, attack: false });
     // Enemies throw at her chest while she is up.
     // She cannot walk through an enemy: each one she stands in pushes her
     // back out the short way. Done here rather than by the physics engine
@@ -203,6 +206,8 @@ export class GameScene extends Phaser.Scene {
       if (chonchon.update(dt, feet)) this.hurt();
     }
     this.useAbilities(dt, standing);
+    const blow = this.machi.takeStrike();
+    if (blow) this.land(blow);
     const cast = this.machi.takeCast();
     if (cast) {
       // The branch reaches well in front of her, so against something she is
@@ -220,6 +225,7 @@ export class GameScene extends Phaser.Scene {
     this.bolts.update(dt);
     this.embers.update(dt);
     this.lightning.update(dt);
+    this.drawCuts(dt);
     this.flash = Math.max(0, this.flash - dt / FLASH);
     this.draw();
     this.trail(dt);
@@ -229,7 +235,8 @@ export class GameScene extends Phaser.Scene {
   // frozen in the pose she had there and fading out: the eye reads the row of
   // them as speed.
   private trail(dt: number): void {
-    if (!this.machi.isDashing) { this.echoIn = 0; return; }
+    // The echoes are Inti's: her dash is a slide. Cabral's is a roll, drawn as one.
+    if (!this.machi.isDashing || this.hero !== 'inti') { this.echoIn = 0; return; }
     this.echoIn -= dt;
     if (this.echoIn > 0) return;
     this.echoIn = ECHO.every;
@@ -241,6 +248,42 @@ export class GameScene extends Phaser.Scene {
       .setTint(ECHO.tint)
       .setAlpha(ECHO.alpha);
     this.tweens.add({ targets: echo, alpha: 0, duration: ECHO.fade, onComplete: () => echo.destroy() });
+  }
+
+  // A blow lands on everything within its reach and inside its cone, measured
+  // along the ground: what flies over that ground is caught too.
+  private land(blow: Strike): void {
+    this.cuts.push({ ...blow, t: 0 });
+    for (const enemy of [...this.enemies, ...this.chonchones]) {
+      if (!enemy.alive) continue;
+      const spot = enemy.ground;
+      const x = spot.x - blow.x, y = (spot.y - blow.y) / ISO_Y;
+      const far = Math.hypot(x, y);
+      if (far > blow.reach + enemy.girth) continue;
+      // Something he is standing on top of is hit whichever way he swings.
+      const off = far < enemy.girth ? 0 : Math.acos((x * blow.dx + y * blow.dy) / far);
+      if (off > blow.arc) continue;
+      for (let i = 0; i < blow.damage; i++) enemy.hit(x || blow.dx, y * ISO_Y);
+    }
+  }
+
+  // The cut itself, drawn for a moment: the edge of the cone it covered,
+  // sweeping across and fading.
+  private drawCuts(dt: number): void {
+    this.slashes.clear();
+    this.cuts = this.cuts.filter(cut => (cut.t += dt) < CUT.time);
+    for (const cut of this.cuts) {
+      const p = cut.t / CUT.time;
+      const aim = Math.atan2(cut.dy, cut.dx);
+      // The blade has swept this much of the cone so far.
+      const from = aim - cut.arc, to = from + 2 * cut.arc * Math.min(1, p * 2);
+      const points: Phaser.Math.Vector2[] = [];
+      for (let a = from; a <= to + 1e-6; a += 0.12) {
+        points.push(new Phaser.Math.Vector2(
+          cut.x + Math.cos(a) * cut.reach, cut.y - CUT.up + Math.sin(a) * cut.reach * ISO_Y));
+      }
+      if (points.length > 1) this.slashes.lineStyle(2, 0xf2f4f8, 0.9 * (1 - p)).strokePoints(points);
+    }
   }
 
   // Puts a character on the field at a spot, with their own art.
@@ -387,12 +430,13 @@ export class GameScene extends Phaser.Scene {
 
     // Things further down the screen are in front.
     this.shadow.setPosition(x, y - 1).setDepth(y - 0.5);
+    const sheet = KITS[this.hero].sheets[pose.sheet];
     this.sprite
-      .setTexture(KITS[this.hero].sheets[pose.sheet].src, pose.frame)
+      .setTexture(sheet.src, pose.frame)
       .setFlipX(pose.flip)
       // The origin is her feet under the body's centre. Flipping mirrors the
       // frame inside its own box, so the centre moves to the other side.
-      .setDisplayOrigin(pose.flip ? FRAME - ax : ax, FRAME - pose.ay)
+      .setDisplayOrigin(pose.flip ? (sheet.w ?? FRAME) - ax : ax, FRAME - pose.ay)
       .setPosition(x, y)
       .setDepth(y);
     this.label = pose.sheet + (pose.flip ? ' (espejado)' : '');

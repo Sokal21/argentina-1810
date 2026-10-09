@@ -483,8 +483,8 @@
     {
       "asset_id": "fc9170ac-fde5-447b-af32-832aacb92aa5",
       "sha12": "f38994a9c0e9",
-      "label": "cabral down-diagonal",
-      "file": "assets/cabral/diagonal.png"
+      "label": "cabral down-diagonal — discarded: nearly the front view, head the wrong way",
+      "file": "(replaced)"
     },
     {
       "asset_id": "73a9483f-62e1-428d-abc1-7e9e193d307c",
@@ -539,6 +539,120 @@
       "sha12": "9c7581ffd764",
       "label": "cabral_trote_norte (8 frames) — untouched",
       "file": "assets/cabral/trote_norte_original.png"
+    },
+    {
+      "asset_id": "d13c8530-f090-46ac-abcd-39ca70856ad1",
+      "sha12": "332580fdbf5a",
+      "label": "cabral_giro_sur_frente (turn, 6 frames) — untouched; superseded by the 12-frame one, kept as the source of the down-diagonal pose",
+      "file": "assets/cabral/giro_sur_frente_original.png"
+    },
+    {
+      "asset_id": "ad81f7b2-9723-4584-a48a-31938c66d168",
+      "sha12": "753ab91a79b1",
+      "label": "cabral down-diagonal pose: frame 1 of the south-to-front turn (uploaded; animation source)",
+      "file": "assets/cabral/diagonal.png"
+    },
+    {
+      "asset_id": "0f98af68-da73-403d-be42-6f0965178152",
+      "sha12": "e24fc85d383f",
+      "label": "cabral_trote_diagonal (8 frames) — untouched",
+      "file": "assets/cabral/trote_diagonal_original.png"
+    },
+    {
+      "asset_id": "5de406fc-acdf-4949-bb45-7631e40c6fc1",
+      "sha12": "6fdd7dc66a97",
+      "label": "cabral_giro_frente_espalda (turn, 6 frames; frames 1-4 used) — untouched",
+      "file": "assets/cabral/giro_frente_espalda_original.png"
+    },
+    {
+      "asset_id": "07675d89-0611-4ce5-b75f-f66b9beaf09b",
+      "sha12": "01d89f3d38a7",
+      "label": "cabral_giro_espalda_norte (turn, 6 frames; frames 1-3 used) — untouched",
+      "file": "assets/cabral/giro_espalda_norte_original.png"
+    },
+    {
+      "asset_id": "00a032ad-e9f6-4225-b26e-28fdcaa41d59",
+      "sha12": "b98b9379a7cc",
+      "label": "cabral_giro_sur_frente_fino (same turn in 12 small steps; frames 2-4 used) — untouched",
+      "file": "assets/cabral/giro_sur_frente_fino_original.png"
+    },
+    {
+      "asset_id": "164f220a-eca2-4b52-bbf1-96fac0aef5a1",
+      "sha12": "093de51325f4",
+      "label": "cabral_tajo_frente, first try (6 frames, feet planted) — replaced by the lunging one",
+      "file": "(replaced)"
+    },
+    {
+      "asset_id": "b2bfcd82-48ea-4aaf-8bc1-658772fa0a01",
+      "sha12": "2aaf77d56972",
+      "label": "cabral_tajo_frente (lunging sabre slash, 8 frames) — untouched",
+      "file": "assets/cabral/tajo_frente_original.png"
+    },
+    {
+      "asset_id": "76b77741-d43a-42e4-b7ae-af1eb2985645",
+      "sha12": "a723ecb93b31",
+      "label": "cabral_tajo_sur (lunging sabre slash, 8 frames) — untouched",
+      "file": "assets/cabral/tajo_sur_original.png"
+    },
+    {
+      "asset_id": "d96acfb3-60c2-4259-98c9-d56e14996264",
+      "sha12": "c16e6377cf55",
+      "label": "cabral_tajo_diagonal (lunging sabre slash, 8 frames) — untouched",
+      "file": "assets/cabral/tajo_diagonal_original.png"
+    },
+    {
+      "asset_id": "89c7c492-a66c-427e-8956-439383eb058e",
+      "sha12": "e1d6b30525fc",
+      "label": "cabral_tajo_espalda (lunging sabre slash, 8 frames) — untouched",
+      "file": "assets/cabral/tajo_espalda_original.png"
+    },
+    {
+      "asset_id": "70191e09-2af1-462e-8188-f062aa4f83e3",
+      "sha12": "7247b182321d",
+      "label": "cabral_tajo_norte (lunging sabre slash, 8 frames) — untouched",
+      "file": "assets/cabral/tajo_norte_original.png"
+    },
+    {
+      "asset_id": "81ca3c63-6784-470b-9b35-d6ca154de9e9",
+      "sha12": "66fc404f7afb",
+      "label": "cabral back 3/4 with the sabre in hand (uploaded; animation source)",
+      "file": "assets/cabral/espalda.png"
+    },
+    {
+      "asset_id": "73948811-f137-4636-b853-44a9d25036e8",
+      "sha12": "2a4bbb498307",
+      "label": "cabral north with the sabre in hand (uploaded; animation source)",
+      "file": "assets/cabral/norte.png"
+    },
+    {
+      "asset_id": "31bf5039-dcb3-419e-ae4d-262cb209291f",
+      "sha12": "9b96c9baacda",
+      "label": "cabral_rodada_frente (combat roll, his dash, 6 frames) — untouched",
+      "file": "assets/cabral/rodada_frente_original.png"
+    },
+    {
+      "asset_id": "aa8ae7b0-6834-4b44-8e0d-a1d33a5a8d10",
+      "sha12": "11f6c2ef87aa",
+      "label": "cabral_rodada_sur (combat roll, his dash, 6 frames) — untouched",
+      "file": "assets/cabral/rodada_sur_original.png"
+    },
+    {
+      "asset_id": "6ee9c8d9-6d45-49a2-9ac2-e83d85749eec",
+      "sha12": "4daab619c297",
+      "label": "cabral_rodada_diagonal (combat roll, his dash, 6 frames) — untouched",
+      "file": "assets/cabral/rodada_diagonal_original.png"
+    },
+    {
+      "asset_id": "b10121bb-4524-4bdd-b1ea-5af8dc695ef1",
+      "sha12": "5ffd69b63bae",
+      "label": "cabral_rodada_espalda (combat roll, his dash, 6 frames) — untouched",
+      "file": "assets/cabral/rodada_espalda_original.png"
+    },
+    {
+      "asset_id": "2781cfc0-f032-422b-aa55-45dcaa780364",
+      "sha12": "2acd306fff2c",
+      "label": "cabral_rodada_norte (combat roll, his dash, 6 frames) — untouched",
+      "file": "assets/cabral/rodada_norte_original.png"
     }
   ]
 }
