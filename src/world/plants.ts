@@ -77,6 +77,11 @@ export function plantCountry(map: WorldMap, seed = 1): Plant[] {
       inTheWay,
     });
   };
+  // What makes a place stands in the middle of its plot, as drawn: it is the one of its kind.
+  for (const { plot: [col, row], stands } of map.objectives) {
+    if (!stands) continue;
+    plants.push({ x: Math.floor((col + 0.5) * PLOT_W), y: Math.floor((row + 0.5) * PLOT_H), kind: stands, which: 0, size: 1, flipped: false, inTheWay: true });
+  }
   const water = waterLevels(map);
   nearest(map).forEach((line, row) => line.forEach(({ far, letter }, col) => {
     const zone = map.zones[letter];

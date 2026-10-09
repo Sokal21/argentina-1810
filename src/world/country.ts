@@ -17,12 +17,15 @@ const PLANTS: Record<string, string[]> = {
   maiz: ['maiz_a', 'maiz_b', 'maiz_c'],
   tala: ['tala_a', 'tala_b'],
   junco: ['junco_a', 'junco_b', 'junco_c'],
+  ombu: ['ombu_a'],
 };
 // Trees are shown larger than they are drawn, as in the forest: they stand
 // well over a man, about twice his height.
-const GROWN: Record<string, number> = { tala: 1.6 };
+const GROWN: Record<string, number> = { tala: 1.6, ombu: 2.1 };
 // The ground a plant in the way takes up, for one shown at its drawn size.
 const FOOT = { hw: 9, hh: 4 };
+// The ombú's trunk and the thick of its roots are far wider than a stem.
+const FEET: Record<string, typeof FOOT> = { ombu: { hw: 26, hh: 7 } };
 const SHADOW_ALPHA = 0.32;
 // A clump of grass touches the ground all along its foot, not at a trunk: a shadow laid toward the
 // viewer shows under its whole width and it seems to float. So here the light falls from in front,
@@ -59,8 +62,8 @@ export class Country {
         .setOrigin(shadow.footX, shadow.footY).setScale(plant.size).setAlpha(SHADOW_ALPHA).setDepth(-1e6 + 2));
       this.plants.push(scene.add.image(plant.x, plant.y, name).setOrigin(0.5, 1).setScale(plant.size).setDepth(plant.y));
       if (plant.inTheWay) {
-        const hh = FOOT.hh * plant.size;
-        this.feet.push({ x: plant.x, y: plant.y - hh, hw: FOOT.hw * plant.size, hh });
+        const foot = FEET[plant.kind] ?? FOOT, hh = foot.hh * plant.size;
+        this.feet.push({ x: plant.x, y: plant.y - hh, hw: foot.hw * plant.size, hh });
       }
     }
     blow(scene, this.plants, extent(map).width);

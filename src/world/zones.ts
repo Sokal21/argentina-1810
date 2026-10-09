@@ -30,6 +30,8 @@ export interface Zone {
 export interface Objective {
   name: string;
   plot: [number, number];
+  /** What stands there and makes the place, by the name of the plant: the one thing on a map put where it is. */
+  stands?: string;
 }
 
 /** Something built, and the plot it stands in: for now a plain block of its size, until it is drawn. */

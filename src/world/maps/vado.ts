@@ -91,7 +91,7 @@ export const vadoDeLasVizcachas: WorldMap = {
     { name: 'El pozo', plot: [12, 47] },
     { name: 'La fragua', plot: [14, 44] },
     { name: 'El rancho quemado', plot: [7, 43] },
-    { name: 'El ombú', plot: [33, 45] },
+    { name: 'El ombú', plot: [33, 45], stands: 'ombu' },
     { name: 'Las tres picadas', plot: [38, 40] },
     { name: 'El cañón volcado', plot: [58, 37] },
     { name: 'La bifurcación', plot: [69, 36] },

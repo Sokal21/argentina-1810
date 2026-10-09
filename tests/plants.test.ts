@@ -58,7 +58,7 @@ test('no two plants are quite alike in size', () => {
 test("Cabral's map is planted with every kind it names, and the thistles are where the thistle maze is", () => {
   const all = plantCountry(map);
   const kinds = new Set(all.map(p => p.kind));
-  expect([...kinds].sort()).toEqual(['cardo', 'cortadera', 'junco', 'maiz', 'tala', 'tuna']);
+  expect([...kinds].sort()).toEqual(['cardo', 'cortadera', 'junco', 'maiz', 'ombu', 'tala', 'tuna']);
   expect(all.length).toBeGreaterThan(3000);
   expect(all.length).toBeLessThan(14000);
 });
@@ -68,4 +68,11 @@ test('behind a fence the country is thin: the fence closes the zone, not the thi
   const fenced: WorldMap = { ...open, zones: { P: { ...open.zones.P, fence: 'stakes' } } };
   expect(plantCountry(fenced).length).toBeLessThan(plantCountry(open).length / 4);
   expect(plantCountry(fenced).length).toBeGreaterThan(0);
+});
+
+test('the ombú stands at the place named after it, alone of its kind and in the way', () => {
+  const ombues = plantCountry(map).filter(p => p.kind === 'ombu');
+  expect(ombues).toHaveLength(1);
+  expect(ombues[0].inTheWay).toBe(true);
+  expect(zoneAt(map, ombues[0].x, ombues[0].y)?.name).toBe('Las chacras');
 });

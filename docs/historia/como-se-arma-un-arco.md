@@ -383,6 +383,17 @@ ombú.*
   se inclinan desde la raíz, con el viento cruzando en oleadas. La primera
   versión, de pasto parejo en hileras, salió como ruido a rayas; se rehízo
   como matas sueltas.
+- **El ombú, el único árbol puesto donde está.** Todo lo demás se planta
+  por regla; el ombú es un lugar con nombre, así que el lugar dice qué se
+  levanta en él (`stands` en el objetivo) y la regla lo planta ahí. Llevó
+  tres rondas (144 créditos): la primera salió con tronco de árbol
+  cualquiera, y el usuario mostró una foto: lo que hace a un ombú son las
+  raíces gruesas y caóticas corriendo por el suelo. La segunda las hizo
+  colgar como las de un árbol arrancado. La tercera pidió copa enorme,
+  raíces apoyadas y la textura de las demás plantas. Una foto de
+  referencia al principio habría ahorrado una ronda.
+- **El dibujo vino cortado abajo en línea recta** y se arregló por script
+  (`rooted` en `tools/build_campo.py`): pie redondeado, borde ondulado.
 - **Lo que se sacó:** el sombreado de lo intransitable, que quedaba como
   bloques oscuros; y el tono oliva del suelo, que pasó a amarillo paja.
 - **Qué enseñó:** lo provisorio de una etapa hay que sacarlo en cuanto la

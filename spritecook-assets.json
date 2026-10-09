@@ -1535,6 +1535,51 @@
       "sha12": "7c22e0e9f8df",
       "label": "pampa scenery: tapia costado 2 (run going away from the viewer)",
       "file": "assets/campo/concept/tapia_costado_2.png"
+    },
+    {
+      "asset_id": "f3b18d4a-3cab-4b1d-bedd-70ca3a7f583f",
+      "label": "pampa scenery: ombú, variant 1",
+      "file": "assets/campo/concept/ombu_1.png"
+    },
+    {
+      "asset_id": "0085ff14-7bd3-481c-803c-9cf8e769d5c4",
+      "label": "pampa scenery: ombú, variant 2",
+      "file": "assets/campo/concept/ombu_2.png"
+    },
+    {
+      "asset_id": "08cace94-6255-48e8-bb4e-fafd832fc12e",
+      "label": "pampa scenery: ombú, variant 3",
+      "file": "assets/campo/concept/ombu_3.png"
+    },
+    {
+      "asset_id": "39738121-a310-493a-adf5-47e9f300491f",
+      "label": "pampa scenery: ombú with sprawling roots, variant 4",
+      "file": "assets/campo/concept/ombu_4.png"
+    },
+    {
+      "asset_id": "405cbf5f-d15c-48e7-bc89-eb7cb8d9409b",
+      "label": "pampa scenery: ombú with sprawling roots, variant 5",
+      "file": "assets/campo/concept/ombu_5.png"
+    },
+    {
+      "asset_id": "f38de94b-ac66-4a00-829e-26d460e3c279",
+      "label": "pampa scenery: ombú with sprawling roots, variant 6",
+      "file": "assets/campo/concept/ombu_6.png"
+    },
+    {
+      "asset_id": "e6edbbe8-15b0-4bb5-a2dd-d7d13707c925",
+      "label": "pampa scenery: ombú, big crown and textured, variant 7",
+      "file": "assets/campo/concept/ombu_7.png"
+    },
+    {
+      "asset_id": "1599aa21-a7c7-4639-9733-188ad9905374",
+      "label": "pampa scenery: ombú, big crown and textured, variant 8",
+      "file": "assets/campo/concept/ombu_8.png"
+    },
+    {
+      "asset_id": "bb2787d3-728e-4d76-b853-b38b2c1dc2eb",
+      "label": "pampa scenery: ombú, big crown and textured, variant 9",
+      "file": "assets/campo/concept/ombu_9.png"
     }
   ]
 }
