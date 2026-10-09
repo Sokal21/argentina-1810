@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { BALL, Bolts, EMBER, SHOT } from '../bolts';
 import { Realista } from '../realista/Realista';
 import { cheats, tune } from '../tuning';
+import { Charge, ULTIMATE } from '../machi/ultimate';
 import { Chonchon } from '../chonchon/Chonchon';
 import { Enemy } from '../enemies';
 import { FIRE_TALL, fireShader } from '../fx/fire';
@@ -74,6 +75,10 @@ const CHONCHONES: [number, number][] = [[110, -70], [-90, 80]];
 // And the royalist soldiers, who are all Cabral meets.
 const REALISTAS: [number, number][] = [[190, 50], [-170, -60], [40, 150]];
 
+// An orb left by something Inti killed.
+const ORB = { height: 12, reach: 22, warning: 1.2 };
+interface Orb extends Vec { t: number; glow: Phaser.GameObjects.Image; shadow: Phaser.GameObjects.Ellipse }
+
 /** Anything that can be fought. */
 type Foe = Enemy | Chonchon | Realista;
 
@@ -109,6 +114,12 @@ export class GameScene extends Phaser.Scene {
   /** Blasts that have just gone off, for the burst drawn at each. */
   private blasts: { x: number; y: number; r: number; t: number }[] = [];
   private vitals = new Vitals(LIFE, GRACE, RECOVER);
+  /** How near their greatest power is. */
+  private charge = new Charge();
+  /** The orbs Inti's kills leave on the ground for a while. */
+  private orbs: Orb[] = [];
+  /** Which enemies stood at the last step, to tell when one falls. */
+  private standing = new Set<Foe>();
   private hurtbox!: Phaser.GameObjects.Zone;
   private flash = 0;
   private hitFx?: HitFX;
@@ -219,6 +230,18 @@ export class GameScene extends Phaser.Scene {
     iron.fillRect(2, 0, 1, 1);
     bomb.refresh();
     // Embers: specks of orange that drift up and wink out.
+    // The orb a kill leaves for Inti: a small light, pale at the heart.
+    if (!this.textures.exists('soul-orb')) {
+      const orb = this.textures.createCanvas('soul-orb', 9, 9)!;
+      const o = orb.getContext();
+      for (const [colour, r] of [['#1f8fb8', 4.5], ['#46e6fa', 3.2], ['#e8ffff', 1.6]] as [string, number][]) {
+        o.fillStyle = colour;
+        for (let y = 0; y < 9; y++) for (let x = 0; x < 9; x++) {
+          if (Math.hypot(x - 4, y - 4) <= r) o.fillRect(x, y, 1, 1);
+        }
+      }
+      orb.refresh();
+    }
     const speck = this.textures.createCanvas('burning-speck', 2, 2)!;
     speck.getContext().fillStyle = '#ffffff';
     speck.getContext().fillRect(0, 0, 2, 2);
@@ -369,6 +392,7 @@ export class GameScene extends Phaser.Scene {
     });
     this.lightning.update(dt);
     this.updateGrenades(dt);
+    this.updateOrbs(dt);
     this.drawCuts(dt);
     this.flash = Math.max(0, this.flash - dt / FLASH);
     this.draw();
@@ -533,6 +557,9 @@ export class GameScene extends Phaser.Scene {
   private land(blow: Strike): void {
     this.cuts.push({ ...blow, t: 0 });
     let struck = false;
+    // With his fury already full, a blow that lands goes to his greatest
+    // power instead: one blow, one share, however many it catches.
+    const brimming = this.fury.value >= FURY;
     for (const enemy of this.foes) {
       if (!enemy.alive) continue;
       const spot = enemy.ground;
@@ -554,6 +581,7 @@ export class GameScene extends Phaser.Scene {
       struck = true;
       this.fury.gain(BLOW);
     }
+    if (struck && brimming) this.charge.add(ULTIMATE / tune.blows);
     // A blow that connects is felt.
     if (struck) this.cameras.main.shake(70, 0.003);
   }
@@ -743,6 +771,54 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** How much of her life is left, from 0 to 1. */
+  // Whatever Inti kills leaves an orb where it fell. It lies there a short
+  // while, flickering before it goes out, and is hers if she reaches it.
+  private updateOrbs(dt: number): void {
+    for (const foe of this.foes) {
+      const was = this.standing.has(foe);
+      if (foe.alive) this.standing.add(foe);
+      else this.standing.delete(foe);
+      if (!was || foe.alive || this.hero !== 'inti') continue;
+      const { x, y } = foe.ground;
+      this.orbs.push({
+        x, y, t: 0,
+        glow: this.add.image(x, y, 'soul-orb').setBlendMode(Phaser.BlendModes.ADD),
+        shadow: this.add.ellipse(x, y, 8, 3, 0x000000, 0.25),
+      });
+    }
+    for (const orb of this.orbs) {
+      orb.t += dt;
+      const left = tune.orbLife - orb.t;
+      // It hovers, bobbing, and blinks faster and faster at the end.
+      const up = ORB.height + Math.sin(orb.t * 4) * 2;
+      const blink = left < ORB.warning ? 0.5 + 0.5 * Math.sin(orb.t * (10 + (ORB.warning - left) * 12)) : 1;
+      orb.glow.setPosition(Math.round(orb.x), Math.round(orb.y - up)).setDepth(orb.y)
+        .setAlpha(0.35 + 0.65 * blink).setScale(Math.min(1, orb.t / 0.25));
+      orb.shadow.setPosition(Math.round(orb.x), Math.round(orb.y)).setDepth(orb.y - 0.5);
+      const near = ground(orb, this.machi) <= ORB.reach;
+      if (near && this.vitals.standing) {
+        this.charge.add(ULTIMATE / tune.orbs);
+        this.sparks.emitParticleAt(orb.glow.x, orb.glow.y, 8);
+        orb.t = Infinity;
+      }
+    }
+    for (const orb of this.orbs.filter(o => o.t >= tune.orbLife)) {
+      orb.glow.destroy();
+      orb.shadow.destroy();
+    }
+    this.orbs = this.orbs.filter(o => o.t < tune.orbLife);
+  }
+
+  /** For trying things out: their greatest power, fully charged. */
+  chargeUp(): void {
+    this.charge.add(ULTIMATE);
+  }
+
+  /** How near their greatest power is, from 0 to 1. */
+  get ultimate(): number {
+    return this.charge.value / ULTIMATE;
+  }
+
   // A spell has been seen to touch an enemy: the spell ends there and the
   // enemy takes the hit. Phaser hands the pair over in either order, so they
   // are told apart by what they carry.

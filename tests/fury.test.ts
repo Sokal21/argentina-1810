@@ -50,3 +50,35 @@ describe('fury', () => {
     expect(f.value).toBe(0);
   });
 });
+
+import { Charge, ULTIMATE } from '../src/machi/ultimate';
+
+describe('what fury has no room for', () => {
+  it('is handed back, and only once it is full', () => {
+    const fury = new Fury();
+    expect(fury.gain(FURY - 5)).toBe(0);
+    expect(fury.gain(12)).toBe(7);
+    expect(fury.value).toBe(FURY);
+    expect(fury.gain(12)).toBe(12);
+  });
+});
+
+describe('the charge of a greatest power', () => {
+  it('fills, stops at full and is let go all at once', () => {
+    const charge = new Charge();
+    expect(charge.spend()).toBe(false);
+    charge.add(ULTIMATE * 0.6);
+    expect(charge.ready).toBe(false);
+    charge.add(ULTIMATE);
+    expect(charge.value).toBe(ULTIMATE);
+    expect(charge.spend()).toBe(true);
+    expect(charge.value).toBe(0);
+  });
+
+  it('never goes down by being given less than nothing', () => {
+    const charge = new Charge();
+    charge.add(30);
+    charge.add(-10);
+    expect(charge.value).toBe(30);
+  });
+});

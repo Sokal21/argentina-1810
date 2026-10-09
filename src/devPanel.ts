@@ -79,6 +79,9 @@ export function mountDevPanel(game: Phaser.Game): void {
   heading('Movimiento');
   (['speed', 'foes'] as DialName[]).forEach(slider);
 
+  heading('Definitiva');
+  (['orbs', 'orbLife', 'blows'] as DialName[]).forEach(slider);
+
   heading('Enemigos');
   const foes = row();
   button(foes, '+ Realista', s => s.spawn('realista'));
@@ -88,6 +91,7 @@ export function mountDevPanel(game: Phaser.Game): void {
   heading('Personaje');
   const hero = row();
   button(hero, 'Curar y llenar', s => s.restore());
+  button(hero, 'Cargar definitiva', s => s.chargeUp());
   const check = Object.assign(document.createElement('label'), { className: 'check' });
   const box = Object.assign(document.createElement('input'), { type: 'checkbox' });
   box.addEventListener('change', () => { cheats.unhurt = box.checked; box.blur(); });

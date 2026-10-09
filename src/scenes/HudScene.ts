@@ -35,6 +35,8 @@ interface Layout {
   /** Corner of the first skill's icon, and the gap to the next. */
   slot: { x: number; y: number; step: number };
   skills: Skill[];
+  /** The colour their greatest power charges in. */
+  accent: number;
 }
 
 const LIFE = ['#571227', '#8a1730', '#c22f48', '#e0607a'] as Vessel['colours'];
@@ -48,6 +50,7 @@ const LAYOUTS: Record<Hero, Layout> = {
       { key: 'mana', x: 410, y: 82, r: 31, colours: ['#1f6fa8', '#27c4d6', '#68fef3', '#c8fffa'], read: g => g.mana },
     ],
     slot: { x: 146, y: 72, step: 54 },
+    accent: 0x46e6fa,
     skills: [
       { ability: 'strike', icon: 'hud/iconos/rayo.png', key: 'Q' },
       { ability: 'heal', icon: 'hud/iconos/lawen.png', key: 'E' },
@@ -62,6 +65,7 @@ const LAYOUTS: Record<Hero, Layout> = {
       { key: 'fury', x: 395, y: 78, r: 36, colours: ['#a83400', '#ff7a00', '#ffc21a', '#fff1a8'], read: g => g.rage },
     ],
     slot: { x: 127, y: 58, step: 54.5 },
+    accent: 0xff7a00,
     skills: [
       { ability: 'musket', icon: 'hud/iconos/mosquete.png', key: 'Q' },
       { ability: 'grenade', icon: 'hud/iconos/granada.png', key: 'E' },
@@ -74,6 +78,8 @@ interface Panel {
   layout: Layout;
   glasses: { vessel: Vessel; draw: (level: number) => void; halo: Phaser.GameObjects.Image; shown: number }[];
   slots: { ability: Skill['ability']; icon: Phaser.GameObjects.Image; shade: Phaser.GameObjects.Rectangle }[];
+  /** How charged their greatest power is: a light that rises in the next slot. */
+  charge: Phaser.GameObjects.Rectangle;
 }
 
 /**
@@ -136,7 +142,16 @@ export class HudScene extends Phaser.Scene {
       box.add([picture, shade, label]);
       return { ability, icon: picture, shade };
     });
-    return { box, layout, glasses, slots };
+    // Their greatest power has no picture yet: its slot fills with light
+    // from the bottom as it charges.
+    const cx = layout.slot.x + layout.slot.step * layout.skills.length, cy = layout.slot.y;
+    const charge = this.add.rectangle(cx, cy + ICON, ICON, 0, layout.accent, 0.85).setOrigin(0, 1);
+    const key = this.add.text(cx + ICON - 1, cy + ICON, 'R', {
+      fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '9px', fontStyle: 'bold',
+      color: '#f0e3c4', stroke: '#14110f', strokeThickness: 3,
+    }).setOrigin(1, 1);
+    box.add([charge, key]);
+    return { box, layout, glasses, slots, charge };
   }
 
   update(time: number, delta: number): void {
@@ -152,6 +167,10 @@ export class HudScene extends Phaser.Scene {
         // Off cooldown but unpaid for, or busy: there, but dull.
         slot.icon.setTint(ready || cooldown > 0 ? 0xffffff : 0x5a5a5a);
       }
+      // Full, it pulses to say so.
+      const charged = Phaser.Math.Clamp(game.ultimate, 0, 1);
+      panel.charge.setSize(ICON, Math.round(ICON * charged))
+        .setAlpha(charged >= 1 ? 0.7 + 0.3 * Math.sin(time / 1000 * 6) : 0.55);
       for (const glass of panel.glasses) {
         const level = Phaser.Math.Clamp(glass.vessel.read(game), 0, 1);
         // The first time it is seen it is simply at its level; after that it slides.

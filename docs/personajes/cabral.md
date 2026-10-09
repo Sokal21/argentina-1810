@@ -129,6 +129,21 @@ afuera hasta tierra chamuscada, casi sin llama, y va por debajo de todo.
 |---|---|---|---|---|---|---|---|
 | 40 de furia | 12 s | 200 | 0,55 a 0,95 s | 30 | 2 | dura 4,5 s | 1 cada 0,5 s, sigue 3 s |
 
+### Definitiva: cómo se carga
+
+Con la **furia que rebalsa**. Con la furia ya llena, cada **sablazo** que
+conecta carga una parte fija de la definitiva: siempre la misma, agarre a un
+enemigo o a tres. Solo el sable la carga: los golpes que recibe no, aunque
+sí le den furia.
+
+Es lo opuesto a Inti: ella sale a buscar la carga después de matar; él la
+construye aguantando la furia al tope, y cada vez que la gasta en el
+mosquete o la granada deja de cargar. Con la furia llena hacen falta siempre 22
+sablazos.
+
+La carga no se pierde con el tiempo ni al morir. Qué hace la definitiva
+todavía no está definido. Los números viven en `src/tuning.ts`.
+
 ### Muerte
 
 Recibe el golpe en el vientre y se le cae el sable; se dobla agarrándose el

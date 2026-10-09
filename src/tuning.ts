@@ -16,6 +16,9 @@ export const DIALS = {
   glow:  { label: 'Brillo cálido', min: 0, max: 1.5, step: 0.01, value: 0.68 },
   speed: { label: 'Velocidad del personaje', min: 0.5, max: 2.5, step: 0.05, value: 1 },
   foes:  { label: 'Ritmo de los enemigos', min: 0.25, max: 2.5, step: 0.05, value: 1 },
+  orbs:    { label: 'Orbes para cargar (Inti)', min: 1, max: 40, step: 1, value: 14 },
+  orbLife: { label: 'Segundos que dura un orbe', min: 1, max: 15, step: 0.5, value: 3.5 },
+  blows:   { label: 'Sablazos a furia llena para cargar (Cabral)', min: 1, max: 60, step: 1, value: 22 },
 } satisfies Record<string, Dial>;
 
 export type DialName = keyof typeof DIALS;

@@ -85,6 +85,18 @@ con la vida llena.
 |---|---|---|---|
 | 45 de maná | 8 s | 1 s | 2 de vida |
 
+### Definitiva: cómo se carga
+
+Todo lo que mata deja un **orbe** celeste donde cayó. Dura unos 3,5 segundos,
+flotando, y parpadea cada vez más rápido antes de apagarse. Si Inti llega
+hasta él, lo junta. Hacen falta 14 para cargarla.
+
+La gracia es la tensión: ella pelea de lejos, pero para cargar tiene que ir
+hasta donde cayó el enemigo.
+
+La carga no se pierde con el tiempo ni al morir. Qué hace la definitiva
+todavía no está definido. Los números viven en `src/tuning.ts`.
+
 ### Muerte
 
 Suelta el kultrún y la rama, que quedan en el suelo; cae de rodillas; cae

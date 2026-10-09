@@ -14,10 +14,15 @@ export class Fury {
   /** Seconds since it last rose. */
   private quiet = 0;
 
-  /** Raises it, up to the most it can hold, and holds off the ebb. */
-  gain(amount: number): void {
+  /**
+   * Raises it, up to the most it can hold, and holds off the ebb. Returns
+   * what there was no room for.
+   */
+  gain(amount: number): number {
+    const spill = Math.max(0, this.value + amount - FURY);
     this.value = Math.min(FURY, this.value + amount);
     this.quiet = 0;
+    return spill;
   }
 
   /** Takes what an ability costs, if there is that much. Says whether it did. */
