@@ -56,7 +56,7 @@ export class GameScene extends Phaser.Scene {
     if (this.renderer.type === Phaser.WEBGL) {
       (this.renderer as Phaser.Renderer.WebGL.WebGLRenderer).pipelines.addPostPipeline('HitFX', HitFX);
     }
-    Enemy.makeTexture(this);
+    Enemy.setup(this);
     this.enemies = CUBES.map(([dx, dy]) => new Enemy(this, this.machi.x + dx, this.machi.y + dy));
     // The physics engine reports a bolt's spot on the ground entering an
     // enemy's; the bolt ends there and the enemy takes the hit.
@@ -107,10 +107,11 @@ export class GameScene extends Phaser.Scene {
     // back out the short way. Done here rather than by the physics engine
     // because her position is set by her own controller, not by a velocity.
     for (const enemy of this.enemies) {
+      enemy.update(dt);
+      if (!enemy.alive) continue;
       const clear = pushOut({ x: this.machi.x, y: this.machi.y, ...FEET }, enemy.footprint);
       this.machi.x = clear.x;
       this.machi.y = clear.y;
-      enemy.update(dt);
     }
     const cast = this.machi.takeCast();
     if (cast) {
@@ -122,7 +123,7 @@ export class GameScene extends Phaser.Scene {
         x: (this.machi.x + cast.x) / 2, y: (chestY + tipY) / 2,
         hw: Math.abs(cast.x - this.machi.x) / 2 + 2, hh: Math.abs(tipY - chestY) / 2 + 2,
       };
-      const blocker = this.enemies.find(e => overlaps(reach, e.body));
+      const blocker = this.enemies.find(e => e.alive && overlaps(reach, e.body));
       if (blocker) blocker.hit(cast.dx, cast.dy * ISO_Y);
       else this.bolts.spawn(cast);
     }
