@@ -56,11 +56,14 @@ echarse el mosquete al hombro.
 
 ## Animaciones que tiene
 
-Dos vistas dibujadas, tres cuartos de frente y tres cuartos de espalda,
-espejadas, como el chonchón. Todas dibujadas mirando a la derecha.
+Dos vistas dibujadas para caminar y para el sable, tres cuartos de frente y
+tres cuartos de espalda, espejadas, como el chonchón; para apuntar tiene
+cinco direcciones. Todas dibujadas mirando a la derecha.
 
 - Marcha, de frente y de espalda
-- Disparo (sube, apunta, dispara, baja), de frente y de espalda
+- Disparo (sube, apunta, dispara, baja) en cinco direcciones: de costado,
+  diagonal abajo, recto abajo, diagonal arriba y recto arriba. Se elige la
+  que tenga el caño más cerca del ángulo real del tiro
 - Sablazo (desenvaina, carga, tajo, vuelve), de frente y de espalda
 - Muerte (solo de frente): suelta el mosquete, cae de rodillas y queda
   tendido boca arriba

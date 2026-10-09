@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { HitFX } from '../fx/HitFX';
 import type { Vec } from '../machi/controller';
+import { ISO_Y } from '../machi/data';
 import type { Footprint } from '../world/footprint';
 import { AIM, DYING, LIFE, LOWER, RealistaBrain, SLASH_TIME, type Bounds, type Deed } from './brain';
 
@@ -11,18 +12,34 @@ const SIZE = 90;
 const SHEETS = {
   walk:       { src: 'realista/marcha_frente.png',   ax: 42 },
   walk_back:  { src: 'realista/marcha_espalda.png',  ax: 42 },
+  walk_south: { src: 'realista/marcha_sur.png',      ax: 43 },
+  walk_north: { src: 'realista/marcha_norte.png',    ax: 45 },
   shoot:      { src: 'realista/disparo_frente.png',  ax: 42 },
   shoot_back: { src: 'realista/disparo_espalda.png', ax: 42 },
+  shoot_down: { src: 'realista/disparo_diagonal.png', ax: 42 },
+  shoot_south: { src: 'realista/disparo_sur.png',    ax: 42 },
+  shoot_north: { src: 'realista/disparo_norte.png',  ax: 42 },
   slash:      { src: 'realista/tajo_frente.png',     ax: 42 },
   slash_back: { src: 'realista/tajo_espalda.png',    ax: 42 },
   death:      { src: 'realista/muerte.png',          ax: 42 },
 };
 type SheetName = keyof typeof SHEETS;
 
-// The frames from the shot on: the kick, and the musket coming down.
-const FIRED = {
-  shoot: [5, 6, 7], shoot_back: [4, 5, 7],
+// Each shooting sheet: the frames that bring the musket up, the one held
+// while he aims, and those from the shot on; and the angle on screen its
+// barrel is drawn at, in degrees below level.
+const SHOTS = {
+  shoot_north: { drawn: -90, raise: [0, 1, 2], aim: 3, fired: [6, 7, 7] },
+  shoot_back:  { drawn: -20, raise: [0, 1, 2], aim: 3, fired: [4, 5, 7] },
+  shoot:       { drawn: 0,   raise: [0, 1, 2], aim: 3, fired: [5, 6, 7] },
+  shoot_down:  { drawn: 42,  raise: [0, 1, 2], aim: 3, fired: [5, 6, 7] },
+  shoot_south: { drawn: 90,  raise: [1, 2, 3], aim: 4, fired: [5, 6, 7] },
 };
+type ShotName = keyof typeof SHOTS;
+
+// The marching sheets likewise, by the angle on screen he is drawn heading at.
+const WALKS = { walk_north: -90, walk_back: -25, walk: 15, walk_south: 90 };
+type WalkName = keyof typeof WALKS;
 
 const SCALE = 1.1;       // he is drawn a little smaller than the heroes
 const WALK_FPS = 8;
@@ -110,28 +127,59 @@ export class Realista {
     return deed;
   }
 
+  // The shooting sheet whose barrel is drawn nearest the way he aims. On
+  // screen the vertical part of his aim is foreshortened; the sheets point
+  // right, and are mirrored to point left.
+  private shot(): ShotName {
+    const angle = this.heading();
+    let best: ShotName = 'shoot';
+    for (const name of Object.keys(SHOTS) as ShotName[]) {
+      if (Math.abs(SHOTS[name].drawn - angle) < Math.abs(SHOTS[best].drawn - angle)) best = name;
+    }
+    return best;
+  }
+
+  // And the marching sheet nearest the way he faces.
+  private walk(): WalkName {
+    const angle = this.heading();
+    let best: WalkName = 'walk';
+    for (const name of Object.keys(WALKS) as WalkName[]) {
+      if (Math.abs(WALKS[name] - angle) < Math.abs(WALKS[best] - angle)) best = name;
+    }
+    return best;
+  }
+
+  // The angle on screen he faces at, in degrees below level, left and right alike.
+  private heading(): number {
+    const { x, y } = this.brain.dir;
+    return Phaser.Math.RadToDeg(Math.atan2(y * ISO_Y, Math.abs(x)));
+  }
+
   private draw(): void {
     const b = this.brain;
-    const seen = (name: 'walk' | 'shoot' | 'slash'): SheetName => (b.back ? `${name}_back` : name);
-    let name: SheetName = seen('walk');
+    let name: SheetName = this.walk();
     let frame = 0, alpha = 1;
 
     switch (b.mode) {
       case 'walk':
         frame = Math.floor(this.clock * WALK_FPS) % 8;
         break;
-      case 'aim':
+      case 'aim': {
         // Up to his shoulder, then held dead still until the shot.
-        name = seen('shoot');
-        frame = Math.min(3, Math.floor(b.t / RAISE * 3));
-        if (b.t > AIM - 0.06) frame = FIRED[b.back ? 'shoot_back' : 'shoot'][0];
+        const shot = this.shot();
+        name = shot;
+        frame = b.t < RAISE ? SHOTS[shot].raise[Math.floor(b.t / RAISE * 3)] : SHOTS[shot].aim;
+        if (b.t > AIM - 0.06) frame = SHOTS[shot].fired[0];
         break;
-      case 'lower':
-        name = seen('shoot');
-        frame = FIRED[b.back ? 'shoot_back' : 'shoot'][Math.min(2, Math.floor(b.t / LOWER * 3))];
+      }
+      case 'lower': {
+        const shot = this.shot();
+        name = shot;
+        frame = SHOTS[shot].fired[Math.min(2, Math.floor(b.t / LOWER * 3))];
         break;
+      }
       case 'slash':
-        name = seen('slash');
+        name = b.back ? 'slash_back' : 'slash';
         frame = Math.min(7, Math.floor(b.t / SLASH_TIME * 8));
         break;
       case 'dying':

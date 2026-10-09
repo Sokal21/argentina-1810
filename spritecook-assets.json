@@ -1097,6 +1097,42 @@
       "sha12": "76ff58bed28a",
       "label": "realista_muerte",
       "file": "assets/realista/muerte.png"
+    },
+    {
+      "asset_id": "bf0d037f-9c72-44b8-9507-3296ad150cb8",
+      "sha12": "d09014ba71d0",
+      "label": "realista_disparo_diagonal",
+      "file": "assets/realista/disparo_diagonal.png"
+    },
+    {
+      "asset_id": "3763b399-5092-4415-bb22-c7b950ab657a",
+      "sha12": "0dca517d3542",
+      "label": "realista_disparo_sur",
+      "file": "assets/realista/disparo_sur.png"
+    },
+    {
+      "asset_id": "ab1abc19-f6e7-4822-a186-ebfeddf7973e",
+      "sha12": "e586bc50dbc7",
+      "label": "realista_disparo_norte",
+      "file": "assets/realista/disparo_norte.png"
+    },
+    {
+      "asset_id": "1e006057-5210-4444-8ea5-924f5b153b8b",
+      "sha12": "8b2fa7889f7c",
+      "label": "realista straight back (animation source)",
+      "file": "assets/realista/norte.png"
+    },
+    {
+      "asset_id": "739ce4f2-b17e-4ac0-84fe-5b7347788469",
+      "sha12": "bcf67332ca60",
+      "label": "realista_marcha_norte",
+      "file": "assets/realista/marcha_norte.png"
+    },
+    {
+      "asset_id": "0012abdf-c78f-4384-bec1-55fffc741df4",
+      "sha12": "0ae0f292fb71",
+      "label": "realista_marcha_sur (last 8 of 12 frames; the first turn him to face the viewer)",
+      "file": "assets/realista/marcha_sur.png"
     }
   ]
 }
