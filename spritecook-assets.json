@@ -471,7 +471,7 @@
     {
       "asset_id": "81eed72a-b96f-4f1d-bde8-ee082485e0c3",
       "sha12": "27443669e645",
-      "label": "cabral front 3/4 (final simplified design)",
+      "label": "cabral front 3/4 (final simplified design) — superseded as animation source by the head-corrected upload",
       "file": "assets/cabral/frente.png"
     },
     {
@@ -505,10 +505,40 @@
       "file": "assets/cabral/concept/cabral_c.png"
     },
     {
-      "asset_id": "cf52264a-b36f-45d9-81c4-0e29882b8932",
-      "sha12": "3b72bc3e4bfc",
-      "label": "cabral_trote front (8 frames) — untouched SpriteCook output",
-      "file": "assets/cabral/trote_original.png"
+      "asset_id": "7c75032f-5dfd-4f4c-b973-ea32da3b3fa2",
+      "sha12": "b8f4057bac1c",
+      "label": "cabral front 3/4 with the head mirrored to face the way the body does (uploaded; animation source)",
+      "file": "assets/cabral/frente.png"
+    },
+    {
+      "asset_id": "a5742f18-51d7-47c8-aaea-4828a5188a0e",
+      "sha12": "2cf1e644b068",
+      "label": "cabral south, regenerated symmetric (uploaded at 82px; animation source)",
+      "file": "assets/cabral/sur.png"
+    },
+    {
+      "asset_id": "3f9a0753-cf2c-4df9-9016-d22644ce5033",
+      "sha12": "c9b9a68a0819",
+      "label": "cabral_trote_frente (8 frames) — untouched",
+      "file": "assets/cabral/trote_frente_original.png"
+    },
+    {
+      "asset_id": "f1e633aa-e908-48ab-8c7d-e603a046048e",
+      "sha12": "ab0d981a7578",
+      "label": "cabral_trote_sur (8 frames) — untouched",
+      "file": "assets/cabral/trote_sur_original.png"
+    },
+    {
+      "asset_id": "fbf2a5a6-9671-4479-802d-9f89d66bbf7a",
+      "sha12": "42691d90db82",
+      "label": "cabral_trote_espalda (8 frames) — untouched",
+      "file": "assets/cabral/trote_espalda_original.png"
+    },
+    {
+      "asset_id": "caa89945-1f4e-4211-a865-11cd00473b2b",
+      "sha12": "9c7581ffd764",
+      "label": "cabral_trote_norte (8 frames) — untouched",
+      "file": "assets/cabral/trote_norte_original.png"
     }
   ]
 }

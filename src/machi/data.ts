@@ -241,15 +241,23 @@ export interface Kit {
 
 export const INTI: Kit = { sheets: SHEETS, turns: TURNS, pivots: STANDING_TURNS };
 
-// Cabral, the grenadier. So far only his trot seen from the front is drawn,
-// so every view shows it, mirrored to the side he is heading, and standing
-// still he holds one frame of it. There are no turns yet: he snaps round.
-// Unlike Inti's front view, his is drawn heading right.
-const CABRAL_TROT = { src: 'cabral/trote.png', frames: 8, faces: 1, skip: 0, ax: 47 } satisfies Sheet;
+// Cabral, the grenadier. So far he only trots: standing still he holds one
+// frame of it. His down-diagonal is not drawn apart from his front view, and
+// there are no turns yet: he snaps round.
+const cabralTrot = (file: string, faces: Sheet['faces'], ax: number): Sheet =>
+  ({ src: `cabral/trote_${file}.png`, frames: 8, faces, skip: 0, ax });
+const CABRAL_TROTS: Record<View, Sheet> = {
+  south: cabralTrot('sur', 0, 47),
+  // Unlike Inti's, his front views are drawn heading right.
+  down: cabralTrot('frente', 1, 47),
+  front: cabralTrot('frente', 1, 47),
+  back: cabralTrot('espalda', 1, 44),
+  north: cabralTrot('norte', 0, 44),
+};
 export const CABRAL: Kit = {
   sheets: Object.fromEntries(VIEW_ORDER.flatMap(view => [
-    [`idle_${view}`, { ...CABRAL_TROT, still: 0 }],
-    [`trot_${view}`, CABRAL_TROT],
+    [`idle_${view}`, { ...CABRAL_TROTS[view], still: 0 }],
+    [`trot_${view}`, CABRAL_TROTS[view]],
   ])),
   turns: {},
   pivots: {},
