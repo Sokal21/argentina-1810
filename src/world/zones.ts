@@ -1,0 +1,92 @@
+// A map is one stretch of country, walked from end to end without a break.
+// It is laid out as a coarse grid of plots, and each plot belongs to a zone:
+// the safe place at its heart, and the wilder zones that spread out from it.
+// The ground is drawn foreshortened, so a plot is twice as wide as it is tall.
+
+export const PLOT_W = 128, PLOT_H = 64; // one plot, in world pixels
+
+/** Marks a plot nobody walks through: country too thick to cross. */
+export const WILD = '.';
+
+export interface Zone {
+  name: string;
+  /** Nothing hunts here. */
+  safe?: boolean;
+  /** The colours its ground is patched from. */
+  ground: string[];
+}
+
+/** Something to find, and the plot it is in: column, then row. */
+export interface Objective {
+  name: string;
+  plot: [number, number];
+}
+
+export interface WorldMap {
+  name: string;
+  /** Each zone, by the letter that marks its plots. */
+  zones: Record<string, Zone>;
+  /** Rows of plots, north to south. */
+  plots: string[];
+  /** The plot the hero arrives in: column, then row. */
+  start: [number, number];
+  objectives: Objective[];
+}
+
+/** How far the map reaches, in world pixels. */
+export function extent(map: WorldMap): { width: number; height: number } {
+  return { width: (map.plots[0]?.length ?? 0) * PLOT_W, height: map.plots.length * PLOT_H };
+}
+
+/** The middle of a plot, in world pixels. */
+export function middle([col, row]: [number, number]): { x: number; y: number } {
+  return { x: (col + 0.5) * PLOT_W, y: (row + 0.5) * PLOT_H };
+}
+
+/** The letter of the zone a plot belongs to, if anyone can stand there. */
+export function letterAt(map: WorldMap, col: number, row: number): string | undefined {
+  const letter = map.plots[row]?.[col];
+  return letter === undefined || letter === WILD ? undefined : letter;
+}
+
+/** The zone a spot on the ground is in, if anyone can stand there. */
+export function zoneAt(map: WorldMap, x: number, y: number): Zone | undefined {
+  const letter = letterAt(map, Math.floor(x / PLOT_W), Math.floor(y / PLOT_H));
+  return letter === undefined ? undefined : map.zones[letter];
+}
+
+/** The letters of the zones that can be walked to from where the hero arrives. */
+export function reachable(map: WorldMap): Set<string> {
+  const seen = new Set<string>(), letters = new Set<string>();
+  const ahead: [number, number][] = [map.start];
+  for (let plot = ahead.pop(); plot; plot = ahead.pop()) {
+    const [col, row] = plot, letter = letterAt(map, col, row);
+    if (letter === undefined || seen.has(`${col},${row}`)) continue;
+    seen.add(`${col},${row}`);
+    letters.add(letter);
+    ahead.push([col + 1, row], [col - 1, row], [col, row + 1], [col, row - 1]);
+  }
+  return letters;
+}
+
+/** What is wrong with a map as it is drawn; nothing, if it holds together. */
+export function faults(map: WorldMap): string[] {
+  const found: string[] = [];
+  const width = map.plots[0]?.length ?? 0;
+  map.plots.forEach((line, row) => {
+    if (line.length !== width) found.push(`row ${row} is ${line.length} plots wide, not ${width}`);
+    for (const letter of line) {
+      if (letter !== WILD && !map.zones[letter]) found.push(`row ${row} has a plot of no zone: ${letter}`);
+    }
+  });
+  const home = letterAt(map, ...map.start);
+  if (home === undefined || !map.zones[home]?.safe) found.push('the hero does not arrive somewhere safe');
+  const walked = reachable(map);
+  for (const [letter, zone] of Object.entries(map.zones)) {
+    if (!walked.has(letter)) found.push(`${zone.name} cannot be walked to`);
+  }
+  for (const { name, plot } of map.objectives) {
+    if (letterAt(map, ...plot) === undefined) found.push(`${name} is where nobody can stand`);
+  }
+  return found;
+}

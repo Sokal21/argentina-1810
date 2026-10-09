@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1810: Argentina · Mapas</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<style>
+  html, body { margin: 0; height: 100%; background: #14110f; overflow: hidden; }
+  #game { width: 100vw; height: 100vh; cursor: grab; }
+  #game:active { cursor: grabbing; }
+  #info, #hud {
+    position: fixed; left: 16px; color: #cdbfa3;
+    font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .02em;
+    text-shadow: 0 1px 0 #000; user-select: none; pointer-events: none;
+  }
+  #info { top: 14px; }
+  #info b { color: #f0e3c4; }
+  #info .fault { color: #e0705a; }
+  #hud { bottom: 14px; }
+  #hud kbd {
+    display: inline-block; min-width: 1.3em; padding: 1px 5px; margin-right: 2px; text-align: center;
+    border: 1px solid #6b5c44; border-radius: 3px; background: #241d17; color: #f0e3c4;
+  }
+  /* Names stay the same size on screen however far out the map is seen from. */
+  #labels { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
+  #labels span {
+    position: absolute; left: 0; top: 0; white-space: nowrap; color: #f0e3c4;
+    font: 13px/1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .04em;
+    text-shadow: 0 1px 0 #000, 0 0 6px #000;
+  }
+  #labels span.zone { font-size: 15px; text-transform: uppercase; letter-spacing: .12em; }
+  #labels span.safe { color: #e8c874; }
+  #labels span.mark { color: #9fe3ee; }
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="labels"></div>
+<div id="info"></div>
+<div id="hud"><kbd>Arrastrar</kbd> o <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> mover · <kbd>Rueda</kbd> acercar · <kbd>F</kbd> ver todo · <kbd>2</kbd> como en el juego · <kbd>G</kbd> parcelas · <kbd>V</kbd> lo que entra en pantalla</div>
+<script type="module" src="/src/mapas/main.ts"></script>
+</body>
+</html>
