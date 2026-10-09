@@ -3,9 +3,11 @@ import { Bolts, EMBER } from '../bolts';
 import { Chonchon } from '../chonchon/Chonchon';
 import { Enemy } from '../enemies';
 import { HitFX } from '../fx/HitFX';
+import { Lightning } from '../fx/lightning';
 import { LookFX } from '../fx/LookFX';
 import { controls, fx } from '../fx/settings';
 import { Keys } from '../input';
+import { Abilities, ground, HEAL, MANA, STRIKE, type Ability } from '../machi/abilities';
 import { MachiController, type MachiInput, type Vec } from '../machi/controller';
 import { FRAME, ISO_Y, SHEETS } from '../machi/data';
 import { overlaps, pushOut, type Footprint } from '../world/footprint';
@@ -48,6 +50,11 @@ export class GameScene extends Phaser.Scene {
   private echoIn = 0;
   private enemies: Enemy[] = [];
   private chonchones: Chonchon[] = [];
+  private abilities = new Abilities();
+  private lightning!: Lightning;
+  /** Where a strike would fall and where ones already cast are about to. */
+  private marks!: Phaser.GameObjects.Graphics;
+  private motes!: Phaser.GameObjects.Particles.ParticleEmitter;
   private marker!: Phaser.GameObjects.Ellipse;
   private look?: LookFX;
   private label = '';
@@ -111,6 +118,22 @@ export class GameScene extends Phaser.Scene {
       if (spot && this.hurt()) this.embers.strike(spot);
     });
 
+    this.lightning = new Lightning(this);
+    this.marks = this.add.graphics().setDepth(-1000);
+    // Green motes for her healing: rising while she works, bursting when done.
+    const mote = this.textures.createCanvas('lawen-mote', 2, 2)!;
+    mote.getContext().fillStyle = '#8df07a';
+    mote.getContext().fillRect(0, 0, 2, 2);
+    mote.refresh();
+    this.motes = this.add.particles(0, 0, 'lawen-mote', {
+      lifespan: { min: 500, max: 900 },
+      speedX: { min: -12, max: 12 },
+      speedY: { min: -45, max: -15 },
+      scale: { start: 1.5, end: 0 },
+      alpha: { start: 1, end: 0 },
+      emitting: false,
+    }).setDepth(1e6).setBlendMode(Phaser.BlendModes.ADD);
+
     // P shows the collision boxes.
     this.input.keyboard?.on('keydown-P', () => {
       const world = this.physics.world;
@@ -166,6 +189,7 @@ export class GameScene extends Phaser.Scene {
     for (const chonchon of this.chonchones) {
       if (chonchon.update(dt, feet)) this.hurt();
     }
+    this.useAbilities(dt, standing);
     const cast = this.machi.takeCast();
     if (cast) {
       // The branch reaches well in front of her, so against something she is
@@ -182,6 +206,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.bolts.update(dt);
     this.embers.update(dt);
+    this.lightning.update(dt);
     this.flash = Math.max(0, this.flash - dt / FLASH);
     this.draw();
     this.trail(dt);
@@ -205,10 +230,68 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: echo, alpha: 0, duration: ECHO.fade, onComplete: () => echo.destroy() });
   }
 
+  // Her abilities: the keys, what they set off, and the marks on the ground.
+  private useAbilities(dt: number, standing: boolean): void {
+    const keys = this.keys.abilities();
+    const pointer = this.input.activePointer;
+    pointer.updateWorldPoint(this.cameras.main);
+    const at = { x: this.machi.x, y: this.machi.y };
+    const events = this.abilities.update(dt, {
+      ...keys,
+      pointer: { x: pointer.worldX, y: pointer.worldY },
+      at,
+      free: standing && !this.machi.isDashing,
+      hurt: this.vitals.life < LIFE,
+    });
+
+    if (events.healing) this.machi.channel(HEAL.time);
+    if (this.abilities.isHealing && Math.random() < dt * 40) {
+      this.motes.emitParticleAt(at.x + Phaser.Math.Between(-10, 10), at.y - Phaser.Math.Between(10, 70), 1);
+    }
+    if (events.healed) {
+      this.vitals.heal(HEAL.amount);
+      for (let i = 0; i < 24; i++) {
+        this.motes.emitParticleAt(at.x + Phaser.Math.Between(-14, 14), at.y - Phaser.Math.Between(0, 75), 1);
+      }
+    }
+
+    for (const patch of events.struck) {
+      this.lightning.strike(patch.x, patch.y, STRIKE.radius);
+      // Whatever stands on the patch, or flies over it, takes the bolt.
+      for (const enemy of [...this.enemies, ...this.chonchones]) {
+        const spot = enemy.ground;
+        if (!enemy.alive || ground(patch, spot) > STRIKE.radius + enemy.girth) continue;
+        for (let i = 0; i < STRIKE.damage; i++) enemy.hit(spot.x - patch.x || 1, spot.y - patch.y);
+      }
+    }
+
+    // Everything is an ellipse: a circle on the ground, seen from above at an angle.
+    const ring = (x: number, y: number, r: number) => [x, y, r * 2, r * 2 * ISO_Y] as const;
+    this.marks.clear();
+    const aim = this.abilities.aim;
+    if (aim) {
+      // Her reach, and the patch the pointer picks inside it; dull when it cannot be cast.
+      const colour = this.abilities.ready('strike') ? 0x46e6fa : 0x8a8478;
+      this.marks.lineStyle(1, colour, 0.35).strokeEllipse(...ring(at.x, at.y, STRIKE.range));
+      this.marks.fillStyle(colour, 0.14).fillEllipse(...ring(aim.x, aim.y, STRIKE.radius));
+      this.marks.lineStyle(1, colour, 0.9).strokeEllipse(...ring(aim.x, aim.y, STRIKE.radius));
+    }
+    for (const patch of this.abilities.pending) {
+      // A ring closes in on the patch and it brightens as the bolt nears.
+      const p = patch.t / STRIKE.delay;
+      this.marks.fillStyle(0x46e6fa, 0.1 + 0.3 * p).fillEllipse(...ring(patch.x, patch.y, STRIKE.radius));
+      this.marks.lineStyle(1, 0xbef8fc, 0.9).strokeEllipse(...ring(patch.x, patch.y, STRIKE.radius));
+      this.marks.lineStyle(1, 0xffffff, 0.4 + 0.6 * p)
+        .strokeEllipse(...ring(patch.x, patch.y, STRIKE.radius * (2.2 - 1.2 * p)));
+    }
+  }
+
   // Something reached her. Mid-dash, or while she cannot be hurt again, it
   // does nothing; returns whether it counted.
   private hurt(): boolean {
     if (this.machi.isDashing || !this.vitals.hit()) return false;
+    // A hit breaks the healing ritual.
+    if (this.abilities.interrupt()) this.machi.stopChannel();
     this.flash = 1;
     if (!this.vitals.standing) this.fall();
     return true;
@@ -217,6 +300,8 @@ export class GameScene extends Phaser.Scene {
   // Placeholder for being defeated: she vanishes, everything in the air
   // bursts, and after a moment she is back where she started.
   private fall(): void {
+    this.abilities.reset();
+    this.machi.stopChannel();
     this.embers.clear();
     this.bolts.clear();
   }
@@ -256,9 +341,14 @@ export class GameScene extends Phaser.Scene {
     return this.vitals.life / LIFE;
   }
 
-  /** How much of her mana is left, from 0 to 1. Nothing spends it yet. */
+  /** How much of her mana is left, from 0 to 1. */
   get mana(): number {
-    return 1;
+    return this.abilities.mana / MANA;
+  }
+
+  /** An ability's state for the HUD: whether it can be used, and how much cooldown is left (1 to 0). */
+  skill(ability: Ability): { ready: boolean; cooldown: number } {
+    return { ready: this.abilities.ready(ability), cooldown: this.abilities.cooldown(ability) };
   }
 
   /** Name of the animation on screen, for the debug readout. */

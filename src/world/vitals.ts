@@ -29,6 +29,11 @@ export class Vitals {
     return true;
   }
 
+  /** Gives back life, up to the most it can have. */
+  heal(amount: number): void {
+    if (this.standing) this.life = Math.min(this.max, this.life + amount);
+  }
+
   /** Advances time. Returns true on the step it gets back up. */
   update(dt: number): boolean {
     this.mercy = Math.max(0, this.mercy - dt);

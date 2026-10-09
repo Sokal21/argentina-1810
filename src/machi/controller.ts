@@ -130,6 +130,8 @@ export class MachiController {
   private dash: { t: number; dir: Vec } | null = null;
   /** Seconds until she can dash again. */
   private dashWait = 0;
+  /** A ritual in progress: how long it has run and how long it takes. */
+  private ritual: { t: number; time: number } | null = null;
 
   constructor(private bounds?: Bounds) {}
 
@@ -142,6 +144,28 @@ export class MachiController {
   get isMoving(): boolean { return this.moving; }
   get isAttacking(): boolean { return this.attack !== null; }
   get isDashing(): boolean { return this.dash !== null; }
+  get isChanneling(): boolean { return this.ritual !== null; }
+
+  /**
+   * She stands rooted for `time` seconds performing a ritual, facing the
+   * viewer: it is drawn from that side only. Nothing moves her until it ends
+   * or is broken.
+   */
+  channel(time: number): void {
+    if (this.dash) return;
+    this.ritual = { t: 0, time };
+    this.attack = null;
+    this.turn = null;
+    this.moving = false;
+    this.straight = true;
+    this.level = false;
+    this.faceY = 1;
+  }
+
+  /** Breaks off a ritual under way. */
+  stopChannel(): void {
+    this.ritual = null;
+  }
 
   /** The spell released during the last update, if any. Reading it clears it. */
   takeCast(): Cast | null {
@@ -152,6 +176,12 @@ export class MachiController {
 
   update(dt: number, input: MachiInput): void {
     this.dashWait = Math.max(0, this.dashWait - dt);
+    if (this.ritual) {
+      this.ritual.t += dt;
+      if (this.ritual.t >= this.ritual.time) this.ritual = null;
+      else return;
+      this.t = 0;
+    }
     if (input.dash && !this.dash && this.dashWait === 0) this.startDash(input);
     if (this.dash) {
       this.updateDash(dt);
@@ -365,6 +395,11 @@ export class MachiController {
 
   pose(): MachiPose {
     if (this.dash) return this.dashPose(this.dash.t / DASH_TIME);
+    if (this.ritual) {
+      const s = SHEETS.heal;
+      const frame = Math.min(s.frames - 1, Math.floor(this.ritual.t / this.ritual.time * s.frames));
+      return { x: this.x, y: this.y, sheet: 'heal', frame, flip: false, ax: s.ax as number, ay: s.ay ?? 0 };
+    }
     const turn = this.turn && this.turn.table[this.turn.key];
     const view = this.view;
     let name = turn ? turn.sheet : `${this.moving ? 'trot' : 'idle'}_${view}`;

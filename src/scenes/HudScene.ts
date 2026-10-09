@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { orbShader } from '../fx/orb';
+import type { Ability } from '../machi/abilities';
 import type { GameScene } from './GameScene';
 
 const FRAME = 'hud/marco.png';
@@ -25,6 +26,13 @@ const ORBS: Orb[] = [
   { key: 'mana', x: 410, y: 82, colours: ['#1f6fa8', '#27c4d6', '#68fef3', '#c8fffa'], read: g => g.mana },
 ];
 
+// Her abilities, in the order of the bar's slots, with the key that casts each.
+const SKILLS: { ability: Ability; icon: string; key: string }[] = [
+  { ability: 'strike', icon: 'hud/iconos/rayo.png', key: 'Q' },
+  { ability: 'heal', icon: 'hud/iconos/lawen.png', key: 'E' },
+];
+const SLOT = { x: 146, y: 72, step: 54, size: 30 }; // the first slot's corner, and the gap to the next
+
 /**
  * Her life and mana, drawn over the game: two glass orbs held by roots, and
  * the bar between them where her abilities will go. It is a scene of its own
@@ -34,12 +42,15 @@ export class HudScene extends Phaser.Scene {
   private panel!: Phaser.GameObjects.Container;
   private orbs: { orb: Orb; draw: (level: number) => void; halo: Phaser.GameObjects.Image; shown: number }[] = [];
 
+  private slots: { ability: Ability; icon: Phaser.GameObjects.Image; shade: Phaser.GameObjects.Rectangle }[] = [];
+
   constructor() {
     super({ key: 'hud', active: true });
   }
 
   preload(): void {
     this.load.image(FRAME, FRAME);
+    for (const { icon } of SKILLS) this.load.image(icon, icon);
   }
 
   create(): void {
@@ -58,6 +69,19 @@ export class HudScene extends Phaser.Scene {
     this.panel.add(this.add.image(0, 0, FRAME).setOrigin(0, 0));
     this.panel.add(halos);
 
+    SKILLS.forEach(({ ability, icon, key }, i) => {
+      const x = SLOT.x + SLOT.step * i, y = SLOT.y;
+      const picture = this.add.image(x, y, icon).setOrigin(0, 0);
+      // A shade drawn down over the icon, which lifts as the cooldown runs out.
+      const shade = this.add.rectangle(x, y, SLOT.size, 0, 0x0c0a08, 0.72).setOrigin(0, 0);
+      const label = this.add.text(x + SLOT.size - 1, y + SLOT.size, key, {
+        fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '9px', fontStyle: 'bold',
+        color: '#f0e3c4', stroke: '#14110f', strokeThickness: 3,
+      }).setOrigin(1, 1);
+      this.panel.add([picture, shade, label]);
+      this.slots.push({ ability, icon: picture, shade });
+    });
+
     this.layout();
     this.scale.on(Phaser.Scale.Events.RESIZE, this.layout, this);
   }
@@ -65,6 +89,12 @@ export class HudScene extends Phaser.Scene {
   update(time: number, delta: number): void {
     const game = this.scene.get('game') as GameScene;
     const dt = Math.min(0.05, delta / 1000);
+    for (const slot of this.slots) {
+      const { ready, cooldown } = game.skill(slot.ability);
+      slot.shade.setSize(SLOT.size, Math.round(SLOT.size * cooldown));
+      // Off cooldown but out of mana, or busy: there, but dull.
+      slot.icon.setTint(ready || cooldown > 0 ? 0xffffff : 0x5a5a5a);
+    }
     for (const o of this.orbs) {
       const level = Phaser.Math.Clamp(o.orb.read(game), 0, 1);
       o.shown += (level - o.shown) * Math.min(1, dt * SETTLE);

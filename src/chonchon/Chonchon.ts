@@ -84,6 +84,12 @@ export class Chonchon {
     return this.brain.alive;
   }
 
+  /** The spot on the ground under it, and how far its body reaches from there. */
+  get ground(): Vec {
+    return { x: this.brain.x, y: this.brain.y };
+  }
+  readonly girth = 8;
+
   /** Its head as it appears on screen. */
   get body(): Footprint {
     return { x: this.brain.x, y: this.brain.y - this.brain.z, ...HEAD };

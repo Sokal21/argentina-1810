@@ -401,6 +401,24 @@
       "sha12": "256e181fbed7",
       "label": "hud concept (two orbs held by roots, skill bar between) — source of assets/hud/marco.png",
       "file": "assets/hud/concept/hud_a.png"
+    },
+    {
+      "asset_id": "c0949680-0ef3-4ee6-a68b-630c968f90fc",
+      "sha12": "5d128110be10",
+      "label": "machi_curacion (healing ritual facing the viewer, 8 frames)",
+      "file": "assets/machi/curacion/sheet.png"
+    },
+    {
+      "asset_id": "ef4095e7-c3fd-4628-9df6-3e6a5f9a9890",
+      "sha12": "40522f6d59b1",
+      "label": "ability icon: lightning strike — untouched SpriteCook output",
+      "file": "assets/hud/iconos/rayo_original.png"
+    },
+    {
+      "asset_id": "3057f7e7-8ec9-4bbf-b1e9-ee289290d376",
+      "sha12": "12868028738b",
+      "label": "ability icon: lawen (healing) — untouched SpriteCook output",
+      "file": "assets/hud/iconos/lawen_original.png"
     }
   ]
 }

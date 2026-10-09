@@ -69,6 +69,12 @@ export class Enemy {
     }
   }
 
+  /** Where it stands, and how far its body reaches from there. */
+  get ground(): Vec {
+    return this.footprint;
+  }
+  readonly girth = W / 2;
+
   /** It stands and can be hit and walked into. */
   get alive(): boolean {
     return this.gone === null;

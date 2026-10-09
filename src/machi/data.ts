@@ -169,6 +169,8 @@ Object.assign(SHEETS, {
   dash_back:  { src: 'machi/dash/espalda.png',  frames: 6, faces: -1, skip: 0, ax: 50.4, order: DASH_ORDER },
   dash_south: { src: 'machi/dash/abajo.png',    frames: 6, faces: 0, skip: 0, ax: 48, order: DASH_ORDER },
   dash_north: { src: 'machi/dash/arriba.png',   frames: 6, faces: 0, skip: 0, ax: 45.8, order: DASH_ORDER },
+  // The healing ritual, drawn facing the viewer only.
+  heal: { src: 'machi/curacion/sheet.png', frames: 8, faces: 0, skip: 0, ax: 48 },
 } satisfies Record<string, Sheet>);
 
 /**
