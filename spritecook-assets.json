@@ -1283,6 +1283,36 @@
       "sha12": "a03fb311ed12",
       "label": "ability icon: nahuel (Inti ultimate) — untouched SpriteCook output",
       "file": "assets/hud/iconos/nahuel_original.png"
+    },
+    {
+      "asset_id": "87bceed6-8656-4a8a-bdcf-2ab2fe58c008",
+      "sha12": "090d91c2cdb2",
+      "label": "forest style test: araucaria concept A (dithered crown)",
+      "file": "assets/bosque/concept/araucaria_a.png"
+    },
+    {
+      "asset_id": "a13e060a-3bb2-41c1-9347-417650b57b21",
+      "sha12": "16613d4e7288",
+      "label": "forest style test: araucaria concept B (flat banded crown)",
+      "file": "assets/bosque/concept/araucaria_b.png"
+    },
+    {
+      "asset_id": "449d5bf6-14d2-4b29-8bfa-2c4ba1c3db43",
+      "sha12": "f41627d2a484",
+      "label": "forest style test: araucaria concept C (detailed, shaded)",
+      "file": "assets/bosque/concept/araucaria_c.png"
+    },
+    {
+      "asset_id": "b1f08f6a-221e-428e-a9f1-d0133b163f23",
+      "sha12": "a5b023f09f06",
+      "label": "forest style test: grass texture A (large tufts)",
+      "file": "assets/bosque/concept/pasto_a.png"
+    },
+    {
+      "asset_id": "8b51ffa8-beb2-4eb1-b6bf-4ed23cb3e603",
+      "sha12": "e8000ce52f9c",
+      "label": "forest style test: grass texture B (fine litter)",
+      "file": "assets/bosque/concept/pasto_b.png"
     }
   ]
 }
