@@ -51,16 +51,24 @@
 
   /* Talking to someone: the world behind stops and darkens, the two of them
      stand in large to either side, and what is said goes in the box below. */
-  #dialog { position: fixed; inset: 0; z-index: 30; background: rgba(8, 7, 10, .68); user-select: none; }
+  #dialog {
+    position: fixed; inset: 0; z-index: 30; background: rgba(8, 7, 10, .68); user-select: none;
+    display: flex; flex-direction: column; align-items: center; box-sizing: border-box; padding: 3vh 0 4vh;
+  }
   #dialog[hidden] { display: none; }
-  #dialog img { position: absolute; bottom: 30vh; height: 52vh; image-rendering: pixelated; transition: filter .2s, transform .2s; }
-  #dialog-hero { left: 6vw; }
+  /* The two of them stand on the box, in whatever room it leaves: the more there is to
+     read, the smaller they are, and they are never hidden behind it. */
+  #dialog .faces {
+    flex: 1; min-height: 0; width: min(1040px, 90vw); display: flex; justify-content: space-between; align-items: flex-end;
+    box-sizing: border-box; padding: 0 2vw;
+  }
+  #dialog img { height: 100%; max-height: 56vh; max-width: 46%; object-fit: contain; object-position: bottom; image-rendering: pixelated; transition: filter .2s, transform .2s; transform-origin: bottom; }
+  #dialog img[hidden] { visibility: hidden; display: block; }
   #dialog-hero.framed { box-shadow: 0 0 0 3px var(--hero), 0 0 0 6px #0a0807; }
-  #dialog-npc { right: 6vw; }
   /* Whoever is not speaking falls back into shadow. */
   #dialog[data-speaker=npc] #dialog-hero, #dialog[data-speaker=hero] #dialog-npc { filter: brightness(.45) saturate(.5); transform: scale(.96); }
   #dialog .box {
-    position: absolute; left: 50%; bottom: 4vh; transform: translateX(-50%); width: min(1040px, 90vw); min-height: 20vh;
+    position: relative; flex: none; width: min(1040px, 90vw); min-height: 18vh;
     box-sizing: border-box; padding: 26px 28px 16px; background: #16120f; color: #f0e3c4;
     box-shadow: 0 0 0 3px var(--npc), 0 0 0 6px #0a0807; font: 21px/1.25 'Jacquard 12', Georgia, serif;
   }
@@ -89,7 +97,18 @@
   #dialog-options button::before { content: attr(data-n) ' \203A  '; color: var(--hero); }
   #dialog-options button:hover, #dialog-options button:focus-visible { background: #2a2018; color: #f0e3c4; }
   /* Twice the size where there is room: the letter is only crisp at multiples of 21px. */
-  @media (min-width: 1100px) and (min-height: 700px) { #dialog .box { font-size: 42px; padding-top: 34px; } #dialog-name { top: -34px; } }
+  @media (min-width: 1300px) and (min-height: 1000px) { #dialog .box { font-size: 42px; padding-top: 34px; } #dialog-name { top: -34px; } }
+  /* Where there is little room: less air round the words, no reminder of the keys, and on a narrow screen only whoever is spoken to. */
+  @media (max-height: 560px), (max-width: 700px) {
+    #dialog { padding: 1vh 0 2vh; }
+    #dialog .box { padding: 20px 14px 8px; min-height: 0; width: 96vw; line-height: 1.1; }
+    #dialog .faces { width: 96vw; }
+    #dialog-text { min-height: 1.2em; }
+    #dialog-note { min-height: 0; margin-top: 2px; }
+    #dialog-options, #dialog form { margin-top: 4px; padding-top: 4px; }
+    #dialog small { display: none; }
+  }
+  @media (max-width: 700px) { #dialog-hero { display: none; } #dialog .faces { justify-content: flex-end; } #dialog img { max-width: 70%; } }
 </style>
 </head>
 <body>
@@ -97,8 +116,7 @@
 <div id="fx"></div>
 <div id="start">Presioná cualquier tecla</div>
 <div id="dialog" hidden>
-  <img id="dialog-hero" alt="">
-  <img id="dialog-npc" alt="">
+  <div class="faces"><img id="dialog-hero" alt=""><img id="dialog-npc" alt=""></div>
   <div class="box">
     <div id="dialog-name"></div>
     <div id="dialog-text"></div>
