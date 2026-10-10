@@ -7,7 +7,7 @@ import { RAGE, Rage } from '../machi/rage';
 import { NAHUEL } from '../nahuel/brain';
 import { Nahuel } from '../nahuel/Nahuel';
 import { openDialog } from '../npc/dialog';
-import type { Npc } from '../npc/npc';
+import type { Idle, Npc } from '../npc/npc';
 import { BYSTANDERS } from '../npc/bystanders';
 import { BRAULIO, PEOPLE } from '../npc/people';
 import { Chonchon } from '../chonchon/Chonchon';
@@ -224,7 +224,9 @@ export class GameScene extends Phaser.Scene {
     loadScenery(this);
     loadCountry(this);
     loadFences(this);
-    for (const src of new Set([TALK.standIn, ...[...Object.values(PEOPLE), ...Object.values(BYSTANDERS)].flatMap(p => p.sprite ?? [])])) this.load.image(src, src);
+    const everyone = [...Object.values(PEOPLE), ...Object.values(BYSTANDERS)];
+    for (const src of new Set([TALK.standIn, ...everyone.flatMap(p => p.sprite ?? [])])) this.load.image(src, src);
+    for (const { idle } of everyone) if (idle) this.load.spritesheet(idle.sheet, idle.sheet, { frameWidth: idle.size, frameHeight: idle.size });
   }
 
   create(): void {
@@ -380,7 +382,7 @@ export class GameScene extends Phaser.Scene {
         ?? (import.meta.env.DEV ? [{ npc: BRAULIO, x: this.start.x + TALK.trial[0], y: this.start.y + TALK.trial[1], left: false }] : []);
       for (const { npc, x, y, left } of named) {
         this.add.ellipse(x, y, 22, 8, 0x000000, 0.28).setDepth(y - 0.5);
-        const figure = this.add.image(x, y, npc.sprite ?? TALK.standIn).setOrigin(0.5, 1).setDepth(y).setFlipX(left);
+        const figure = this.stand(x, y, npc.sprite ?? TALK.standIn, npc.idle, left);
         // Whoever has no drawing yet is a shape in their own colour, with their name over them.
         if (!npc.sprite) {
           figure.setTintFill(Phaser.Display.Color.HexStringToColor(npc.accent).color).setAlpha(0.85);
@@ -401,10 +403,12 @@ export class GameScene extends Phaser.Scene {
         if (!one) continue;
         const { x, y } = middle(plot);
         const drawn = !!one.sprite && this.textures.exists(one.sprite);
-        const figure = this.add.image(x, y, drawn ? one.sprite! : TALK.standIn).setOrigin(0.5, 1).setDepth(y).setFlipX(faces === 'left');
+        const figure = this.stand(x, y, drawn ? one.sprite! : TALK.standIn, one.idle, faces === 'left');
+        // Their size is that of their one drawing, whatever frame they are shown in.
+        const still = this.textures.get(drawn ? one.sprite! : TALK.standIn).getSourceImage();
         if (!drawn) figure.setTintFill(0x9a8f7a).setAlpha(0.85);
-        this.add.ellipse(x, y, Math.max(22, figure.width * 0.7), 8, 0x000000, 0.28).setDepth(y - 0.5);
-        const hint = this.add.text(x, y - figure.height - 6, `«${one.says}»`, {
+        this.add.ellipse(x, y, Math.max(22, still.width * 0.7), 8, 0x000000, 0.28).setDepth(y - 0.5);
+        const hint = this.add.text(x, y - still.height - 6, `«${one.says}»`, {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
           stroke: '#14110f', strokeThickness: 3, wordWrap: { width: 150 },
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
@@ -1078,6 +1082,21 @@ export class GameScene extends Phaser.Scene {
     else if (kind === 'chonchon') this.chonchones.push(foe = new Chonchon(this, x, y, bounds));
     else this.enemies.push(foe = new Enemy(this, x, y));
     this.physics.add.overlap(this.bolts.bodies, foe.zone, this.struck);
+  }
+
+  /**
+   * Stands someone on the ground: doing what they do while they wait, if that has been drawn,
+   * or as their one drawing if not. Each begins at a moment of their own, so no two keep time.
+   */
+  private stand(x: number, y: number, still: string, idle: Idle | undefined, left: boolean): Phaser.GameObjects.Image {
+    if (!idle || !this.textures.exists(idle.sheet)) return this.add.image(x, y, still).setOrigin(0.5, 1).setDepth(y).setFlipX(left);
+    if (!this.anims.exists(idle.sheet)) {
+      this.anims.create({ key: idle.sheet, frames: this.anims.generateFrameNumbers(idle.sheet, { start: 0, end: idle.frames - 1 }), frameRate: idle.rate, repeat: -1 });
+    }
+    const figure = this.add.sprite(x, y, idle.sheet, 0).setDepth(y).setFlipX(left)
+      .setDisplayOrigin(left ? idle.size - idle.ax : idle.ax, idle.size - idle.up);
+    figure.play({ key: idle.sheet, startFrame: Math.floor(Math.random() * idle.frames) });
+    return figure;
   }
 
   /** For trying things out: the places on this map one can be set down at, people first. */

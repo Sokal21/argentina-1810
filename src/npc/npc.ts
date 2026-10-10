@@ -20,8 +20,23 @@ export interface Npc {
   /** Their picture in a conversation and on the ground, once they have been drawn. */
   portrait?: string;
   sprite?: string;
+  /** What they do while they stand there, once it has been drawn. */
+  idle?: Idle;
   /** The colour their side of a conversation is lit in. */
   accent: string;
+}
+
+/** A row of square frames of someone standing about, played round and round. */
+export interface Idle {
+  sheet: string;
+  /** The side of a frame, and how many there are. */
+  size: number;
+  frames: number;
+  /** Frames a second. */
+  rate: number;
+  /** Where their feet are in a frame: across it, and how far up from its bottom row. */
+  ax: number;
+  up: number;
 }
 
 export interface Favour {

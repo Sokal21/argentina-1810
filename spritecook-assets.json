@@ -1730,6 +1730,81 @@
       "asset_id": "167bd7ab-c3e1-4333-ae7a-58f6de624b5f",
       "label": "vado bystander: malherido_2",
       "file": "assets/gente/concept/malherido_2.png"
+    },
+    {
+      "asset_id": "058c567b-7cf0-454a-9148-e25605afee36",
+      "label": "don Braulio: sprite on a square canvas, source for his idle",
+      "file": "assets/pulpero/sprite.png"
+    },
+    {
+      "asset_id": "05f667e7-dc6b-4c38-be4a-5f14ef30790a",
+      "label": "don Braulio: idle, wiping the jug (8 frames)",
+      "file": "assets/pulpero/idle_original.png"
+    },
+    {
+      "asset_id": "cdc5a776-cda0-4765-8e8d-0c0b7939d009",
+      "label": "ño Ciriaco: sprite on a square canvas, source for his idle",
+      "file": "assets/gente/ciriaco.png"
+    },
+    {
+      "asset_id": "0d3a0910-1ba6-431e-8a96-e92e95a0818d",
+      "label": "ño Ciriaco: idle, shaking his fist (8 frames)",
+      "file": "assets/gente/ciriaco_idle_original.png"
+    },
+    {
+      "asset_id": "3db28687-c9eb-4a53-b23d-4e51709f88c6",
+      "label": "anselmo: idle (8 frames)",
+      "file": "assets/anselmo/idle_original.png"
+    },
+    {
+      "asset_id": "d31f36d1-3bb7-431f-be07-9009abb8ad58",
+      "label": "mateo: idle (8 frames)",
+      "file": "assets/mateo/idle_original.png"
+    },
+    {
+      "asset_id": "6d0eb8ac-c99b-44eb-ba8a-2796be7a4a29",
+      "label": "tobias: idle (8 frames)",
+      "file": "assets/tobias/idle_original.png"
+    },
+    {
+      "asset_id": "2d0bd529-4adf-4bdc-bea8-d7a22884df57",
+      "label": "benito: idle (8 frames)",
+      "file": "assets/gente/benito_idle_original.png"
+    },
+    {
+      "asset_id": "773f2311-8d4a-4460-8ce5-8d3601ea119c",
+      "label": "remedios: idle (8 frames)",
+      "file": "assets/gente/remedios_idle_original.png"
+    },
+    {
+      "asset_id": "e0d930e3-9e1f-49d0-be43-49b68f5f2c18",
+      "label": "paisano: idle (8 frames)",
+      "file": "assets/gente/paisano_idle_original.png"
+    },
+    {
+      "asset_id": "f42d6edb-122e-4051-9b7d-00a674305cac",
+      "label": "chacarero: idle (8 frames)",
+      "file": "assets/gente/chacarero_idle_original.png"
+    },
+    {
+      "asset_id": "b62a6e3a-1111-4292-8986-ec0dee0ad17c",
+      "label": "alferez: idle (8 frames)",
+      "file": "assets/gente/alferez_idle_original.png"
+    },
+    {
+      "asset_id": "ea009543-bf50-4b9e-b49a-c799a447a039",
+      "label": "malherido: idle (8 frames)",
+      "file": "assets/gente/malherido_idle_original.png"
+    },
+    {
+      "asset_id": "fd603db6-a297-4bd8-9c86-88bece7500e2",
+      "label": "paisano: sprite on a square canvas, source for his idle",
+      "file": "assets/gente/paisano.png"
+    },
+    {
+      "asset_id": "67e0ed6e-ca1f-4a3c-a5a6-2834d2f915e6",
+      "label": "chacarero: sprite on a square canvas, source for his idle",
+      "file": "assets/gente/chacarero.png"
     }
   ]
 }

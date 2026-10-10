@@ -10,7 +10,9 @@ const STYLE = `
     border: 1px solid #6b5c44; border-radius: 4px; background: #241d17; color: #a89a80;
   }
   #dev-panel {
-    position: fixed; right: 16px; top: 48px; z-index: 20; width: 270px; padding: 12px;
+    position: fixed; right: 16px; top: 48px; z-index: 20; width: 270px; padding: 12px; box-sizing: border-box;
+    /* Never taller than the window: what does not fit is scrolled to. */
+    max-height: calc(100vh - 60px); overflow-y: auto; overscroll-behavior: contain;
     border: 1px solid #6b5c44; border-radius: 6px; background: rgba(26, 21, 18, .94); color: #cdbfa3;
     font: 12px/1.3 ui-monospace, Menlo, Consolas, monospace; user-select: none;
   }
@@ -101,6 +103,8 @@ export function mountDevPanel(game: Phaser.Game): void {
   places.addEventListener('mousedown', () => { if (places.options.length <= 1 || !scene()?.places.some(p => p.name === places.options[1].value)) fill(); });
   places.addEventListener('change', () => { if (places.value) scene()?.goTo(places.value); places.value = ''; places.blur(); });
   panel.appendChild(places);
+  // And each time the panel is opened, so the list is never that of a game not yet begun.
+  gear.addEventListener('click', fill);
 
   heading('Enemigos');
   const foes = row();
@@ -122,7 +126,8 @@ export function mountDevPanel(game: Phaser.Game): void {
   const last = row();
   const reset = Object.assign(document.createElement('button'), { textContent: 'Volver a los valores de fábrica' });
   keepFocus(reset);
-  reset.addEventListener('click', () => { resetDials(); refresh(); });
+  // Everything this panel keeps goes back to how it came: the numbers, and who answers for the people.
+  reset.addEventListener('click', () => { resetDials(); setVoice('sonnet'); voices.value = voiceName(); refresh(); });
   last.appendChild(reset);
 
   refresh();

@@ -51,6 +51,8 @@ export const BRAULIO: Npc = {
   closed: 'Don Braulio sigue secando un jarro y no levanta la vista. Para vos la posada está cerrada.',
   portrait: 'pulpero/retrato.png',
   sprite: 'pulpero/sprite.png',
+  // Wiping the jug he never puts down.
+  idle: { sheet: 'pulpero/idle.png', size: 96, frames: 8, rate: 6, ax: 48, up: 0 },
   accent: '#e2c478',
 };
 
@@ -108,6 +110,8 @@ export const ANSELMO: Npc = {
   closed: 'Fray Anselmo no contesta. Tiene el rosario entre las manos y reza en voz baja, por vos.',
   portrait: 'anselmo/retrato.png',
   sprite: 'anselmo/sprite.png',
+  // Turning the key over, listening.
+  idle: { sheet: 'anselmo/idle.png', size: 97, frames: 8, rate: 5, ax: 48, up: 0 },
   accent: '#b79a6a',
 };
 
@@ -153,6 +157,8 @@ export const MATEO: Npc = {
   closed: 'Mateo se arrincona contra la pared y no dice una palabra más.',
   portrait: 'mateo/retrato.png',
   sprite: 'mateo/sprite.png',
+  // Trembling, glancing back over his shoulder.
+  idle: { sheet: 'mateo/idle.png', size: 97, frames: 8, rate: 8, ax: 48, up: 0 },
   accent: '#c9c2b0',
 };
 
@@ -199,6 +205,8 @@ export const TOBIAS: Npc = {
   closed: 'Tobías se da vuelta en el catre y mira la pared.',
   portrait: 'tobias/retrato.png',
   sprite: 'tobias/sprite.png',
+  // Restless on the bed, looking about.
+  idle: { sheet: 'tobias/idle.png', size: 100, frames: 8, rate: 6, ax: 50, up: 0 },
   accent: '#d8b48a',
 };
 

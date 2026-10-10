@@ -511,6 +511,18 @@ blanco de los plumones).*
   192 en total. Los dos paisanos salieron de una sola imagen, cortada.
   Salieron todos usables a la primera: con dos o tres sprites ya hechos
   como referencia, el modelo copia la manera sin vueltas.
+- **Todos hacen algo mientras esperan.** Los once (los cuatro hablables y
+  los siete de una frase) tienen un ciclo de ocho cuadros: Braulio seca el
+  jarro, Ciriaco sacude el puño, Mateo tiembla y mira hacia atrás, el
+  alférez delira. Son 26 créditos cada uno, 286 en total, y ninguno hubo
+  que repetir. Se animan desde el sprite ya hecho, así que el dibujo no
+  cambia.
+- **El modelo mueve las piernas aunque se le pida que no,** y quien está
+  parado parece caminar en el lugar: fue lo primero que marcó el usuario.
+  Se arregla por script (`tools/build_idle.py --still-below`): de cierta
+  fila para abajo, todos los cuadros usan los pies del primero. La misma
+  herramienta mide cada cuadro, para ver en números si alguno creció.
+- **El cartel sobre cada uno entra y sale con un fundido,** no de golpe.
 - **Qué enseñó:** el "dos o tres paisanos" del documento no se podía
   construir: hubo que decidir cuántos, quiénes y qué dice cada uno. Lo
   vago en el papel se nota recién al ponerlo en el mapa.

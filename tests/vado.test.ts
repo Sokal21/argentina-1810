@@ -67,3 +67,15 @@ test('everyone the map stands somewhere is someone the game knows, and stands wh
   for (const who of [...Object.keys(PEOPLE), ...Object.keys(BYSTANDERS)]) expect(stood, who).toContain(who);
   expect(faults(map)).toEqual([]);
 });
+
+test('whoever is drawn standing about has a sheet of whole frames, the size it says', async () => {
+  const { PEOPLE } = await import('../src/npc/people');
+  const { BYSTANDERS } = await import('../src/npc/bystanders');
+  const { readFileSync } = await import('node:fs');
+  for (const one of [...Object.values(PEOPLE), ...Object.values(BYSTANDERS)]) {
+    expect(one.idle, one.name).toBeDefined();
+    // A PNG says its width and height in the eight bytes after its sixteenth.
+    const png = readFileSync(`assets/${one.idle!.sheet}`);
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)], one.name).toEqual([one.idle!.size * one.idle!.frames, one.idle!.size]);
+  }
+});
