@@ -1,3 +1,4 @@
+import { mountSheet } from './sheet';
 import Phaser from 'phaser';
 import { controls, EFFECTS, fx, setEffect, setMouseControl, type Effect } from './fx/settings';
 import { GameScene } from './scenes/GameScene';
@@ -27,6 +28,8 @@ if (import.meta.env.DEV) {
   // The panel and its sliders exist only here; the published build drops them.
   void import('./devPanel').then(({ mountDevPanel }) => mountDevPanel(game));
 }
+
+mountSheet(game);
 
 // The effects, in the menu that pausing opens, and their number keys; 0 turns everything off.
 const bar = document.getElementById('fx')!;

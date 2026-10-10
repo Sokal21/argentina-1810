@@ -97,10 +97,10 @@ export class Chonchon {
   }
 
   /** Struck by a spell travelling along (dx, dy) on screen. */
-  hit(dx: number, dy: number): void {
+  hit(dx: number, dy: number, amount = 1): void {
     if (!this.alive) return;
     this.fellFrom = this.brain.z;
-    this.brain.hit(dx, dy);
+    this.brain.hit(dx, dy, amount);
     this.flash = 1;
   }
 

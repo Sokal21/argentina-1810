@@ -18,6 +18,7 @@ export const VADO: Quest[] = [
   {
     id: 'posada',
     name: 'La posada',
+    xp: 40,
     opens: ['empieza'],
     steps: [
       { says: 'Llegá a la posada.', when: ['en:La posada', 'hablo:braulio'] },
@@ -27,6 +28,7 @@ export const VADO: Quest[] = [
   {
     id: 'hijo',
     name: 'El hijo perdido',
+    xp: 120,
     // Don Braulio asks, and it is taken on by telling him so. But the map is open: whoever
     // he has shut his door on can still come upon the boy's poncho and follow it.
     opens: ['acepto:hijo', 'tiene:poncho'],

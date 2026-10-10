@@ -134,9 +134,9 @@ export class RealistaBrain {
   }
 
   /** Struck by something travelling along (dx, dy) on screen. */
-  hit(dx: number, dy: number): void {
+  hit(dx: number, dy: number, amount = 1): void {
     if (!this.alive) return;
-    this.life--;
+    this.life -= amount;
     if (this.life <= 0) { this.enter('dying'); return; }
     // A blow knocks his aim off: he has to shoulder the musket again.
     if (this.mode === 'aim') this.enter('stand');

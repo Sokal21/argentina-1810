@@ -100,6 +100,8 @@ interface Panel {
   power?: { icon: Phaser.GameObjects.Image; shade: Phaser.GameObjects.Rectangle };
   /** Their flask, in the last slot, and how many draughts are left in it. */
   flask: { icon: Phaser.GameObjects.Image; left: Phaser.GameObjects.Text };
+  /** How far toward the next level: a thin bar over the slots, with the level beside it. */
+  growth: { bar: Phaser.GameObjects.Rectangle; level: Phaser.GameObjects.Text; wide: number };
 }
 
 /**
@@ -191,6 +193,11 @@ export class HudScene extends Phaser.Scene {
     const caps = { fontFamily: CAPS.family, fontSize: `${CAPS.size}px`, color: '#f0e3c4', stroke: '#14110f', strokeThickness: 3 };
     const left = this.add.text(fx + 1, fy - 1, '', caps).setOrigin(0, 0);
     box.add([flaskIcon, left, this.add.text(fx + ICON - 1, fy + ICON, 'C', caps).setOrigin(1, 1)]);
+    // Their growth: a thin bar the width of the slots, just under them, and the level at its end.
+    const wide = layout.slot.step * (layout.skills.length + 1) + ICON, gy = layout.slot.y + ICON + 4;
+    const bar = this.add.rectangle(layout.slot.x, gy, 0, 2, 0xe2c478).setOrigin(0, 0);
+    const level = this.add.text(layout.slot.x + wide / 2, gy + 3, '', caps).setOrigin(0.5, 0);
+    box.add([this.add.rectangle(layout.slot.x, gy, wide, 2, 0x0c0a08, 0.8).setOrigin(0, 0), bar, level]);
     // Pointing at a slot brings up a note on what it does.
     for (let i = 0; i <= layout.skills.length + 1; i++) {
       const zone = this.add.zone(layout.slot.x + layout.slot.step * i, layout.slot.y, ICON, ICON)
@@ -199,7 +206,7 @@ export class HudScene extends Phaser.Scene {
       zone.on('pointerout', () => this.hideNote(hero, i));
       box.add(zone);
     }
-    return { box, layout, glasses, slots, charge, power, flask: { icon: flaskIcon, left } };
+    return { box, layout, glasses, slots, charge, power, flask: { icon: flaskIcon, left }, growth: { bar, level, wide } };
   }
 
   update(time: number, delta: number): void {
@@ -225,6 +232,10 @@ export class HudScene extends Phaser.Scene {
       } else {
         panel.charge.setSize(ICON, Math.round(ICON * charged)).setAlpha(charged >= 1 ? 0.7 + 0.3 * pulse : 0.55);
       }
+      // How far along they are, and a mark when there are points to give out.
+      const growth = game.growth;
+      panel.growth.bar.setSize(Math.round(panel.growth.wide * Math.min(1, growth.share)), 2);
+      panel.growth.level.setText(growth.points ? `Nv ${growth.level} · +${growth.points} (I)` : `Nv ${growth.level}`).setColor(growth.points ? '#8fd18a' : '#cdbf9d');
       // Empty, the flask is dull until somewhere safe is reached.
       const { left } = game.draughts;
       panel.flask.left.setText(String(left)).setColor(left ? '#f0e3c4' : '#8a4a3a');

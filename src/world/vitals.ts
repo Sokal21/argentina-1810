@@ -13,7 +13,7 @@ export class Vitals {
    *                so a volley cannot take everything at once
    * @param recover seconds on the ground before getting back up at full life
    */
-  constructor(readonly max: number, private grace: number, private recover: number) {
+  constructor(public max: number, private grace: number, private recover: number) {
     this.life = max;
   }
 

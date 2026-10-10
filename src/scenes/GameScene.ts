@@ -18,7 +18,7 @@ import { Lightning } from '../fx/lightning';
 import { LookFX } from '../fx/LookFX';
 import { controls, fx } from '../fx/settings';
 import { Keys } from '../input';
-import { Abilities, ground, HEAL, MANA, STRIKE, type Ability } from '../machi/abilities';
+import { Abilities, ground, HEAL, MANA, REGEN, STRIKE, type Ability } from '../machi/abilities';
 import { MachiController, type Arm, type MachiInput, type Strike, type Vec } from '../machi/controller';
 import { FRAME, ISO_Y, KITS, type Hero } from '../machi/data';
 import { BLOW, FURY, Fury, WOUND } from '../machi/fury';
@@ -35,6 +35,7 @@ import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
 import { garrison, leftBehind, type Post } from '../world/garrison';
 import { DRINKING, Flask, FLASKS } from '../machi/flask';
+import { GROWTHS, WORTH, type Growth, type Stat } from '../machi/growth';
 import { MEND, Mending } from '../fx/mend';
 import { Sight } from '../world/sight';
 import { trail } from '../world/trail';
@@ -461,7 +462,7 @@ export class GameScene extends Phaser.Scene {
       this.mending = new Mending(this);
       this.input.keyboard?.on('keydown-C', () => {
         const { restores, amount } = FLASKS[this.hero];
-        const wanting = restores === 'life' ? this.vitals.life < LIFE : this.abilities.mana < MANA;
+        const wanting = restores === 'life' ? this.vitals.life < this.vitals.max : this.abilities.mana < MANA;
         // Not mid-dash, nor in the middle of something else: there is no hand free.
         if (!this.vitals.standing || !wanting || this.machi.isDashing || this.machi.isChanneling || !this.flask.drink()) return;
         if (restores === 'life') this.vitals.heal(amount);
@@ -486,7 +487,7 @@ export class GameScene extends Phaser.Scene {
         const npc = near.npc;
         if (!npc) return;
         openDialog(this.game, this.hero, npc, {
-          heal: () => this.vitals.heal(LIFE),
+          heal: () => this.vitals.heal(this.vitals.max),
           told: key => this.story?.tell(`sabe:${key}`),
           agreed: key => this.story?.tell(`acepto:${key}`),
           talked: () => this.story?.tell(`hablo:${npc.id}`),
@@ -495,8 +496,13 @@ export class GameScene extends Phaser.Scene {
       });
       // A map with a story: it begins.
       this.board?.remove();
-      this.story = his && this.map === vadoDeLasVizcachas ? new Story(VADO) : undefined;
-      this.board = this.story ? mountBoard(this.story, FACTS) : undefined;
+      // A map without a story has none to tell, but the same place on screen to be told things in.
+      this.story = new Story(his && this.map === vadoDeLasVizcachas ? VADO : []);
+      this.board = mountBoard(this.story, FACTS);
+      // A mission done is worth experience.
+      this.story.listen(news => { for (const n of news) if (n.kind === 'done' && n.quest.xp) this.earn(n.quest.xp); });
+      this.grown();
+      this.vitals.life = this.vitals.max;
       this.plotWas = '';
       this.story?.tell('empieza');
       this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.board?.remove());
@@ -553,7 +559,7 @@ export class GameScene extends Phaser.Scene {
     if (this.readying) this.spentAttack = true;
     if (!input.attack) this.spentAttack = false;
     if (this.spentAttack) input.attack = false;
-    this.machi.pace = tune.speed * (this.wrath.active ? RAGE.pace : 1);
+    this.machi.pace = tune.speed * this.growth.gives('speed') * (this.wrath.active ? RAGE.pace : 1);
     this.machi.haste = this.wrath.active ? RAGE.haste : 1;
     const from = { x: this.machi.x, y: this.machi.y };
     this.machi.update(dt, input);
@@ -630,7 +636,7 @@ export class GameScene extends Phaser.Scene {
         hw: Math.abs(cast.x - this.machi.x) / 2 + 2, hh: Math.abs(tipY - chestY) / 2 + 2,
       };
       const blocker = this.foes.find(e => e.alive && overlaps(reach, e.body));
-      if (blocker) blocker.hit(cast.dx, cast.dy * ISO_Y);
+      if (blocker) this.wound(blocker, cast.dx, cast.dy * ISO_Y, 1, 'basic');
       else this.bolts.spawn(cast);
     }
     this.bolts.update(dt);
@@ -641,7 +647,7 @@ export class GameScene extends Phaser.Scene {
     // along the stretch it flew this step.
     this.balls.sweep(4, (x, y) => {
       const struck = this.foes.find(e => e.alive && overlaps({ x, y, hw: MUSKET.girth, hh: MUSKET.girth }, e.body));
-      if (struck) this.blast(struck.ground, MUSKET.radius, MUSKET.damage);
+      if (struck) this.blast(struck.ground, MUSKET.radius, MUSKET.damage, 'first');
       return !!struck;
     });
     this.lightning.update(dt);
@@ -656,6 +662,8 @@ export class GameScene extends Phaser.Scene {
     this.beside = nearest;
     // Somewhere safe, the flask is filled again.
     this.flask.update(dt);
+    // What mana comes back by itself comes back faster for every point put into it.
+    if (this.hero === 'inti') this.abilities.mana = Math.min(MANA, this.abilities.mana + REGEN * (this.growth.gives('flow') - 1) * dt);
     this.mending?.update(dt, this.machi);
     if (this.map && zoneAt(this.map, this.machi.x, this.machi.y)?.safe && this.flask.refill()) {
       this.board?.say(`${FLASKS[this.hero].name}: lleno otra vez.`);
@@ -773,7 +781,7 @@ export class GameScene extends Phaser.Scene {
       if (p < 1) continue;
       g.ball.destroy();
       g.shadow.destroy();
-      this.blast(g.to, GRENADE.radius, GRENADE.damage, true);
+      this.blast(g.to, GRENADE.radius, GRENADE.damage, 'second', true);
       this.kindle(g.to);
     }
     this.grenades = this.grenades.filter(g => g.t < g.time);
@@ -801,7 +809,7 @@ export class GameScene extends Phaser.Scene {
       if (glow > 0 && Math.random() < dt * EMBERS.shed) {
         this.embersUp.emitParticleAt(x + Phaser.Math.FloatBetween(-hw, hw), y + Phaser.Math.FloatBetween(-hh, hh), 1);
       }
-      for (let i = 0; i < hurt; i++) enemy.hit(0, -1);
+      if (hurt) this.wound(enemy, 0, -1, hurt, 'second');
       if (hurt) this.sparks.emitParticleAt(x, y, 4);
     });
     for (const fire of this.fires.filter(f => f.t >= GRENADE.burns)) fire.shader?.destroy();
@@ -824,13 +832,13 @@ export class GameScene extends Phaser.Scene {
 
   // Something going off: everything within the blast is hurt, wherever the
   // thing itself struck.
-  private blast(at: Vec, radius: number, damage: number, sets = false): void {
+  private blast(at: Vec, radius: number, damage: number, stat: Stat, sets = false): void {
     this.blasts.push({ ...at, r: radius, t: 0 });
     this.cameras.main.shake(110, 0.005);
     for (const enemy of this.foes) {
       const spot = enemy.ground;
       if (!enemy.alive || ground(at, spot) > radius + enemy.girth) continue;
-      for (let i = 0; i < damage; i++) enemy.hit(spot.x - at.x || 1, spot.y - at.y);
+      this.wound(enemy, spot.x - at.x || 1, spot.y - at.y, damage, stat);
       if (sets) this.alight.ignite(enemy);
       const { x, y } = enemy.body;
       this.sparks.emitParticleAt(x, y, 10);
@@ -854,7 +862,7 @@ export class GameScene extends Phaser.Scene {
       // Something he is standing on top of is hit whichever way he swings.
       const off = far < enemy.girth ? 0 : Math.acos((x * blow.dx + y * blow.dy) / far);
       if (off > blow.arc) continue;
-      for (let i = 0; i < blow.damage; i++) enemy.hit(x || blow.dx, y * ISO_Y);
+      this.wound(enemy, x || blow.dx, y * ISO_Y, blow.damage, 'basic');
       // Sparks fly off what the blade bites, the way it was swung.
       const { x: bx, y: by } = enemy.body;
       for (let i = 0; i < 9; i++) {
@@ -864,7 +872,7 @@ export class GameScene extends Phaser.Scene {
         spark.velocityY += blow.dy * 45;
       }
       struck = true;
-      this.fury.gain(BLOW);
+      this.fury.gain(BLOW * this.growth.gives('flow'));
     }
     if (struck && brimming && !this.wrath.active) this.charge.add(ULTIMATE / tune.blows);
     // A blow that connects is felt.
@@ -935,7 +943,7 @@ export class GameScene extends Phaser.Scene {
       pointer: { x: pointer.worldX, y: pointer.worldY },
       at,
       free: standing && !this.machi.isDashing,
-      hurt: this.vitals.life < LIFE,
+      hurt: this.vitals.life < this.vitals.max,
     });
 
     if (events.healing) this.machi.channel(HEAL.time);
@@ -943,7 +951,7 @@ export class GameScene extends Phaser.Scene {
       this.motes.emitParticleAt(at.x + Phaser.Math.Between(-10, 10), at.y - Phaser.Math.Between(10, 70), 1);
     }
     if (events.healed) {
-      this.vitals.heal(HEAL.amount);
+      this.vitals.heal(HEAL.amount * this.growth.gives('second'));
       for (let i = 0; i < 24; i++) {
         this.motes.emitParticleAt(at.x + Phaser.Math.Between(-14, 14), at.y - Phaser.Math.Between(0, 75), 1);
       }
@@ -955,7 +963,7 @@ export class GameScene extends Phaser.Scene {
       for (const enemy of this.foes) {
         const spot = enemy.ground;
         if (!enemy.alive || ground(patch, spot) > STRIKE.radius + enemy.girth) continue;
-        for (let i = 0; i < STRIKE.damage; i++) enemy.hit(spot.x - patch.x || 1, spot.y - patch.y);
+        this.wound(enemy, spot.x - patch.x || 1, spot.y - patch.y, STRIKE.damage, 'first');
       }
     }
 
@@ -1004,7 +1012,7 @@ export class GameScene extends Phaser.Scene {
   private hurt(): boolean {
     if (cheats.unhurt || this.machi.isDashing || !this.vitals.hit(this.wrath.active)) return false;
     // Being hurt angers him.
-    if (this.hero === 'cabral') this.fury.gain(WOUND);
+    if (this.hero === 'cabral') this.fury.gain(WOUND * this.growth.gives('flow'));
     // A hit breaks the healing ritual.
     if (this.abilities.interrupt()) this.machi.stopChannel();
     this.flash = 1;
@@ -1111,18 +1119,18 @@ export class GameScene extends Phaser.Scene {
     }
     if (this.calling !== null && (this.calling -= dt) <= 0) {
       this.calling = null;
-      this.nahuel.summon({ x: this.machi.x + 34, y: this.machi.y + 6 }, tune.beast);
+      this.nahuel.summon({ x: this.machi.x + 34, y: this.machi.y + 6 }, tune.beast * this.growth.gives('ultimate'));
       this.cameras.main.shake(200, 0.004);
     }
     const torn = this.nahuel.update(dt, this.foes.map(f => ({ ...f.ground, girth: f.girth, alive: f.alive, foe: f })), this.machi);
     if (torn) {
       const { foe } = torn as typeof torn & { foe: Foe };
       const at = this.nahuel.ground;
-      for (let i = 0; i < NAHUEL.damage; i++) foe.hit(foe.ground.x - at.x || 1, foe.ground.y - at.y);
+      this.wound(foe, foe.ground.x - at.x || 1, foe.ground.y - at.y, NAHUEL.damage);
       this.sparks.emitParticleAt(foe.body.x, foe.body.y, 8);
     }
     if (free && this.hero === 'cabral' && !this.wrath.active && this.charge.spend()) {
-      this.wrath.start(tune.rage);
+      this.wrath.start(tune.rage * this.growth.gives('ultimate'));
       this.readying = null;
       this.machi.lower();
       this.machi.channel(RAGE.roar, 'roar');
@@ -1139,7 +1147,7 @@ export class GameScene extends Phaser.Scene {
     for (const foe of this.foes) {
       const spot = foe.ground;
       if (!foe.alive || ground({ x, y }, spot) > RAGE.aura + foe.girth) continue;
-      for (let i = 0; i < hurt; i++) foe.hit(spot.x - x || 1, spot.y - y);
+      this.wound(foe, spot.x - x || 1, spot.y - y, hurt);
       this.sparks.emitParticleAt(foe.body.x, foe.body.y, 5);
     }
   }
@@ -1152,10 +1160,10 @@ export class GameScene extends Phaser.Scene {
   /** How near their greatest power is, from 0 to 1. */
   get ultimate(): number {
     // While it lasts the slot shows what is left of it instead.
-    if (this.wrath.active) return this.wrath.share(tune.rage);
+    if (this.wrath.active) return this.wrath.share(tune.rage * this.growth.gives('ultimate'));
     // The HUD asks before this scene has finished loading, when there is no nahuel yet.
     const nahuel = this.nahuel as Nahuel | undefined;
-    if (nahuel?.present) return nahuel.share(tune.beast);
+    if (nahuel?.present) return nahuel.share(tune.beast * this.growth.gives('ultimate'));
     return this.charge.value / ULTIMATE;
   }
 
@@ -1167,7 +1175,7 @@ export class GameScene extends Phaser.Scene {
     const spot = pair.find(o => o.getData('bolt'));
     const enemy = pair.find(o => o.getData('enemy'))?.getData('enemy') as Foe | undefined;
     const heading = spot && enemy ? this.bolts.strike(spot) : null;
-    if (heading && enemy) enemy.hit(heading.dx, heading.dy);
+    if (heading && enemy) this.wound(enemy, heading.dx, heading.dy, 1, 'basic');
   };
 
   /** For trying things out: one more enemy, a little way off from the hero. */
@@ -1217,6 +1225,49 @@ export class GameScene extends Phaser.Scene {
     return true;
   }
 
+  /** How the hero being played has grown. */
+  get growth(): Growth {
+    return GROWTHS[this.hero];
+  }
+
+  /**
+   * One of the hero's blows lands on something: it takes what the blow is worth, more for
+   * every point put into whatever dealt it, and bringing it down is worth experience.
+   */
+  private wound(foe: Foe, dx: number, dy: number, amount: number, stat?: Stat): void {
+    if (!foe.alive) return;
+    foe.hit(dx, dy, amount * (stat ? this.growth.gives(stat) : 1));
+    if (!foe.alive) this.earn(foe instanceof Realista ? WORTH.realista : foe instanceof Chonchon ? WORTH.chonchon : WORTH.cubo);
+  }
+
+  /** The hero earns experience, and is told when it comes to a level. */
+  private earn(xp: number): void {
+    if (!this.growth.earn(xp)) return;
+    this.board?.say(`Nivel ${this.growth.level}. Tenés ${this.growth.points === 1 ? 'un punto' : `${this.growth.points} puntos`} para repartir: I.`);
+    this.mending?.begin(0xffe08a, this.machi);
+  }
+
+  /** Puts one of the hero's points into something, and makes it so at once. Says whether it did. */
+  spend(stat: Stat): boolean {
+    if (!this.growth.put(stat)) return false;
+    this.grown();
+    return true;
+  }
+
+  // What the hero's points come to, laid on whatever of theirs is kept as a number of its own.
+  private grown(): void {
+    const max = LIFE * this.growth.gives('life'), more = max - this.vitals.max;
+    this.vitals.max = max;
+    // Life gained is life had: a point does not leave them wounded.
+    if (more > 0) this.vitals.heal(more);
+  }
+
+  /** What the hero carries and what they have been told, by the story's own words for them. */
+  get carried(): { has: string[]; knows: string[] } {
+    const all = this.story?.happened ?? [];
+    return { has: all.filter(h => h.startsWith('tiene:')).map(h => h.slice(6)), knows: all.filter(h => h.startsWith('sabe:')).map(h => h.slice(5)) };
+  }
+
   /** The hero's flask: how many draughts are left of how many, and whether one can be taken now. */
   get draughts(): { left: number; ready: boolean } {
     return { left: this.flask.left, ready: this.flask.ready };
@@ -1224,7 +1275,7 @@ export class GameScene extends Phaser.Scene {
 
   /** For trying things out: full life, and mana or fury to the brim. */
   restore(): void {
-    this.vitals.heal(LIFE);
+    this.vitals.heal(this.vitals.max);
     this.abilities.mana = MANA;
     this.fury.gain(FURY);
   }
@@ -1235,7 +1286,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   get life(): number {
-    return this.vitals.life / LIFE;
+    return this.vitals.life / this.vitals.max;
   }
 
   /** How much of her mana is left, from 0 to 1. */

@@ -596,3 +596,35 @@ al poncho y se entiende adónde ir.*
   senda, así que llegar ahí no cumplía el paso; y que dos avisos seguidos
   se pisaban. Los tests prueban la regla; jugarlo prueba que la regla es
   la que uno quería.
+
+## Etapa 7 · Niveles y recompensas
+
+*Hecha, esperando el visto bueno.*
+
+- **Qué decidió el usuario:** las recompensas son experiencia y oro, y hay
+  progresión para los dos héroes. Subir de nivel da un punto para: el
+  ataque básico, cada una de las dos habilidades, la velocidad, la vida, y
+  el maná o la furia. La definitiva acepta un punto cada cinco niveles, y
+  lo que crece es cuánto dura. **No** se mejoran con puntos el frasco (se
+  amplía encontrando objetos, como en Dark Souls), la esquiva ni las
+  recargas. Los enemigos reaparecen y dan experiencia igual; morir no
+  cuesta nada. El oro, la tienda y el equipo son la etapa siguiente.
+- **Un mapa tiene un techo.** La experiencia que pide cada nivel crece 2,2
+  veces (150, 330, 726…). Las misiones de un mapa más una limpiada de sus
+  soldados dejan cerca del nivel 3; llegar al 4 matando lo mismo lleva
+  decenas de vueltas. Así un mapa bajo no sirve para progresar, sin
+  prohibir nada. Hay un test que lo comprueba con números.
+- **Cómo está hecho** (`src/machi/growth.ts`): experiencia, nivel, puntos y
+  cuánto da cada cosa, sin nada dibujado. Todo golpe del héroe pasa por un
+  solo lugar del juego, que aplica sus puntos y paga la experiencia si lo
+  que golpeó cae. Las misiones dicen cuánta experiencia valen.
+- **La página del personaje** (tecla I): nivel, experiencia, los puntos
+  para repartir, y abajo lo que lleva y lo que sabe. Con eso lo que se
+  levanta y lo que se averigua ya tiene dónde verse.
+- **Qué enseñó:** los números del juego son chicos (un soldado cae de
+  cuatro sablazos), así que una mejora del 12% no cambiaba cuántos golpes
+  hacían falta: el primer punto no se sentía. En vez de pasar todo a
+  números grandes se dejó que el daño sea fraccionario y se agrandó cada
+  punto: uno en vida es un golpe entero más; dos en el sable son un
+  sablazo menos por soldado. Si los niveles llegan de a poco, cada punto
+  tiene que notarse.

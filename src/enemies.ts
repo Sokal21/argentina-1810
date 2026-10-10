@@ -84,9 +84,9 @@ export class Enemy {
   }
 
   /** Struck by a spell travelling along (dx, dy) on screen. */
-  hit(dx: number, dy: number): void {
+  hit(dx: number, dy: number, amount = 1): void {
     if (!this.alive) return;
-    this.life--;
+    this.life -= amount;
     this.flash = 1;
     const len = Math.hypot(dx, dy) || 1;
     this.push = { x: dx / len * NUDGE, y: dy / len * NUDGE };

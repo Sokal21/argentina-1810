@@ -137,9 +137,9 @@ export class ChonchonBrain {
   }
 
   /** Struck by a spell travelling along (dx, dy) on screen. */
-  hit(dx: number, dy: number): void {
+  hit(dx: number, dy: number, amount = 1): void {
     if (!this.alive) return;
-    this.life--;
+    this.life -= amount;
     const len = Math.hypot(dx, dy) || 1;
     this.move(dx / len * 6, dy / len * 6 / ISO_Y);
     if (this.life <= 0) this.enter('dying');

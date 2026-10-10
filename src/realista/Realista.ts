@@ -107,9 +107,9 @@ export class Realista {
   }
 
   /** Struck by something travelling along (dx, dy) on screen. */
-  hit(dx: number, dy: number): void {
+  hit(dx: number, dy: number, amount = 1): void {
     if (!this.alive) return;
-    this.brain.hit(dx, dy);
+    this.brain.hit(dx, dy, amount);
     this.flash = 1;
   }
 
