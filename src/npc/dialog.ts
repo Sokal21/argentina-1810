@@ -148,7 +148,7 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
   // What can be said now, where it is chosen: each on a line, also taken by its number.
   const offer = () => {
     if (!script) return;
-    const beat = talk.over ? undefined : offered(script, talk.trust, talk.lines);
+    const beat = talk.over ? undefined : offered(script, talk.trust, talk.lines, key => talk.took(key));
     options.replaceChildren(...(beat?.options ?? []).map((option, n) => {
       const button = Object.assign(document.createElement('button'), { textContent: option.says });
       button.dataset.n = String(n + 1);

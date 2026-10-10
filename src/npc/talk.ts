@@ -108,7 +108,13 @@ export class Talk {
       }
     }
     // What they ask is taken on when the model says the other has just said so: it is his word, not their trust.
-    const agreed = (this.npc.errands ?? []).filter(e => reply.quiere === e.wants && !this.taken.has(e.key));
+    const mine = plain(text);
+    const said = (e: Errand) => !!e.agrees?.some(words => {
+      const at = mine.indexOf(plain(words));
+      // "No lo busco" is not giving his word.
+      return at >= 0 && !/\b(no|ni|nunca|tampoco)\s*$/.test(mine.slice(0, at));
+    });
+    const agreed = (this.npc.errands ?? []).filter(e => !this.taken.has(e.key) && (reply.quiere === e.wants || said(e)));
     for (const errand of agreed) this.taken.add(errand.key);
     this.over = reply.quiere === 'echar' && this.trust <= 1;
     this.lines.push({ who: 'npc', text: says });

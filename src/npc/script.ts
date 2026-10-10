@@ -27,6 +27,12 @@ export interface Beat {
   below?: number;
   /** and only after these other moments have passed. */
   after?: string[];
+  /**
+   * The key of something they ask, which this moment is the asking of. Such a moment does not
+   * come up only once: whenever there is nothing else left to say it comes up again, until what
+   * they ask has been taken on. Nobody loses a mission for having answered something else first.
+   */
+  asks?: string;
   options: Option[];
 }
 
@@ -43,12 +49,13 @@ export function passed(script: Script, lines: Line[]): Set<string> {
   return new Set(script.beats.filter(beat => beat.options.some(option => said.has(option.says))).map(beat => beat.id));
 }
 
-/** What is offered now, if anything is left to say. */
-export function offered(script: Script, trust: number, lines: Line[]): Beat | undefined {
+/** What is offered now, if anything is left to say. `took` says whether something they ask has been taken on. */
+export function offered(script: Script, trust: number, lines: Line[], took: (key: string) => boolean = () => false): Beat | undefined {
   const done = passed(script, lines);
-  return script.beats.find(beat => !done.has(beat.id)
-    && trust >= (beat.trust ?? 0) && trust < (beat.below ?? Infinity)
-    && (beat.after ?? []).every(id => done.has(id)));
+  const can = (beat: Beat) => trust >= (beat.trust ?? 0) && trust < (beat.below ?? Infinity) && (beat.after ?? []).every(id => done.has(id));
+  return script.beats.find(beat => !done.has(beat.id) && can(beat))
+    // Nothing new: whatever they ask and has not been taken on is asked again.
+    ?? script.beats.find(beat => beat.asks !== undefined && !took(beat.asks) && can(beat));
 }
 
 /** A voice that answers what was written for whichever option was just said. */

@@ -49,6 +49,11 @@ export interface Errand {
   /** What they are told about it while it is theirs to ask, and once it has been taken on. */
   asks: string;
   taken: string;
+  /**
+   * Words of the hero's that take it on by themselves. A model does not always say that he has
+   * just agreed; the game hears him anyway, unless he has put a "no" before them.
+   */
+  agrees?: string[];
   /** Shown to the player when it is taken on. */
   note: string;
 }

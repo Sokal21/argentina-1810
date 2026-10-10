@@ -53,6 +53,7 @@ export const BRAULIO: Npc = {
       wants: 'encargar_hijo',
       asks: 'Necesitás que alguien cruce el campo de la pelea y busque a tu hijo Tobías: vos no podés ir, está lleno de soldados del rey. Si viene al caso se lo contás a este forastero, aunque te cueste pedir. SOLO si él te dice con claridad que lo va a buscar o que te va a ayudar, se lo agradecés a tu manera, le decís que es flaco y lleva un poncho que le queda grande, y poné "encargar_hijo" en "quiere". Si solo pregunta o duda, no.',
       taken: 'Este forastero te dio su palabra de buscar a tu hijo Tobías. Esperás noticias.',
+      agrees: ['lo busco', 'lo voy a buscar', 'voy a buscarlo', 'te lo busco', 'se lo busco', 'lo encuentro', 'te ayudo', 'lo ayudo', 'le ayudo', 'voy a ayudar', 'cuente conmigo', 'contá conmigo', 'te lo traigo', 'se lo traigo'],
       note: 'Le diste tu palabra a don Braulio: vas a buscar a su hijo.',
     },
   ],

@@ -149,4 +149,13 @@ describe('everyone who can be talked to', () => {
     // He is not asked again: he waits for word.
     expect(talk.brief()).toContain('Esperás noticias');
   });
+
+  it('hears the hero give his word even when the model does not say he did, but not a refusal', async () => {
+    const quiet = async () => ({ dice: 'Hum.', animo: 0, quiere: 'nada' });
+    const no = new Talk(PEOPLE.braulio, 'cabral', quiet);
+    expect((await no.say('Yo no lo busco, tengo órdenes.')).agreed).toEqual([]);
+    expect((await no.say('¿Dónde lo vieron?')).agreed).toEqual([]);
+    const yes = new Talk(PEOPLE.braulio, 'cabral', quiet);
+    expect((await yes.say('Quédese tranquilo, don: yo se lo busco.')).agreed.map(e => e.key)).toEqual(['hijo']);
+  });
 });

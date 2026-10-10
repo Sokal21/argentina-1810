@@ -12,7 +12,7 @@ async function play(script: Script, choose: (options: Option[], turn: number) =>
   const talk = new Talk(npc, 'cabral', scripted(script));
   const leaked: string[] = [];
   for (let turn = 0; turn < 60 && !talk.over; turn++) {
-    const beat = offered(script, talk.trust, talk.lines);
+    const beat = offered(script, talk.trust, talk.lines, key => talk.took(key));
     if (!beat) break;
     const option = choose(beat.options, turn);
     const before = talk.trust;
@@ -106,4 +106,26 @@ describe('what was written for each of them', () => {
       });
     });
   }
+
+  it('asks again what don Braulio asks until it is taken on, whatever was answered first', async () => {
+    const script = SCRIPTS.braulio;
+    // Someone who always says the plain thing: he never earns more trust than he came with.
+    const talk = new Talk(PEOPLE.braulio, 'cabral', scripted(script));
+    const plainest = (options: Option[]) => options.find(o => o.animo === 0 && !o.quiere) ?? options[0];
+    for (let turn = 0; turn < 12; turn++) {
+      const beat = offered(script, talk.trust, talk.lines, key => talk.took(key));
+      if (!beat || beat.asks) break;
+      await talk.say(plainest(beat.options).says);
+    }
+    // It has come to the asking, without his having won anything.
+    expect(talk.trust).toBe(PEOPLE.braulio.trust);
+    expect(offered(script, talk.trust, talk.lines, key => talk.took(key))?.asks).toBe('hijo');
+    // He answers something else, and is asked again.
+    await talk.say('¿Y por qué no fue nadie a buscarlo?');
+    const again = offered(script, talk.trust, talk.lines, key => talk.took(key));
+    expect(again?.asks).toBe('hijo');
+    const turn = await talk.say(again!.options.find(o => o.quiere === 'encargar_hijo')!.says);
+    expect(turn.agreed.map(e => e.key)).toEqual(['hijo']);
+    expect(offered(script, talk.trust, talk.lines, key => talk.took(key))?.asks).toBeUndefined();
+  });
 });

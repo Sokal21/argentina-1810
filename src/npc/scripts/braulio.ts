@@ -144,6 +144,31 @@ export const BRAULIO: Script = {
       ],
     },
     {
+      // What he asks, put plainly. It needs no trust, only that he has spoken of the boy; and it
+      // comes up again whenever there is nothing else to say, until the hero gives his word.
+      id: 'palabra',
+      after: ['tobias'],
+      asks: 'hijo',
+      options: [
+        {
+          says: 'Si hay un chico perdido en ese campo, yo lo busco.',
+          answer: 'Tobías se llama. Flaco, de catorce, con un poncho colorado que le queda grande. Vos podés ir adonde yo no: traeme aunque sea noticia.',
+          animo: 1,
+          quiere: 'encargar_hijo',
+        },
+        {
+          says: '¿Y por qué no fue nadie a buscarlo?',
+          answer: 'Porque ese campo está lleno de godos que le tiran a lo que se mueva, y acá quedamos viejos y mujeres. Hace falta uno que sepa pelear.',
+          animo: 0,
+        },
+        {
+          says: 'No es asunto mío, don.',
+          answer: 'No, tuyo no es. Es mío, y acá me tenés, sirviendo tragos mientras mi hijo anda quién sabe dónde.',
+          animo: -1,
+        },
+      ],
+    },
+    {
       id: 'propio',
       trust: 3,
       options: [
