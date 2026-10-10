@@ -108,6 +108,8 @@ interface Orb extends Vec { t: number; glow: Phaser.GameObjects.Image; shadow: P
 const TALK = { near: 52, heard: 84, trial: [-140, -80] as [number, number], standIn: 'pulpero/sprite.png' };
 /** Someone standing on the map: one to talk to (`npc`), or one who only says what the sign over them shows. */
 interface Talker { name: string; npc?: Npc; x: number; y: number; hint: Phaser.GameObjects.Text }
+// The sign over them comes up and goes out over this long, in seconds.
+const HINT_FADE = { in: 0.35, out: 0.6 };
 
 /** Anything that can be fought. */
 type Foe = Enemy | Chonchon | Realista;
@@ -154,6 +156,8 @@ export class GameScene extends Phaser.Scene {
   private calling: number | null = null;
   /** Those who can be talked to, each with the sign shown over them when one is near enough. */
   private talkers: Talker[] = [];
+  /** Whichever of them the hero is near enough to talk to or to hear, if any. */
+  private beside?: Talker;
   /** The orbs Inti's kills leave on the ground for a while. */
   private orbs: Orb[] = [];
   /** Which enemies stood at the last step, to tell when one falls. */
@@ -388,7 +392,7 @@ export class GameScene extends Phaser.Scene {
         const hint = this.add.text(x, y - 92, 'F · hablar', {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4',
           stroke: '#14110f', strokeThickness: 3,
-        }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false);
+        }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
         this.talkers.push({ name: npc.name, npc, x, y, hint });
       }
       // Those who are not talked to: what each has to say shows over them when one comes near.
@@ -403,11 +407,11 @@ export class GameScene extends Phaser.Scene {
         const hint = this.add.text(x, y - figure.height - 6, `«${one.says}»`, {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
           stroke: '#14110f', strokeThickness: 3, wordWrap: { width: 150 },
-        }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false);
+        }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
         this.talkers.push({ name: one.name, x, y, hint });
       }
       this.input.keyboard?.on('keydown-F', () => {
-        const near = this.talkers.find(t => t.npc && t.hint.visible);
+        const near = this.beside;
         if (!near?.npc || !this.vitals.standing) return;
         openDialog(this.game, this.hero, near.npc, { heal: () => this.vitals.heal(LIFE) });
       });
@@ -558,13 +562,18 @@ export class GameScene extends Phaser.Scene {
     this.lightning.update(dt);
     this.updateGrenades(dt);
     this.updateOrbs(dt);
-    // Only the nearest of those within reach offers to talk.
+    // Only the nearest of those within reach offers to talk, or is heard. The sign over
+    // them comes up as one draws near and goes out as one leaves, rather than snapping.
     let nearest: Talker | undefined;
     for (const talker of this.talkers) {
-      talker.hint.setVisible(false);
       if (ground(talker, this.machi) <= (talker.npc ? TALK.near : TALK.heard) && (!nearest || ground(talker, this.machi) < ground(nearest, this.machi))) nearest = talker;
     }
-    nearest?.hint.setVisible(true);
+    this.beside = nearest;
+    for (const { hint } of this.talkers) {
+      const shown = hint === nearest?.hint;
+      const alpha = Phaser.Math.Clamp(hint.alpha + (shown ? dt / HINT_FADE.in : -dt / HINT_FADE.out), 0, 1);
+      if (alpha !== hint.alpha) hint.setAlpha(alpha).setVisible(alpha > 0);
+    }
     this.drawCuts(dt);
     this.flash = Math.max(0, this.flash - dt / FLASH);
     this.draw();
