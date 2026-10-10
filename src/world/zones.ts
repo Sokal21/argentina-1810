@@ -18,6 +18,8 @@ export interface Zone {
   scatter?: Record<string, number>;
   /** What people have put up along its edge, where it meets ground nobody can cross. */
   fence?: 'stakes' | 'wall';
+  /** How many soldiers hold it. */
+  foes?: number;
   /**
    * Water: `ford` is shallow water one wades through, `marsh` wet ground
    * with standing pools, and `shore` dry ground beside water, which makes

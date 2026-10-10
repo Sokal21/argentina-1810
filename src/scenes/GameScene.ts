@@ -30,9 +30,10 @@ import { Country, loadCountry, loadFences, raiseBuildings, raiseFences } from '.
 import { bosquePatagonico } from '../world/maps/bosque';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
+import { garrison, leftBehind, type Post } from '../world/garrison';
 import { Sight } from '../world/sight';
 import { Vitals } from '../world/vitals';
-import { extent, middle, walk, type WorldMap } from '../world/zones';
+import { extent, middle, walk, zoneAt, type WorldMap } from '../world/zones';
 
 const ZOOM = 2;            // screen pixels per sprite pixel
 const FIELD = { width: 1280, height: 800 }; // the bare field, in sprite pixels
@@ -90,6 +91,8 @@ const STURDY = { at: [60, -120] as [number, number], life: 40 };
 const CHONCHONES: [number, number][] = [[110, -70], [-90, 80]];
 // And the royalist soldiers, who are all Cabral meets.
 const REALISTAS: [number, number][] = [[190, 50], [-170, -60], [40, 150]];
+// How far from the hero a soldier at a post is still seen to and drawn: well past the edge of the screen.
+const AWAKE = { x: 760, y: 460 };
 
 // An orb left by something Inti killed.
 const ORB = { height: 12, reach: 22, warning: 1.2 };
@@ -171,6 +174,8 @@ export class GameScene extends Phaser.Scene {
   private enemies: Enemy[] = [];
   private chonchones: Chonchon[] = [];
   private realistas: Realista[] = [];
+  /** The post each soldier who holds one stands at. */
+  private posts = new Map<Realista, Post>();
   /** What the royalists fire. */
   private shots!: Bolts;
   private abilities = new Abilities();
@@ -251,7 +256,16 @@ export class GameScene extends Phaser.Scene {
     // enemy's; the bolt ends there and the enemy takes the hit.
     const bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
     this.chonchones = his ? [] : at(CHONCHONES, (x, y) => new Chonchon(this, x, y, bounds));
-    this.realistas = his ? at(REALISTAS, (x, y) => new Realista(this, x, y, bounds)) : [];
+    // A map that says who holds it is held by them, each at his post; otherwise a few to try things on.
+    const map = this.map, held = his && map ? garrison(map) : [];
+    this.posts.clear();
+    this.realistas = !his ? [] : held.length && map
+      ? held.map(post => {
+        const soldier = new Realista(this, post.x, post.y, bounds).hold((x, y) => zoneAt(map, x, y) !== undefined);
+        this.posts.set(soldier, post);
+        return soldier;
+      })
+      : at(REALISTAS, (x, y) => new Realista(this, x, y, bounds));
     for (const foe of this.foes) this.physics.add.overlap(this.bolts.bodies, foe.zone, this.struck);
     this.balls = new Bolts(this, this.size.width, this.size.height, BALL);
     // What the enemies throw, and the part of her it can hit.
@@ -457,6 +471,14 @@ export class GameScene extends Phaser.Scene {
     }
     // Royalists shoot from where they stand, and cut whoever is beside them.
     for (const realista of this.realistas) {
+      // One too far off to be seen or to see is left as he is. If he has fallen and the
+      // zone he held is left behind, he is back at his post, where nobody saw him come.
+      const post = this.posts.get(realista), at = realista.ground;
+      if (post && (Math.abs(at.x - this.machi.x) > AWAKE.x || Math.abs(at.y - this.machi.y) > AWAKE.y)) {
+        if (!realista.alive && this.map && leftBehind(this.map, post, this.machi)) realista.revive();
+        realista.sleep();
+        continue;
+      }
       const drawn = feet && this.nahuel.lures(realista.ground, feet);
       const { shot, cut } = realista.update(dt * tune.foes, drawn ? this.nahuel.ground : feet);
       if (shot) this.shots.spawn(shot);

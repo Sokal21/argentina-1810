@@ -113,3 +113,24 @@ describe('royalist soldier', () => {
     expect(b.x).toBe(her.x + 150);
   });
 });
+
+describe('a soldier who holds a post', () => {
+  it('stays down once he has fallen, until he is called back', () => {
+    const b = new RealistaBrain(0, 0, undefined, () => 0.5);
+    b.returns = false;
+    for (let n = 0; n < LIFE; n++) b.hit(1, 0);
+    for (let t = 0; t < DYING + RESPAWN * 3; t += 0.05) b.update(0.05, null);
+    expect(b.alive).toBe(false);
+    b.revive();
+    expect(b.alive).toBe(true);
+    expect(b.life).toBe(LIFE);
+    expect([b.x, b.y]).toEqual([0, 0]);
+  });
+
+  it('does not leave the ground he is given, however far whoever he is after goes', () => {
+    const b = new RealistaBrain(0, 0, undefined, () => 0.5);
+    b.ground = x => x < 20;
+    for (let t = 0; t < 30; t += 0.05) b.update(0.05, { x: 250, y: 0 });
+    expect(b.x).toBeLessThan(20);
+  });
+});

@@ -113,6 +113,25 @@ export class Realista {
     this.flash = 1;
   }
 
+  /** Makes him hold a post: he walks only on the ground he is given, and once fallen is back only when called. */
+  hold(ground: (x: number, y: number) => boolean): this {
+    this.brain.returns = false;
+    this.brain.ground = ground;
+    return this;
+  }
+
+  /** Puts him back at his post, whole, if he has fallen. */
+  revive(): void {
+    this.brain.revive();
+    this.shown = this.brain.life;
+  }
+
+  /** Leaves him out of the drawing while nobody is near enough to see him; his next step shows him again. */
+  sleep(): void {
+    if (!this.sprite.visible && !this.shadow.visible) return;
+    for (const part of [this.sprite, this.shadow, this.barBack, this.bar]) part.setVisible(false);
+  }
+
   /** Advances him. `her` is where she stands, if she can be attacked. Returns what he did this step. */
   update(dt: number, her: Vec | null): Deed {
     const deed = this.brain.update(dt, her);

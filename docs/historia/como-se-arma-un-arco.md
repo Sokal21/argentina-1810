@@ -204,6 +204,7 @@ Las etapas de este arco están en beads, encadenadas, bajo la épica
 | 13 | Los enemigos | Los tipos nuevos y el capitán |
 | 14 | Guardar la partida | Se puede cerrar y seguir |
 | 15 | El modelo fuera de la máquina | Las charlas andan en el juego publicado |
+| 16 | Prueba y ajuste | Se jugó entero y se afinó lo que se fue dejando: cantidades, tonos, bordes |
 
 ## Por qué en ese orden
 
@@ -405,3 +406,28 @@ blanco de los plumones).*
   bloques oscuros; y el tono oliva del suelo, que pasó a amarillo paja.
 - **Qué enseñó:** lo provisorio de una etapa hay que sacarlo en cuanto la
   siguiente lo reemplaza, no dejarlo debajo.
+
+## Etapa 3 · Poblar el camino
+
+*Cerrada.*
+
+- **Qué se hizo:** cada tramo dice cuántos soldados lo guardan (`foes` en la
+  zona) y una regla los para en piquetes de dos o tres, separados, en su
+  terreno abierto (`src/world/garrison.ts`). Son 48 en el mapa; el pueblo y
+  la capilla no tienen ninguno, y la orilla norte queda vacía para la
+  emboscada del final.
+- **Lo que pidió el usuario:** que no reaparezcan a la vista. Antes un
+  soldado volvía solo a los siete segundos, y verlo aparecer quedaba raro.
+  Ahora el que cae queda caído mientras el héroe ande por ahí, y vuelve a su
+  puesto solo cuando la zona quedó atrás: el héroe está en otra y a más de
+  una pantalla. Volver sobre los pasos encuentra el tramo repoblado.
+- **Lo que hubo que agregarle al soldado:** que no salga de lo caminable
+  (antes perseguía por encima del pajonal) y que, lejos del héroe, ni se
+  dibuje ni se mueva: con 48 en el mapa se atienden los dos o tres que hay
+  cerca.
+- **Qué quedó para la etapa 16:** las cantidades por tramo son un primer
+  tanteo, y un soldado que pierde al héroe se queda donde lo perdió en vez
+  de volver a su puesto.
+- **Qué enseñó:** el ajuste fino no se hace al construir. Se anota y se deja
+  para cuando se pueda jugar el arco entero; por eso se agregó una etapa de
+  prueba al final.

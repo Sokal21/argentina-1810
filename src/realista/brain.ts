@@ -59,6 +59,10 @@ export class RealistaBrain {
   private rest = 0;
   private landed = false;
   private home: Vec;
+  /** Whether he is back on his own a while after he falls. One who holds a post is not: he waits to be called. */
+  returns = true;
+  /** The ground he can walk on, if not all of it. */
+  ground?: (x: number, y: number) => boolean;
 
   constructor(x: number, y: number, private bounds?: Bounds, private rnd: () => number = Math.random) {
     this.x = x;
@@ -124,7 +128,7 @@ export class RealistaBrain {
         if (this.t >= DYING) this.enter('gone');
         return NOTHING;
       case 'gone':
-        if (this.t >= RESPAWN) this.respawn();
+        if (this.returns && this.t >= RESPAWN) this.respawn();
         return NOTHING;
     }
   }
@@ -154,10 +158,18 @@ export class RealistaBrain {
     this.back = to.y < 0;
   }
 
+  /** Puts him back at his post, whole, if he has fallen. */
+  revive(): void {
+    if (!this.alive) this.respawn();
+  }
+
   // Moves along the ground; the vertical part is foreshortened on screen.
+  // Ground he cannot walk on stops him, and he slides along its edge.
   private move(dx: number, dy: number): void {
-    this.x += dx;
-    this.y += dy * ISO_Y;
+    const x = this.x + dx, y = this.y + dy * ISO_Y, on = this.ground;
+    if (!on || on(x, y)) { this.x = x; this.y = y; }
+    else if (on(x, this.y)) this.x = x;
+    else if (on(this.x, y)) this.y = y;
     if (!this.bounds) return;
     this.x = Math.min(this.bounds.maxX, Math.max(this.bounds.minX, this.x));
     this.y = Math.min(this.bounds.maxY, Math.max(this.bounds.minY, this.y));
