@@ -44,12 +44,17 @@ const STYLE = `
   #sheet .bar i { display: block; height: 100%; background: var(--accent); }
   #sheet .xp { color: var(--faint); }
   #sheet .points { color: var(--good); }
-  #sheet .stat { display: grid; grid-template-columns: 1fr auto 1.2em; gap: 0 6px; align-items: baseline; }
+  #sheet .stat { display: grid; grid-template-columns: 1fr auto auto; gap: 0 6px; align-items: baseline; min-height: calc(11px * var(--k) + 2px); }
   #sheet .stat span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #sheet .stat em { font-style: normal; color: var(--good); }
-  #sheet .stat button { all: unset; cursor: pointer; text-align: center; color: #f0e3c4; background: var(--good); }
+  /* A stud drawn for each hero, eleven pixels square: its second drawing, brighter, is shown when pointed at. */
+  #sheet .stat button {
+    all: unset; cursor: pointer; align-self: center; width: calc(11px * var(--k)); height: calc(11px * var(--k));
+    background: var(--plus) 0 0 / 200% 100% no-repeat; image-rendering: pixelated;
+  }
   #sheet .stat button[disabled] { visibility: hidden; }
-  #sheet .stat button:hover, #sheet .stat button:focus-visible { background: var(--accent); }
+  #sheet .stat button:hover, #sheet .stat button:focus-visible { background-position: 100% 0; }
+  #sheet .stat button:active { transform: translate(1px, 1px); }
   #sheet ul { margin: 0; padding: 0; list-style: none; }
   #sheet li { margin-top: 2px; }
   #sheet .none { color: var(--faint); }
@@ -80,7 +85,7 @@ export function mountSheet(game: Phaser.Game): void {
     const stats = STATS.map(stat => {
       // What it has come to, as so much more than it began at.
       const more = Math.round(STEP[stat] * growth.spent[stat] * 100);
-      const add = el('button', { textContent: '+', disabled: !growth.can(stat) });
+      const add = el('button', { disabled: !growth.can(stat), ariaLabel: `Un punto en ${names[stat].name}` });
       add.addEventListener('mousedown', e => e.preventDefault());
       add.addEventListener('click', () => { if (s.spend(stat)) draw(); });
       const locked = stat === 'ultimate' && growth.spent.ultimate >= growth.greatest;
@@ -98,7 +103,7 @@ export function mountSheet(game: Phaser.Game): void {
     };
     const book = el('div', {
       className: 'book',
-      style: `width:${page.w * k}px;height:${page.h * k}px;background-image:url(${page.src});--ink:${page.ink};--accent:${page.accent};--good:${page.good};--faint:${page.faint}`,
+      style: `width:${page.w * k}px;height:${page.h * k}px;background-image:url(${page.src});--k:${Math.min(k, 2)};--plus:url(hud/mas_${hero}.png);--ink:${page.ink};--accent:${page.accent};--good:${page.good};--faint:${page.faint}`,
     } as never,
       side(0,
         el('div', { className: 'top' }, el('h1', {}, HEROES[hero]), el('span', {}, `Nivel ${growth.level}`)),
