@@ -59,6 +59,7 @@ export const BRAULIO: Npc = {
   ],
   greets: 'Buenas. ¿Qué se le ofrece?',
   closed: 'Don Braulio sigue secando un jarro y no levanta la vista. Para vos la posada está cerrada.',
+  sells: ['venda', 'odre', 'sable'],
   portrait: 'pulpero/retrato.png',
   sprite: 'pulpero/sprite.png',
   // Wiping the jug he never puts down.

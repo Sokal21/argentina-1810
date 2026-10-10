@@ -1,3 +1,4 @@
+import { mountShop } from './shop';
 import { mountSheet } from './sheet';
 import Phaser from 'phaser';
 import { controls, EFFECTS, fx, setEffect, setMouseControl, type Effect } from './fx/settings';
@@ -30,6 +31,7 @@ if (import.meta.env.DEV) {
 }
 
 mountSheet(game);
+mountShop(game);
 
 // The effects, in the menu that pausing opens, and their number keys; 0 turns everything off.
 const bar = document.getElementById('fx')!;

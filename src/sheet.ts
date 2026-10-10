@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import type { Hero } from './machi/data';
 import { NAMES, STATS, STEP, toNext } from './machi/growth';
+import { ITEMS, PLACES, type Place } from './machi/pack';
 import { PEOPLE } from './npc/people';
 import type { GameScene } from './scenes/GameScene';
 import { THINGS } from './story/things';
@@ -55,6 +56,17 @@ const STYLE = `
   #sheet .stat button[disabled] { visibility: hidden; }
   #sheet .stat button:hover, #sheet .stat button:focus-visible { background-position: 100% 0; }
   #sheet .stat button:active { transform: translate(1px, 1px); }
+  #sheet img { image-rendering: pixelated; }
+  #sheet .tabs { display: flex; gap: 10px; border-bottom: 2px solid var(--faint); }
+  #sheet .tabs button { all: unset; cursor: pointer; color: var(--faint); }
+  #sheet .tabs button.on { color: var(--accent); }
+  #sheet .tabs button:hover { color: var(--ink); }
+  #sheet .gold { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+  #sheet .place { display: flex; justify-content: space-between; gap: 8px; }
+  #sheet .place .what { color: var(--faint); }
+  #sheet .thing { display: grid; grid-template-columns: auto 1fr auto; gap: 0 6px; align-items: center; }
+  #sheet .thing button { all: unset; cursor: pointer; padding: 0 6px; color: #f0e3c4; background: var(--accent); }
+  #sheet .thing button[disabled] { visibility: hidden; }
   #sheet ul { margin: 0; padding: 0; list-style: none; }
   #sheet li { margin-top: 2px; }
   #sheet .none { color: var(--faint); }
@@ -97,6 +109,33 @@ export function mountSheet(game: Phaser.Game): void {
     // What they were told is in the words of whoever told it, or of the story itself.
     const notes = Object.fromEntries(Object.values(PEOPLE).flatMap(p => p.favours.map(f => [f.key, f.note.replace(/^Dato conseguido: /, '')])));
     const told = (key: string) => (notes[key] ?? FACTS[`sabe:${key}`] ?? key).replace(/^./, first => first.toUpperCase());
+    const tabButton = (name: typeof tab, label: string) => {
+      const b = el('button', { textContent: label, className: name === tab ? 'on' : '' });
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { tab = name; draw(); });
+      return b;
+    };
+    // What they own: their money, what they wear in each place, and what they have to use up.
+    const bag = () => {
+      const pack = s.pack, kk = Math.min(k, 2);
+      const icon = (src: string) => { const img = el('img', { src, alt: '' }); img.addEventListener('load', () => { img.width = img.naturalWidth * kk; }); return img; };
+      const worn = (Object.keys(PLACES) as Place[]).map(place => {
+        const id = pack.worn[place], item = id ? ITEMS[id] : undefined;
+        return el('div', { className: 'place', title: item?.does ?? '' }, el('span', { className: 'what' }, PLACES[place]), el('span', { className: item ? '' : 'none' }, item?.name ?? '—'));
+      });
+      const uses = Object.entries(pack.bag).filter(([, n]) => n > 0).map(([id, n]) => {
+        const item = ITEMS[id];
+        const use = el('button', { textContent: 'usar', disabled: !s.useful(id) });
+        use.addEventListener('mousedown', e => e.preventDefault());
+        use.addEventListener('click', () => { if (s.use(id)) draw(); });
+        return el('div', { className: 'thing', title: item.does }, icon(item.icon), el('span', {}, `${item.name} ×${n}`), use);
+      });
+      return [
+        el('div', { className: 'gold' }, icon('cosas/moneda.png'), `${pack.gold} reales`),
+        el('h2', {}, 'Lleva puesto'), ...worn,
+        el('h2', {}, 'Para usar'), ...(uses.length ? uses : [el('div', { className: 'none' }, 'Nada todavía.')]),
+      ];
+    };
     const side = (n: 0 | 1, ...kids: (Node | string)[]) => {
       const at = page.sides[n];
       return el('div', { className: 'side', style: `left:${at.x * k}px;top:${at.y * k}px;width:${at.w * k}px;height:${at.h * k}px` } as never, ...kids);
@@ -114,13 +153,17 @@ export function mountSheet(game: Phaser.Game): void {
           el('span', { className: 'points' }, growth.points ? `${growth.points} ${growth.points === 1 ? 'punto' : 'puntos'}` : '')),
         ...stats),
       side(1,
-        ...list('Lleva', has.map(what => THINGS[what]?.name ?? what), 'Nada todavía.'),
-        ...list('Sabe', knows.map(told), 'Nada todavía.')));
+        el('div', { className: 'tabs' }, tabButton('bolsa', 'Bolsa'), tabButton('cuaderno', 'Cuaderno')),
+        ...(tab === 'bolsa' ? bag() : [
+          ...list('Lleva', has.map(what => THINGS[what]?.name ?? what), 'Nada todavía.'),
+          ...list('Sabe', knows.map(told), 'Nada todavía.'),
+        ])));
     root.replaceChildren(book, el('span', { className: 'foot' }, 'I para volver'));
   };
   addEventListener('resize', () => { if (open) draw(); });
 
   let open = false;
+  let tab: 'bolsa' | 'cuaderno' = 'bolsa';
   const toggle = () => {
     const s = scene();
     // Not while talking, nor while the game is stopped for something else.

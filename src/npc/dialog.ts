@@ -32,6 +32,11 @@ export interface Effects {
 // Each remembers each hero for as long as the page is open, and one who has had enough stays so.
 const talks = new Map<string, Talk>();
 
+/** Whether someone has had enough of a hero, and will have no more to do with them. */
+export function closedTo(hero: Hero, npc: Npc): boolean {
+  return !!talks.get(`${hero}:${npc.id}`)?.over;
+}
+
 /** Whether every one of some people has had enough of a hero: nobody is left to talk to. */
 export function shunned(hero: Hero, people: Npc[]): boolean {
   return people.length > 0 && people.every(npc => talks.get(`${hero}:${npc.id}`)?.over);

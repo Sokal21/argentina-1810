@@ -24,6 +24,8 @@ export interface Npc {
   sprite?: string;
   /** What they do while they stand there, once it has been drawn. */
   idle?: Idle;
+  /** What they sell, by the names the things are known by. */
+  sells?: string[];
   /** The colour their side of a conversation is lit in. */
   accent: string;
 }

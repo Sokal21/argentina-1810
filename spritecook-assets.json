@@ -1885,6 +1885,26 @@
       "asset_id": "2d07b0e8-ab4e-4918-b409-cb3f774b370e",
       "label": "hud: the hero's page, empty, hoja_inti_2",
       "file": "assets/hud/concept/hoja_inti_2.png"
+    },
+    {
+      "asset_id": "88bd012c-b7f3-47a4-a4d8-048ec23f90f7",
+      "label": "shop: tienda_1",
+      "file": "assets/hud/concept/tienda_1.png"
+    },
+    {
+      "asset_id": "3e4934b8-4758-468b-931f-ac9cb888e4d0",
+      "label": "shop: tienda_2",
+      "file": "assets/hud/concept/tienda_2.png"
+    },
+    {
+      "asset_id": "c5235b9d-2760-4a62-99fb-ae98cff7d5a3",
+      "label": "shop: items_1",
+      "file": "assets/cosas/concept/items_1.png"
+    },
+    {
+      "asset_id": "45de76fa-b074-4a85-9ae3-8bdfb3232bf2",
+      "label": "shop: items_2",
+      "file": "assets/cosas/concept/items_2.png"
     }
   ]
 }

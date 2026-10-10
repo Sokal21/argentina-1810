@@ -111,7 +111,7 @@ interface Panel {
   /** Their flask, in the last slot, and how many draughts are left in it. */
   flask: { icon: Phaser.GameObjects.Image; left: Phaser.GameObjects.Text };
   /** How far toward the next level: a thin bar over the slots, with the level beside it. */
-  growth: { bar: Phaser.GameObjects.Rectangle; top: Phaser.GameObjects.Rectangle; level: Phaser.GameObjects.Text; points: Phaser.GameObjects.Text };
+  growth: { bar: Phaser.GameObjects.Rectangle; top: Phaser.GameObjects.Rectangle; level: Phaser.GameObjects.Text; points: Phaser.GameObjects.Text; gold: Phaser.GameObjects.Text };
 }
 
 /**
@@ -131,6 +131,7 @@ export class HudScene extends Phaser.Scene {
   preload(): void {
     for (const { frame, skills, ultimate, flask, bar } of Object.values(LAYOUTS)) {
       this.load.image(bar.src, bar.src);
+      this.load.image('cosas/moneda_chica.png', 'cosas/moneda_chica.png');
       if (ultimate) this.load.image(ultimate, ultimate);
       this.load.image(flask, flask);
       this.load.image(frame, frame);
@@ -211,8 +212,12 @@ export class HudScene extends Phaser.Scene {
     const top = this.add.rectangle(gx, gy, 0, 1, drawn.fill[1]).setOrigin(0, 0);
     const level = this.add.text(drawn.x + drawn.level.x, drawn.y + drawn.level.y, '', caps).setOrigin(0.5, 0.5);
     const points = this.add.text(gx + drawn.channel.w / 2, drawn.y - 2, '', { ...caps, color: '#8fd18a' }).setOrigin(0.5, 1);
+    // Their money, with a coin beside it, at the bar's far end.
+    const right = drawn.x + this.textures.get(drawn.src).getSourceImage().width;
+    const gold = this.add.text(right - 12, drawn.y - 2, '', caps).setOrigin(1, 1);
+    const coin = this.add.image(right, drawn.y - 3, 'cosas/moneda_chica.png').setOrigin(1, 1);
     // The channel is drawn dark and solid, so what fills it is laid over it.
-    box.add([this.add.image(drawn.x, drawn.y, drawn.src).setOrigin(0, 0), bar, top, level, points]);
+    box.add([this.add.image(drawn.x, drawn.y, drawn.src).setOrigin(0, 0), bar, top, level, points, gold, coin]);
     // Pointing at a slot brings up a note on what it does.
     for (let i = 0; i <= layout.skills.length + 1; i++) {
       const zone = this.add.zone(layout.slot.x + layout.slot.step * i, layout.slot.y, ICON, ICON)
@@ -221,7 +226,7 @@ export class HudScene extends Phaser.Scene {
       zone.on('pointerout', () => this.hideNote(hero, i));
       box.add(zone);
     }
-    return { box, layout, glasses, slots, charge, power, flask: { icon: flaskIcon, left }, growth: { bar, top, level, points } };
+    return { box, layout, glasses, slots, charge, power, flask: { icon: flaskIcon, left }, growth: { bar, top, level, points, gold } };
   }
 
   update(time: number, delta: number): void {
@@ -254,6 +259,7 @@ export class HudScene extends Phaser.Scene {
       panel.growth.top.setSize(filled, 1);
       panel.growth.level.setText(String(growth.level));
       panel.growth.points.setText(growth.points ? `+${growth.points} · I` : '');
+      panel.growth.gold.setText(String(game.pack.gold));
       // Empty, the flask is dull until somewhere safe is reached.
       const { left } = game.draughts;
       panel.flask.left.setText(String(left)).setColor(left ? '#f0e3c4' : '#8a4a3a');

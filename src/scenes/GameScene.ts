@@ -6,7 +6,7 @@ import { Charge, ULTIMATE } from '../machi/ultimate';
 import { RAGE, Rage } from '../machi/rage';
 import { NAHUEL } from '../nahuel/brain';
 import { Nahuel } from '../nahuel/Nahuel';
-import { openDialog } from '../npc/dialog';
+import { closedTo, openDialog } from '../npc/dialog';
 import type { Idle, Npc } from '../npc/npc';
 import { BYSTANDERS } from '../npc/bystanders';
 import { BRAULIO, PEOPLE } from '../npc/people';
@@ -34,8 +34,9 @@ import { bosquePatagonico } from '../world/maps/bosque';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
 import { garrison, leftBehind, type Post } from '../world/garrison';
-import { DRINKING, Flask, FLASKS } from '../machi/flask';
+import { DRAUGHTS, DRINKING, Flask, FLASKS } from '../machi/flask';
 import { GROWTHS, toNext, WORTH, type Growth, type Stat } from '../machi/growth';
+import { ITEMS, PACKS, SPOILS, type Pack } from '../machi/pack';
 import { MEND, Mending } from '../fx/mend';
 import { Sight } from '../world/sight';
 import { trail } from '../world/trail';
@@ -116,8 +117,8 @@ interface Orb extends Vec { t: number; glow: Phaser.GameObjects.Image; shadow: P
 const TALK = { near: 52, heard: 84, trial: [-140, -80] as [number, number], standIn: 'pulpero/sprite.png' };
 /** Someone standing on the map: one to talk to (`npc`), or one who only says what the sign over them shows. */
 interface Talker { name: string; npc?: Npc; x: number; y: number; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image } }
-// How near a named place counts as having come to it, in plots.
-const ARRIVED = 1;
+// How near a named place counts as having come to it, in plots; and how many blows of life a bandage gives back.
+const ARRIVED = 1, MENDS = 2;
 // The sign over them comes up and goes out over this long, in seconds.
 const HINT_FADE = { in: 0.35, out: 0.6 };
 
@@ -411,7 +412,7 @@ export class GameScene extends Phaser.Scene {
             stroke: '#14110f', strokeThickness: 3,
           }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio);
         }
-        const hint = this.add.text(x, y - 92, 'F · hablar', {
+        const hint = this.add.text(x, y - 92, npc.sells?.length ? 'F · hablar   T · comprar' : 'F · hablar', {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4',
           stroke: '#14110f', strokeThickness: 3,
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
@@ -500,7 +501,13 @@ export class GameScene extends Phaser.Scene {
       this.story = new Story(his && this.map === vadoDeLasVizcachas ? VADO : []);
       this.board = mountBoard(this.story, FACTS);
       // A mission done is worth experience.
-      this.story.listen(news => { for (const n of news) if (n.kind === 'done' && n.quest.xp) this.earn(n.quest.xp); });
+      this.story.listen(news => {
+        for (const n of news) {
+          if (n.kind !== 'done') continue;
+          if (n.quest.gold) { this.pack.gold += n.quest.gold; this.board?.say(`+${n.quest.gold} reales`); }
+          if (n.quest.xp) this.earn(n.quest.xp);
+        }
+      });
       this.grown();
       this.vitals.life = this.vitals.max;
       this.plotWas = '';
@@ -1225,6 +1232,37 @@ export class GameScene extends Phaser.Scene {
     return true;
   }
 
+  /** What the hero being played owns. */
+  get pack(): Pack {
+    return PACKS[this.hero];
+  }
+
+  /** Whoever sells and is near enough to buy from, if they will still have dealings with the hero. */
+  get seller(): Npc | undefined {
+    const npc = this.beside?.npc;
+    return npc?.sells?.length && !closedTo(this.hero, npc) ? npc : undefined;
+  }
+
+  /** Buys one of something. Says whether it did. */
+  buy(id: string): boolean {
+    return this.pack.buy(id, this.hero);
+  }
+
+  /** Whether using one of something now would do anything. */
+  useful(id: string): boolean {
+    const use = ITEMS[id]?.use;
+    return use === 'mend' ? this.vitals.standing && this.vitals.life < this.vitals.max : use === 'refill' ? this.flask.left < DRAUGHTS : false;
+  }
+
+  /** Uses one of something bought to be used up, if it would do anything. Says whether it did. */
+  use(id: string): boolean {
+    if (!this.useful(id)) return false;
+    const use = this.pack.take(id);
+    if (use === 'mend') { this.vitals.heal(MENDS); this.mending?.begin(MEND.life, this.machi); }
+    else if (use === 'refill') this.flask.refill();
+    return !!use;
+  }
+
   /** How the hero being played has grown. */
   get growth(): Growth {
     return GROWTHS[this.hero];
@@ -1236,8 +1274,12 @@ export class GameScene extends Phaser.Scene {
    */
   private wound(foe: Foe, dx: number, dy: number, amount: number, stat?: Stat): void {
     if (!foe.alive) return;
-    foe.hit(dx, dy, amount * (stat ? this.growth.gives(stat) : 1));
-    if (!foe.alive) this.earn(foe instanceof Realista ? WORTH.realista : foe instanceof Chonchon ? WORTH.chonchon : WORTH.cubo);
+    foe.hit(dx, dy, amount * (stat ? this.growth.gives(stat) * this.pack.gives(stat) : 1));
+    if (foe.alive) return;
+    // Bringing it down is worth experience, and it leaves what it had on it.
+    const kind = foe instanceof Realista ? 'realista' : foe instanceof Chonchon ? 'chonchon' : 'cubo';
+    this.pack.gold += SPOILS[kind];
+    this.earn(WORTH[kind]);
   }
 
   /** The hero earns experience, and is told when it comes to a level. */

@@ -637,3 +637,32 @@ quedan anotadas para mejorar más adelante, en la etapa 16.*
   punto: uno en vida es un golpe entero más; dos en el sable son un
   sablazo menos por soldado. Si los niveles llegan de a poco, cada punto
   tiene que notarse.
+
+## Etapa 8 · Oro, tienda, inventario y cuaderno
+
+*Hecha, esperando el visto bueno.*
+
+- **Qué decidió el usuario:** solo tienda (se compra; nada de mejorar
+  piezas por ahora), una lista de cosas **muy** básica (dos de utilidad y
+  un sable) y precios caros, para que comprar no sea trivial.
+- **Qué se hizo:** los enemigos dejan reales al caer y las misiones pagan
+  (`src/machi/pack.ts`). Don Braulio vende: junto a él, la tecla T abre su
+  lista de precios. Lo comprado para usar va a la bolsa y se usa desde la
+  página del personaje; lo que se lleva puesto ocupa uno de cuatro lugares
+  (arma, peto, botas, talismán) y suma a lo que ya daban los puntos.
+- **Las tres cosas:** vendas (45, devuelven dos golpes de vida), odre de
+  caña (70, vuelve a llenar el frasco en cualquier lado) y sable de tropa
+  (260, un cuarto más de daño). Un soldado deja 4 reales: limpiar el mapa
+  entero una vez no alcanza para el sable, pero sí para un par de
+  consumibles. Hay un test que sostiene esa relación.
+- **Quien te cerró la puerta no te vende.** La tienda es de don Braulio:
+  si se hartó de Cabral, tampoco hay comercio. Pelearse con alguien cuesta
+  también eso.
+- **Las pantallas, dibujadas:** la lista de precios es un papel clavado en
+  un tablón, con el estilo del HUD de Cabral, dibujado vacío y escrito por
+  código. Los cuatro íconos (vendas, odre, sable, monedas) salieron de una
+  sola imagen, cortada. La página del personaje sumó dos pestañas en su
+  lado derecho: la bolsa y el cuaderno.
+- **Qué quedó afuera:** Inti no tiene a quién comprarle, porque en su mapa
+  no hay nadie; los lugares de peto, botas y talismán están pero no hay
+  nada que ponerles; no se puede vender.

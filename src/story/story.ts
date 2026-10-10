@@ -16,8 +16,9 @@ export interface Quest {
   steps: Step[];
   /** What having done it leaves: happenings of its own, which may open others. */
   leaves?: string[];
-  /** The experience doing it is worth. */
+  /** The experience doing it is worth, and the money it pays. */
   xp?: number;
+  gold?: number;
 }
 
 export interface Step {
