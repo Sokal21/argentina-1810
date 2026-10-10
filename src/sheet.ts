@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import type { Hero } from './machi/data';
 import { NAMES, STATS, STEP, toNext } from './machi/growth';
 import { PEOPLE } from './npc/people';
 import type { GameScene } from './scenes/GameScene';
@@ -8,46 +9,59 @@ import { FACTS } from './story/vado';
 // The hero's own page: how far they have grown and what their points have
 // gone into, with the points still to give out; what they carry; and what
 // they have been told. I opens and closes it, and the game stands still
-// behind it.
+// behind it. It is drawn in the manner of whoever it belongs to: his is a
+// soldier's campaign notebook, hers two hides laced to a frame of roots.
+// Each is a picture drawn empty, and what is written on it is laid over.
+
+/** Each hero's page: its picture, where the two sides to write on are in it, and its inks. */
+const PAGES: Record<Hero, { src: string; w: number; h: number; sides: [Side, Side]; ink: string; accent: string; good: string; faint: string }> = {
+  cabral: {
+    src: 'hud/hoja_cabral.png', w: 352, h: 225,
+    sides: [{ x: 29, y: 22, w: 118, h: 173 }, { x: 168, y: 22, w: 118, h: 173 }],
+    ink: '#2a1d12', accent: '#7a2416', good: '#2f6b2a', faint: '#8a7448',
+  },
+  inti: {
+    src: 'hud/hoja_inti.png', w: 378, h: 226,
+    sides: [{ x: 62, y: 49, w: 96, h: 128 }, { x: 221, y: 50, w: 96, h: 127 }],
+    ink: '#2a1d12', accent: '#34482a', good: '#2f6b2a', faint: '#8c7a5e',
+  },
+};
+interface Side { x: number; y: number; w: number; h: number }
 
 const STYLE = `
   #sheet {
-    position: fixed; inset: 0; z-index: 26; display: flex; align-items: center; justify-content: center;
-    background: rgba(12, 10, 8, .72); color: #f0e3c4; user-select: none;
-    font: 21px/1.2 'Jacquard 12', Georgia, serif; letter-spacing: .02em;
+    position: fixed; inset: 0; z-index: 26; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    background: rgba(12, 10, 8, .78); user-select: none;
+    font: 21px/1.15 'Jacquard 12', Georgia, serif; letter-spacing: .01em;
   }
   #sheet[hidden] { display: none; }
-  #sheet .panel {
-    box-sizing: border-box; width: min(760px, 94vw); max-height: 94vh; overflow-y: auto; padding: 20px 30px 16px;
-    background: #16120f; box-shadow: 0 0 0 3px #e2c478, 0 0 0 6px #0a0807;
-  }
-  #sheet h1 { margin: 0; font: 42px/1 'Jacquard 12', Georgia, serif; font-weight: normal; text-shadow: 0 3px 0 #0a0807; }
-  #sheet h2 { margin: 14px 0 6px; padding-bottom: 4px; border-bottom: 2px solid #3a3027; font: inherit; font-weight: normal; color: #e2c478; }
-  #sheet .top { display: flex; align-items: baseline; gap: 18px; }
-  #sheet .top span { color: #cdbf9d; }
-  #sheet .top .points { margin-left: auto; color: #8fd18a; }
-  #sheet .bar { height: 6px; margin-top: 8px; background: #2a2018; box-shadow: 0 0 0 2px #0a0807; }
-  #sheet .bar i { display: block; height: 100%; background: #e2c478; }
-  #sheet .stat { display: grid; grid-template-columns: 11em 3.2em 1fr auto; gap: 0 14px; align-items: baseline; padding: 1px 0; }
-  #sheet .stat em { font-style: normal; color: #8fd18a; }
-  #sheet .stat small { font-size: 21px; color: #8f8168; }
-  #sheet .stat button { all: unset; cursor: pointer; padding: 0 9px; color: #16120f; background: #8fd18a; }
+  #sheet .book { position: relative; flex: none; background-size: 100% 100%; image-rendering: pixelated; color: var(--ink); }
+  #sheet .side { position: absolute; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; }
+  #sheet h1, #sheet h2 { margin: 0; font: inherit; font-weight: normal; color: var(--accent); }
+  #sheet h2 { margin-top: 6px; border-bottom: 2px solid var(--faint); }
+  #sheet .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  #sheet .bar { height: 6px; margin: 3px 0 2px; background: var(--faint); box-shadow: 0 0 0 2px var(--ink); }
+  #sheet .bar i { display: block; height: 100%; background: var(--accent); }
+  #sheet .xp { color: var(--faint); }
+  #sheet .points { color: var(--good); }
+  #sheet .stat { display: grid; grid-template-columns: 1fr auto 1.2em; gap: 0 6px; align-items: baseline; }
+  #sheet .stat span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #sheet .stat em { font-style: normal; color: var(--good); }
+  #sheet .stat button { all: unset; cursor: pointer; text-align: center; color: #f0e3c4; background: var(--good); }
   #sheet .stat button[disabled] { visibility: hidden; }
-  #sheet .stat button:hover, #sheet .stat button:focus-visible { background: #c8f0c0; }
-  #sheet ul { margin: 0; padding: 0; list-style: none; color: #cdbf9d; }
-  #sheet li::before { content: '· '; color: #6b5c44; }
-  #sheet .none { color: #6b5c44; }
-  #sheet .foot { display: block; margin-top: 14px; text-align: center; font-size: 21px; color: #6b5c44; }
-  @media (max-width: 620px) { #sheet .stat { grid-template-columns: 1fr auto auto; } #sheet .stat small { display: none; } }
+  #sheet .stat button:hover, #sheet .stat button:focus-visible { background: var(--accent); }
+  #sheet ul { margin: 0; padding: 0; list-style: none; }
+  #sheet li { margin-top: 2px; }
+  #sheet .none { color: var(--faint); }
+  #sheet .foot { color: #8f8168; }
 `;
 
-const HEROES = { inti: 'Inti', cabral: 'Cabral' };
+const HEROES: Record<Hero, string> = { inti: 'Inti', cabral: 'Cabral' };
 
 /** Puts the page there to be opened with I, over a game. */
 export function mountSheet(game: Phaser.Game): void {
   document.head.appendChild(Object.assign(document.createElement('style'), { textContent: STYLE }));
   const root = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'sheet', hidden: true }));
-  const panel = root.appendChild(Object.assign(document.createElement('div'), { className: 'panel' }));
   const scene = () => (game.scene.isActive('game') || game.scene.isPaused('game') ? game.scene.getScene('game') as GameScene : null);
   const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}, ...kids: (Node | string)[]) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -60,7 +74,9 @@ export function mountSheet(game: Phaser.Game): void {
   const draw = () => {
     const s = scene();
     if (!s) return;
-    const hero = s.playing, growth = s.growth, names = NAMES[hero];
+    const hero = s.playing, growth = s.growth, names = NAMES[hero], page = PAGES[hero];
+    // As large as the window lets it be, in whole pixels of its own.
+    const k = Math.max(1, Math.floor(Math.min(innerWidth * 0.96 / page.w, (innerHeight - 40) * 0.96 / page.h)));
     const stats = STATS.map(stat => {
       // What it has come to, as so much more than it began at.
       const more = Math.round(STEP[stat] * growth.spent[stat] * 100);
@@ -68,29 +84,36 @@ export function mountSheet(game: Phaser.Game): void {
       add.addEventListener('mousedown', e => e.preventDefault());
       add.addEventListener('click', () => { if (s.spend(stat)) draw(); });
       const locked = stat === 'ultimate' && growth.spent.ultimate >= growth.greatest;
-      return el('div', { className: 'stat' },
-        el('span', {}, names[stat].name),
-        el('em', {}, more ? `+${more}%` : ''),
-        el('small', {}, locked ? `${names[stat].does} · un punto cada cinco niveles` : names[stat].does),
-        add);
+      // What a point in it does is told to whoever points at it: there is no room to write it out.
+      return el('div', { className: 'stat', title: locked ? `${names[stat].does} (un punto cada cinco niveles)` : names[stat].does },
+        el('span', {}, names[stat].name), el('em', {}, more ? `+${more}%` : ''), add);
     });
     const { has, knows } = s.carried;
     // What they were told is in the words of whoever told it, or of the story itself.
     const notes = Object.fromEntries(Object.values(PEOPLE).flatMap(p => p.favours.map(f => [f.key, f.note.replace(/^Dato conseguido: /, '')])));
-    const told = (key: string) => notes[key] ?? FACTS[`sabe:${key}`] ?? key;
-    panel.replaceChildren(
-      el('div', { className: 'top' },
-        el('h1', {}, HEROES[hero]),
-        el('span', {}, `Nivel ${growth.level}`),
-        el('span', {}, `${Math.floor(growth.xp)} de ${toNext(growth.level)} de experiencia`),
-        el('span', { className: 'points' }, growth.points ? `${growth.points} ${growth.points === 1 ? 'punto' : 'puntos'} para repartir` : '')),
-      el('div', { className: 'bar' }, el('i', { style: `width:${Math.min(100, growth.share * 100)}%` } as never)),
-      el('h2', {}, 'Habilidades'), ...stats,
-      ...list('Lleva', has.map(what => THINGS[what]?.name ?? what), 'Nada todavía.'),
-      ...list('Sabe', knows.map(told), 'Nada todavía.'),
-      el('span', { className: 'foot' }, 'I para volver'),
-    );
+    const told = (key: string) => (notes[key] ?? FACTS[`sabe:${key}`] ?? key).replace(/^./, first => first.toUpperCase());
+    const side = (n: 0 | 1, ...kids: (Node | string)[]) => {
+      const at = page.sides[n];
+      return el('div', { className: 'side', style: `left:${at.x * k}px;top:${at.y * k}px;width:${at.w * k}px;height:${at.h * k}px` } as never, ...kids);
+    };
+    const book = el('div', {
+      className: 'book',
+      style: `width:${page.w * k}px;height:${page.h * k}px;background-image:url(${page.src});--ink:${page.ink};--accent:${page.accent};--good:${page.good};--faint:${page.faint}`,
+    } as never,
+      side(0,
+        el('div', { className: 'top' }, el('h1', {}, HEROES[hero]), el('span', {}, `Nivel ${growth.level}`)),
+        el('div', { className: 'bar' }, el('i', { style: `width:${Math.min(100, growth.share * 100)}%` } as never)),
+        // How far along, and beside it the points still to give out.
+        el('div', { className: 'top' },
+          el('span', { className: 'xp' }, `${Math.floor(growth.xp)} de ${toNext(growth.level)}`),
+          el('span', { className: 'points' }, growth.points ? `${growth.points} ${growth.points === 1 ? 'punto' : 'puntos'}` : '')),
+        ...stats),
+      side(1,
+        ...list('Lleva', has.map(what => THINGS[what]?.name ?? what), 'Nada todavía.'),
+        ...list('Sabe', knows.map(told), 'Nada todavía.')));
+    root.replaceChildren(book, el('span', { className: 'foot' }, 'I para volver'));
   };
+  addEventListener('resize', () => { if (open) draw(); });
 
   let open = false;
   const toggle = () => {

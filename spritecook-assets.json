@@ -1865,6 +1865,26 @@
       "asset_id": "9c1e2922-6d40-401e-a874-7f75cad752f9",
       "label": "hud: experience bar, barra_cabral_2",
       "file": "assets/hud/concept/barra_cabral_2.png"
+    },
+    {
+      "asset_id": "4a4b4bec-604e-42aa-8b9c-b874043cbadf",
+      "label": "hud: the hero's page, empty, hoja_cabral_1",
+      "file": "assets/hud/concept/hoja_cabral_1.png"
+    },
+    {
+      "asset_id": "392f6e55-64f2-4ebb-9e42-83c36c115dcf",
+      "label": "hud: the hero's page, empty, hoja_cabral_2",
+      "file": "assets/hud/concept/hoja_cabral_2.png"
+    },
+    {
+      "asset_id": "1762bc32-018d-4f5b-a1f5-5ddc927ae58b",
+      "label": "hud: the hero's page, empty, hoja_inti_1",
+      "file": "assets/hud/concept/hoja_inti_1.png"
+    },
+    {
+      "asset_id": "2d07b0e8-ab4e-4918-b409-cb3f774b370e",
+      "label": "hud: the hero's page, empty, hoja_inti_2",
+      "file": "assets/hud/concept/hoja_inti_2.png"
     }
   ]
 }
