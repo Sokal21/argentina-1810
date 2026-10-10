@@ -490,7 +490,8 @@ blanco de los plumones).*
 
 ## Etapa 5 · Los de una frase
 
-*Hecha, esperando el visto bueno.*
+*Cerrada. Quedan para la etapa 16 el ritmo de algunas animaciones de
+espera y algunas que salieron con partes transparentes.*
 
 - **Qué se hizo:** siete personas que no conversan, cada una parada en su
   lugar y con su frase sobre la cabeza cuando Cabral se acerca: doña
