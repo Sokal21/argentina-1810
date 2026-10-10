@@ -599,7 +599,8 @@ al poncho y se entiende adónde ir.*
 
 ## Etapa 7 · Niveles y recompensas
 
-*Hecha, esperando el visto bueno.*
+*Cerrada. Las pantallas (la página del personaje, la barra de experiencia)
+quedan anotadas para mejorar más adelante, en la etapa 16.*
 
 - **Qué decidió el usuario:** las recompensas son experiencia y oro, y hay
   progresión para los dos héroes. Subir de nivel da un punto para: el
@@ -621,6 +622,14 @@ al poncho y se entiende adónde ir.*
 - **La página del personaje** (tecla I): nivel, experiencia, los puntos
   para repartir, y abajo lo que lleva y lo que sabe. Con eso lo que se
   levanta y lo que se averigua ya tiene dónde verse.
+- **Lo que es del HUD de un héroe se dibuja en su estilo.** La primera
+  barra de experiencia era una línea de código y no se veía; la primera
+  página del personaje, un panel neutro igual para los dos. El usuario
+  pidió la regla y quedó en la skill de arte: la barra, la página, el
+  inventario y el cuaderno se diseñan en pixel art con los materiales del
+  HUD de cada uno (raíces y cuero para Inti; madera, hierro y bronce para
+  Cabral), se dibujan vacíos y se rellenan por código. Los botones de la
+  página se dibujaron por script, píxel por píxel, sin gastar créditos.
 - **Qué enseñó:** los números del juego son chicos (un soldado cae de
   cuatro sablazos), así que una mejora del 12% no cambiaba cuántos golpes
   hacían falta: el primer punto no se sentía. En vez de pasar todo a
