@@ -8,6 +8,7 @@ import { NAHUEL } from '../nahuel/brain';
 import { Nahuel } from '../nahuel/Nahuel';
 import { openDialog } from '../npc/dialog';
 import type { Npc } from '../npc/npc';
+import { BYSTANDERS } from '../npc/bystanders';
 import { BRAULIO, PEOPLE } from '../npc/people';
 import { Chonchon } from '../chonchon/Chonchon';
 import { Enemy } from '../enemies';
@@ -103,8 +104,10 @@ interface Orb extends Vec { t: number; glow: Phaser.GameObjects.Image; shadow: P
 // Those who can be talked to: how near one has to be, where the innkeeper stands from the
 // start on a map that names nobody, and the drawing that stands in for whoever has none
 // yet. Published, what is said to them is chosen; while developing it is written, and a model answers.
-const TALK = { near: 52, trial: [-140, -80] as [number, number], standIn: 'pulpero/sprite.png' };
-interface Talker { npc: Npc; x: number; y: number; hint: Phaser.GameObjects.Text }
+// Those who only say their one thing are heard from a little further off.
+const TALK = { near: 52, heard: 84, trial: [-140, -80] as [number, number], standIn: 'pulpero/sprite.png' };
+/** Someone standing on the map: one to talk to (`npc`), or one who only says what the sign over them shows. */
+interface Talker { name: string; npc?: Npc; x: number; y: number; hint: Phaser.GameObjects.Text }
 
 /** Anything that can be fought. */
 type Foe = Enemy | Chonchon | Realista;
@@ -217,7 +220,7 @@ export class GameScene extends Phaser.Scene {
     loadScenery(this);
     loadCountry(this);
     loadFences(this);
-    for (const src of new Set([TALK.standIn, ...Object.values(PEOPLE).flatMap(p => p.sprite ?? [])])) this.load.image(src, src);
+    for (const src of new Set([TALK.standIn, ...[...Object.values(PEOPLE), ...Object.values(BYSTANDERS)].flatMap(p => p.sprite ?? [])])) this.load.image(src, src);
   }
 
   create(): void {
@@ -386,11 +389,26 @@ export class GameScene extends Phaser.Scene {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4',
           stroke: '#14110f', strokeThickness: 3,
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false);
-        this.talkers.push({ npc, x, y, hint });
+        this.talkers.push({ name: npc.name, npc, x, y, hint });
+      }
+      // Those who are not talked to: what each has to say shows over them when one comes near.
+      for (const { who, plot, faces } of this.map?.people ?? []) {
+        const one = BYSTANDERS[who];
+        if (!one) continue;
+        const { x, y } = middle(plot);
+        const drawn = !!one.sprite && this.textures.exists(one.sprite);
+        const figure = this.add.image(x, y, drawn ? one.sprite! : TALK.standIn).setOrigin(0.5, 1).setDepth(y).setFlipX(faces === 'left');
+        if (!drawn) figure.setTintFill(0x9a8f7a).setAlpha(0.85);
+        this.add.ellipse(x, y, Math.max(22, figure.width * 0.7), 8, 0x000000, 0.28).setDepth(y - 0.5);
+        const hint = this.add.text(x, y - figure.height - 6, `«${one.says}»`, {
+          fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
+          stroke: '#14110f', strokeThickness: 3, wordWrap: { width: 150 },
+        }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false);
+        this.talkers.push({ name: one.name, x, y, hint });
       }
       this.input.keyboard?.on('keydown-F', () => {
-        const near = this.talkers.find(t => t.hint.visible);
-        if (!near || !this.vitals.standing) return;
+        const near = this.talkers.find(t => t.npc && t.hint.visible);
+        if (!near?.npc || !this.vitals.standing) return;
         openDialog(this.game, this.hero, near.npc, { heal: () => this.vitals.heal(LIFE) });
       });
       // ?ir=capilla sets the hero down there from the start.
@@ -544,7 +562,7 @@ export class GameScene extends Phaser.Scene {
     let nearest: Talker | undefined;
     for (const talker of this.talkers) {
       talker.hint.setVisible(false);
-      if (ground(talker, this.machi) <= TALK.near && (!nearest || ground(talker, this.machi) < ground(nearest, this.machi))) nearest = talker;
+      if (ground(talker, this.machi) <= (talker.npc ? TALK.near : TALK.heard) && (!nearest || ground(talker, this.machi) < ground(nearest, this.machi))) nearest = talker;
     }
     nearest?.hint.setVisible(true);
     this.drawCuts(dt);
@@ -1056,7 +1074,7 @@ export class GameScene extends Phaser.Scene {
   /** For trying things out: the places on this map one can be set down at, people first. */
   get places(): { name: string; x: number; y: number }[] {
     return [
-      ...this.talkers.map(t => ({ name: t.npc.name, x: t.x, y: t.y })),
+      ...this.talkers.map(t => ({ name: t.name, x: t.x, y: t.y })),
       ...(this.map?.objectives ?? []).map(o => ({ name: o.name, ...middle(o.plot) })),
     ];
   }

@@ -487,3 +487,30 @@ blanco de los plumones).*
   historia encuentran lo que el autor ya no ve. Y lo que quedó para la
   etapa 16: quien elige siempre lo neutro casi no consigue nada, y un
   secreto se puede perder por una sola mala elección.
+
+## Etapa 5 · Los de una frase
+
+*Hecha, esperando el visto bueno.*
+
+- **Qué se hizo:** siete personas que no conversan, cada una parada en su
+  lugar y con su frase sobre la cabeza cuando Cabral se acerca: doña
+  Remedios junto al rancho quemado, ño Ciriaco en la puerta de la posada,
+  un paisano y un chacarero en el pueblo, fray Benito y el alférez herido
+  en la capilla, y el realista malherido contra una rueda en el campo de
+  batalla (`src/npc/bystanders.ts`).
+- **Se paran igual que los hablables:** el mapa dice quién está en qué
+  parcela; el juego busca el nombre entre los hablables y entre estos. Un
+  test comprueba que todos los que existen están parados en algún lado.
+- **Las frases que cambian con la historia quedan anotadas y sin usar.**
+  Varias dependen de cosas que todavía no existen (la fama, la campana, el
+  final). Se escribió la de "antes" y las otras quedaron al lado, con el
+  nombre del hecho que las dispara, para la etapa que lleve esa cuenta.
+- **El arte, más barato que el de los hablables:** como no tienen retrato,
+  se pidieron directamente simplificados, dos versiones de cada uno, con
+  el sprite del fraile y el de Mateo como estilo: 32 créditos por figura,
+  192 en total. Los dos paisanos salieron de una sola imagen, cortada.
+  Salieron todos usables a la primera: con dos o tres sprites ya hechos
+  como referencia, el modelo copia la manera sin vueltas.
+- **Qué enseñó:** el "dos o tres paisanos" del documento no se podía
+  construir: hubo que decidir cuántos, quiénes y qué dice cada uno. Lo
+  vago en el papel se nota recién al ponerlo en el mapa.

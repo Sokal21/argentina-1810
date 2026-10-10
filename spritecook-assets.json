@@ -1670,6 +1670,66 @@
       "asset_id": "ac132b77-93a8-45da-bf66-b0d877d38379",
       "label": "tobias simplified, simple_3",
       "file": "assets/tobias/concept/simple_3.png"
+    },
+    {
+      "asset_id": "eb1afd99-a736-43c5-84b7-c0d53e0757ad",
+      "label": "vado bystander: remedios_1",
+      "file": "assets/gente/concept/remedios_1.png"
+    },
+    {
+      "asset_id": "36fd5252-946e-40e3-ad96-b50e88c17a6d",
+      "label": "vado bystander: remedios_2",
+      "file": "assets/gente/concept/remedios_2.png"
+    },
+    {
+      "asset_id": "bef67f99-d3bc-4d8e-852b-c183e888021c",
+      "label": "vado bystander: ciriaco_1",
+      "file": "assets/gente/concept/ciriaco_1.png"
+    },
+    {
+      "asset_id": "1e21cecf-3728-4c3a-a219-18ac69cfbd01",
+      "label": "vado bystander: ciriaco_2",
+      "file": "assets/gente/concept/ciriaco_2.png"
+    },
+    {
+      "asset_id": "39f7145b-98d7-4bf7-88ac-8a567750e48e",
+      "label": "vado bystander: paisanos_1",
+      "file": "assets/gente/concept/paisanos_1.png"
+    },
+    {
+      "asset_id": "f7b4cf0e-0796-49f1-b462-885ae114153d",
+      "label": "vado bystander: paisanos_2",
+      "file": "assets/gente/concept/paisanos_2.png"
+    },
+    {
+      "asset_id": "47567a24-2679-4f62-9cba-8264ecf28434",
+      "label": "vado bystander: benito_1",
+      "file": "assets/gente/concept/benito_1.png"
+    },
+    {
+      "asset_id": "b43bf6ae-0e38-424d-b886-d98e5bdd4168",
+      "label": "vado bystander: benito_2",
+      "file": "assets/gente/concept/benito_2.png"
+    },
+    {
+      "asset_id": "5d90bc77-cf8d-4a68-9e1c-8e170de5b10a",
+      "label": "vado bystander: alferez_1",
+      "file": "assets/gente/concept/alferez_1.png"
+    },
+    {
+      "asset_id": "80fd209d-e177-416e-b7bc-715ce1acdd5b",
+      "label": "vado bystander: alferez_2",
+      "file": "assets/gente/concept/alferez_2.png"
+    },
+    {
+      "asset_id": "d06be208-900e-4693-9235-4604afb29642",
+      "label": "vado bystander: malherido_1",
+      "file": "assets/gente/concept/malherido_1.png"
+    },
+    {
+      "asset_id": "167bd7ab-c3e1-4333-ae7a-58f6de624b5f",
+      "label": "vado bystander: malherido_2",
+      "file": "assets/gente/concept/malherido_2.png"
     }
   ]
 }

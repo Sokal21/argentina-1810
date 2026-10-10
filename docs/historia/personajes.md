@@ -124,10 +124,16 @@ parte de su dibujo.
 |---|---|---|---|
 | **Doña Remedios**, viuda, dueña del rancho quemado | Pueblo | Pueblo | Antes: «Me quemaron la casa con el telar adentro.» Después de la emboscada: «Ahora sí puedo dormir.» Después del rebato: no te mira |
 | **Ño Ciriaco**, gaucho viejo, el que más grita | Pueblo, puerta de la posada | Pueblo | «¿Y el godo ese? ¿Cuándo lo traés?» |
-| **Dos o tres paisanos** | Pueblo | Pueblo | Una frase según la fama de Cabral: saludo, silencio o insulto |
+| **Un paisano** joven, de poncho | Pueblo, junto a la fragua | Pueblo | «Dicen que vuelven. Que esta vez no dejan ni los perros.» Con buena fama: «Vaya con Dios, soldado.» Con mala: «Mejor siga de largo.» |
+| **Un chacarero**, de sombrero de paja y horquilla | Pueblo | Pueblo | «Tres días llevo sin arrimarme al maíz. Están ahí nomás.» Con buena fama: «Lo que haga falta, pida.» Con mala: «Acá no se le debe nada.» |
 | **Fray Benito**, el lego joven, enfermero | Capilla, entre los catres | Frailes | «Despacio, que duermen.» Si se dejó fundir la campana: «¿Con qué vamos a llamar a misa?» |
 | **El alférez herido**, sobrino del capitán | Capilla | Realista | Delira. «Tío... dígale a mi madre.» |
 | **El realista malherido** | Campo de batalla | Realista | «Agua, por caridad.» Misión secundaria: se lo remata, se lo deja o se lo ayuda |
+
+Están en `src/npc/bystanders.ts`, parados en el mapa, y su frase aparece
+sobre ellos al acercarse. Por ahora dicen siempre la primera; las otras
+quedan anotadas junto a cada uno para cuando la historia lleve cuenta de lo
+que pasó. Sus dibujos están en `assets/gente/`.
 
 ---
 

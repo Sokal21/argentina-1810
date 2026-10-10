@@ -115,6 +115,16 @@ export const vadoDeLasVizcachas: WorldMap = {
     { who: 'anselmo', plot: [117, 21], faces: 'left' },
     { who: 'tobias', plot: [119, 21] },
     { who: 'mateo', plot: [121, 18] },
+    // And those who only say the one thing they have to say: the village's by the inn and
+    // the burnt house, the lay brother and the wounded ensign by the chapel, and the dying
+    // soldier out on the battlefield.
+    { who: 'remedios', plot: [7, 44] },
+    { who: 'ciriaco', plot: [12, 45], faces: 'left' },
+    { who: 'paisano', plot: [14, 46], faces: 'left' },
+    { who: 'chacarero', plot: [8, 47] },
+    { who: 'benito', plot: [120, 22], faces: 'left' },
+    { who: 'alferez', plot: [118, 22] },
+    { who: 'malherido', plot: [64, 39] },
   ],
   buildings: [
     { name: 'La posada', plot: [10, 45], wide: 150, deep: 46, tall: 44, colour: 0x8a7a5c },

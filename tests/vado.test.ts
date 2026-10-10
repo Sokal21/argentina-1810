@@ -56,3 +56,14 @@ test('the ford is reached only by the road north from the battlefield', () => {
 test('everything built stands on ground that can be walked', () => {
   for (const { name, plot } of map.buildings ?? []) expect(letterAt(map, ...plot), name).toBeDefined();
 });
+
+test('everyone the map stands somewhere is someone the game knows, and stands where one can walk', async () => {
+  const { PEOPLE } = await import('../src/npc/people');
+  const { BYSTANDERS } = await import('../src/npc/bystanders');
+  const stood = (map.people ?? []).map(p => p.who);
+  expect(new Set(stood).size).toBe(stood.length);
+  for (const who of stood) expect(PEOPLE[who] ?? BYSTANDERS[who], who).toBeDefined();
+  // All four who can be talked to, and all of those who only say their one thing.
+  for (const who of [...Object.keys(PEOPLE), ...Object.keys(BYSTANDERS)]) expect(stood, who).toContain(who);
+  expect(faults(map)).toEqual([]);
+});
