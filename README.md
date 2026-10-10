@@ -53,6 +53,9 @@ pnpm build      # compila a dist/
 
 En desarrollo, agregar `?jugar` a la dirección saltea el título y la
 selección de personaje y entra con Inti; `?jugar=cabral` entra con Cabral.
+Sumarle `&ir=capilla` (el nombre de un lugar o de una persona del mapa, o
+parte de él) aparece ahí directamente; el panel de configuración tiene la
+misma lista en "Ir a".
 
 ## Cómo está hecho
 

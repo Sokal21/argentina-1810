@@ -15,6 +15,8 @@ export const THICK = [5, 4, 3, 2];
 export const BEHIND_FENCE = 0.3;
 /** No two are quite the same height: each is this share taller or shorter, at most. */
 export const UNEVEN = 0.18;
+/** How many plots round someone who can be talked to are kept clear of whatever is scattered about. */
+export const CLEAR = 2;
 /** What grows in deep water, whatever the zone beside it is closed with. */
 export const REEDS = 'junco';
 
@@ -87,6 +89,8 @@ export function plantCountry(map: WorldMap, seed = 1): Plant[] {
     const zone = map.zones[letter];
     if (!zone) return;
     if (far === 0) {
+      // Nothing grows over anyone who stands to be talked to: they are to be seen.
+      if (map.people?.some(({ plot }) => Math.abs(plot[0] - col) <= CLEAR && Math.abs(plot[1] - row) <= CLEAR)) return;
       Object.entries(zone.scatter ?? {}).forEach(([kind, odds], k) => {
         if (chance(col, row, seed + 20 + k) < odds) plant(col, row, kind, 90 + k, true);
       });

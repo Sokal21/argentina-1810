@@ -62,6 +62,8 @@ export interface WorldMap {
   /** Open country: no forest is planted on it, and what cannot be crossed is only shaded. */
   bare?: boolean;
   buildings?: Building[];
+  /** Who can be talked to, by the name the game knows them under, and the plot each stands in. */
+  people?: { who: string; plot: [number, number]; /** Which way they look across the screen; right if unsaid. */ faces?: 'left' | 'right' }[];
   /** Rows of plots a stream runs along, first and last: whatever of them nobody can cross is deep water. */
   stream?: [number, number];
 }
@@ -133,6 +135,9 @@ export function faults(map: WorldMap): string[] {
   }
   for (const { name, plot } of map.objectives) {
     if (letterAt(map, ...plot) === undefined) found.push(`${name} is where nobody can stand`);
+  }
+  for (const { who, plot } of map.people ?? []) {
+    if (letterAt(map, ...plot) === undefined) found.push(`${who} is where nobody can stand`);
   }
   return found;
 }

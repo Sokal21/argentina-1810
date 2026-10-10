@@ -98,6 +98,21 @@ La orden de Cabral es que la columna no pase. La emboscada y el rebato la
 cumplen las dos. Lo que cambia no es si gana, sino **qué clase de hombre
 fue para ganar**. Por eso hay fama.
 
+### Siempre hay una última salida: todos te odian
+
+En un juego donde se habla escribiendo, cualquiera puede terminar peleado
+con todos. Un personaje que se hartó **no vuelve a hablar**: lo que las
+palabras cerraron, las palabras no lo abren. Solo otra misión podría
+reabrirlo, y en este arco no hay ninguna. Entonces el arco tiene que seguir
+teniendo final aunque los cuatro hablables estén cerrados. En el vado ese
+final es *Solo en el vado*: Cabral cumple la orden sin pueblo, sin frailes
+y sin nadie. No es una pantalla de derrota: es el final del que se quedó
+solo.
+
+> **Regla:** al armar un arco, plantear primero el escenario en que todos
+> te odian, y darle una salida que no dependa de nadie. Si esa salida no
+> existe, el arco se puede trabar.
+
 ### La historia tiene que ser verdad del lugar
 
 El borrador con una toldería mapuche se cayó porque en la campaña de Buenos
@@ -431,3 +446,44 @@ blanco de los plumones).*
 - **Qué enseñó:** el ajuste fino no se hace al construir. Se anota y se deja
   para cuando se pueda jugar el arco entero; por eso se agregó una etapa de
   prueba al final.
+
+## Etapa 4 · Los cuatro hablables
+
+*Hecha, esperando el visto bueno.*
+
+- **Qué se hizo:** don Braulio, fray Anselmo, Mateo y Tobías tienen ficha
+  (`src/npc/people.ts`), retrato, sprite y un lugar en el mapa. El motor de
+  charla, que estaba atado al pulpero de prueba, sirve para cualquiera:
+  cada uno trae sus favores y sus secretos.
+- **El arte, igual que con los personajes jugables:** tres conceptos
+  detallados, se elige uno, y de ese sale el retrato (recortado, sin gastar)
+  y un sprite simplificado. Unos 96 créditos por persona.
+- **El cierre es para siempre.** Quien se hartó no vuelve a hablar, y ni se
+  le consulta al modelo. De ahí salió la regla de la última salida (primera
+  parte).
+- **El juego escucha lo que se dice.** Un modelo cuenta un secreto sin
+  avisar que lo está contando. Cada dato tiene palabras que lo delatan, y
+  vale si ya había confianza para contarlo.
+- **La voz pasó a ser Claude.** El modelo local (gemma3 de 12b) tardaba de
+  11 a 18 segundos y contestaba chato; Claude Sonnet tarda 5, guarda los
+  secretos sin mentir y reacciona a lo que ve. En desarrollo habla por el
+  programa `claude` de la máquina (`tools/claude_voice.ts`), sin clave. No
+  existe un "entrar con tu cuenta de Claude" para juegos de terceros: el
+  juego publicado va a necesitar una clave propia en el servidor.
+- **Y mientras no haya clave, opciones escritas** (`src/npc/script.ts`,
+  `src/npc/scripts/`). En vez de escribir se elige entre dos o tres frases.
+  Por debajo es la misma conversación: confianza, favores y cierre los
+  lleva el juego igual, así que las misiones no distinguen una manera de la
+  otra. Los cuatro guiones los redactaron cuatro agentes, uno por
+  personaje, haciendo de él a partir de su ficha.
+- **Cómo se comprueba un guion** (`tests/script.test.ts`): quien elige
+  siempre lo que mejor cae se lleva todo; quien elige lo peor queda echado;
+  y en cuatrocientos recorridos ningún secreto sale antes de tiempo.
+- **Para probar:** el panel de configuración elige la voz y salta a
+  cualquier lugar o persona del mapa.
+- **Qué enseñó:** escribir los guiones hizo saltar tres contradicciones
+  entre los documentos (cuántos son en la columna, para qué se funde la
+  campana, cuántos heridos hay). Cuatro lectores nuevos de la misma
+  historia encuentran lo que el autor ya no ve. Y lo que quedó para la
+  etapa 16: quien elige siempre lo neutro casi no consigue nada, y un
+  secreto se puede perder por una sola mala elección.

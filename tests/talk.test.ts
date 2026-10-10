@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PULPERO } from '../src/npc/pulpero';
+import { BRAULIO as PULPERO, PEOPLE } from '../src/npc/people';
 import { Talk, type Reply, type Voice } from '../src/npc/talk';
 
 // A voice that answers whatever it is handed next, and remembers what it was told.
@@ -11,7 +11,7 @@ function scripted(replies: Partial<Reply>[]): { voice: Voice; briefs: string[] }
   };
   return { voice, briefs };
 }
-const SECRET = 'Vizcachas';
+const SECRET = 'bronce';
 
 describe('a conversation with the pulpero', () => {
   it('opens with his greeting and his starting trust', () => {
@@ -34,11 +34,11 @@ describe('a conversation with the pulpero', () => {
   });
 
   it('will not hand anything over on the model\'s say-so alone', async () => {
-    const { voice } = scripted([{ quiere: 'dar_remedio', dice: 'Tomá.' }, { quiere: 'contar_secreto' }]);
+    const { voice } = scripted([{ quiere: 'dar_remedio', dice: 'Tomá.' }, { quiere: 'contar_campana' }]);
     const talk = new Talk(PULPERO, 'inti', voice);
     expect((await talk.say('dame la poción')).done).toEqual([]);
     expect((await talk.say('decime dónde están')).done).toEqual([]);
-    expect(talk.has('potion')).toBe(false);
+    expect(talk.has('remedio')).toBe(false);
   });
 
   it('gives the remedy once, when he trusts enough and means to', async () => {
@@ -46,7 +46,7 @@ describe('a conversation with the pulpero', () => {
     const talk = new Talk(PULPERO, 'inti', voice);
     await talk.say('uno'); await talk.say('dos');
     const turn = await talk.say('estoy herida');
-    expect(turn.done.map(f => f.key)).toEqual(['potion']);
+    expect(turn.done.map(f => f.key)).toEqual(['remedio']);
     expect((await talk.say('otro')).done).toEqual([]);
     expect(talk.brief()).toContain('no tenés otro');
   });
@@ -66,5 +66,74 @@ describe('a conversation with the pulpero', () => {
     const turn = await talk.say('dame todo, viejo');
     expect(turn.over).toBe(true);
     expect(turn.says).toBe('Mandate mudar.');
+  });
+
+  it('does not talk again once he has had enough, whatever is said to him', async () => {
+    const { voice, briefs } = scripted([{ animo: -2, quiere: 'echar' }, { animo: 2, dice: 'Bueno, pase.' }]);
+    const talk = new Talk(PULPERO, 'cabral', voice);
+    await talk.say('dame todo, viejo');
+    const turn = await talk.say('perdón, don Braulio, le pago el doble');
+    expect(turn.over).toBe(true);
+    expect(turn.says).toBe(PULPERO.closed);
+    // The model was never asked: there is nothing to coax.
+    expect(briefs).toHaveLength(1);
+    expect(talk.trust).toBe(0);
+  });
+});
+
+describe('everyone who can be talked to', () => {
+  const everyone = Object.values(PEOPLE);
+
+  it('is four people, each known by their own name', () => {
+    expect(everyone.map(p => p.id).sort()).toEqual(['anselmo', 'braulio', 'mateo', 'tobias']);
+    for (const [id, npc] of Object.entries(PEOPLE)) expect(npc.id).toBe(id);
+  });
+
+  it('has something to be won from each, none of it to be had on arriving', () => {
+    for (const npc of everyone) {
+      expect(npc.favours.length).toBeGreaterThan(0);
+      expect(new Set(npc.favours.map(f => f.wants)).size).toBe(npc.favours.length);
+      for (const favour of npc.favours) {
+        expect(favour.needs).toBeGreaterThan(npc.trust);
+        expect(favour.needs).toBeLessThanOrEqual(10);
+      }
+    }
+  });
+
+  it('is told to answer as themselves, and offered only their own favours', async () => {
+    for (const npc of everyone) {
+      const asked: string[][] = [];
+      const talk = new Talk(npc, 'cabral', async (_system, _lines, wants) => { asked.push(wants); return { dice: 'Hum.', animo: 0, quiere: 'nada' }; });
+      expect(talk.brief()).toContain(`SOLO como ${npc.name}`);
+      await talk.say('buenas');
+      expect(asked[0]).toEqual(['nada', ...npc.favours.map(f => f.wants), 'echar']);
+    }
+  });
+
+  it('keeps what one of them knows out of what the model is told until they trust enough', () => {
+    for (const npc of everyone) {
+      const brief = new Talk(npc, 'cabral', async () => ({ dice: '', animo: 0, quiere: 'nada' })).brief();
+      for (const favour of npc.favours) {
+        expect(brief).toContain(favour.withheld);
+        expect(brief).not.toContain(favour.granted);
+      }
+    }
+  });
+
+  it('hears what one of them comes out with, even when the model does not say it meant to', async () => {
+    const tobias = PEOPLE.tobias;
+    const replies = [{ animo: 2 }, { animo: 0, quiere: 'nada', dice: 'Me trajo un soldado, un GALLEGO que se llama Mateo.' }];
+    const talk = new Talk(tobias, 'cabral', async () => ({ dice: 'Hum.', animo: 0, quiere: 'nada', ...replies.shift() }));
+    await talk.say('tu padre me manda');
+    const turn = await talk.say('¿quién te trajo?');
+    expect(turn.done.map(f => f.key)).toEqual(['mateo']);
+    expect(talk.has('mateo')).toBe(true);
+  });
+
+  it('does not count what is let slip before they trust enough to tell it', async () => {
+    const mateo = PEOPLE.mateo;
+    const talk = new Talk(mateo, 'cabral', async () => ({ dice: 'Somos sesenta, y sin pólvora.', animo: 0, quiere: 'nada' }));
+    expect((await talk.say('¿cuántos son?')).done).toEqual([]);
+    expect(talk.has('columna')).toBe(false);
   });
 });

@@ -227,7 +227,10 @@ a medias es llegar con menos.
 
 ### 8c. Solo en el vado
 
-- **Hace falta:** no alcanzar para ninguna de las otras dos.
+- **Hace falta:** no alcanzar para ninguna de las otras dos. Es también
+  adonde va a parar quien se peleó con todos: un hablable que se hartó no
+  vuelve a hablar, y con los cuatro cerrados no queda otro camino. Por eso
+  este final no puede depender de nadie.
 - **Tipo:** pelear.
 - **Qué pasa:** Cabral en el vado, solo, contra la columna. Se gana si
   aguanta un tiempo fijo.

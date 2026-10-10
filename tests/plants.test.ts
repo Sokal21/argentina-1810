@@ -76,3 +76,10 @@ test('the ombú stands at the place named after it, alone of its kind and in the
   expect(ombues[0].inTheWay).toBe(true);
   expect(zoneAt(map, ombues[0].x, ombues[0].y)?.name).toBe('Las chacras');
 });
+
+test('nothing is scattered over anyone who stands to be talked to', () => {
+  for (const { who, plot: [col, row] } of map.people ?? []) {
+    const beside = plantCountry(map).filter(p => p.inTheWay && Math.abs(Math.floor(p.x / PLOT_W) - col) <= 2 && Math.abs(Math.floor(p.y / PLOT_H) - row) <= 2);
+    expect(beside, who).toEqual([]);
+  }
+});

@@ -107,6 +107,15 @@ export const vadoDeLasVizcachas: WorldMap = {
     { name: 'Donde forma la columna', plot: [62, 4] },
   ],
   // Stood in for by plain blocks until they are drawn.
+  // Who can be talked to, and where: the innkeeper at his door, the friar before
+  // his chapel with the boy beside him, and the deserter round by the sacristy.
+  people: [
+    { who: 'braulio', plot: [9, 46] },
+    // He looks down the path, the way anyone comes.
+    { who: 'anselmo', plot: [117, 21], faces: 'left' },
+    { who: 'tobias', plot: [119, 21] },
+    { who: 'mateo', plot: [121, 18] },
+  ],
   buildings: [
     { name: 'La posada', plot: [10, 45], wide: 150, deep: 46, tall: 44, colour: 0x8a7a5c },
     { name: 'La fragua', plot: [14, 44], wide: 60, deep: 30, tall: 34, colour: 0x5e5248 },

@@ -7,6 +7,8 @@ import { RAGE, Rage } from '../machi/rage';
 import { NAHUEL } from '../nahuel/brain';
 import { Nahuel } from '../nahuel/Nahuel';
 import { openDialog } from '../npc/dialog';
+import type { Npc } from '../npc/npc';
+import { BRAULIO, PEOPLE } from '../npc/people';
 import { Chonchon } from '../chonchon/Chonchon';
 import { Enemy } from '../enemies';
 import { FIRE_TALL, fireShader } from '../fx/fire';
@@ -98,10 +100,11 @@ const AWAKE = { x: 760, y: 460 };
 const ORB = { height: 12, reach: 22, warning: 1.2 };
 interface Orb extends Vec { t: number; glow: Phaser.GameObjects.Image; shadow: Phaser.GameObjects.Ellipse }
 
-// The pulpero, who can be talked to: where he stands from the start, how
-// near one has to be, and where his feet are in his picture. For now he is
-// only there while developing, voiced by a model on this machine.
-const PULPERO = { src: 'pulpero/sprite.png', at: [-140, -80] as [number, number], near: 52 };
+// Those who can be talked to: how near one has to be, where the innkeeper stands from the
+// start on a map that names nobody, and the drawing that stands in for whoever has none
+// yet. Published, what is said to them is chosen; while developing it is written, and a model answers.
+const TALK = { near: 52, trial: [-140, -80] as [number, number], standIn: 'pulpero/sprite.png' };
+interface Talker { npc: Npc; x: number; y: number; hint: Phaser.GameObjects.Text }
 
 /** Anything that can be fought. */
 type Foe = Enemy | Chonchon | Realista;
@@ -146,8 +149,8 @@ export class GameScene extends Phaser.Scene {
   private nahuel!: Nahuel;
   /** Seconds until it answers her drum, or null when she is not calling. */
   private calling: number | null = null;
-  /** The pulpero's spot, and the sign over him when one is near enough to talk. */
-  private pulpero?: { x: number; y: number; hint: Phaser.GameObjects.Text };
+  /** Those who can be talked to, each with the sign shown over them when one is near enough. */
+  private talkers: Talker[] = [];
   /** The orbs Inti's kills leave on the ground for a while. */
   private orbs: Orb[] = [];
   /** Which enemies stood at the last step, to tell when one falls. */
@@ -214,7 +217,7 @@ export class GameScene extends Phaser.Scene {
     loadScenery(this);
     loadCountry(this);
     loadFences(this);
-    this.load.image(PULPERO.src, PULPERO.src);
+    for (const src of new Set([TALK.standIn, ...Object.values(PEOPLE).flatMap(p => p.sprite ?? [])])) this.load.image(src, src);
   }
 
   create(): void {
@@ -363,20 +366,38 @@ export class GameScene extends Phaser.Scene {
 
     this.nahuel = new Nahuel(this, this.sparks, ZOOM);
 
-    if (import.meta.env.DEV) {
-      const x = this.start.x + PULPERO.at[0], y = this.start.y + PULPERO.at[1];
-      this.add.ellipse(x, y, 22, 8, 0x000000, 0.28).setDepth(y - 0.5);
-      this.add.image(x, y, PULPERO.src).setOrigin(0.5, 1).setDepth(y);
-      const hint = this.add.text(x, y - 92, 'F · hablar', {
-        fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4',
-        stroke: '#14110f', strokeThickness: 3,
-      }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false);
-      this.pulpero = { x, y, hint };
+    this.talkers = [];
+    {
+      // Whoever the map names, each in their plot; on one that names nobody, while developing, the innkeeper, to try things on.
+      const named = this.map?.people?.map(({ who, plot, faces }) => ({ npc: PEOPLE[who], ...middle(plot), left: faces === 'left' })).filter(p => p.npc)
+        ?? (import.meta.env.DEV ? [{ npc: BRAULIO, x: this.start.x + TALK.trial[0], y: this.start.y + TALK.trial[1], left: false }] : []);
+      for (const { npc, x, y, left } of named) {
+        this.add.ellipse(x, y, 22, 8, 0x000000, 0.28).setDepth(y - 0.5);
+        const figure = this.add.image(x, y, npc.sprite ?? TALK.standIn).setOrigin(0.5, 1).setDepth(y).setFlipX(left);
+        // Whoever has no drawing yet is a shape in their own colour, with their name over them.
+        if (!npc.sprite) {
+          figure.setTintFill(Phaser.Display.Color.HexStringToColor(npc.accent).color).setAlpha(0.85);
+          this.add.text(x, y - 80, npc.name, {
+            fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: npc.accent,
+            stroke: '#14110f', strokeThickness: 3,
+          }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio);
+        }
+        const hint = this.add.text(x, y - 92, 'F · hablar', {
+          fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4',
+          stroke: '#14110f', strokeThickness: 3,
+        }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false);
+        this.talkers.push({ npc, x, y, hint });
+      }
       this.input.keyboard?.on('keydown-F', () => {
-        if (!this.pulpero?.hint.visible || !this.vitals.standing) return;
-        openDialog(this.game, this.hero, { potion: () => this.vitals.heal(LIFE) });
+        const near = this.talkers.find(t => t.hint.visible);
+        if (!near || !this.vitals.standing) return;
+        openDialog(this.game, this.hero, near.npc, { heal: () => this.vitals.heal(LIFE) });
       });
+      // ?ir=capilla sets the hero down there from the start.
+      const wanted = import.meta.env.DEV ? new URLSearchParams(location.search).get('ir') : null;
+      if (wanted) this.goTo(wanted);
     }
+
 
     // P shows the collision boxes.
     this.input.keyboard?.on('keydown-P', () => {
@@ -519,7 +540,13 @@ export class GameScene extends Phaser.Scene {
     this.lightning.update(dt);
     this.updateGrenades(dt);
     this.updateOrbs(dt);
-    this.pulpero?.hint.setVisible(ground(this.pulpero, this.machi) <= PULPERO.near);
+    // Only the nearest of those within reach offers to talk.
+    let nearest: Talker | undefined;
+    for (const talker of this.talkers) {
+      talker.hint.setVisible(false);
+      if (ground(talker, this.machi) <= TALK.near && (!nearest || ground(talker, this.machi) < ground(nearest, this.machi))) nearest = talker;
+    }
+    nearest?.hint.setVisible(true);
     this.drawCuts(dt);
     this.flash = Math.max(0, this.flash - dt / FLASH);
     this.draw();
@@ -1024,6 +1051,25 @@ export class GameScene extends Phaser.Scene {
     else if (kind === 'chonchon') this.chonchones.push(foe = new Chonchon(this, x, y, bounds));
     else this.enemies.push(foe = new Enemy(this, x, y));
     this.physics.add.overlap(this.bolts.bodies, foe.zone, this.struck);
+  }
+
+  /** For trying things out: the places on this map one can be set down at, people first. */
+  get places(): { name: string; x: number; y: number }[] {
+    return [
+      ...this.talkers.map(t => ({ name: t.npc.name, x: t.x, y: t.y })),
+      ...(this.map?.objectives ?? []).map(o => ({ name: o.name, ...middle(o.plot) })),
+    ];
+  }
+
+  /** For trying things out: sets the hero down beside a place, by its name or a part of it. */
+  goTo(name: string): boolean {
+    const plain = (text: string) => text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const place = this.places.find(p => plain(p.name) === plain(name)) ?? this.places.find(p => plain(p.name).includes(plain(name)));
+    if (!place) return false;
+    // A step to one side and toward the viewer, so as not to land on whoever or whatever is there.
+    this.machi.x = place.x + 40;
+    this.machi.y = place.y + 8;
+    return true;
   }
 
   /** For trying things out: full life, and mana or fury to the brim. */

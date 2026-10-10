@@ -1580,6 +1580,96 @@
       "asset_id": "bb2787d3-728e-4d76-b853-b38b2c1dc2eb",
       "label": "pampa scenery: ombú, big crown and textured, variant 9",
       "file": "assets/campo/concept/ombu_9.png"
+    },
+    {
+      "asset_id": "fc569855-a7a1-433b-8dc2-b0fdfd9244c6",
+      "label": "fray Anselmo: concept 1",
+      "file": "assets/anselmo/concept/concepto_1.png"
+    },
+    {
+      "asset_id": "fcec0750-b4ff-472a-912b-dbbda2eb1971",
+      "label": "fray Anselmo: concept 2",
+      "file": "assets/anselmo/concept/concepto_2.png"
+    },
+    {
+      "asset_id": "a3f4a067-091c-40fa-86b5-f8fd97b67717",
+      "label": "fray Anselmo: concept 3",
+      "file": "assets/anselmo/concept/concepto_3.png"
+    },
+    {
+      "asset_id": "3b41bde8-b88e-4b4d-a582-8a0ac75a0cd3",
+      "label": "fray Anselmo simplified, simple_1",
+      "file": "assets/anselmo/concept/simple_1.png"
+    },
+    {
+      "asset_id": "87e7618f-49ac-4b2b-ae9a-714ce7579963",
+      "label": "fray Anselmo simplified, simple_2",
+      "file": "assets/anselmo/concept/simple_2.png"
+    },
+    {
+      "asset_id": "6c63ef2a-a862-4f01-a2f8-20923eacfce1",
+      "label": "fray Anselmo simplified, simple_3",
+      "file": "assets/anselmo/concept/simple_3.png"
+    },
+    {
+      "asset_id": "c286e752-1f8c-4ff2-a6a6-13910c96bd49",
+      "label": "mateo: concept 1",
+      "file": "assets/mateo/concept/concepto_1.png"
+    },
+    {
+      "asset_id": "2d74a1b8-7d96-449a-b01f-dccd6c904d4e",
+      "label": "mateo: concept 2",
+      "file": "assets/mateo/concept/concepto_2.png"
+    },
+    {
+      "asset_id": "46cd93bf-9c86-45a0-b94c-1d1bf3571e4b",
+      "label": "mateo: concept 3",
+      "file": "assets/mateo/concept/concepto_3.png"
+    },
+    {
+      "asset_id": "8ea89822-ae46-4cee-bb2a-4a9b8db43b15",
+      "label": "tobias: concept 1",
+      "file": "assets/tobias/concept/concepto_1.png"
+    },
+    {
+      "asset_id": "3edba2b1-8ef8-4b8b-8bc2-467766fc239c",
+      "label": "tobias: concept 2",
+      "file": "assets/tobias/concept/concepto_2.png"
+    },
+    {
+      "asset_id": "c9bccd35-cea9-4405-a04f-a2a4c7d3f966",
+      "label": "tobias: concept 3",
+      "file": "assets/tobias/concept/concepto_3.png"
+    },
+    {
+      "asset_id": "4e285104-0797-4afa-9aea-ff692292d9dc",
+      "label": "mateo simplified, simple_1",
+      "file": "assets/mateo/concept/simple_1.png"
+    },
+    {
+      "asset_id": "65693ac5-ac4c-4e77-acf1-609a7e6dc43c",
+      "label": "mateo simplified, simple_2",
+      "file": "assets/mateo/concept/simple_2.png"
+    },
+    {
+      "asset_id": "3ac22fd3-5ba6-443d-81b3-8e1d9bd4c33f",
+      "label": "mateo simplified, simple_3",
+      "file": "assets/mateo/concept/simple_3.png"
+    },
+    {
+      "asset_id": "ed74724b-36e2-4d6c-9e29-5090ade0e268",
+      "label": "tobias simplified, simple_1",
+      "file": "assets/tobias/concept/simple_1.png"
+    },
+    {
+      "asset_id": "293d594b-80e6-49e0-a91d-7f4826bfbabc",
+      "label": "tobias simplified, simple_2",
+      "file": "assets/tobias/concept/simple_2.png"
+    },
+    {
+      "asset_id": "ac132b77-93a8-45da-bf66-b0d877d38379",
+      "label": "tobias simplified, simple_3",
+      "file": "assets/tobias/concept/simple_3.png"
     }
   ]
 }

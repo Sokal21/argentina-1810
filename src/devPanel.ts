@@ -1,3 +1,4 @@
+import { setVoice, voiceName, VOICES, type VoiceName } from './npc/dialog';
 import type Phaser from 'phaser';
 import type { GameScene } from './scenes/GameScene';
 import { cheats, DIALS, resetDials, setDial, tune, type DialName } from './tuning';
@@ -81,6 +82,25 @@ export function mountDevPanel(game: Phaser.Game): void {
 
   heading('Definitiva');
   (['orbs', 'orbLife', 'blows', 'rage', 'beast'] as DialName[]).forEach(slider);
+
+  heading('Voz de los personajes');
+  const voices = Object.assign(document.createElement('select'), { style: 'width:100%;font:inherit;background:#2a231c;color:#e6d8b8;border:1px solid #5a4a38;padding:3px' });
+  voices.replaceChildren(...Object.entries(VOICES).map(([name, label]) => new Option(label, name)));
+  voices.value = voiceName();
+  voices.addEventListener('change', () => { setVoice(voices.value as VoiceName); voices.blur(); });
+  panel.appendChild(voices);
+
+  heading('Ir a');
+  // Filled each time it is opened: the places are those of whatever map is being played.
+  const places = Object.assign(document.createElement('select'), { style: 'width:100%;font:inherit;background:#2a231c;color:#e6d8b8;border:1px solid #5a4a38;padding:3px' });
+  const fill = () => {
+    const names = scene()?.places.map(p => p.name) ?? [];
+    places.replaceChildren(new Option(names.length ? 'Elegí un lugar…' : 'Este mapa no tiene lugares', ''), ...names.map(name => new Option(name, name)));
+  };
+  fill();
+  places.addEventListener('mousedown', () => { if (places.options.length <= 1 || !scene()?.places.some(p => p.name === places.options[1].value)) fill(); });
+  places.addEventListener('change', () => { if (places.value) scene()?.goTo(places.value); places.value = ''; places.blur(); });
+  panel.appendChild(places);
 
   heading('Enemigos');
   const foes = row();

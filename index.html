@@ -80,6 +80,14 @@
   }
   #dialog input::placeholder { color: #6b5c44; }
   #dialog small { font-size: 21px; color: #6b5c44; white-space: nowrap; }
+  /* Where nothing is written, what can be said is chosen: one line each, with its number. */
+  #dialog-options { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; padding-top: 10px; border-top: 2px solid #3a3027; }
+  #dialog-options:empty, #dialog-options[hidden], #dialog form[hidden] { display: none; }
+  #dialog-options button {
+    all: unset; cursor: pointer; padding: 2px 8px; color: #cdbf9d; font: inherit; user-select: none;
+  }
+  #dialog-options button::before { content: attr(data-n) ' \203A  '; color: var(--hero); }
+  #dialog-options button:hover, #dialog-options button:focus-visible { background: #2a2018; color: #f0e3c4; }
   /* Twice the size where there is room: the letter is only crisp at multiples of 21px. */
   @media (min-width: 1100px) and (min-height: 700px) { #dialog .box { font-size: 42px; padding-top: 34px; } #dialog-name { top: -34px; } }
 </style>
@@ -96,6 +104,7 @@
     <div id="dialog-text"></div>
     <div id="dialog-note"></div>
     <form id="dialog-form"><span>&rsaquo;</span><input id="dialog-input" autocomplete="off" spellcheck="false" maxlength="220" placeholder="Escribí lo que le decís…"><small>Enter · Esc para irte</small></form>
+    <div id="dialog-options"></div>
   </div>
 </div>
 <div id="pause" hidden>Pausa<small>Esc para seguir</small></div>

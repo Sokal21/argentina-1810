@@ -8,6 +8,11 @@ Hay tres clases:
   escribe.
 - **Mudos:** están, se mueven, pelean o mueren. No hablan.
 
+Un hablable que se harta **se cierra para siempre**: no vuelve a conversar,
+digas lo que digas. Cada uno lo hace a su manera (Braulio no levanta la
+vista, fray Anselmo reza por vos). Si se cierran los cuatro, queda el final
+*Solo en el vado*.
+
 Para cada hablable se anota **actitud** (cómo te recibe), **intención** (qué
 quiere conseguir de vos), **qué lo ablanda**, **qué lo cierra** y **qué
 tiene**.
@@ -95,6 +100,22 @@ en un catre de la capilla.
 - **Para qué sirve:** es el testigo. Lo que él diga delante de su padre
   puede pesar, si Cabral lo lleva a tiempo.
 
+### Cómo se ven
+
+Cada hablable tiene un **retrato** para la charla, recortado de su concepto
+detallado, y un **sprite** simplificado para el mapa, como los personajes
+jugables: formas lisas, sin cara. Los archivos están en `assets/NOMBRE/`.
+
+| Quién | Concepto elegido | Sprite elegido |
+|---|---|---|
+| Don Braulio | `51854137-82fa-4d52-9a93-6cb81f916029` | en `assets/pulpero/` |
+| Fray Anselmo | `fc569855-a7a1-433b-8dc2-b0fdfd9244c6` | `87e7618f-49ac-4b2b-ae9a-714ce7579963` |
+| Mateo | `2d74a1b8-7d96-449a-b01f-dccd6c904d4e` | `4e285104-0797-4afa-9aea-ff692292d9dc` |
+| Tobías | `3edba2b1-8ef8-4b8b-8bc2-467766fc239c` | `ac132b77-93a8-45da-bf66-b0d877d38379` |
+
+Tobías va sentado en su catre, con la pierna entablillada: el catre es
+parte de su dibujo.
+
 ---
 
 ## De una frase
@@ -117,7 +138,7 @@ en un catre de la capilla.
 | **Soldados realistas rezagados** | Todo el campo, las lomas, el corral | Atacan a la vista: disparan de lejos, sable de cerca. Reaparecen cada vez que se cruza |
 | **El capitán realista** | Con la columna, en el final | En la emboscada es el jefe a vencer. En el rebato se lo ve de lejos, mirando, y da la orden |
 | **La columna** | Entra por el norte en el final | Oleadas de soldados |
-| **Los cinco heridos realistas** | Capilla, en catres | Yacen. Se los escolta en carretas o se los entrega |
+| **Los seis heridos realistas** | Capilla, en catres | Yacen. Se los escolta en carretas o se los entrega |
 | **Los paisanos de la emboscada** | Vado, en el final del pueblo | Pelean del lado de Cabral |
 | **Los frailes** | Capilla | Rezan, cargan heridos, tocan la campana |
 

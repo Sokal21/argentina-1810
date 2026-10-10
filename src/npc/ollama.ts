@@ -5,21 +5,21 @@ import type { Line, Reply, Voice } from './talk';
  * what was just said to it: a small model that has to do that before it
  * speaks answers the question instead of drifting off.
  */
-const SHAPE = {
+export const shape = (wants: string[]) => ({
   type: 'object',
   properties: {
     entiende: { type: 'string' },
     dice: { type: 'string' },
     animo: { type: 'integer', minimum: -2, maximum: 2 },
-    quiere: { type: 'string', enum: ['nada', 'dar_remedio', 'contar_secreto', 'echar'] },
+    quiere: { type: 'string', enum: wants },
   },
   required: ['entiende', 'dice', 'animo', 'quiere'],
-};
+});
 
 // The talk so far goes to the model as one account of it, not as turns of
 // its own: shown its earlier lines as things it said, a small model takes
 // them for the pattern to follow and repeats them.
-function account(lines: Line[]): string {
+export function account(lines: Line[]): string {
   const last = lines[lines.length - 1];
   const before = lines.slice(0, -1).map(line => `${line.who === 'npc' ? 'Vos' : 'Forastero'}: ${line.text}`);
   return [
@@ -36,14 +36,14 @@ function account(lines: Line[]): string {
  * the same call can be pointed at something else later.
  */
 export function ollama(model = 'gemma3:12b', base = '/ollama'): Voice {
-  return async (system: string, lines: Line[]): Promise<Reply> => {
+  return async (system: string, lines: Line[], wants: string[]): Promise<Reply> => {
     const response = await fetch(`${base}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model,
         stream: false,
-        format: SHAPE,
+        format: shape(wants),
         keep_alive: '20m',
         options: { temperature: 0.7, num_predict: 220 },
         messages: [
