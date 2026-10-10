@@ -160,7 +160,7 @@ export class MachiController {
    * @param kit whose art to pose: the sheets and turns of one character.
    *            The rest, how she moves and what the keys do, is shared.
    */
-  constructor(private bounds?: Bounds, private kit: Kit = INTI) {}
+  constructor(private bounds?: Bounds, readonly kit: Kit = INTI) {}
 
   // How long this character's dash lasts and how far it goes.
   /** How fast it walks, as a share of its usual speed. */

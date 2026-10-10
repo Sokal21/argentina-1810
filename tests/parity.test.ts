@@ -136,7 +136,7 @@ test('the game data has the same sheets and turns as the prototype, with the sam
   // the spot, which the prototype never had.
   const shared = Object.fromEntries(
     Object.entries(SHEETS)
-      .filter(([name]) => !/^(attack_still_|pivot_|retreat_|dash_|heal$|call$|death_)/.test(name))
+      .filter(([name]) => !/^(attack_still_|pivot_|retreat_|dash_|heal$|call$|drink$|death_)/.test(name))
       .map(([name, { muzzle: _muzzle, ...sheet }]) => [name, sheet]));
   expect(shared).toEqual(proto.SHEETS);
   expect(TURNS).toEqual(proto.TURNS);

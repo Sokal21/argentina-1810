@@ -180,6 +180,8 @@ Object.assign(SHEETS, {
   heal: { src: 'machi/curacion/sheet.png', frames: 8, faces: 0, skip: 0, ax: 48 },
   // Beating her kultrún to call the nahuel.
   call: { src: 'machi/invocacion/sheet.png', frames: 8, faces: 0, skip: 0, ax: 48 },
+  // A draught from her gourd.
+  drink: { src: 'machi/trago/sheet.png', frames: 8, faces: 0, skip: 0, ax: 48 },
   // Her death: she drops what she holds, falls to her knees and then on her face.
   death_front: { src: 'machi/muerte/frente.png', frames: 12, faces: -1, skip: 0, ax: 55.6 },
 } satisfies Record<string, Sheet>);
@@ -373,6 +375,8 @@ export const CABRAL: Kit = {
     death_front: cabralSheet('muerte', 12, 1, 47),
     // His war cry, sabre raised: drawn in a taller frame, so anchored lower.
     roar: { ...cabralSheet('grito', 8, 0, 63), w: 126, h: 126, ay: FRAME - 126 },
+    // A draught from his horn flask.
+    drink: cabralSheet('trago', 8, 0, 46),
     // His dash: he dives, rolls over his shoulder and comes up crouching.
     // The first frame of each is him standing, which a dash has no time for.
     dash_south: { ...cabralSheet('rodada_sur', 6, 0, 63), w: 126, order: ROLL },

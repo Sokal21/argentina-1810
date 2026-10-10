@@ -34,7 +34,8 @@ import { bosquePatagonico } from '../world/maps/bosque';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
 import { garrison, leftBehind, type Post } from '../world/garrison';
-import { Flask, FLASKS } from '../machi/flask';
+import { DRINKING, Flask, FLASKS } from '../machi/flask';
+import { MEND, Mending } from '../fx/mend';
 import { Sight } from '../world/sight';
 import { trail } from '../world/trail';
 import { mountBoard } from '../story/board';
@@ -206,6 +207,8 @@ export class GameScene extends Phaser.Scene {
   private fury = new Fury();
   /** What the hero drinks from when things go badly. */
   private flask = new Flask();
+  /** The light of life or mana coming back. */
+  private mending?: Mending;
   private lightning!: Lightning;
   /** Where a strike would fall and where ones already cast are about to. */
   private marks!: Phaser.GameObjects.Graphics;
@@ -455,13 +458,17 @@ export class GameScene extends Phaser.Scene {
       }
       // C drinks from the flask: nothing is wasted on one who has no need of it.
       this.flask = new Flask();
+      this.mending = new Mending(this);
       this.input.keyboard?.on('keydown-C', () => {
         const { restores, amount } = FLASKS[this.hero];
         const wanting = restores === 'life' ? this.vitals.life < LIFE : this.abilities.mana < MANA;
-        if (!this.vitals.standing || !wanting || !this.flask.drink()) return;
+        // Not mid-dash, nor in the middle of something else: there is no hand free.
+        if (!this.vitals.standing || !wanting || this.machi.isDashing || this.machi.isChanneling || !this.flask.drink()) return;
         if (restores === 'life') this.vitals.heal(amount);
         else this.abilities.mana = Math.min(MANA, this.abilities.mana + amount);
-        this.sparks.emitParticleAt(this.machi.x, this.machi.y - 40, 8);
+        // They stand and drink, facing the viewer, and the light of it comes up round them.
+        if (this.machi.kit.sheets.drink) this.machi.channel(DRINKING, 'drink');
+        this.mending?.begin(MEND[restores], this.machi);
       });
       this.input.keyboard?.on('keydown-F', () => {
         const near = this.beside;
@@ -649,6 +656,7 @@ export class GameScene extends Phaser.Scene {
     this.beside = nearest;
     // Somewhere safe, the flask is filled again.
     this.flask.update(dt);
+    this.mending?.update(dt, this.machi);
     if (this.map && zoneAt(this.map, this.machi.x, this.machi.y)?.safe && this.flask.refill()) {
       this.board?.say(`${FLASKS[this.hero].name}: lleno otra vez.`);
     }

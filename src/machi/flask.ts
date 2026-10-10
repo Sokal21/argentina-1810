@@ -8,6 +8,8 @@ import type { Hero } from './data';
 export const DRAUGHTS = 3;
 /** Seconds between one draught and the next. */
 export const SWALLOW = 1;
+/** Seconds a draught takes: the hero stands rooted for it, and can be hit. */
+export const DRINKING = 0.8;
 
 /** What each hero's flask is, and how much a draught gives back: of his life, in blows; of her mana, in points. */
 export const FLASKS: Record<Hero, { name: string; restores: 'life' | 'mana'; amount: number }> = {

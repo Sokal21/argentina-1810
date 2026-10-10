@@ -1835,6 +1835,16 @@
       "asset_id": "6e1d6ee4-fe06-44e8-9e1f-ad2a6c7695ec",
       "label": "flask icon: calabaza_2 — untouched SpriteCook output",
       "file": "assets/hud/iconos/calabaza_2_original.png"
+    },
+    {
+      "asset_id": "fb41256d-bdab-4f79-9af4-94fce2c553ea",
+      "label": "cabral_trago (drinks from his horn flask, 8 frames, from the south pose) — untouched",
+      "file": "assets/cabral/trago_original.png"
+    },
+    {
+      "asset_id": "b1d1f31e-e6ce-4456-abaa-6328575dfc93",
+      "label": "machi_trago (drinks from her gourd, 8 frames, from the south pose) — untouched",
+      "file": "assets/machi/trago/sheet_original.png"
     }
   ]
 }
