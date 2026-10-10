@@ -543,7 +543,8 @@ espera y algunas que salieron con partes transparentes.*
 
 ## Etapa 6 · El gancho
 
-*Hecha, esperando el visto bueno.*
+*Cerrada. El usuario la jugó entera: los tres tragos alcanzan para llegar
+al poncho y se entiende adónde ir.*
 
 - **Qué se hizo:** se juegan las dos primeras misiones. Cabral aparece
   herido al borde del pueblo, llega a la posada, habla con don Braulio; si
@@ -583,6 +584,13 @@ espera y algunas que salieron con partes transparentes.*
 - **Qué quedó afuera a propósito:** no hay dónde ver lo que se tiene y se
   sabe (etapa 8), no se guarda la partida (etapa 14), y la secundaria del
   malherido no está.
+- **Lo que alguien te pide no puede depender de una sola frase.** Con
+  opciones, la misión del hijo se abría con una única respuesta, que además
+  solo aparecía si antes se le había caído bien a don Braulio. Las pruebas
+  elegían siempre la mejor respuesta y no lo vieron. Ahora lo que un
+  personaje pide vuelve a salir cada vez que no queda otra cosa que decir,
+  hasta que se le da la palabra; y con Claude el juego escucha lo que el
+  jugador escribe ("yo lo busco"), avise o no el modelo.
 - **Qué enseñó:** probarlo de punta a punta en el juego encontró lo que
   los tests no: que "el pie de la senda" está en el monte y no en la
   senda, así que llegar ahí no cumplía el paso; y que dos avisos seguidos
