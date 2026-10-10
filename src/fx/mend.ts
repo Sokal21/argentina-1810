@@ -27,16 +27,22 @@ void main() {
   float glow = floor((1.0 - across) * (1.0 - up * 0.8) * 4.0) / 4.0;
   // Specks two pixels square, each column rising at a pace of its own.
   vec2 cell = floor(vec2(p.x, p.y - age * resolution.y * (0.9 + hash(vec2(floor(p.x / 2.0), 7.0)))) / 2.0);
-  float speck = step(0.9, hash(cell)) * step(across, 0.85) * (1.0 - up * 0.5);
+  // Fewer of them the higher and the further out, so they thin away instead of ending at an edge:
+  // each has a height and a width of its own beyond which it is not there.
+  float reach = hash(cell + 31.0);
+  float thins = (1.0 - smoothstep(0.55, 1.0, up + reach * 0.3)) * (1.0 - smoothstep(0.5, 1.0, across + reach * 0.3));
+  float speck = step(0.87, hash(cell)) * thins;
   // A ring that widens from the feet as it begins.
   vec2 fromFeet = vec2((p.x - resolution.x * 0.5), (p.y - 4.0) * 2.0);
   float ring = 1.0 - smoothstep(0.0, 2.0, abs(length(fromFeet) - age * resolution.x * 1.1));
-  float a = clamp(glow * 0.3 + speck * 0.95 + ring * 0.5 * (1.0 - age), 0.0, 1.0) * life;
+  // And nothing at all reaches the top or the sides of the patch.
+  float within = (1.0 - smoothstep(0.6, 0.95, up)) * (1.0 - smoothstep(0.7, 1.0, across));
+  float a = clamp(glow * 0.3 * within + speck * 0.95 + ring * 0.5 * (1.0 - age) * within, 0.0, 1.0) * life;
   gl_FragColor = vec4(mix(colour, vec3(1.0), speck * 0.45) * a, a);
 }
 `;
 
-const SIZE = { w: 64, h: 104 };   // the patch it is drawn over, in sprite pixels
+const SIZE = { w: 72, h: 124 };   // the patch it is drawn over, in sprite pixels
 const LASTS = 1.1;                // seconds
 
 /** The colours of what comes back. */
