@@ -1845,6 +1845,26 @@
       "asset_id": "b1d1f31e-e6ce-4456-abaa-6328575dfc93",
       "label": "machi_trago (drinks from her gourd, 8 frames, from the south pose) — untouched",
       "file": "assets/machi/trago/sheet_original.png"
+    },
+    {
+      "asset_id": "3c1f4b79-b8eb-4429-8338-aa38bbc64324",
+      "label": "hud: experience bar, barra_inti_1",
+      "file": "assets/hud/concept/barra_inti_1.png"
+    },
+    {
+      "asset_id": "93c57b01-c876-4686-ac94-d111b9739235",
+      "label": "hud: experience bar, barra_inti_2",
+      "file": "assets/hud/concept/barra_inti_2.png"
+    },
+    {
+      "asset_id": "d390231f-e718-4d3b-b1f3-def0f7007341",
+      "label": "hud: experience bar, barra_cabral_1",
+      "file": "assets/hud/concept/barra_cabral_1.png"
+    },
+    {
+      "asset_id": "9c1e2922-6d40-401e-a874-7f75cad752f9",
+      "label": "hud: experience bar, barra_cabral_2",
+      "file": "assets/hud/concept/barra_cabral_2.png"
     }
   ]
 }

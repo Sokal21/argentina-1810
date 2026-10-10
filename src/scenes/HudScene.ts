@@ -49,6 +49,12 @@ interface Layout {
   ultimate?: string;
   /** The picture of the flask they drink from. */
   flask: string;
+  /**
+   * Their experience bar, drawn empty in the manner of their HUD: where it sits over the frame,
+   * the channel in it that fills, the middle of the recess the level is written in, and the
+   * colours it fills with, the body and the line along its top.
+   */
+  bar: { src: string; x: number; y: number; channel: { x: number; y: number; w: number; h: number }; level: { x: number; y: number }; fill: [number, number] };
 }
 
 const LIFE = ['#571227', '#8a1730', '#c22f48', '#e0607a'] as Vessel['colours'];
@@ -65,6 +71,8 @@ const LAYOUTS: Record<Hero, Layout> = {
     accent: 0x46e6fa,
     ultimate: 'hud/iconos/nahuel.png',
     flask: 'hud/iconos/calabaza.png',
+    // A hollow branch bound in roots, lying along the top of the log.
+    bar: { src: 'hud/barra_inti.png', x: 126, y: 18, channel: { x: 58, y: 6, w: 154, h: 5 }, level: { x: 27, y: 8.5 }, fill: [0x4fae6a, 0xa8e6a0] },
     skills: [
       { ability: 'strike', icon: 'hud/iconos/rayo.png', key: 'Q' },
       { ability: 'heal', icon: 'hud/iconos/lawen.png', key: 'E' },
@@ -82,6 +90,8 @@ const LAYOUTS: Record<Hero, Layout> = {
     accent: 0xff7a00,
     ultimate: 'hud/iconos/furia.png',
     flask: 'hud/iconos/chifle.png',
+    // An iron-bound plank, set above the kit.
+    bar: { src: 'hud/barra_cabral.png', x: 106, y: -16, channel: { x: 27, y: 8, w: 198, h: 11 }, level: { x: 15, y: 13.5 }, fill: [0xc9962e, 0xf2d27a] },
     skills: [
       { ability: 'musket', icon: 'hud/iconos/mosquete.png', key: 'Q' },
       { ability: 'grenade', icon: 'hud/iconos/granada.png', key: 'E' },
@@ -101,7 +111,7 @@ interface Panel {
   /** Their flask, in the last slot, and how many draughts are left in it. */
   flask: { icon: Phaser.GameObjects.Image; left: Phaser.GameObjects.Text };
   /** How far toward the next level: a thin bar over the slots, with the level beside it. */
-  growth: { bar: Phaser.GameObjects.Rectangle; level: Phaser.GameObjects.Text; wide: number };
+  growth: { bar: Phaser.GameObjects.Rectangle; top: Phaser.GameObjects.Rectangle; level: Phaser.GameObjects.Text; points: Phaser.GameObjects.Text };
 }
 
 /**
@@ -119,7 +129,8 @@ export class HudScene extends Phaser.Scene {
   }
 
   preload(): void {
-    for (const { frame, skills, ultimate, flask } of Object.values(LAYOUTS)) {
+    for (const { frame, skills, ultimate, flask, bar } of Object.values(LAYOUTS)) {
+      this.load.image(bar.src, bar.src);
       if (ultimate) this.load.image(ultimate, ultimate);
       this.load.image(flask, flask);
       this.load.image(frame, frame);
@@ -193,11 +204,15 @@ export class HudScene extends Phaser.Scene {
     const caps = { fontFamily: CAPS.family, fontSize: `${CAPS.size}px`, color: '#f0e3c4', stroke: '#14110f', strokeThickness: 3 };
     const left = this.add.text(fx + 1, fy - 1, '', caps).setOrigin(0, 0);
     box.add([flaskIcon, left, this.add.text(fx + ICON - 1, fy + ICON, 'C', caps).setOrigin(1, 1)]);
-    // Their growth: a thin bar the width of the slots, just under them, and the level at its end.
-    const wide = layout.slot.step * (layout.skills.length + 1) + ICON, gy = layout.slot.y + ICON + 4;
-    const bar = this.add.rectangle(layout.slot.x, gy, 0, 2, 0xe2c478).setOrigin(0, 0);
-    const level = this.add.text(layout.slot.x + wide / 2, gy + 3, '', caps).setOrigin(0.5, 0);
-    box.add([this.add.rectangle(layout.slot.x, gy, wide, 2, 0x0c0a08, 0.8).setOrigin(0, 0), bar, level]);
+    // Their growth: the bar drawn for them, its channel filled as far as they have come, the level
+    // in its recess, and beside it a word when there are points to give out.
+    const { bar: drawn } = layout, gx = drawn.x + drawn.channel.x, gy = drawn.y + drawn.channel.y;
+    const bar = this.add.rectangle(gx, gy, 0, drawn.channel.h, drawn.fill[0]).setOrigin(0, 0);
+    const top = this.add.rectangle(gx, gy, 0, 1, drawn.fill[1]).setOrigin(0, 0);
+    const level = this.add.text(drawn.x + drawn.level.x, drawn.y + drawn.level.y, '', caps).setOrigin(0.5, 0.5);
+    const points = this.add.text(gx + drawn.channel.w / 2, drawn.y - 2, '', { ...caps, color: '#8fd18a' }).setOrigin(0.5, 1);
+    // The channel is drawn dark and solid, so what fills it is laid over it.
+    box.add([this.add.image(drawn.x, drawn.y, drawn.src).setOrigin(0, 0), bar, top, level, points]);
     // Pointing at a slot brings up a note on what it does.
     for (let i = 0; i <= layout.skills.length + 1; i++) {
       const zone = this.add.zone(layout.slot.x + layout.slot.step * i, layout.slot.y, ICON, ICON)
@@ -206,7 +221,7 @@ export class HudScene extends Phaser.Scene {
       zone.on('pointerout', () => this.hideNote(hero, i));
       box.add(zone);
     }
-    return { box, layout, glasses, slots, charge, power, flask: { icon: flaskIcon, left }, growth: { bar, level, wide } };
+    return { box, layout, glasses, slots, charge, power, flask: { icon: flaskIcon, left }, growth: { bar, top, level, points } };
   }
 
   update(time: number, delta: number): void {
@@ -234,8 +249,11 @@ export class HudScene extends Phaser.Scene {
       }
       // How far along they are, and a mark when there are points to give out.
       const growth = game.growth;
-      panel.growth.bar.setSize(Math.round(panel.growth.wide * Math.min(1, growth.share)), 2);
-      panel.growth.level.setText(growth.points ? `Nv ${growth.level} · +${growth.points} (I)` : `Nv ${growth.level}`).setColor(growth.points ? '#8fd18a' : '#cdbf9d');
+      const { channel } = panel.layout.bar, filled = Math.round(channel.w * Math.min(1, growth.share));
+      panel.growth.bar.setSize(filled, channel.h);
+      panel.growth.top.setSize(filled, 1);
+      panel.growth.level.setText(String(growth.level));
+      panel.growth.points.setText(growth.points ? `+${growth.points} · I` : '');
       // Empty, the flask is dull until somewhere safe is reached.
       const { left } = game.draughts;
       panel.flask.left.setText(String(left)).setColor(left ? '#f0e3c4' : '#8a4a3a');

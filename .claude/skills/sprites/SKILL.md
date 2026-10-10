@@ -158,6 +158,26 @@ Do not open the game in the browser to check; the user plays it and reports.
 - Add or extend a test in `tests/` for what the controller should pose, then
   run `npx tsc --noEmit`, `pnpm test` and `pnpm build`.
 
+## A hero's interface is drawn in that hero's manner
+
+The user's rule, said when the first experience bar was a plain line of
+code: **whatever belongs to a hero's HUD is designed in pixel art in the
+style of that hero's HUD, and is different for each of them.** Inti's is
+roots, moss and branches; Cabral's is worn wood, black iron and brass. This
+goes for the experience bar, and for the inventory and the notebook when
+they are made: none of them is a neutral panel shared by both.
+
+- Draw the piece **empty** and fill it by code: generate it with the hero's
+  HUD concept as `reference_asset_id` and as style (`hud_a` for Inti,
+  `cabral_c2` for Cabral, in `spritecook-assets.json`), asking for the
+  empty channel or recess that the game will fill.
+- Where the fillable part is gets read off the picture and written beside
+  it in `HudScene.ts`. Finding it by its darkness was tried
+  (`tools/build_hud_bars.py`) and took wood for channel.
+- The channel comes back solid, so the fill is laid **over** the picture.
+- Sizes are a lottery here too: of four bars asked for at 256 by 40, two
+  came back 40 and 78 pixels wide.
+
 ## Working with the user
 
 - One step at a time: generate a little, show it, adjust, go on. Turns
