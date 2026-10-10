@@ -364,8 +364,9 @@ cercas y los tapiales se hicieron acá y no en la etapa 2.*
 
 ## Etapa 2 · El mapa: cómo se ve
 
-*Empezada antes de tiempo, mientras se mostraba la 1. Falta la zanja y el
-ombú.*
+*En pausa, sin cerrar. Lo que no pedía imágenes está hecho; quedan para
+más adelante la zanja y los retoques visuales (el gris de los cardos, el
+blanco de los plumones).*
 
 - **El concepto primero, en una sola hoja.** Antes de generar pieza por
   pieza se pidió una hoja con las ocho piezas de borde juntas, usando la
@@ -394,6 +395,12 @@ ombú.*
   referencia al principio habría ahorrado una ronda.
 - **El dibujo vino cortado abajo en línea recta** y se arregló por script
   (`rooted` en `tools/build_campo.py`): pie redondeado, borde ondulado.
+- **El viento no tiñe igual en todos lados.** A cada planta le da un tono
+  propio, más cálido o más frío. En el verde del bosque queda bien; en
+  cardos grises, los fríos salían azules. Cada mapa dice ahora cuánto se
+  apartan sus plantas en claridad y en calidez (`blow` en `src/fx/wind.ts`).
+- **El ombú chico de la Loma del Oeste** es el mismo dibujo del grande,
+  mostrado a la mitad: un árbol joven no pidió otra imagen.
 - **Lo que se sacó:** el sombreado de lo intransitable, que quedaba como
   bloques oscuros; y el tono oliva del suelo, que pasó a amarillo paja.
 - **Qué enseñó:** lo provisorio de una etapa hay que sacarlo en cuanto la

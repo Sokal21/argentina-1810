@@ -58,7 +58,7 @@ test('no two plants are quite alike in size', () => {
 test("Cabral's map is planted with every kind it names, and the thistles are where the thistle maze is", () => {
   const all = plantCountry(map);
   const kinds = new Set(all.map(p => p.kind));
-  expect([...kinds].sort()).toEqual(['cardo', 'cortadera', 'junco', 'maiz', 'ombu', 'tala', 'tuna']);
+  expect([...kinds].sort()).toEqual(['cardo', 'cortadera', 'junco', 'maiz', 'ombu', 'ombu_chico', 'tala', 'tuna']);
   expect(all.length).toBeGreaterThan(3000);
   expect(all.length).toBeLessThan(14000);
 });

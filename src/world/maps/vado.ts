@@ -100,7 +100,7 @@ export const vadoDeLasVizcachas: WorldMap = {
     { name: 'El pie de la senda', plot: [102, 29] },
     { name: 'La capilla', plot: [118, 19] },
     { name: 'El camposanto', plot: [115, 22] },
-    { name: 'La Loma del Oeste', plot: [50, 19] },
+    { name: 'La Loma del Oeste', plot: [50, 19], stands: 'ombu_chico' },
     { name: 'La Loma del Medio', plot: [62, 20] },
     { name: 'La Loma del Este', plot: [74, 19] },
     { name: 'El vado', plot: [62, 10] },

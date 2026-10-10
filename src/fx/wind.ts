@@ -90,6 +90,9 @@ export class Wind extends Phaser.Renderer.WebGL.Pipelines.SinglePipeline {
   span = 1;
   /** The size every drawing given the wind has, in its own pixels. */
   drawn = { width: 1, height: 1 };
+  /** How far apart in shade and in warmth the things it blows are. */
+  tones = TONES;
+  warmth = WARMTH;
 
   constructor(game: Phaser.Game) {
     super({ game, name: 'Wind', fragShader });
@@ -101,21 +104,24 @@ export class Wind extends Phaser.Renderer.WebGL.Pipelines.SinglePipeline {
     this.set2f('uSize', this.drawn.width, this.drawn.height);
     this.set1f('uStrength', STRENGTH);
     this.set1f('uRustle', RUSTLE);
-    this.set1f('uTones', TONES);
-    this.set1f('uWarmth', WARMTH);
+    this.set1f('uTones', this.tones);
+    this.set1f('uWarmth', this.warmth);
   }
 }
 
 /**
  * Sets the wind on some drawings, all of one size, standing on ground `span`
- * pixels wide. Without WebGL they simply stand still.
+ * pixels wide. Without WebGL they simply stand still. How far apart they are
+ * in shade and in warmth can be told; left unsaid, it is as in the forest.
  */
-export function blow(scene: Phaser.Scene, things: Phaser.GameObjects.Image[], span: number): void {
+export function blow(scene: Phaser.Scene, things: Phaser.GameObjects.Image[], span: number, apart = { tones: TONES, warmth: WARMTH }): void {
   if (scene.renderer.type !== Phaser.WEBGL || !things.length) return;
   const pipelines = (scene.renderer as Phaser.Renderer.WebGL.WebGLRenderer).pipelines;
   if (!pipelines.has('Wind')) pipelines.add('Wind', new Wind(scene.game));
   const wind = pipelines.get('Wind') as unknown as Wind;
   wind.span = span;
+  wind.tones = apart.tones;
+  wind.warmth = apart.warmth;
   wind.drawn = { width: things[0].width, height: things[0].height };
   things.forEach((thing, i) => {
     // Red: how far across it stands. Green: a number of its own. Blue: its size.

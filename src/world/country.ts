@@ -19,26 +19,31 @@ const PLANTS: Record<string, string[]> = {
   tala: ['tala_a', 'tala_b'],
   junco: ['junco_a', 'junco_b', 'junco_c'],
   ombu: ['ombu_a'],
+  // The same tree, young: shown smaller.
+  ombu_chico: ['ombu_a'],
 };
 // Trees are shown larger than they are drawn, as in the forest: they stand
 // well over a man, about twice his height.
-const GROWN: Record<string, number> = { tala: 1.6, ombu: 2.1 };
+const GROWN: Record<string, number> = { tala: 1.6, ombu: 2.1, ombu_chico: 1.1 };
 // The ground a plant in the way takes up, for one shown at its drawn size.
 const FOOT = { hw: 9, hh: 4 };
 // The ombú's trunk and the thick of its roots are far wider than a stem.
-const FEET: Record<string, typeof FOOT> = { ombu: { hw: 26, hh: 7 } };
+const FEET: Record<string, typeof FOOT> = { ombu: { hw: 26, hh: 7 }, ombu_chico: { hw: 26, hh: 7 } };
 const SHADOW_ALPHA = 0.32;
 // A clump of grass touches the ground all along its foot, not at a trunk: a shadow laid toward the
 // viewer shows under its whole width and it seems to float. So here the light falls from in front,
 // and shadows lie long and behind.
 const LIGHT = { across: 0.6, down: -0.12 };
+// Dry plants are grey and straw: set as far apart in warmth as the forest's greens, the cold ones
+// turn blue. So here they differ in shade, and hardly at all in warmth.
+const APART = { tones: 0.4, warmth: 0.06 };
 const FIGURE = 80;     // how tall someone standing behind a plant is, in sprite pixels
 const THINNED = 0.4;   // how much is left of one that hides someone
 const THINNING = 8;    // how fast it thins and fills in again, per second
 
 /** Fetches the plants' drawings; to be called while a scene is loading. */
 export function loadCountry(scene: Phaser.Scene): void {
-  for (const name of Object.values(PLANTS).flat()) scene.load.image(name, `campo/${name}.png`);
+  for (const name of new Set(Object.values(PLANTS).flat())) scene.load.image(name, `campo/${name}.png`);
 }
 
 /**
@@ -68,7 +73,7 @@ export class Country {
         this.feet.push({ x: plant.x, y: plant.y - hh, hw: foot.hw * plant.size, hh });
       }
     }
-    blow(scene, this.plants, extent(map).width);
+    blow(scene, this.plants, extent(map).width, APART);
     sight?.add([...this.shadows, ...this.plants]);
   }
 
