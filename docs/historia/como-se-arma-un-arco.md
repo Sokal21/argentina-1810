@@ -449,7 +449,7 @@ blanco de los plumones).*
 
 ## Etapa 4 · Los cuatro hablables
 
-*Hecha, esperando el visto bueno.*
+*Cerrada.*
 
 - **Qué se hizo:** don Braulio, fray Anselmo, Mateo y Tobías tienen ficha
   (`src/npc/people.ts`), retrato, sprite y un lugar en el mapa. El motor de
