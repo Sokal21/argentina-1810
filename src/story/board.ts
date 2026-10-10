@@ -7,7 +7,7 @@ import type { News, Story } from './story';
 
 const STYLE = `
   #quests {
-    position: fixed; left: 16px; top: 108px; z-index: 15; max-width: min(380px, 60vw); pointer-events: none; user-select: none;
+    position: fixed; left: 16px; top: 14px; z-index: 15; max-width: min(380px, 60vw); pointer-events: none; user-select: none;
     font: 21px/1.15 'Jacquard 12', Georgia, serif; color: #f0e3c4; text-shadow: 0 2px 0 #14110f, 0 0 10px rgba(0, 0, 0, .9);
   }
   #quests b { display: block; font-weight: normal; color: #e2c478; letter-spacing: .03em; }

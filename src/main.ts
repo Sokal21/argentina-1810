@@ -28,7 +28,7 @@ if (import.meta.env.DEV) {
   void import('./devPanel').then(({ mountDevPanel }) => mountDevPanel(game));
 }
 
-// Effect buttons and their number keys; 0 turns everything off.
+// The effects, in the menu that pausing opens, and their number keys; 0 turns everything off.
 const bar = document.getElementById('fx')!;
 const buttons = new Map<Effect, HTMLButtonElement>();
 const mouseButton = document.createElement('button');
@@ -46,7 +46,7 @@ EFFECTS.forEach(([name, label], i) => {
   bar.appendChild(b);
   buttons.set(name, b);
 });
-mouseButton.innerHTML = '<b>M</b>Mouse 360°';
+mouseButton.innerHTML = '<b>M</b>Apuntar con el mouse';
 mouseButton.addEventListener('mousedown', e => e.preventDefault());
 mouseButton.addEventListener('click', () => { setMouseControl(!controls.mouse); refresh(); });
 bar.appendChild(mouseButton);
@@ -77,9 +77,11 @@ addEventListener('keydown', e => {
   refresh();
 });
 
-// Debug readout: which animation is on screen.
+// While developing: which animation is on screen.
 const state = document.getElementById('state')!;
-game.events.on(Phaser.Core.Events.POST_STEP, () => {
-  const scene = game.scene.getScene('game') as GameScene | null;
-  if (scene?.state) state.textContent = scene.state;
-});
+if (import.meta.env.DEV) {
+  game.events.on(Phaser.Core.Events.POST_STEP, () => {
+    const scene = game.scene.getScene('game') as GameScene | null;
+    if (scene?.state) state.textContent = scene.state;
+  });
+} else state.remove();

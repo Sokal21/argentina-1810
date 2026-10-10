@@ -12,32 +12,38 @@
   @font-face { font-family: 'Silkscreen'; src: url('/fonts/Silkscreen-Regular.ttf') format('truetype'); font-display: block; }
   html, body { margin: 0; height: 100%; background: #14110f; overflow: hidden; }
   #game { width: 100vw; height: 100vh; }
-  #hud {
-    position: fixed; left: 16px; top: 50px; color: #cdbfa3;
-    font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .02em;
+  /* While developing: which animation is on screen, small, in a corner. */
+  #state {
+    position: fixed; left: 8px; bottom: 6px; color: #8f8168; font: 11px/1 ui-monospace, Menlo, Consolas, monospace;
     text-shadow: 0 1px 0 #000; user-select: none; pointer-events: none;
   }
-  #hud kbd {
-    display: inline-block; min-width: 1.3em; padding: 1px 5px; margin-right: 2px; text-align: center;
-    border: 1px solid #6b5c44; border-radius: 3px; background: #241d17; color: #f0e3c4;
-  }
-  #fx { position: fixed; left: 16px; top: 14px; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100vw - 32px); }
-  #fx button {
-    font: 12px/1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .02em; cursor: pointer;
-    padding: 6px 9px; border: 1px solid #6b5c44; border-radius: 4px; background: #241d17; color: #a89a80;
-  }
-  #fx button b { color: #6b5c44; font-weight: normal; margin-right: 5px; }
-  #fx button.on { background: #cdbfa3; color: #1a1512; border-color: #f0e3c4; }
+  /* Escape stops the game and opens this: the effects to turn on and off, and the keys. Nothing
+     of it is on screen while playing. */
   #pause {
-    position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 14px; background: rgba(12, 10, 8, .62); color: #f0e3c4; user-select: none;
-    font: 63px/1 'Jacquard 12', Georgia, serif; letter-spacing: .04em;
-    text-shadow: 0 3px 0 #14110f;
+    position: fixed; inset: 0; z-index: 25; display: flex; align-items: center; justify-content: center;
+    background: rgba(12, 10, 8, .72); color: #f0e3c4; user-select: none;
+    font: 21px/1.2 'Jacquard 12', Georgia, serif; letter-spacing: .02em;
   }
   #pause[hidden] { display: none; }
-  #pause small { font-size: 21px; letter-spacing: .02em; color: #a89a80; text-shadow: 0 1px 0 #14110f; }
-  /* The game's own controls stay out of the way until it starts. */
-  body:not(.playing) #fx, body:not(.playing) #hud { display: none; }
+  #pause .panel {
+    box-sizing: border-box; width: min(720px, 94vw); max-height: 94vh; overflow-y: auto; padding: 22px 30px 18px;
+    background: #16120f; box-shadow: 0 0 0 3px #e2c478, 0 0 0 6px #0a0807;
+  }
+  #pause h1 { margin: 0 0 6px; font: 63px/1 'Jacquard 12', Georgia, serif; font-weight: normal; letter-spacing: .04em; text-align: center; text-shadow: 0 3px 0 #0a0807; }
+  #pause h2 { margin: 16px 0 6px; padding-bottom: 4px; border-bottom: 2px solid #3a3027; font: inherit; font-weight: normal; color: #e2c478; }
+  #fx { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 26px; }
+  #fx button { all: unset; cursor: pointer; display: flex; gap: 10px; padding: 1px 6px; color: #8f8168; }
+  #fx button:hover, #fx button:focus-visible { background: #2a2018; }
+  #fx button b { font-weight: normal; color: #6b5c44; min-width: 1em; }
+  #fx button::after { content: 'no'; margin-left: auto; color: #6b5c44; }
+  #fx button.on { color: #f0e3c4; }
+  #fx button.on b { color: #ff7a00; }
+  #fx button.on::after { content: 'sí'; color: #8fd18a; }
+  #keys { display: grid; grid-template-columns: auto 1fr; gap: 2px 22px; margin: 0; }
+  #keys dt { color: #ff7a00; white-space: nowrap; }
+  #keys dd { margin: 0; color: #cdbf9d; }
+  #pause small { display: block; margin-top: 16px; text-align: center; font-size: 21px; color: #6b5c44; }
+  @media (max-width: 560px) { #fx { grid-template-columns: 1fr; } #pause h1 { font-size: 42px; } }
   #start {
     position: fixed; left: 0; right: 0; bottom: 7vh; text-align: center; display: none;
     font: 21px/1 'Jacquard 12', Georgia, serif; letter-spacing: .06em;
@@ -113,7 +119,6 @@
 </head>
 <body>
 <div id="game"></div>
-<div id="fx"></div>
 <div id="start">Presioná cualquier tecla</div>
 <div id="dialog" hidden>
   <div class="faces"><img id="dialog-hero" alt=""><img id="dialog-npc" alt=""></div>
@@ -125,8 +130,28 @@
     <div id="dialog-options"></div>
   </div>
 </div>
-<div id="pause" hidden>Pausa<small>Esc para seguir</small></div>
-<div id="hud"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o clic derecho mover · <kbd>Clic</kbd> o <kbd>Espacio</kbd> atacar · <kbd>Shift</kbd> dash · <kbd>Q</kbd> <kbd>E</kbd> habilidades · <kbd>Esc</kbd> pausa · <kbd>1</kbd>–<kbd>5</kbd> efectos · <kbd>0</kbd> ninguno · <kbd>P</kbd> colisiones · <span id="state"></span></div>
+<div id="pause" hidden>
+  <div class="panel">
+    <h1>Pausa</h1>
+    <h2>Efectos</h2>
+    <div id="fx"></div>
+    <h2>Controles</h2>
+    <dl id="keys">
+      <dt>W A S D · clic derecho</dt><dd>Moverse</dd>
+      <dt>Clic · Espacio</dt><dd>Atacar</dd>
+      <dt>Shift</dt><dd>Esquivar</dd>
+      <dt>Q · E</dt><dd>Habilidades</dd>
+      <dt>R</dt><dd>Definitiva, cuando está cargada</dd>
+      <dt>F</dt><dd>Hablar, levantar</dd>
+      <dt>1 a 5</dt><dd>Prender y apagar un efecto</dd>
+      <dt>0</dt><dd>Apagar todos los efectos</dd>
+      <dt>M</dt><dd>Apuntar con el mouse</dd>
+      <dt>Esc</dt><dd>Pausa</dd>
+    </dl>
+    <small>Esc para seguir</small>
+  </div>
+</div>
+<div id="state"></div>
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
