@@ -35,8 +35,13 @@ import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
 import { garrison, leftBehind, type Post } from '../world/garrison';
 import { Sight } from '../world/sight';
+import { trail } from '../world/trail';
+import { mountBoard } from '../story/board';
+import { Story } from '../story/story';
+import { THINGS } from '../story/things';
+import { FACTS, VADO } from '../story/vado';
 import { Vitals } from '../world/vitals';
-import { extent, middle, walk, zoneAt, type WorldMap } from '../world/zones';
+import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type WorldMap } from '../world/zones';
 
 const ZOOM = 2;            // screen pixels per sprite pixel
 const FIELD = { width: 1280, height: 800 }; // the bare field, in sprite pixels
@@ -107,7 +112,9 @@ interface Orb extends Vec { t: number; glow: Phaser.GameObjects.Image; shadow: P
 // Those who only say their one thing are heard from a little further off.
 const TALK = { near: 52, heard: 84, trial: [-140, -80] as [number, number], standIn: 'pulpero/sprite.png' };
 /** Someone standing on the map: one to talk to (`npc`), or one who only says what the sign over them shows. */
-interface Talker { name: string; npc?: Npc; x: number; y: number; hint: Phaser.GameObjects.Text }
+interface Talker { name: string; npc?: Npc; x: number; y: number; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image } }
+// How life stands when a story begins with its hero wounded, and how near a named place counts as having come to it, in plots.
+const WOUNDED = 2, ARRIVED = 1;
 // The sign over them comes up and goes out over this long, in seconds.
 const HINT_FADE = { in: 0.35, out: 0.6 };
 
@@ -158,6 +165,11 @@ export class GameScene extends Phaser.Scene {
   private talkers: Talker[] = [];
   /** Whichever of them the hero is near enough to talk to or to hear, if any. */
   private beside?: Talker;
+  /** What has happened in this game, on a map that has a story; and what shows it. */
+  private story?: Story;
+  private board?: ReturnType<typeof mountBoard>;
+  /** The plot the hero was last seen in, so the story is told only when it changes. */
+  private plotWas = '';
   /** The orbs Inti's kills leave on the ground for a while. */
   private orbs: Orb[] = [];
   /** Which enemies stood at the last step, to tell when one falls. */
@@ -227,6 +239,7 @@ export class GameScene extends Phaser.Scene {
     const everyone = [...Object.values(PEOPLE), ...Object.values(BYSTANDERS)];
     for (const src of new Set([TALK.standIn, ...everyone.flatMap(p => p.sprite ?? [])])) this.load.image(src, src);
     for (const { idle } of everyone) if (idle) this.load.spritesheet(idle.sheet, idle.sheet, { frameWidth: idle.size, frameHeight: idle.size });
+    for (const { sprite } of Object.values(THINGS)) this.load.image(sprite, sprite);
   }
 
   create(): void {
@@ -414,11 +427,63 @@ export class GameScene extends Phaser.Scene {
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
         this.talkers.push({ name: one.name, x, y, hint });
       }
+      // What lies about to be picked up: it is taken by coming to it and saying so.
+      for (const { what, plot } of this.map?.things ?? []) {
+        const thing = THINGS[what];
+        if (!thing || !this.textures.exists(thing.sprite)) continue;
+        const { x, y } = middle(plot);
+        const drawn = this.add.image(x, y, thing.sprite).setOrigin(0.5, 1).setDepth(y);
+        const hint = this.add.text(x, y - drawn.height - 6, 'F · levantar', {
+          fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4',
+          stroke: '#14110f', strokeThickness: 3,
+        }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
+        this.talkers.push({ name: thing.name, x, y, hint, take: { what, drawn } });
+      }
+      // A trail along the ground, under everything that stands.
+      if (this.map?.trails?.length && !this.textures.exists('mark')) {
+        const g = this.make.graphics({}, false);
+        g.fillStyle(0x4a1410).fillEllipse(5, 3, 10, 5).fillStyle(0x6b1c16).fillEllipse(4, 2, 5, 3);
+        g.generateTexture('mark', 10, 6);
+        g.destroy();
+      }
+      for (const { from, to } of this.map?.trails ?? []) {
+        this.sight.add(trail(this.map!, from, to).map(mark =>
+          this.add.image(mark.x, mark.y, 'mark').setScale(0.5 + mark.size * 0.7).setAlpha(0.75).setDepth(-1e6 + 1.7)));
+      }
       this.input.keyboard?.on('keydown-F', () => {
         const near = this.beside;
-        if (!near?.npc || !this.vitals.standing) return;
-        openDialog(this.game, this.hero, near.npc, { heal: () => this.vitals.heal(LIFE) });
+        if (!near || !this.vitals.standing) return;
+        if (near.take) {
+          // Picked up: it is gone from the ground, and the story knows he has it.
+          near.take.drawn.destroy();
+          near.hint.destroy();
+          this.talkers = this.talkers.filter(t => t !== near);
+          this.beside = undefined;
+          this.board?.say(THINGS[near.take.what].note);
+          this.story?.tell(`tiene:${near.take.what}`);
+          return;
+        }
+        const npc = near.npc;
+        if (!npc) return;
+        openDialog(this.game, this.hero, npc, {
+          heal: () => this.vitals.heal(LIFE),
+          told: key => this.story?.tell(`sabe:${key}`),
+          agreed: key => this.story?.tell(`acepto:${key}`),
+          talked: () => this.story?.tell(`hablo:${npc.id}`),
+          closed: () => this.story?.tell(`cerro:${npc.id}`),
+        });
       });
+      // A map with a story: its hero comes in wounded and spent, and it begins.
+      this.board?.remove();
+      this.story = his && this.map === vadoDeLasVizcachas ? new Story(VADO) : undefined;
+      this.board = this.story ? mountBoard(this.story, FACTS) : undefined;
+      this.plotWas = '';
+      if (this.story) {
+        this.vitals.life = WOUNDED;
+        this.fury.value = 0;
+        this.story.tell('empieza');
+      }
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.board?.remove());
       // ?ir=capilla sets the hero down there from the start.
       const wanted = import.meta.env.DEV ? new URLSearchParams(location.search).get('ir') : null;
       if (wanted) this.goTo(wanted);
@@ -573,6 +638,18 @@ export class GameScene extends Phaser.Scene {
       if (ground(talker, this.machi) <= (talker.npc ? TALK.near : TALK.heard) && (!nearest || ground(talker, this.machi) < ground(nearest, this.machi))) nearest = talker;
     }
     this.beside = nearest;
+    // The story is told where the hero has got to: the zone he is in, and any named place he has come to.
+    if (this.story && this.map) {
+      const col = Math.floor(this.machi.x / PLOT_W), row = Math.floor(this.machi.y / PLOT_H);
+      if (this.plotWas !== `${col},${row}`) {
+        this.plotWas = `${col},${row}`;
+        const letter = letterAt(this.map, col, row);
+        if (letter) this.story.tell(`zona:${letter}`);
+        for (const { name, plot } of this.map.objectives) {
+          if (Math.abs(plot[0] - col) <= ARRIVED && Math.abs(plot[1] - row) <= ARRIVED) this.story.tell(`en:${name}`);
+        }
+      }
+    }
     for (const { hint } of this.talkers) {
       const shown = hint === nearest?.hint;
       const alpha = Phaser.Math.Clamp(hint.alpha + (shown ? dt / HINT_FADE.in : -dt / HINT_FADE.out), 0, 1);

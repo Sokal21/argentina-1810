@@ -1805,6 +1805,16 @@
       "asset_id": "67e0ed6e-ca1f-4a3c-a5a6-2834d2f915e6",
       "label": "chacarero: sprite on a square canvas, source for his idle",
       "file": "assets/gente/chacarero.png"
+    },
+    {
+      "asset_id": "70bcacee-5144-400d-924e-2cf4f4cb1db8",
+      "label": "vado thing: Tobías's poncho, variant 1",
+      "file": "assets/cosas/concept/poncho_1.png"
+    },
+    {
+      "asset_id": "9c97595f-1bce-4315-887a-c5c8a143dfed",
+      "label": "vado thing: Tobías's poncho, variant 2",
+      "file": "assets/cosas/concept/poncho_2.png"
     }
   ]
 }

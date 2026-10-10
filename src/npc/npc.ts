@@ -13,6 +13,8 @@ export interface Npc {
   trust: number;
   /** What they can be brought to do, each once, and how much trust it takes. */
   favours: Favour[];
+  /** What they ask of whoever they are talking to, each once. */
+  errands?: Errand[];
   /** What they say before anyone has spoken. */
   greets: string;
   /** What whoever comes back gets from them once they have had enough: they do not talk again. */
@@ -37,6 +39,18 @@ export interface Idle {
   /** Where their feet are in a frame: across it, and how far up from its bottom row. */
   ax: number;
   up: number;
+}
+
+/** Something they ask to have done. It is taken on by telling them so, not by hearing them out. */
+export interface Errand {
+  key: string;
+  /** The word the model answers with when the other has just taken it on. */
+  wants: string;
+  /** What they are told about it while it is theirs to ask, and once it has been taken on. */
+  asks: string;
+  taken: string;
+  /** Shown to the player when it is taken on. */
+  note: string;
 }
 
 export interface Favour {

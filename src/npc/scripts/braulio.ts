@@ -139,6 +139,7 @@ export const BRAULIO: Script = {
           says: 'Ese campo lo tengo que cruzar igual. Decime cómo es Tobías y te lo busco.',
           answer: 'Flaco, puro codo y rodilla, con un poncho que le queda grande. Vos podés ir adonde yo no: traeme aunque sea noticia, y esta posada es tu casa.',
           animo: 2,
+          quiere: 'encargar_hijo',
         },
       ],
     },

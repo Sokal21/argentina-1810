@@ -47,6 +47,15 @@ export const BRAULIO: Npc = {
       note: 'Dato conseguido: el pueblo quiere fundir la campana de la capilla para hacer balas.',
     },
   ],
+  errands: [
+    {
+      key: 'hijo',
+      wants: 'encargar_hijo',
+      asks: 'Necesitás que alguien cruce el campo de la pelea y busque a tu hijo Tobías: vos no podés ir, está lleno de soldados del rey. Si viene al caso se lo contás a este forastero, aunque te cueste pedir. SOLO si él te dice con claridad que lo va a buscar o que te va a ayudar, se lo agradecés a tu manera, le decís que es flaco y lleva un poncho que le queda grande, y poné "encargar_hijo" en "quiere". Si solo pregunta o duda, no.',
+      taken: 'Este forastero te dio su palabra de buscar a tu hijo Tobías. Esperás noticias.',
+      note: 'Le diste tu palabra a don Braulio: vas a buscar a su hijo.',
+    },
+  ],
   greets: 'Buenas. ¿Qué se le ofrece?',
   closed: 'Don Braulio sigue secando un jarro y no levanta la vista. Para vos la posada está cerrada.',
   portrait: 'pulpero/retrato.png',

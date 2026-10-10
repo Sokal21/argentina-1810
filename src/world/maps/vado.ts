@@ -85,7 +85,8 @@ export const vadoDeLasVizcachas: WorldMap = {
   // The stream of the Vizcachas crosses the whole map, and the ford is the one way over it.
   stream: [8, 11],
   // He arrives at the inn's door.
-  start: [11, 46],
+  // He comes in wounded from the fighting, at the village's eastern edge: the inn is a short walk on.
+  start: [16, 46],
   objectives: [
     { name: 'La posada', plot: [10, 45] },
     { name: 'El pozo', plot: [12, 47] },
@@ -126,6 +127,10 @@ export const vadoDeLasVizcachas: WorldMap = {
     { who: 'alferez', plot: [118, 22] },
     { who: 'malherido', plot: [64, 39] },
   ],
+  // The boy's poncho, where he fell by the overturned gun, and the blood that leads from it
+  // to the path up to the chapel.
+  things: [{ what: 'poncho', plot: [59, 37] }],
+  trails: [{ from: [59, 37], to: 'S' }],
   buildings: [
     { name: 'La posada', plot: [10, 45], wide: 150, deep: 46, tall: 44, colour: 0x8a7a5c },
     { name: 'La fragua', plot: [14, 44], wide: 60, deep: 30, tall: 34, colour: 0x5e5248 },

@@ -51,13 +51,19 @@ a medias es llegar con menos.
 - **La da:** don Braulio. «Mi hijo salió a mirar la batalla y no volvió.
   Hace tres días. El campo está lleno de godos que le tiran a lo que se
   mueva.»
+- **Se abre:** cuando Cabral le dice a don Braulio que lo va a buscar.
+  Oírlo no alcanza: hay que dar la palabra. Pero tiene otra puerta: si don
+  Braulio le cerró la posada, o si Cabral nunca le habló, **encontrar el
+  poncho la abre igual**. El mapa está abierto y nadie es dueño de una
+  misión.
 - **Tipo:** ir, pelear, buscar.
 - **Pasos:**
   1. Salir del pueblo por las chacras y atravesar el cardal.
-  2. Llegar al campo de batalla y vencer a los que lo revisan.
-  3. Encontrar el **poncho de Tobías**, junto al cañón volcado.
+  2. Llegar al campo de batalla. No hace falta vencer a los que lo revisan:
+     se los puede esquivar.
+  3. Encontrar el **poncho de Tobías**, junto al cañón volcado, y levantarlo.
   4. Seguir el rastro de sangre hacia el este, hasta la senda.
-- **Se cumple cuando:** tiene el poncho y pisó la senda.
+- **Se cumple cuando:** tiene el poncho y llegó al pie de la senda.
 - **Deja:** el poncho (objeto). El hecho «el rastro va hacia la capilla».
   Abre la misión 3.
 - **Secundaria que aparece acá:** *El malherido*.

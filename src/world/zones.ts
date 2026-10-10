@@ -64,6 +64,10 @@ export interface WorldMap {
   buildings?: Building[];
   /** Who can be talked to, by the name the game knows them under, and the plot each stands in. */
   people?: { who: string; plot: [number, number]; /** Which way they look across the screen; right if unsaid. */ faces?: 'left' | 'right' }[];
+  /** What lies about to be picked up, by the name the story knows it under, and the plot each lies in. */
+  things?: { what: string; plot: [number, number] }[];
+  /** Trails left along the ground: each from a plot to the nearest plot of a zone. */
+  trails?: { from: [number, number]; to: string }[];
   /** Rows of plots a stream runs along, first and last: whatever of them nobody can cross is deep water. */
   stream?: [number, number];
 }
@@ -138,6 +142,9 @@ export function faults(map: WorldMap): string[] {
   }
   for (const { who, plot } of map.people ?? []) {
     if (letterAt(map, ...plot) === undefined) found.push(`${who} is where nobody can stand`);
+  }
+  for (const { what, plot } of map.things ?? []) {
+    if (letterAt(map, ...plot) === undefined) found.push(`${what} lies where nobody can reach it`);
   }
   return found;
 }

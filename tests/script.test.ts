@@ -69,7 +69,7 @@ describe('what was written for each of them', () => {
         expect(new Set(script.beats.map(b => b.id)).size).toBe(script.beats.length);
         const says = script.beats.flatMap(b => b.options.map(o => o.says));
         expect(new Set(says).size).toBe(says.length);
-        const wants = new Set(['nada', 'echar', ...npc.favours.map(f => f.wants)]);
+        const wants = new Set(['nada', 'echar', ...npc.favours.map(f => f.wants), ...(npc.errands ?? []).map(e => e.wants)]);
         for (const beat of script.beats) {
           expect(beat.options.length, beat.id).toBeGreaterThanOrEqual(2);
           expect(beat.options.length, beat.id).toBeLessThanOrEqual(3);
@@ -82,6 +82,8 @@ describe('what was written for each of them', () => {
         const { talk } = await play(script, best);
         expect(talk.over).toBe(false);
         for (const favour of npc.favours) expect(talk.has(favour.key), favour.key).toBe(true);
+        // And is asked whatever they have to ask, and takes it on.
+        for (const errand of npc.errands ?? []) expect(talk.took(errand.key), errand.key).toBe(true);
       });
 
       it('shuts for good on whoever always says the worst', async () => {

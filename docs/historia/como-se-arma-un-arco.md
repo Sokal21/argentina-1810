@@ -113,6 +113,19 @@ solo.
 > te odian, y darle una salida que no dependa de nadie. Si esa salida no
 > existe, el arco se puede trabar.
 
+### Una misión tiene más de una puerta
+
+Si don Braulio es el único que da la misión del hijo, y don Braulio se
+cierra para siempre con una frase mal puesta, el juego se termina en el
+primer minuto. La salida no fue ablandar el cierre sino abrir el mundo: la
+misión también se abre encontrando el poncho, y siempre queda el fraile, y
+siempre queda pelear solo. Cerrar a alguien cuesta su camino entero, no la
+partida.
+
+> **Regla:** ninguna persona es dueña de una misión. Cada una se abre por
+> lo que pasa en el mundo (lo que te piden, lo que encontrás, adónde
+> llegás), y lo que te piden es solo una de esas cosas.
+
 ### La historia tiene que ser verdad del lugar
 
 El borrador con una toldería mapuche se cayó porque en la campaña de Buenos
@@ -527,3 +540,42 @@ espera y algunas que salieron con partes transparentes.*
 - **Qué enseñó:** el "dos o tres paisanos" del documento no se podía
   construir: hubo que decidir cuántos, quiénes y qué dice cada uno. Lo
   vago en el papel se nota recién al ponerlo en el mapa.
+
+## Etapa 6 · El gancho
+
+*Hecha, esperando el visto bueno.*
+
+- **Qué se hizo:** se juegan las dos primeras misiones. Cabral aparece
+  herido al borde del pueblo, llega a la posada, habla con don Braulio; si
+  le da su palabra sale a buscar al hijo, cruza hasta el campo de batalla,
+  levanta el poncho junto al cañón y sigue el rastro de sangre hasta el pie
+  de la senda.
+- **La memoria de la partida** (`src/story/story.ts`). Todo lo que importa
+  para la historia le llega como un **suceso**, una palabra corta de lo que
+  pasó: `en:La posada`, `acepto:hijo`, `tiene:poncho`, `cerro:braulio`. Los
+  guarda todos, y solo de ellos saca qué misiones están abiertas, qué paso
+  toca, qué tiene Cabral y qué sabe. No dibuja nada ni sabe cómo pasó cada
+  cosa: que se haya charlado escribiendo o eligiendo le da lo mismo.
+- **Las misiones son datos** (`src/story/vado.ts`): qué sucesos la abren
+  (cualquiera de ellos) y sus pasos en orden, cada uno cumplido por algún
+  suceso. Con eso alcanzó para las dos, y los tests las juegan enteras sin
+  abrir el juego, incluida la versión en que don Braulio te echa.
+- **Pedir algo es distinto de dar algo.** A lo que un personaje te da
+  (favores) se sumó lo que te pide (encargos): se toma cuando el jugador
+  dice que sí, no cuando el personaje termina de contarlo. Con Claude, el
+  modelo avisa en el momento en que el jugador acepta; con opciones, la
+  frase que acepta lo lleva escrito.
+- **Lo que hay en el mapa lo dice el mapa:** el poncho es una cosa tirada
+  en una parcela, y el rastro de sangre es una regla (de tal parcela a la
+  zona más cercana de tal letra, por donde se camina). Nadie puso una
+  mancha a mano.
+- **En pantalla,** arriba a la izquierda: la misión en curso y el paso que
+  toca, y un renglón cuando se abre una, se cumple, o se levanta algo.
+- **Qué quedó afuera a propósito:** no hay dónde ver lo que se tiene y se
+  sabe (etapa 8), no se guarda la partida (etapa 14), y la secundaria del
+  malherido no está.
+- **Qué enseñó:** probarlo de punta a punta en el juego encontró lo que
+  los tests no: que "el pie de la senda" está en el monte y no en la
+  senda, así que llegar ahí no cumplía el paso; y que dos avisos seguidos
+  se pisaban. Los tests prueban la regla; jugarlo prueba que la regla es
+  la que uno quería.

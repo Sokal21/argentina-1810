@@ -106,7 +106,7 @@ describe('everyone who can be talked to', () => {
       const talk = new Talk(npc, 'cabral', async (_system, _lines, wants) => { asked.push(wants); return { dice: 'Hum.', animo: 0, quiere: 'nada' }; });
       expect(talk.brief()).toContain(`SOLO como ${npc.name}`);
       await talk.say('buenas');
-      expect(asked[0]).toEqual(['nada', ...npc.favours.map(f => f.wants), 'echar']);
+      expect(asked[0]).toEqual(['nada', ...npc.favours.map(f => f.wants), ...(npc.errands ?? []).map(e => e.wants), 'echar']);
     }
   });
 
@@ -135,5 +135,18 @@ describe('everyone who can be talked to', () => {
     const talk = new Talk(mateo, 'cabral', async () => ({ dice: 'Somos sesenta, y sin pólvora.', animo: 0, quiere: 'nada' }));
     expect((await talk.say('¿cuántos son?')).done).toEqual([]);
     expect(talk.has('columna')).toBe(false);
+  });
+
+  it('takes it that what they ask is taken on only when the other says so, and only once', async () => {
+    const braulio = PEOPLE.braulio;
+    const replies = [{ quiere: 'nada' }, { quiere: 'encargar_hijo', dice: 'Traeme noticia.' }, { quiere: 'encargar_hijo' }];
+    const talk = new Talk(braulio, 'cabral', async () => ({ dice: 'Hum.', animo: 0, quiere: 'nada', ...replies.shift() }));
+    expect(talk.brief()).toContain('Tobías');
+    expect((await talk.say('¿qué le pasa?')).agreed).toEqual([]);
+    expect((await talk.say('yo lo busco')).agreed.map(e => e.key)).toEqual(['hijo']);
+    expect(talk.took('hijo')).toBe(true);
+    expect((await talk.say('yo lo busco, dije')).agreed).toEqual([]);
+    // He is not asked again: he waits for word.
+    expect(talk.brief()).toContain('Esperás noticias');
   });
 });

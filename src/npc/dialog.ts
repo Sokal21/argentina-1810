@@ -16,7 +16,18 @@ const HEROES: Record<Hero, { name: string; portrait: string; accent: string; fra
 const TYPE = 28;   // milliseconds a letter
 
 /** What a favour does to the game, which the scene that opened the talk supplies. */
-export type Effects = Partial<Record<'heal', () => void>>;
+export interface Effects {
+  /** A favour that mends the hero. */
+  heal?: () => void;
+  /** They were told something: the key of what. */
+  told?: (key: string) => void;
+  /** Something they asked was taken on: the key of what. */
+  agreed?: (key: string) => void;
+  /** The talk is over, and something was said in it. */
+  talked?: () => void;
+  /** They have had enough, for good. */
+  closed?: () => void;
+}
 
 // Each remembers each hero for as long as the page is open, and one who has had enough stays so.
 const talks = new Map<string, Talk>();
@@ -125,6 +136,7 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
     // Any key held when the talk began is no longer held.
     dispatchEvent(new Event('blur'));
     game.scene.resume('game');
+    if (talk.lines.some(line => line.who === 'player')) effects.talked?.();
   };
   const escape = (e: KeyboardEvent) => {
     if (e.code !== 'Escape') return;
@@ -172,9 +184,14 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
       await speak('npc', turn.says, true);
       for (const favour of turn.done) {
         if (favour.effect) effects[favour.effect]?.();
+        else effects.told?.(favour.key);
         note.textContent = favour.note;
       }
-      if (turn.over) { note.textContent = `${talk.npc.name} no quiere saber más nada con vos.`; }
+      for (const errand of turn.agreed) {
+        effects.agreed?.(errand.key);
+        note.textContent = errand.note;
+      }
+      if (turn.over) { note.textContent = `${talk.npc.name} no quiere saber más nada con vos.`; effects.closed?.(); }
     } catch (error) {
       clearInterval(dots);
       talk.lines.pop();
