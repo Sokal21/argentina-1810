@@ -34,6 +34,7 @@ import { bosquePatagonico } from '../world/maps/bosque';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
 import { garrison, leftBehind, type Post } from '../world/garrison';
+import { Flask, FLASKS } from '../machi/flask';
 import { Sight } from '../world/sight';
 import { trail } from '../world/trail';
 import { mountBoard } from '../story/board';
@@ -113,8 +114,8 @@ interface Orb extends Vec { t: number; glow: Phaser.GameObjects.Image; shadow: P
 const TALK = { near: 52, heard: 84, trial: [-140, -80] as [number, number], standIn: 'pulpero/sprite.png' };
 /** Someone standing on the map: one to talk to (`npc`), or one who only says what the sign over them shows. */
 interface Talker { name: string; npc?: Npc; x: number; y: number; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image } }
-// How life stands when a story begins with its hero wounded, and how near a named place counts as having come to it, in plots.
-const WOUNDED = 2, ARRIVED = 1;
+// How near a named place counts as having come to it, in plots.
+const ARRIVED = 1;
 // The sign over them comes up and goes out over this long, in seconds.
 const HINT_FADE = { in: 0.35, out: 0.6 };
 
@@ -203,6 +204,8 @@ export class GameScene extends Phaser.Scene {
   private abilities = new Abilities();
   /** Cabral's fury. It ebbs whoever is being played, so swapping away does not keep it. */
   private fury = new Fury();
+  /** What the hero drinks from when things go badly. */
+  private flask = new Flask();
   private lightning!: Lightning;
   /** Where a strike would fall and where ones already cast are about to. */
   private marks!: Phaser.GameObjects.Graphics;
@@ -450,6 +453,16 @@ export class GameScene extends Phaser.Scene {
         this.sight.add(trail(this.map!, from, to).map(mark =>
           this.add.image(mark.x, mark.y, 'mark').setScale(0.5 + mark.size * 0.7).setAlpha(0.75).setDepth(-1e6 + 1.7)));
       }
+      // C drinks from the flask: nothing is wasted on one who has no need of it.
+      this.flask = new Flask();
+      this.input.keyboard?.on('keydown-C', () => {
+        const { restores, amount } = FLASKS[this.hero];
+        const wanting = restores === 'life' ? this.vitals.life < LIFE : this.abilities.mana < MANA;
+        if (!this.vitals.standing || !wanting || !this.flask.drink()) return;
+        if (restores === 'life') this.vitals.heal(amount);
+        else this.abilities.mana = Math.min(MANA, this.abilities.mana + amount);
+        this.sparks.emitParticleAt(this.machi.x, this.machi.y - 40, 8);
+      });
       this.input.keyboard?.on('keydown-F', () => {
         const near = this.beside;
         if (!near || !this.vitals.standing) return;
@@ -473,16 +486,12 @@ export class GameScene extends Phaser.Scene {
           closed: () => this.story?.tell(`cerro:${npc.id}`),
         });
       });
-      // A map with a story: its hero comes in wounded and spent, and it begins.
+      // A map with a story: it begins.
       this.board?.remove();
       this.story = his && this.map === vadoDeLasVizcachas ? new Story(VADO) : undefined;
       this.board = this.story ? mountBoard(this.story, FACTS) : undefined;
       this.plotWas = '';
-      if (this.story) {
-        this.vitals.life = WOUNDED;
-        this.fury.value = 0;
-        this.story.tell('empieza');
-      }
+      this.story?.tell('empieza');
       this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.board?.remove());
       // ?ir=capilla sets the hero down there from the start.
       const wanted = import.meta.env.DEV ? new URLSearchParams(location.search).get('ir') : null;
@@ -638,6 +647,11 @@ export class GameScene extends Phaser.Scene {
       if (ground(talker, this.machi) <= (talker.npc ? TALK.near : TALK.heard) && (!nearest || ground(talker, this.machi) < ground(nearest, this.machi))) nearest = talker;
     }
     this.beside = nearest;
+    // Somewhere safe, the flask is filled again.
+    this.flask.update(dt);
+    if (this.map && zoneAt(this.map, this.machi.x, this.machi.y)?.safe && this.flask.refill()) {
+      this.board?.say(`${FLASKS[this.hero].name}: lleno otra vez.`);
+    }
     // The story is told where the hero has got to: the zone he is in, and any named place he has come to.
     if (this.story && this.map) {
       const col = Math.floor(this.machi.x / PLOT_W), row = Math.floor(this.machi.y / PLOT_H);
@@ -1193,6 +1207,11 @@ export class GameScene extends Phaser.Scene {
     this.machi.x = place.x + 40;
     this.machi.y = place.y + 8;
     return true;
+  }
+
+  /** The hero's flask: how many draughts are left of how many, and whether one can be taken now. */
+  get draughts(): { left: number; ready: boolean } {
+    return { left: this.flask.left, ready: this.flask.ready };
   }
 
   /** For trying things out: full life, and mana or fury to the brim. */

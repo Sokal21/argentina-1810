@@ -34,8 +34,8 @@ a medias es llegar con menos.
 
 - **La da:** nadie. Empieza sola.
 - **Tipo:** ir, hablar.
-- **Qué pasa:** Cabral aparece al borde del pueblo, herido (con 2 de vida de
-  5) y sin furia.
+- **Qué pasa:** Cabral aparece al borde del pueblo, entero, con su chifle
+  de caña lleno.
 - **Pasos:**
   1. Llegar a la posada.
   2. Hablar con don Braulio.

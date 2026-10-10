@@ -571,6 +571,15 @@ espera y algunas que salieron con partes transparentes.*
   mancha a mano.
 - **En pantalla,** arriba a la izquierda: la misión en curso y el paso que
   toca, y un renglón cuando se abre una, se cumple, o se levanta algo.
+- **Cabral no arranca herido.** El documento lo hacía llegar con 2 de vida
+  sobre 5, para que la posada importara. Con 48 soldados en el camino y sin
+  ninguna cura propia era un muro, y el usuario lo cambió antes de
+  jugarlo: arranca entero y lleva un **frasco** como el de Dark Souls
+  (`src/machi/flask.ts`). Tres tragos, que se rellenan al llegar a un lugar
+  seguro. El de Cabral, un chifle de caña, devuelve vida; el de Inti, una
+  calabaza de muday, devuelve maná. Va en el último casillero del HUD, con
+  la tecla C. Así los lugares seguros del mapa pasan a valer algo, y la
+  cura deja de depender de caerle bien a alguien.
 - **Qué quedó afuera a propósito:** no hay dónde ver lo que se tiene y se
   sabe (etapa 8), no se guarda la partida (etapa 14), y la secundaria del
   malherido no está.

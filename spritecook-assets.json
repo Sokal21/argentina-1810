@@ -1815,6 +1815,26 @@
       "asset_id": "9c97595f-1bce-4315-887a-c5c8a143dfed",
       "label": "vado thing: Tobías's poncho, variant 2",
       "file": "assets/cosas/concept/poncho_2.png"
+    },
+    {
+      "asset_id": "04ebdf69-1d86-4fbd-8762-db3349b01e90",
+      "label": "flask icon: chifle_1 — untouched SpriteCook output",
+      "file": "assets/hud/iconos/chifle_1_original.png"
+    },
+    {
+      "asset_id": "67183c72-a72a-45ec-ae40-3fbcd3c781be",
+      "label": "flask icon: chifle_2 — untouched SpriteCook output",
+      "file": "assets/hud/iconos/chifle_2_original.png"
+    },
+    {
+      "asset_id": "ba6ba737-bc3a-4140-89b7-36305d00085d",
+      "label": "flask icon: calabaza_1 — untouched SpriteCook output",
+      "file": "assets/hud/iconos/calabaza_1_original.png"
+    },
+    {
+      "asset_id": "6e1d6ee4-fe06-44e8-9e1f-ad2a6c7695ec",
+      "label": "flask icon: calabaza_2 — untouched SpriteCook output",
+      "file": "assets/hud/iconos/calabaza_2_original.png"
     }
   ]
 }

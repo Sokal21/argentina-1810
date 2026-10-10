@@ -1,5 +1,6 @@
 import { HEAL, STRIKE } from '../machi/abilities';
 import type { Hero } from '../machi/data';
+import { DRAUGHTS, FLASKS } from '../machi/flask';
 import { GRENADE } from '../machi/grenade';
 import { MUSKET } from '../machi/musket';
 
@@ -13,7 +14,13 @@ export interface Tip {
 
 const terms = (key: string, cost: number, what: string, wait: number) => `${key} · ${cost} de ${what} · recarga ${wait} s`;
 
-/** Each hero's skills in the order of their slots, and last their greatest power. */
+const flask = (hero: Hero, gives: string, says: string): Tip => ({
+  name: FLASKS[hero].name,
+  terms: `C · ${DRAUGHTS} tragos · ${gives}`,
+  says: `${says} Se vuelve a llenar al llegar a un lugar seguro.`,
+});
+
+/** Each hero's skills in the order of their slots, then their greatest power, and last their flask. */
 export const TIPS: Record<Hero, Tip[]> = {
   inti: [
     {
@@ -31,6 +38,7 @@ export const TIPS: Record<Hero, Tip[]> = {
       terms: 'R · se carga juntando los orbes que dejan los enemigos',
       says: 'Llama al espíritu del jaguar. Por unos segundos caza al enemigo más cercano y atrae hacia él a los que tenga cerca, mientras ella ataca de lejos.',
     },
+    flask('inti', `devuelve ${FLASKS.inti.amount} de maná`, 'Un trago de muday devuelve maná al instante.'),
   ],
   cabral: [
     {
@@ -48,5 +56,6 @@ export const TIPS: Record<Hero, Tip[]> = {
       terms: 'R · se carga a sablazos con la furia llena',
       says: 'Por unos segundos no puede morir, camina y ataca más rápido y quema a quien tenga pegado. Mientras dura pelea solo con el sable.',
     },
+    flask('cabral', `devuelve ${FLASKS.cabral.amount} de vida`, 'Un trago de caña devuelve vida al instante.'),
   ],
 };

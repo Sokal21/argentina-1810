@@ -47,6 +47,8 @@ interface Layout {
   /** The colour their greatest power charges in, and its picture once it has one. */
   accent: number;
   ultimate?: string;
+  /** The picture of the flask they drink from. */
+  flask: string;
 }
 
 const LIFE = ['#571227', '#8a1730', '#c22f48', '#e0607a'] as Vessel['colours'];
@@ -62,6 +64,7 @@ const LAYOUTS: Record<Hero, Layout> = {
     slot: { x: 146, y: 72, step: 54 },
     accent: 0x46e6fa,
     ultimate: 'hud/iconos/nahuel.png',
+    flask: 'hud/iconos/calabaza.png',
     skills: [
       { ability: 'strike', icon: 'hud/iconos/rayo.png', key: 'Q' },
       { ability: 'heal', icon: 'hud/iconos/lawen.png', key: 'E' },
@@ -78,6 +81,7 @@ const LAYOUTS: Record<Hero, Layout> = {
     slot: { x: 127, y: 58, step: 54.5 },
     accent: 0xff7a00,
     ultimate: 'hud/iconos/furia.png',
+    flask: 'hud/iconos/chifle.png',
     skills: [
       { ability: 'musket', icon: 'hud/iconos/mosquete.png', key: 'Q' },
       { ability: 'grenade', icon: 'hud/iconos/granada.png', key: 'E' },
@@ -94,6 +98,8 @@ interface Panel {
   charge: Phaser.GameObjects.Rectangle;
   /** Its picture, if it has one, and the shade over the part not yet charged. */
   power?: { icon: Phaser.GameObjects.Image; shade: Phaser.GameObjects.Rectangle };
+  /** Their flask, in the last slot, and how many draughts are left in it. */
+  flask: { icon: Phaser.GameObjects.Image; left: Phaser.GameObjects.Text };
 }
 
 /**
@@ -111,8 +117,9 @@ export class HudScene extends Phaser.Scene {
   }
 
   preload(): void {
-    for (const { frame, skills, ultimate } of Object.values(LAYOUTS)) {
+    for (const { frame, skills, ultimate, flask } of Object.values(LAYOUTS)) {
       if (ultimate) this.load.image(ultimate, ultimate);
+      this.load.image(flask, flask);
       this.load.image(frame, frame);
       for (const { icon } of skills) this.load.image(icon, icon);
     }
@@ -178,15 +185,21 @@ export class HudScene extends Phaser.Scene {
       color: '#f0e3c4', stroke: '#14110f', strokeThickness: 3,
     }).setOrigin(1, 1);
     box.add(key);
+    // Their flask, in the slot after that, with the draughts left in it counted in its corner.
+    const fx = layout.slot.x + layout.slot.step * (layout.skills.length + 1), fy = layout.slot.y;
+    const flaskIcon = this.add.image(fx, fy, layout.flask).setOrigin(0, 0);
+    const caps = { fontFamily: CAPS.family, fontSize: `${CAPS.size}px`, color: '#f0e3c4', stroke: '#14110f', strokeThickness: 3 };
+    const left = this.add.text(fx + 1, fy - 1, '', caps).setOrigin(0, 0);
+    box.add([flaskIcon, left, this.add.text(fx + ICON - 1, fy + ICON, 'C', caps).setOrigin(1, 1)]);
     // Pointing at a slot brings up a note on what it does.
-    for (let i = 0; i <= layout.skills.length; i++) {
+    for (let i = 0; i <= layout.skills.length + 1; i++) {
       const zone = this.add.zone(layout.slot.x + layout.slot.step * i, layout.slot.y, ICON, ICON)
         .setOrigin(0, 0).setInteractive();
       zone.on('pointerover', () => this.showNote(hero, i));
       zone.on('pointerout', () => this.hideNote(hero, i));
       box.add(zone);
     }
-    return { box, layout, glasses, slots, charge, power };
+    return { box, layout, glasses, slots, charge, power, flask: { icon: flaskIcon, left } };
   }
 
   update(time: number, delta: number): void {
@@ -212,6 +225,10 @@ export class HudScene extends Phaser.Scene {
       } else {
         panel.charge.setSize(ICON, Math.round(ICON * charged)).setAlpha(charged >= 1 ? 0.7 + 0.3 * pulse : 0.55);
       }
+      // Empty, the flask is dull until somewhere safe is reached.
+      const { left } = game.draughts;
+      panel.flask.left.setText(String(left)).setColor(left ? '#f0e3c4' : '#8a4a3a');
+      panel.flask.icon.setTint(left ? 0xffffff : 0x4a4a4a);
       for (const glass of panel.glasses) {
         const level = Phaser.Math.Clamp(glass.vessel.read(game), 0, 1);
         // The first time it is seen it is simply at its level; after that it slides.
