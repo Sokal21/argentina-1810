@@ -35,7 +35,7 @@ import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
 import { garrison, leftBehind, type Post } from '../world/garrison';
 import { DRINKING, Flask, FLASKS } from '../machi/flask';
-import { GROWTHS, WORTH, type Growth, type Stat } from '../machi/growth';
+import { GROWTHS, toNext, WORTH, type Growth, type Stat } from '../machi/growth';
 import { MEND, Mending } from '../fx/mend';
 import { Sight } from '../world/sight';
 import { trail } from '../world/trail';
@@ -1271,6 +1271,11 @@ export class GameScene extends Phaser.Scene {
   /** The hero's flask: how many draughts are left of how many, and whether one can be taken now. */
   get draughts(): { left: number; ready: boolean } {
     return { left: this.flask.left, ready: this.flask.ready };
+  }
+
+  /** For trying things out: just enough experience to reach the next level. */
+  levelUp(): void {
+    this.earn(toNext(this.growth.level) - this.growth.xp);
   }
 
   /** For trying things out: full life, and mana or fury to the brim. */
