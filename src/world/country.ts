@@ -4,6 +4,7 @@ import { palisade, walls } from './fences';
 import type { Footprint } from './footprint';
 import { plantCountry } from './plants';
 import { castShadow, mirrored } from './scenery';
+import type { Sight } from './sight';
 import { extent, middle, type WorldMap } from './zones';
 
 // Open country: the plants that close each zone in, and what is built on
@@ -50,7 +51,8 @@ export class Country {
   /** The ground taken up by each plant that stands where people walk. */
   readonly feet: Footprint[] = [];
 
-  constructor(scene: Phaser.Scene, map: WorldMap) {
+  /** @param sight what keeps the plants far from the camera out of the drawing; without it all are drawn */
+  constructor(scene: Phaser.Scene, map: WorldMap, sight?: Sight) {
     for (const planted of plantCountry(map)) {
       const drawings = PLANTS[planted.kind];
       if (!drawings) continue;
@@ -67,12 +69,15 @@ export class Country {
       }
     }
     blow(scene, this.plants, extent(map).width);
+    sight?.add([...this.shadows, ...this.plants]);
   }
 
   /** Thins whatever hides whoever stands at a spot, and fills the rest in again. */
   reveal(at: { x: number; y: number }, dt: number): void {
     const step = THINNING * dt;
     for (const plant of this.plants) {
+      // One out of sight keeps what it had, and goes on from there when it is seen again.
+      if (!plant.visible) continue;
       const top = plant.y - plant.displayHeight;
       const hides = plant.y > at.y && Math.abs(at.x - plant.x) < plant.displayWidth * 0.35
         && at.y > top && at.y - FIGURE < plant.y - plant.displayHeight * 0.25;
@@ -124,11 +129,13 @@ export function loadFences(scene: Phaser.Scene): void {
  * its drawing stood side by side along its line: seen from the front they
  * join into the wall's face, and where it runs away up the screen only the
  * coping of each shows above the one in front. Each stands in front of
- * whatever is further up the screen.
+ * whatever is further up the screen. Given a `sight`, those far from the
+ * camera are kept out of the drawing.
  */
-export function raiseFences(scene: Phaser.Scene, map: WorldMap): void {
+export function raiseFences(scene: Phaser.Scene, map: WorldMap, sight?: Sight): void {
+  const pieces: Phaser.GameObjects.Image[] = [];
   for (const post of palisade(map)) {
-    scene.add.image(post.x, post.y, POSTS[Math.floor(post.which * POSTS.length)]).setOrigin(0.5, 1).setDepth(post.y);
+    pieces.push(scene.add.image(post.x, post.y, POSTS[Math.floor(post.which * POSTS.length)]).setOrigin(0.5, 1).setDepth(post.y));
   }
   // The wall's drawing twice over side by side, so a slice can begin anywhere along it.
   const front = scene.textures.get('tapia_frente').getSourceImage() as HTMLImageElement;
@@ -140,6 +147,7 @@ export function raiseFences(scene: Phaser.Scene, map: WorldMap): void {
     for (let from = 0; from < front.width; from++) twice.add(from, 0, from, 0, THICK, front.height);
   }
   for (const slice of walls(map)) {
-    scene.add.image(slice.x, slice.y, 'tapia', Math.floor(slice.along) % front.width).setOrigin(0.5, 1).setDepth(slice.y);
+    pieces.push(scene.add.image(slice.x, slice.y, 'tapia', Math.floor(slice.along) % front.width).setOrigin(0.5, 1).setDepth(slice.y));
   }
+  sight?.add(pieces);
 }

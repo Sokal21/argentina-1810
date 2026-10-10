@@ -10,7 +10,9 @@ Read it before spending credits.
 
 For scenery or a map (trees, ground, props, zones, what the game does to
 them), read [`SCENERY.md`](SCENERY.md) as well: what a map is, the look that
-was chosen, and why the ground is not generated.
+was chosen, why the ground is not generated, and what keeps a full map
+running fast ("Keeping it fast": read it before standing anything on a map
+in numbers or putting a shader on a sprite).
 
 ## The look
 
@@ -151,6 +153,8 @@ Do not open the game in the browser to check; the user plays it and reports.
   The controller is shared. A sheet records `frames`, `faces`, `ax` (the
   body's centre in a frame) and, when needed, `ay`, `still`, `order`.
 - Add every generated asset to `spritecook-assets.json` with its id.
+- A creature that flashes when hurt takes its effect with `HitFX.on(sprite)`,
+  never `setPostPipeline` left on: see "Keeping it fast" in `SCENERY.md`.
 - Add or extend a test in `tests/` for what the controller should pose, then
   run `npx tsc --noEmit`, `pnpm test` and `pnpm build`.
 

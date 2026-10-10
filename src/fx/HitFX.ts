@@ -5,6 +5,10 @@ import Phaser from 'phaser';
 // creep up over its own colours, in flat blocks on the sprite pixel grid,
 // brighter here and there. Each object gets its own copy, so they flash and
 // burn on their own.
+//
+// Worn by a sprite, it costs a pass over the whole screen every frame and
+// breaks the drawing in two around it, however small the sprite. So it is
+// worn only while there is something of it to see.
 const fragShader = `
 #define SHADER_NAME HIT_FS
 precision mediump float;
@@ -47,8 +51,8 @@ void main() {
 `;
 
 export class HitFX extends Phaser.Renderer.WebGL.Pipelines.PostFXPipeline {
-  amount = 0;
-  burn = 0;
+  private flashing = 0;
+  private smouldering = 0;
   /** Screen pixels per sprite pixel (the camera zoom). */
   pixel = 2;
 
@@ -56,9 +60,46 @@ export class HitFX extends Phaser.Renderer.WebGL.Pipelines.PostFXPipeline {
     super({ game, name: 'HitFX', fragShader });
   }
 
+  /** Gives a sprite its own copy, not yet worn. Without WebGL there is none. */
+  static on(sprite: Phaser.GameObjects.Sprite | Phaser.GameObjects.Image): HitFX | undefined {
+    const renderer = sprite.scene.renderer;
+    if (renderer.type !== Phaser.WEBGL) return undefined;
+    (renderer as Phaser.Renderer.WebGL.WebGLRenderer).pipelines.addPostPipeline('HitFX', HitFX);
+    sprite.setPostPipeline(HitFX);
+    const found = sprite.getPostPipeline(HitFX);
+    const fx = (Array.isArray(found) ? found[0] : found) as HitFX;
+    fx.wear();
+    return fx;
+  }
+
+  /** How red it flashes, from 1 (solid red) to 0 (untouched). */
+  get amount(): number {
+    return this.flashing;
+  }
+  set amount(value: number) {
+    this.flashing = value;
+    this.wear();
+  }
+
+  /** How strongly it smoulders, from 0 to 1. */
+  get burn(): number {
+    return this.smouldering;
+  }
+  set burn(value: number) {
+    this.smouldering = value;
+    this.wear();
+  }
+
+  // Puts it on its sprite or takes it off. The copy is kept either way:
+  // making one anew compiles its shader, which is felt as a hitch.
+  private wear(): void {
+    const sprite = this.gameObject as { hasPostPipeline: boolean } | undefined;
+    if (sprite) sprite.hasPostPipeline = this.flashing > 0 || this.smouldering > 0;
+  }
+
   onPreRender(): void {
-    this.set1f('uAmount', this.amount);
-    this.set1f('uBurn', this.burn);
+    this.set1f('uAmount', this.flashing);
+    this.set1f('uBurn', this.smouldering);
     this.set1f('uTime', this.game.loop.time / 1000);
     this.set1f('uPixel', this.pixel);
   }

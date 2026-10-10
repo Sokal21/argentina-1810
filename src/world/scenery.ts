@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import { blow } from '../fx/wind';
 import type { Footprint } from './footprint';
+import type { Sight } from './sight';
 import { plantTrees } from './trees';
 import { extent, zoneAt, type WorldMap } from './zones';
 
@@ -79,7 +80,8 @@ export class Forest {
   /** The ground taken up by the trunk of each tree that stands where people walk. */
   readonly trunks: Footprint[] = [];
 
-  constructor(scene: Phaser.Scene, map: WorldMap) {
+  /** @param sight what keeps the trees far from the camera out of the drawing; without it all are drawn */
+  constructor(scene: Phaser.Scene, map: WorldMap, sight?: Sight) {
     for (const tree of plantTrees(map, TREES.length)) {
       const name = tree.flipped ? mirrored(scene, TREES[tree.kind]) : TREES[tree.kind];
       const shadow = castShadow(scene, name);
@@ -98,12 +100,15 @@ export class Forest {
       }
     }
     blow(scene, this.trees, extent(map).width);
+    sight?.add([...this.shadows, ...this.trees]);
   }
 
   /** Thins the trees whose crowns hide whoever stands at a spot, and fills the others in again. */
   reveal(at: { x: number; y: number }, dt: number): void {
     const step = THINNING * dt;
     for (const tree of this.trees) {
+      // One out of sight keeps what it had, and goes on from there when it is seen again.
+      if (!tree.visible) continue;
       const top = tree.y - tree.displayHeight;
       const hides = tree.y > at.y && Math.abs(at.x - tree.x) < tree.displayWidth / 2
         && at.y > top && at.y - FIGURE < top + tree.displayHeight * CROWN;

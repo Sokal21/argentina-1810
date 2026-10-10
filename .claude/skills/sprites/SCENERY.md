@@ -78,6 +78,50 @@ Each of these was asked for by the user and tuned by them running it:
 first variation in shade were each reported as too subtle to see. Set a new
 effect where it is plainly visible and let the user turn it down.
 
+## Keeping it fast
+
+The game ran slowly on Cabral's map once it was full of plants, and the user
+asked for these to be written down. Phaser does none of this for you.
+
+- **Nothing is left out for being off screen.** Phaser works out every image
+  in a scene each frame, wherever the camera is. The vado has some 14,700
+  standing things (5,840 plants, as many shadows, 929 posts, 2,075 slices of
+  wall) and about 200 are ever in view. Anything stood on a map in numbers
+  is handed to the scene's `Sight` (`src/world/sight.ts`), which rules the
+  ground into squares and shows only those near the camera. Pass it to
+  whatever raises new scenery, as `Forest`, `Country` and `raiseFences` do.
+- A loop over all of a map's things each frame (`reveal`) skips the ones not
+  visible. Do not add another that looks at every plant.
+- **The wind draws one texture at a time.** It is a `SinglePipeline`, so
+  every change of drawing between one plant and the next in depth is a draw
+  call of its own. Each new drawing and each new kind of plant adds to that.
+  Culling keeps it to what is in view; if a view ever holds hundreds of
+  plants of many drawings, the answer is one atlas for all of them and a wind
+  shader that reads its frame, not more loose textures.
+- **Keep a drawing's canvas tight.** The wind shader runs its noise on every
+  pixel of the canvas before it knows whether anything is drawn there, and
+  the canvas is shown at twice or more its size. All drawings of plants share
+  one size (206 by 141) because the shader counts on it: make that size as
+  small as the largest of them allows, not generous.
+- **An effect worn by one sprite costs a pass over the whole screen**, and
+  cuts the batch in two around it, however small the sprite. `HitFX` is given
+  with `HitFX.on(sprite)` and puts itself on only while the sprite flashes or
+  burns. Do the same for any new effect on a sprite: never leave a post
+  pipeline on at rest. Keep the copy and switch it (`hasPostPipeline`)
+  instead of removing and adding it, which compiles the shader again.
+- **A shader over the whole view is paid for per screen pixel.** The grass
+  (`src/fx/meadow.ts`), the water and the camera's `LookFX` each run on every
+  pixel of the window, at the window's size, though they draw in sprite
+  pixels at a zoom of two: four times the work the picture needs. Before
+  adding another, or a loop inside one, count what it does per pixel. Still
+  owed: drawing grass and water into a texture at sprite size and showing
+  that enlarged.
+- Things made each frame (an array spread from two others, a list of every
+  foe) are small but add up; walk what is already there.
+- **These are judged by measuring, running.** None of the above was profiled
+  when it was written: it was read from the code and from Phaser's. Ask the
+  user which map is slow and what changed before going further.
+
 ## Showing it to the user
 
 - A composed still beside Inti is right for choosing a manner or a size.

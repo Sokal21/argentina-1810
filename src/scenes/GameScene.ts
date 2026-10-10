@@ -30,6 +30,7 @@ import { Country, loadCountry, loadFences, raiseBuildings, raiseFences } from '.
 import { bosquePatagonico } from '../world/maps/bosque';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
+import { Sight } from '../world/sight';
 import { Vitals } from '../world/vitals';
 import { extent, middle, walk, type WorldMap } from '../world/zones';
 
@@ -159,6 +160,8 @@ export class GameScene extends Phaser.Scene {
   /** And the long grass all over it. */
   private meadow?: Meadow;
   private water?: Water;
+  /** What of the map's scenery is near enough the camera to be drawn. */
+  private sight = new Sight();
   /** The ground taken up by what is built on the map. */
   private built: Footprint[] = [];
   /** How far the world reaches, in sprite pixels. */
@@ -214,12 +217,13 @@ export class GameScene extends Phaser.Scene {
     this.size = this.map ? extent(this.map) : FIELD;
     this.start = this.map ? middle(this.map.start) : { x: FIELD.width / 2, y: FIELD.height / 2 };
     // Open country has no forest: what cannot be crossed is shaded, and what is built stands as blocks.
-    this.forest = this.map && !this.map.bare ? new Forest(this, this.map) : undefined;
+    this.sight = new Sight();
+    this.forest = this.map && !this.map.bare ? new Forest(this, this.map, this.sight) : undefined;
     if (this.map) layGround(this, this.map);
     else this.drawGround();
     this.built = this.map ? raiseBuildings(this, this.map) : [];
-    if (this.map?.bare) raiseFences(this, this.map);
-    this.country = this.map?.bare ? new Country(this, this.map) : undefined;
+    if (this.map?.bare) raiseFences(this, this.map, this.sight);
+    this.country = this.map?.bare ? new Country(this, this.map, this.sight) : undefined;
     this.meadow = this.map?.bare ? new Meadow(this, this.map.ground) : undefined;
     this.water = this.map?.bare ? new Water(this, this.map) : undefined;
     this.built.push(...(this.country?.feet ?? []));
@@ -231,14 +235,7 @@ export class GameScene extends Phaser.Scene {
     this.sprite = this.add.sprite(0, 0, KITS[this.hero].sheets.idle_front.src, 0);
     this.bolts = new Bolts(this, this.size.width, this.size.height);
 
-    if (this.renderer.type === Phaser.WEBGL) {
-      (this.renderer as Phaser.Renderer.WebGL.WebGLRenderer).pipelines.addPostPipeline('HitFX', HitFX);
-    }
-    this.sprite.setPostPipeline(HitFX);
-    if (this.renderer.type === Phaser.WEBGL) {
-      const found = this.sprite.getPostPipeline(HitFX);
-      this.hitFx = (Array.isArray(found) ? found[0] : found) as HitFX;
-    }
+    this.hitFx = HitFX.on(this.sprite);
     Enemy.setup(this);
     // Each of them has enemies of their own: Cabral the king's soldiers,
     // Inti the stone blocks and the chonchones.
@@ -384,6 +381,9 @@ export class GameScene extends Phaser.Scene {
     cam.setRoundPixels(true);
     // Follow her feet, framed a little above them so her body is centred.
     cam.startFollow(this.shadow, true, 1, 1, 0, CHEST);
+    // The camera says where it has settled just before each frame is drawn:
+    // the scenery it cannot see is left out of that same frame.
+    cam.on(Phaser.Cameras.Scene2D.Events.FOLLOW_UPDATE, () => this.sight.look(cam.worldView));
 
     if (this.renderer.type === Phaser.WEBGL) {
       const renderer = this.renderer as Phaser.Renderer.WebGL.WebGLRenderer;
@@ -433,10 +433,12 @@ export class GameScene extends Phaser.Scene {
       this.machi.y = clear.y;
     }
     // Nor through the trunk of a tree, nor into country too thick to cross.
-    for (const trunk of [...(this.forest?.trunks ?? []), ...this.built]) {
-      const clear = pushOut({ x: this.machi.x, y: this.machi.y, ...FEET }, trunk);
-      this.machi.x = clear.x;
-      this.machi.y = clear.y;
+    for (const taken of [this.forest?.trunks, this.built]) {
+      for (const trunk of taken ?? []) {
+        const clear = pushOut({ x: this.machi.x, y: this.machi.y, ...FEET }, trunk);
+        this.machi.x = clear.x;
+        this.machi.y = clear.y;
+      }
     }
     if (this.map) {
       const held = walk(this.map, from, this.machi);

@@ -64,11 +64,7 @@ export class Enemy {
     this.barBack = scene.add.rectangle(x, y - BAR_UP, BAR_W + 2, 4, 0x14110f, 0.85).setDepth(1e6);
     this.bar = scene.add.rectangle(x - BAR_W / 2, y - BAR_UP, BAR_W, 2, 0xd23c2a).setOrigin(0, 0.5).setDepth(1e6);
 
-    if (scene.renderer.type === Phaser.WEBGL) {
-      this.sprite.setPostPipeline(HitFX);
-      const found = this.sprite.getPostPipeline(HitFX);
-      this.fx = (Array.isArray(found) ? found[0] : found) as HitFX;
-    }
+    this.fx = HitFX.on(this.sprite);
   }
 
   /** Where it stands, and how far its body reaches from there. */
