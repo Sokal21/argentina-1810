@@ -137,6 +137,8 @@ export const vadoDeLasVizcachas: WorldMap = {
   // The three rises that look down on the ford: on each a signal fire can be built, once
   // there is wood for it and the soldiers who hold the rise are down.
   spots: [
+    // The ford itself, where the column has to cross: whoever plants himself there, alone, has it come at him.
+    { id: 'vado', name: 'El vado', plot: [62, 10], does: 'plantarse y esperar a la columna', happening: 'planta:vado', note: 'Ya vienen.', stand: { from: [62, 8], waves: [3, 4, 5], won: 'aguanto:vado' } },
     // Behind the chapel, where the friars keep their two carts: whoever has been asked can see which way they are to go.
     { id: 'carretas', name: 'Las carretas', plot: [122, 20], does: 'mirar las carretas', given: 'acepto:rehenes', happening: 'sabe:carretas', note: 'Dos carretas con paja y mantas, de cara a la senda. Salen por acá, de noche.' },
     { id: 'fogata_este', name: 'La fogata del Este', plot: [75, 20], does: 'armar la fogata', given: 'tiene:lena', guarded: true, happening: 'armada:este', note: 'La fogata de la Loma del Este está armada.', sprite: 'cosas/fogata.png' },

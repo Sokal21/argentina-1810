@@ -50,6 +50,12 @@ export interface Spot {
   guarded?: boolean;
   /** What doing it is, to the story. */
   happening: string;
+  /**
+   * Doing it is making a stand there: enemies come in waves from a plot, so many at a time,
+   * and holding out against the last of them is a happening of its own. Whoever falls can
+   * make the stand again.
+   */
+  stand?: { from: [number, number]; waves: number[]; won: string };
   /** Shown to the player when it is done. */
   note?: string;
   /** Its drawing once it is done. */

@@ -82,7 +82,7 @@ test('whoever is drawn standing about has a sheet of whole frames, the size it s
 
 test('each place where something can be done is on ground that is walked, and its fire is on its own rise', () => {
   const spots = map.spots ?? [];
-  expect(spots.map(s => s.id).sort()).toEqual(['carretas', 'fogata_este', 'fogata_medio', 'fogata_oeste']);
+  expect(spots.map(s => s.id).sort()).toEqual(['carretas', 'fogata_este', 'fogata_medio', 'fogata_oeste', 'vado']);
   const rise = { fogata_oeste: '1', fogata_medio: '2', fogata_este: '3' } as Record<string, string>;
   for (const spot of spots.filter(s => rise[s.id])) expect(letterAt(map, ...spot.plot), spot.id).toBe(rise[spot.id]);
   // Each rise is held: there is a guard to be beaten before anything is built on it.

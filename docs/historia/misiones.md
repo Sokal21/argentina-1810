@@ -270,7 +270,7 @@ pueblo" no queda cumplido por haber estado antes), `hablo:QUIEN`,
 | 7b | La escolta | ídem; fray Anselmo | llevar las dos carretas a la Loma del Medio | Falta: **escolta** |
 | 8a | La emboscada | dos de 5a, 6a, 7a | aguantar tres oleadas · vencer al capitán | Falta: **oleadas**, **el capitán** |
 | 8b | El rebato | dos de 5b, 6b, 7b, y la campana en su lugar | encender las fogatas · estar en la loma al aclarar | Falta: **usar un lugar**, quizá **oleadas** |
-| 8c | Solo en el vado | ninguna de las otras alcanza, o todos cerrados | aguantar un tiempo en el vado | Falta: **oleadas** |
+| 8c | Solo en el vado | `planta:vado`: plantarse en el vado, cuando sea; no depende de nadie | aguantar tres oleadas (`aguanto:vado`). Deja `final:solo` | **Hecha** |
 
 Lo que el juego todavía no sabe hacer, y que varias misiones comparten:
 
@@ -282,8 +282,10 @@ Lo que el juego todavía no sabe hacer, y que varias misiones comparten:
   la carreta de la campana, las carretas de los heridos.
 - **Zona limpia: hecho.** El juego sabe si queda en pie alguno de los que
   guardan una zona, y un lugar guardado lo dice en su cartel.
-- **Oleadas.** Enemigos que llegan por tandas a un lugar, y un final cuando
-  no quedan.
+- **Oleadas: hecho.** Un lugar puede ser donde se hace frente: los enemigos
+  llegan por tandas desde una parcela, la siguiente recién cuando cayó el
+  último de la anterior, y aguantarlas todas es un suceso. Quien cae puede
+  volver a plantarse.
 - **El capitán.** Un enemigo nuevo: es de la etapa de enemigos.
 
 Y lo que se decide hablando ya tiene su manera: lo que un personaje **pide**

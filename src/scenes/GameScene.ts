@@ -40,6 +40,8 @@ import { ITEMS, PACKS, SPOILS, type Pack } from '../machi/pack';
 import { MEND, Mending } from '../fx/mend';
 import { Sight } from '../world/sight';
 import { trail } from '../world/trail';
+import { Waves } from '../world/waves';
+import { showEnding } from '../story/ending';
 import { mountBoard } from '../story/board';
 import { Story } from '../story/story';
 import { THINGS } from '../story/things';
@@ -172,6 +174,8 @@ export class GameScene extends Phaser.Scene {
   /** What has happened in this game, on a map that has a story; and what shows it. */
   private story?: Story;
   private board?: ReturnType<typeof mountBoard>;
+  /** A stand being made: where, the waves still to come, and those who have. */
+  private battle?: { at: Spot; waves: Waves; sent: Realista[] };
   /** The plot the hero was last seen in, so the story is told only when it changes. */
   private plotWas = '';
   /** The orbs Inti's kills leave on the ground for a while. */
@@ -465,7 +469,9 @@ export class GameScene extends Phaser.Scene {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
           stroke: '#14110f', strokeThickness: 3,
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
-        this.talkers.push({ name: at.name, x, y, hint, spot: { at, mark }, there: () => !this.story?.has(at.happening) && (!at.given || !!this.story?.has(at.given)) });
+        // A stand can be made again until it has been held; anything else is done once.
+        const done = at.stand?.won ?? at.happening;
+        this.talkers.push({ name: at.name, x, y, hint, spot: { at, mark }, there: () => !this.story?.has(done) && this.battle?.at !== at && (!at.given || !!this.story?.has(at.given)) });
       }
       // A trail along the ground, under everything that stands.
       if (this.map?.trails?.length && !this.textures.exists('mark')) {
@@ -509,6 +515,13 @@ export class GameScene extends Phaser.Scene {
           const { at, mark } = near.spot;
           // Not while anyone who holds the place is still on their feet.
           if (at.guarded && this.held(at)) return;
+          // A stand is begun, not done: the place stays, for whoever has to make it again.
+          if (at.stand) {
+            this.battle = { at, waves: new Waves(at.stand.waves), sent: [] };
+            if (at.note) this.board?.say(at.note);
+            this.story?.tell(at.happening);
+            return;
+          }
           mark.destroy();
           near.hint.destroy();
           this.talkers = this.talkers.filter(t => t !== near);
@@ -550,6 +563,14 @@ export class GameScene extends Phaser.Scene {
           if (n.kind !== 'done') continue;
           if (n.quest.gold) { this.pack.gold += n.quest.gold; this.board?.say(`+${n.quest.gold} reales`); }
           if (n.quest.xp) this.earn(n.quest.xp);
+          // A mission that ends the story: it is told, with the game stopped behind it.
+          const final = n.quest.leaves?.find(l => l.startsWith('final:'));
+          if (final) {
+            this.time.delayedCall(1800, () => {
+              this.scene.pause();
+              showEnding(final, () => this.scene.resume());
+            });
+          }
         }
       });
       this.grown();
@@ -721,6 +742,25 @@ export class GameScene extends Phaser.Scene {
       if (nearest.hint.text !== wanted) nearest.hint.setText(wanted);
     }
     this.beside = nearest;
+    // A stand: each wave comes from where the map says, once the last of the one before is down.
+    if (this.battle && this.map) {
+      const { at, waves, sent } = this.battle, stand = at.stand!, map = this.map;
+      const coming = waves.update(dt, sent.filter(soldier => soldier.alive).length);
+      if (typeof coming === 'number') {
+        const from = middle(stand.from), bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
+        for (let n = 0; n < coming; n++) {
+          // Abreast, a few paces apart.
+          const soldier = new Realista(this, from.x + (n - (coming - 1) / 2) * 46, from.y + (n % 2) * 18, bounds).sent((x, y) => zoneAt(map, x, y) !== undefined);
+          this.realistas.push(soldier);
+          sent.push(soldier);
+          this.physics.add.overlap(this.bolts.bodies, soldier.zone, this.struck);
+        }
+        this.board?.say(`Oleada ${waves.come} de ${waves.sizes.length}.`);
+      } else if (coming === 'won') {
+        this.battle = undefined;
+        this.story?.tell(stand.won);
+      }
+    }
     // Somewhere safe, the flask is filled again.
     this.flask.update(dt);
     // What mana comes back by itself comes back faster for every point put into it.
@@ -1096,6 +1136,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private rise(): void {
+    // A stand that was lost is over: those who came go back, and it can be made again.
+    if (this.battle) {
+      for (const soldier of this.battle.sent) soldier.dismiss();
+      this.battle = undefined;
+      this.board?.say('La columna pasó. Podés volver a plantarte en el vado.');
+    }
     this.machi.rise();
     this.machi.x = this.start.x;
     this.machi.y = this.start.y;

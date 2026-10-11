@@ -14,6 +14,8 @@ import type { Quest } from './story';
 //   cerro:QUIEN      someone has had enough of the hero
 //   dijo:QUE         the hero has told someone something they needed to hear
 //   armada:LOMA      a signal fire has been built on one of the rises
+//   planta:LUGAR     the hero has made a stand somewhere; aguanto:LUGAR, he has held it
+//   final:CUAL       the story has ended, and how
 //   hecha:MISION     a mission is done
 //
 // Coming to a place (en:, zona:) is not kept: it counts for the step waiting on it and no more.
@@ -95,6 +97,17 @@ export const VADO: Quest[] = [
       { says: 'Averiguá en la capilla por dónde van a sacar las carretas.', when: ['sabe:carretas'] },
       { says: 'Volvé al pueblo y decíselo a don Braulio.', when: ['dijo:carretas'] },
     ],
+  },
+  {
+    id: 'vado',
+    name: 'Solo en el vado',
+    xp: 400,
+    // The last way out, that depends on nobody: he plants himself in the ford and holds it.
+    opens: ['planta:vado'],
+    steps: [
+      { says: 'Aguantá en el vado. Que la columna no pase.', when: ['aguanto:vado'] },
+    ],
+    leaves: ['final:solo'],
   },
   {
     id: 'fogatas',

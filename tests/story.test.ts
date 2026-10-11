@@ -169,3 +169,14 @@ describe('the two that are settled by talking', () => {
     expect(story.isDone('rehenes')).toBe(true);
   });
 });
+
+describe('the last way out', () => {
+  it('is open to anyone, whoever they have fallen out with, and ends the story', () => {
+    const story = new Story(VADO);
+    for (const h of ['empieza', 'cerro:braulio', 'cerro:anselmo', 'cerro:mateo', 'cerro:tobias', 'planta:vado']) story.tell(h);
+    expect(story.current.map(c => c.quest.id)).toContain('vado');
+    story.tell('aguanto:vado');
+    expect(story.isDone('vado')).toBe(true);
+    expect(story.has('final:solo')).toBe(true);
+  });
+});

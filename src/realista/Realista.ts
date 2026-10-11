@@ -120,6 +120,19 @@ export class Realista {
     return this;
   }
 
+  /** Makes him one of a wave: he comes on from wherever he is, and is not back once down. */
+  sent(ground: (x: number, y: number) => boolean): this {
+    this.hold(ground);
+    this.brain.relentless = true;
+    return this;
+  }
+
+  /** Takes him off the field at once, for good. */
+  dismiss(): void {
+    this.brain.vanish();
+    this.draw();
+  }
+
   /** Puts him back at his post, whole, if he has fallen. */
   revive(): void {
     this.brain.revive();

@@ -674,7 +674,9 @@ quedan anotadas para mejorar más adelante, en la etapa 16.*
 
 ## Etapa 10 · Las misiones, una por una
 
-*En curso. Hechas la 3, la 4 y la 6b; diagramadas todas.*
+*En curso. Hechas 8 de 13: la 3, la 4, la 5b, la 6b, la 7a y el final 8c;
+diagramadas todas. Faltan las tres de escolta y los dos finales con
+aliados.*
 
 - **Primero el diagrama.** Antes de escribir ninguna se armó la tabla de
   las trece (`docs/historia/misiones.md`, "Cómo se encadenan en el
@@ -701,3 +703,9 @@ quedan anotadas para mejorar más adelante, en la etapa 16.*
   capilla cuando fray Anselmo la pide, y en cada loma hay que vencer a la
   guardia para armar la fogata. Un paso puede esperar varias cosas en
   cualquier orden, y el cartel dice cuántas van.
+- **El primer final que se hizo fue el último recurso.** Con las oleadas
+  (`src/world/waves.ts`) se armó antes que nada "Solo en el vado", el final
+  que no depende de nadie: plantarse en el vado y aguantar tres tandas. Así
+  el arco tuvo principio y fin jugables antes de tener el medio completo, y
+  la regla de "siempre hay una última salida" dejó de ser una promesa. Quien
+  cae puede volver a plantarse.

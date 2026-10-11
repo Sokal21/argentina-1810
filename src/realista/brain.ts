@@ -61,6 +61,8 @@ export class RealistaBrain {
   private home: Vec;
   /** Whether he is back on his own a while after he falls. One who holds a post is not: he waits to be called. */
   returns = true;
+  /** He goes for whoever he is after however far off they are: he was sent, and does not have to catch sight of them. */
+  relentless = false;
   /** The ground he can walk on, if not all of it. */
   ground?: (x: number, y: number) => boolean;
 
@@ -91,7 +93,7 @@ export class RealistaBrain {
     switch (this.mode) {
       case 'stand':
       case 'walk': {
-        if (!to || far > SIGHT) { this.enter('stand'); return NOTHING; }
+        if (!to || (far > SIGHT && !this.relentless)) { this.enter('stand'); return NOTHING; }
         this.look(to);
         if (far < NEAR) {
           if (this.rest <= 0) { this.enter('slash'); this.landed = false; } else this.enter('stand');
@@ -156,6 +158,13 @@ export class RealistaBrain {
     this.dir = { x: to.x / len, y: to.y / len };
     if (Math.abs(to.x) > 1) this.faceX = to.x >= 0 ? 1 : -1;
     this.back = to.y < 0;
+  }
+
+  /** Takes him off the field at once, for good. */
+  vanish(): void {
+    this.returns = false;
+    this.mode = 'gone';
+    this.t = 0;
   }
 
   /** Puts him back at his post, whole, if he has fallen. */
