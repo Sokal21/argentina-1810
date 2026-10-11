@@ -2,7 +2,11 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#14110f">
 <title>1810: Argentina</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/favicon-180.png">
@@ -11,7 +15,8 @@
   @font-face { font-family: 'Jacquard 12'; src: url('/fonts/Jacquard12-Regular.ttf') format('truetype'); font-display: block; }
   @font-face { font-family: 'Silkscreen'; src: url('/fonts/Silkscreen-Regular.ttf') format('truetype'); font-display: block; }
   html, body { margin: 0; height: 100%; background: #14110f; overflow: hidden; }
-  #game { width: 100vw; height: 100vh; }
+  #game { width: 100vw; height: 100vh; height: 100dvh; overflow: hidden; }
+  #game canvas { display: block; }
   /* While developing: which animation is on screen, small, in a corner. */
   #state {
     position: fixed; left: 8px; bottom: 6px; color: #8f8168; font: 11px/1 ui-monospace, Menlo, Consolas, monospace;
@@ -39,10 +44,20 @@
   #fx button.on { color: #f0e3c4; }
   #fx button.on b { color: #ff7a00; }
   #fx button.on::after { content: 'sí'; color: #8fd18a; }
-  #keys { display: grid; grid-template-columns: auto 1fr; gap: 2px 22px; margin: 0; }
-  #keys dt { color: #ff7a00; white-space: nowrap; }
-  #keys dd { margin: 0; color: #cdbf9d; }
+  #keys, #taps { display: grid; grid-template-columns: auto 1fr; gap: 2px 22px; margin: 0; }
+  #keys dt, #taps dt { color: #ff7a00; white-space: nowrap; }
+  #keys dd, #taps dd { margin: 0; color: #cdbf9d; }
+  #keys[hidden], #taps[hidden] { display: none; }
   #pause small { display: block; margin-top: 16px; text-align: center; font-size: 21px; color: #6b5c44; }
+  /* A way out of anything that a key closes, for whoever has no keys. */
+  .leave { all: unset; cursor: pointer; display: none; margin: 14px auto 0; padding: 8px 26px 9px; background: #2a2018; color: #f0e3c4; box-shadow: 0 0 0 2px #e2c478, 0 0 0 4px #0a0807; font: 21px/1 'Jacquard 12', Georgia, serif; letter-spacing: .04em; }
+  .leave:active { background: #3a2c20; }
+  body.touch .leave { display: block; width: max-content; }
+  body.touch #pause small, body.touch #fx button b, body.touch #fx .mouse { display: none; }
+  body.touch #fx button { padding: 7px 6px; }
+  body.touch #pause .panel { padding: 16px 18px 0; }
+  body.touch #pause .panel { padding-bottom: 16px; }
+  #resume { margin: 10px auto 4px; padding: 11px 44px 12px; }
   @media (max-width: 560px) { #fx { grid-template-columns: 1fr; } #pause h1 { font-size: 42px; } }
   #start {
     position: fixed; left: 0; right: 0; bottom: 7vh; text-align: center; display: none;
@@ -53,6 +68,8 @@
   /* Twice the size where there is room: it is only crisp at multiples of 21px. */
   @media (min-width: 900px) { #start { font-size: 42px; } }
   body.title #start { display: block; }
+  #start .taps, body.touch #start .keys { display: none; }
+  body.touch #start .taps { display: inline; }
   @keyframes blink { 50% { opacity: 0; } }
 
   /* Talking to someone: the world behind stops and darkens, the two of them
@@ -101,13 +118,17 @@
     all: unset; cursor: pointer; padding: 2px 8px; color: #cdbf9d; font: inherit; user-select: none;
   }
   #dialog-options button::before { content: attr(data-n) ' \203A  '; color: var(--hero); }
+  #dialog-leave { margin: 10px 0 4px auto; }
+  body.touch #dialog-options button { padding: 7px 8px; }
+  body.touch #dialog-options { gap: 0; }
   #dialog-options button:hover, #dialog-options button:focus-visible { background: #2a2018; color: #f0e3c4; }
   /* Twice the size where there is room: the letter is only crisp at multiples of 21px. */
   @media (min-width: 1300px) and (min-height: 1000px) { #dialog .box { font-size: 42px; padding-top: 34px; } #dialog-name { top: -34px; } }
   /* Where there is little room: less air round the words, no reminder of the keys, and on a narrow screen only whoever is spoken to. */
   @media (max-height: 560px), (max-width: 700px) {
     #dialog { padding: 1vh 0 2vh; }
-    #dialog .box { padding: 20px 14px 8px; min-height: 0; width: 96vw; line-height: 1.1; }
+    #dialog .box { padding: 20px 14px 8px; min-height: 0; width: calc(100vw - 20px); line-height: 1.1; }
+    #dialog-options { max-height: 38vh; overflow-y: auto; }
     #dialog .faces { width: 96vw; }
     #dialog-text { min-height: 1.2em; }
     #dialog-note { min-height: 0; margin-top: 2px; }
@@ -119,7 +140,7 @@
 </head>
 <body>
 <div id="game"></div>
-<div id="start">Presioná cualquier tecla</div>
+<div id="start"><span class="keys">Presioná cualquier tecla</span><span class="taps">Tocá para empezar</span></div>
 <div id="dialog" hidden>
   <div class="faces"><img id="dialog-hero" alt=""><img id="dialog-npc" alt=""></div>
   <div class="box">
@@ -128,11 +149,13 @@
     <div id="dialog-note"></div>
     <form id="dialog-form"><span>&rsaquo;</span><input id="dialog-input" autocomplete="off" spellcheck="false" maxlength="220" placeholder="Escribí lo que le decís…"><small>Enter · Esc para irte</small></form>
     <div id="dialog-options"></div>
+    <button id="dialog-leave" class="leave">Irse</button>
   </div>
 </div>
 <div id="pause" hidden>
   <div class="panel">
     <h1>Pausa</h1>
+    <button id="resume" class="leave">Seguir</button>
     <h2>Efectos</h2>
     <div id="fx"></div>
     <h2>Controles</h2>
@@ -150,6 +173,15 @@
       <dt>0</dt><dd>Apagar todos los efectos</dd>
       <dt>M</dt><dd>Apuntar con el mouse</dd>
       <dt>Esc</dt><dd>Pausa</dd>
+    </dl>
+    <dl id="taps" hidden>
+      <dt>Palanca</dt><dd>Moverse: aparece donde apoyes el pulgar izquierdo</dd>
+      <dt>Botón grande</dt><dd>Atacar. Va solo al enemigo más cercano; arrastralo para apuntar</dd>
+      <dt>»</dt><dd>Esquivar</dd>
+      <dt>Habilidades</dt><dd>Mantené y arrastrá para apuntar, soltá para usarla. Un toque va al más cercano</dd>
+      <dt>Frasco</dt><dd>Tomar un trago</dd>
+      <dt>Cartel</dt><dd>Hablar, levantar y comprar aparecen cuando hay con qué</dd>
+      <dt>Libro</dt><dd>Personaje: nivel, puntos, lo que lleva y lo que sabe</dd>
     </dl>
     <small>Esc para seguir</small>
   </div>

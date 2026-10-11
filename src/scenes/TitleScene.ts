@@ -41,6 +41,9 @@ export class TitleScene extends Phaser.Scene {
   private lamps!: Phaser.GameObjects.Image;
   private sun!: Phaser.GameObjects.Image;
   private halo!: Phaser.GameObjects.Image;
+  private logo!: Phaser.GameObjects.Image;
+  /** How much smaller than drawn the name and the sun are shown, on a screen too narrow for them. */
+  private narrow = 1;
   private look?: LookFX;
   private leaving = false;
 
@@ -69,7 +72,7 @@ export class TitleScene extends Phaser.Scene {
     this.halo = this.add.image(SUN_AT.x, SUN_AT.y, this.haloTexture()).setDepth(900)
       .setBlendMode(Phaser.BlendModes.ADD);
     this.sun = this.add.image(SUN_AT.x, SUN_AT.y, SUN).setDepth(901);
-    this.add.image(LOGO_AT.x, LOGO_AT.y, LOGO).setScale(LOGO_AT.scale).setDepth(902);
+    this.logo = this.add.image(LOGO_AT.x, LOGO_AT.y, LOGO).setScale(LOGO_AT.scale).setDepth(902);
 
     for (const [role, lane, dir, along] of CROWD) {
       const { speed, fps } = CAST[role];
@@ -115,8 +118,8 @@ export class TitleScene extends Phaser.Scene {
     this.lamps.setAlpha(0.16 + 0.07 * Math.sin(t * 7.3) + 0.05 * Math.sin(t * 13.1) + 0.04 * Math.random());
     // The sun breathes.
     const breath = 0.5 + 0.5 * Math.sin(t * 1.1);
-    this.sun.setScale(1 + 0.03 * breath);
-    this.halo.setAlpha(0.35 + 0.3 * breath).setScale(1 + 0.12 * breath);
+    this.sun.setScale(this.narrow * (1 + 0.03 * breath));
+    this.halo.setAlpha(0.35 + 0.3 * breath).setScale(this.narrow * (1 + 0.12 * breath));
 
     if (this.look) {
       // It is May: autumn in Buenos Aires.
@@ -134,7 +137,16 @@ export class TitleScene extends Phaser.Scene {
   // screen, with only houses toward its edges.
   private layout(): void {
     const { width, height } = this.scale;
-    this.cameras.main.setZoom(Math.max(width / W, height / H)).centerOn(W / 2, H / 2);
+    const zoom = Math.max(width / W, height / H);
+    this.cameras.main.setZoom(zoom).centerOn(W / 2, H / 2);
+    // On a screen held upright only the middle of the picture shows: the name is brought in to fit
+    // it, and it and the sun come down to where the sky has room for them.
+    const room = width / zoom * 0.94;
+    this.narrow = Math.min(1, room / (this.logo.width * LOGO_AT.scale));
+    const down = (1 - this.narrow) * 26;
+    this.logo.setScale(LOGO_AT.scale * this.narrow).setY(LOGO_AT.y + down);
+    this.sun.setY(SUN_AT.y + down * 2.2);
+    this.halo.setY(SUN_AT.y + down * 2.2);
   }
 
   private leave(): void {

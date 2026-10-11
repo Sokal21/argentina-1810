@@ -141,6 +141,7 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
     form.removeEventListener('submit', submit);
     removeEventListener('keydown', escape, true);
     removeEventListener('keydown', pick);
+    leave.removeEventListener('click', close);
     // Any key held when the talk began is no longer held.
     dispatchEvent(new Event('blur'));
     game.scene.resume('game');
@@ -212,6 +213,8 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
     offer();
   };
 
+  const leave = el('dialog-leave');
+  leave.addEventListener('click', close);
   form.addEventListener('submit', submit);
   addEventListener('keydown', escape, true);
   addEventListener('keydown', pick);

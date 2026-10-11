@@ -22,7 +22,7 @@ import { controls, fx } from '../fx/settings';
 import { Keys } from '../input';
 import { Abilities, ground, HEAL, MANA, REGEN, STRIKE, type Ability } from '../machi/abilities';
 import { MachiController, type Arm, type MachiInput, type Strike, type Vec } from '../machi/controller';
-import { FRAME, ISO_Y, KITS, type Hero } from '../machi/data';
+import { BOLT_RANGE, FRAME, ISO_Y, KITS, type Hero } from '../machi/data';
 import { BLOW, FURY, Fury, WOUND } from '../machi/fury';
 import { Burning } from '../machi/burning';
 import { GRENADE } from '../machi/grenade';
@@ -45,6 +45,7 @@ import { trail } from '../world/trail';
 import { Waves } from '../world/waves';
 import { Escort } from '../world/escort';
 import { showEnding } from '../story/ending';
+import { prompt, touch } from '../touch';
 import { mountBoard } from '../story/board';
 import { Story } from '../story/story';
 import { THINGS } from '../story/things';
@@ -53,6 +54,9 @@ import { Vitals } from '../world/vitals';
 import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Charge as Cargo, type Spot, type WorldMap } from '../world/zones';
 
 const ZOOM = 2;            // screen pixels per sprite pixel
+// By touch: how near an enemy the sabre goes for by itself, how far off a musket dragged all
+// the way points, and how long an arm let go is kept up waiting to go off.
+const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
 const FIELD = { width: 1280, height: 800 }; // the bare field, in sprite pixels
 // The map each hero walks; one who has none fights on the bare field.
 const MAPS: Partial<Record<Hero, WorldMap>> = { inti: bosquePatagonico, cabral: vadoDeLasVizcachas };
@@ -159,6 +163,12 @@ export class GameScene extends Phaser.Scene {
   private embersUp!: Phaser.GameObjects.Particles.ParticleEmitter;
   /** The attack went down this step; it was down last step; it has fired the musket and must be let go before it cuts. */
   private trigger = false;
+  /** By touch: the way the hero last walked, where they last pointed, and the arm let go that is going off. */
+  private heading: Vec = { x: 0, y: 1 };
+  private pointed: Vec = { x: 0, y: 0 };
+  private loosing: Arm | null = null;
+  private loosingFor = 0;
+  private armWas: Record<Arm, boolean> = { musket: false, grenade: false };
   private attackWas = false;
   private spentAttack = false;
   /** The spot on screen the shot under way is aimed through. */
@@ -428,7 +438,7 @@ export class GameScene extends Phaser.Scene {
             stroke: '#14110f', strokeThickness: 3,
           }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio);
         }
-        const hint = this.add.text(x, y - 92, npc.sells?.length ? 'F · hablar   T · comprar' : 'F · hablar', {
+        const hint = this.add.text(x, y - 92, npc.sells?.length && !touch.on ? 'F · hablar   T · comprar' : prompt('F', 'hablar'), {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4',
           stroke: '#14110f', strokeThickness: 3,
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
@@ -459,7 +469,7 @@ export class GameScene extends Phaser.Scene {
         if (!thing || !this.textures.exists(thing.sprite)) continue;
         const { x, y } = middle(plot);
         const drawn = this.add.image(x, y, thing.sprite).setOrigin(0.5, 1).setDepth(y).setVisible(!given);
-        const hint = this.add.text(x, y - drawn.height - 6, 'F · levantar', {
+        const hint = this.add.text(x, y - drawn.height - 6, prompt('F', 'levantar'), {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4',
           stroke: '#14110f', strokeThickness: 3,
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
@@ -473,7 +483,7 @@ export class GameScene extends Phaser.Scene {
         const { x, y } = middle(at.from);
         const drawn = this.add.image(x, y, at.sprite).setOrigin(0.5, 1).setDepth(y).setVisible(false);
         const bar = this.add.rectangle(x, y - drawn.height - 4, 24, 3, 0xd23c2a).setDepth(1e6).setVisible(false);
-        const hint = this.add.text(x, y - drawn.height - 10, `F · ${at.does}`, {
+        const hint = this.add.text(x, y - drawn.height - 10, prompt('F', at.does), {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
           stroke: '#14110f', strokeThickness: 3,
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
@@ -494,7 +504,7 @@ export class GameScene extends Phaser.Scene {
       for (const at of this.map?.spots ?? []) {
         const { x, y } = middle(at.plot);
         const mark = this.add.image(x, y, 'spot').setOrigin(0.5, 0.5).setDepth(-1e6 + 1.8).setVisible(false);
-        const hint = this.add.text(x, y - 30, `F · ${at.does}`, {
+        const hint = this.add.text(x, y - 30, prompt('F', at.does), {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
           stroke: '#14110f', strokeThickness: 3,
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
@@ -516,7 +526,7 @@ export class GameScene extends Phaser.Scene {
       // C drinks from the flask: nothing is wasted on one who has no need of it.
       this.flask = new Flask();
       this.mending = new Mending(this);
-      this.input.keyboard?.on('keydown-C', () => {
+      const drink = () => {
         const { restores, amount } = FLASKS[this.hero];
         const wanting = restores === 'life' ? this.vitals.life < this.vitals.max : this.abilities.mana < MANA;
         // Not mid-dash, nor in the middle of something else: there is no hand free.
@@ -526,8 +536,8 @@ export class GameScene extends Phaser.Scene {
         // They stand and drink, facing the viewer, and the light of it comes up round them.
         if (this.machi.kit.sheets.drink) this.machi.channel(DRINKING, 'drink');
         this.mending?.begin(MEND[restores], this.machi);
-      });
-      this.input.keyboard?.on('keydown-F', () => {
+      };
+      const interact = () => {
         const near = this.beside;
         if (!near || !this.vitals.standing) return;
         if (near.take) {
@@ -588,7 +598,13 @@ export class GameScene extends Phaser.Scene {
           talked: () => this.story?.tell(`hablo:${npc.id}`),
           closed: () => this.story?.tell(`cerro:${npc.id}`),
         });
-      });
+      };
+      this.input.keyboard?.on('keydown-C', drink);
+      this.input.keyboard?.on('keydown-F', interact);
+      // By touch there are no keys: the buttons ask for the same things by name.
+      const act = (what: string) => { if (this.scene.isActive()) ({ drink, interact } as Record<string, () => void>)[what]?.(); };
+      this.game.events.on('act', act);
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.game.events.off('act', act));
       // A map with a story: it begins.
       this.board?.remove();
       // A map without a story has none to tell, but the same place on screen to be told things in.
@@ -785,7 +801,7 @@ export class GameScene extends Phaser.Scene {
     }
     // A place still held says so instead of offering what is done there.
     if (nearest?.spot) {
-      const { at } = nearest.spot, wanted = at.guarded && this.held(at) ? 'Vencé a la guardia' : `F · ${at.does}`;
+      const { at } = nearest.spot, wanted = at.guarded && this.held(at) ? 'Vencé a la guardia' : prompt('F', at.does);
       if (nearest.hint.text !== wanted) nearest.hint.setText(wanted);
     }
     this.beside = nearest;
@@ -887,13 +903,24 @@ export class GameScene extends Phaser.Scene {
   private useArms(dt: number, held: Record<Arm, boolean>): void {
     this.armWait.musket = Math.max(0, this.armWait.musket - dt);
     this.armWait.grenade = Math.max(0, this.armWait.grenade - dt);
-    const pointer = this.input.activePointer;
+    // By touch there is no trigger to pull: letting the button go lets it fly, and it is kept up until it has.
+    if (touch.on) {
+      for (const arm of ['musket', 'grenade'] as Arm[]) {
+        if (this.armWas[arm] && !held[arm] && !this.loosing && this.skill(arm).ready) { this.loosing = arm; this.loosingFor = LOOSE; this.trigger = true; }
+        this.armWas[arm] = held[arm];
+      }
+      if (this.loosing && (this.loosingFor -= dt) <= 0) this.loosing = null;
+      if (this.loosing) held = { ...held, [this.loosing]: true };
+    }
     // He keeps to the one he has readied for as long as its key is down.
     const want: Arm | null = this.readying && held[this.readying] ? this.readying
       : held.musket ? 'musket' : held.grenade ? 'grenade' : null;
     if (want && !this.machi.isDashing) {
-      this.machi.shoulder({ x: pointer.worldX, y: pointer.worldY }, want);
-      this.shotAt = { x: pointer.worldX, y: pointer.worldY };
+      const pointer = this.pointing(want === 'musket' ? MUSKET_AIMS : GRENADE.range);
+      // A ball flies at the height of the barrel: by touch it is pointed along the ground, and goes level.
+      if (touch.on && want === 'musket') pointer.y -= MUSKET.height;
+      this.machi.shoulder(pointer, want);
+      this.shotAt = pointer;
       if (this.trigger && this.skill(want).ready && this.fury.spend(ARMS[want].cost)) {
         this.armWait[want] = ARMS[want].cooldown;
         this.loosed = want;
@@ -904,6 +931,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.readying = want && this.machi.isShouldering ? want : null;
     if (!this.machi.takeShot()) return;
+    this.loosing = null;
     const { x, y } = this.machi;
     if (this.loosed === 'grenade') {
       this.lob({ x, y }, this.within({ x, y }, this.shotAt, GRENADE.range));
@@ -1102,15 +1130,13 @@ export class GameScene extends Phaser.Scene {
     // way, so a press is not kept for later.
     const pressed = this.keys.abilities();
     const keys = this.hero === 'inti' ? pressed : { strike: false, heal: false };
-    const pointer = this.input.activePointer;
-    pointer.updateWorldPoint(this.cameras.main);
     // In his rage he uses nothing but the sabre.
     const his = this.hero === 'cabral' && standing && !this.wrath.active;
     this.useArms(dt, { musket: his && pressed.strike, grenade: his && pressed.second });
     const at = { x: this.machi.x, y: this.machi.y };
     const events = this.abilities.update(dt, {
       ...keys,
-      pointer: { x: pointer.worldX, y: pointer.worldY },
+      pointer: this.hero === 'inti' ? this.pointing(STRIKE.range) : at,
       at,
       free: standing && !this.machi.isDashing,
       hurt: this.vitals.life < this.vitals.max,
@@ -1145,16 +1171,17 @@ export class GameScene extends Phaser.Scene {
       // the size of the blast where the pointer is; dull when it cannot be paid for.
       const colour = this.skill('musket').ready ? 0xffb45a : 0x8a8478;
       const from = { x: at.x, y: at.y - MUSKET.height };
-      const dx = pointer.worldX - from.x, dy = (pointer.worldY - from.y) / ISO_Y;
+      const pointer = this.shotAt;
+      const dx = pointer.x - from.x, dy = (pointer.y - from.y) / ISO_Y;
       const far = Math.hypot(dx, dy) || 1;
       this.marks.lineStyle(1, colour, 0.5).lineBetween(
         from.x, from.y, from.x + dx / far * BALL.range, from.y + dy / far * BALL.range * ISO_Y);
-      this.marks.lineStyle(1, colour, 0.9).strokeEllipse(...ring(pointer.worldX, pointer.worldY, MUSKET.radius));
+      this.marks.lineStyle(1, colour, 0.9).strokeEllipse(...ring(pointer.x, pointer.y, MUSKET.radius));
     }
     if (this.readying === 'grenade') {
       // How far he can throw, and the patch it would land on and set alight.
       const colour = this.skill('grenade').ready ? 0xffb45a : 0x8a8478;
-      const to = this.within(at, { x: pointer.worldX, y: pointer.worldY }, GRENADE.range);
+      const to = this.within(at, this.shotAt, GRENADE.range);
       this.marks.lineStyle(1, colour, 0.35).strokeEllipse(...ring(at.x, at.y, GRENADE.range));
       this.marks.fillStyle(colour, 0.14).fillEllipse(...ring(to.x, to.y, GRENADE.radius));
       this.marks.lineStyle(1, colour, 0.9).strokeEllipse(...ring(to.x, to.y, GRENADE.radius));
@@ -1223,7 +1250,8 @@ export class GameScene extends Phaser.Scene {
   // casts at the pointer and the right one walks toward it, both at any angle.
   private readInput(): MachiInput {
     const input: MachiInput = this.keys.read();
-    this.marker.setVisible(controls.mouse);
+    this.marker.setVisible(controls.mouse && !touch.on);
+    if (touch.on) return this.byTouch(input);
     if (!controls.mouse) return input;
 
     const pointer = this.input.activePointer;
@@ -1241,6 +1269,56 @@ export class GameScene extends Phaser.Scene {
     input.attack ||= pointer.leftButtonDown();
     if (pointer.rightButtonDown()) input.move = toward(this.machi.x, this.machi.y, ARRIVE);
     return input;
+  }
+
+  // By touch: the stick walks at any angle, and an attack goes where its button is dragged,
+  // or else at whoever of the enemy is nearest, or else the way the hero is walking.
+  private byTouch(input: MachiInput): MachiInput {
+    const { stick, drag } = touch;
+    // The stick is pushed the way the hero should be seen to go; the ground is foreshortened.
+    const along = (v: Vec): Vec => { const far = Math.hypot(v.x, v.y / ISO_Y) || 1; return { x: v.x / far, y: v.y / ISO_Y / far }; };
+    if (stick) { input.move = along(stick); this.heading = input.move; }
+    if (!input.attack) return input;
+    const from = { x: this.machi.x, y: this.machi.y - CHEST };
+    if (drag?.by === 'attack') { input.aim = along(drag); return input; }
+    const foe = this.nearest(this.hero === 'inti' ? BOLT_RANGE : SABRE_SEEKS);
+    if (foe) {
+      const at = { x: foe.body.x, y: foe.body.y };
+      input.aim = along({ x: at.x - from.x, y: at.y - from.y });
+      input.target = at;
+    } else if (stick) input.aim = this.heading;
+    return input;
+  }
+
+  // Whoever of the enemy is nearest the hero and no further than a reach, if anyone.
+  private nearest(reach: number): Foe | undefined {
+    let found: Foe | undefined, least = reach;
+    for (const foe of this.foes) {
+      if (!foe.alive) continue;
+      const far = ground(this.machi, foe.ground);
+      if (far <= least) { least = far; found = foe; }
+    }
+    return found;
+  }
+
+  /**
+   * Where whoever plays is pointing, in the world. With a mouse it is the pointer. By touch it is
+   * as far as the button held is dragged, out to `reach` when dragged all the way; held and not
+   * dragged, it is whoever of the enemy is nearest within that reach, or a little way ahead.
+   */
+  private pointing(reach: number): Vec {
+    if (!touch.on) {
+      const pointer = this.input.activePointer;
+      pointer.updateWorldPoint(this.cameras.main);
+      return { x: pointer.worldX, y: pointer.worldY };
+    }
+    const { drag } = touch, at = this.machi;
+    if (drag && drag.by !== 'attack') return this.pointed = { x: at.x + drag.x * reach, y: at.y + drag.y * reach * ISO_Y };
+    // Let go: it goes where it was last pointed.
+    if (this.loosing || !this.keys.aiming) return this.pointed;
+    const foe = this.nearest(reach);
+    if (foe) return this.pointed = { ...foe.ground };
+    return this.pointed = { x: at.x + this.heading.x * reach * 0.6, y: at.y + this.heading.y * reach * 0.6 * ISO_Y };
   }
 
   /** How much of her life is left, from 0 to 1. */
@@ -1481,7 +1559,7 @@ export class GameScene extends Phaser.Scene {
   /** The hero earns experience, and is told when it comes to a level. */
   private earn(xp: number): void {
     if (!this.growth.earn(xp)) return;
-    this.board?.say(`Nivel ${this.growth.level}. Tenés ${this.growth.points === 1 ? 'un punto' : `${this.growth.points} puntos`} para repartir: I.`);
+    this.board?.say(`Nivel ${this.growth.level}. Tenés ${this.growth.points === 1 ? 'un punto' : `${this.growth.points} puntos`} para repartir${touch.on ? ', en tu hoja' : ': I'}.`);
     this.mending?.begin(0xffe08a, this.machi);
   }
 
@@ -1543,6 +1621,21 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Who is being played, for the HUD to show what is theirs. */
+  /** The two skills of whoever is played, in the order of their slots: whether each can be used, and how far through its cooldown it is. */
+  get skills(): { ready: boolean; cooldown: number }[] {
+    return (this.hero === 'inti' ? ['strike', 'heal'] as const : ['musket', 'grenade'] as const).map(name => this.skill(name));
+  }
+
+  /** What can be done with whatever is beside the hero, in a word; nothing if there is nothing to be done. */
+  get offer(): string | undefined {
+    const near = this.beside;
+    if (!near || !this.vitals.standing) return undefined;
+    if (near.npc) return 'Hablar';
+    if (near.take) return 'Levantar';
+    const does = near.charge?.at.does ?? (near.spot && !(near.spot.at.guarded && this.held(near.spot.at)) ? near.spot.at.does : undefined);
+    return does?.replace(/^./, first => first.toUpperCase());
+  }
+
   get playing(): Hero {
     return this.hero;
   }

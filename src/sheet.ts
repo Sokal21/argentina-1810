@@ -6,6 +6,7 @@ import { PEOPLE } from './npc/people';
 import type { GameScene } from './scenes/GameScene';
 import { NAMED, THINGS } from './story/things';
 import { FACTS } from './story/vado';
+import { key, touch } from './touch';
 
 // The hero's own page: how far they have grown and what their points have
 // gone into, with the points still to give out; what they carry; and what
@@ -36,7 +37,7 @@ const STYLE = `
     font: 21px/1.15 'Jacquard 12', Georgia, serif; letter-spacing: .01em;
   }
   #sheet[hidden] { display: none; }
-  #sheet .book { position: relative; flex: none; background-size: 100% 100%; image-rendering: pixelated; color: var(--ink); }
+  #sheet .book { position: relative; flex: none; background-repeat: no-repeat; image-rendering: pixelated; color: var(--ink); }
   #sheet .side { position: absolute; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; }
   #sheet h1, #sheet h2 { margin: 0; font: inherit; font-weight: normal; color: var(--accent); }
   #sheet h2 { margin-top: 6px; border-bottom: 2px solid var(--faint); }
@@ -84,6 +85,13 @@ const STYLE = `
   #sheet li { margin-top: 2px; }
   #sheet .none { color: var(--faint); }
   #sheet .foot { color: #8f8168; }
+  #sheet .foot.said { max-width: 92vw; text-align: center; color: #cdbf9d; }
+  #sheet .side[hidden] { display: none; }
+  #sheet .ways { display: flex; align-items: center; gap: 18px; }
+  #sheet .ways .leave, #sheet .ways .turn { margin: 4px 0 0; }
+  #sheet .turn { all: unset; cursor: pointer; padding: 8px 18px 9px; background: #2a2018; color: #e2c478; box-shadow: 0 0 0 2px #7a5a36, 0 0 0 4px #0a0807; font: 21px/1 'Jacquard 12', Georgia, serif; }
+  body.touch #sheet .stat { min-height: 34px; align-items: center; }
+  body.touch #sheet .tabs button { padding: 5px 0; }
 `;
 
 /** How many squares the bag has. */
@@ -108,17 +116,27 @@ export function mountSheet(game: Phaser.Game): void {
     if (!s) return;
     const hero = s.playing, growth = s.growth, names = NAMES[hero], page = PAGES[hero];
     // As large as the window lets it be, in whole pixels of its own.
-    const k = Math.max(1, Math.floor(Math.min(innerWidth * 0.96 / page.w, (innerHeight - 40) * 0.96 / page.h)));
+    const open2 = Math.floor(Math.min(innerWidth * 0.96 / page.w, (innerHeight - 40) * 0.96 / page.h));
+    // Where the open book would be too small to read, on a screen held upright, one of its two
+    // pages is shown at a time, through a window as wide as the page and a little of its edges.
+    const single = open2 < 2 && innerHeight > innerWidth;
+    const leafAt = page.sides[leaf], edge = Math.min(leafAt.x, 30);
+    const k = single ? Math.max(1, Math.floor(Math.min(innerWidth * 0.98 / (leafAt.w + 2 * edge), (innerHeight - 130) / page.h))) : Math.max(1, open2);
+    const wide = single ? Math.min(page.w, leafAt.w + 2 * edge, Math.floor(innerWidth * 0.98 / k)) : page.w;
+    const from = single ? Math.max(0, Math.min(page.w - wide, Math.round(leafAt.x + leafAt.w / 2 - wide / 2))) : 0;
+    const click = touch.on ? 'Tocá de nuevo' : 'Clic';
     const stats = STATS.map(stat => {
       // What it has come to, as so much more than it began at.
       const more = Math.round(STEP[stat] * growth.spent[stat] * 100);
       const add = el('button', { disabled: !growth.can(stat), ariaLabel: `Un punto en ${names[stat].name}` });
+      const does = stat === 'ultimate' && growth.spent.ultimate >= growth.greatest ? `${names[stat].does} (un punto cada cinco niveles)` : names[stat].does;
       add.addEventListener('mousedown', e => e.preventDefault());
       add.addEventListener('click', () => { if (s.spend(stat)) draw(); });
-      const locked = stat === 'ultimate' && growth.spent.ultimate >= growth.greatest;
       // What a point in it does is told to whoever points at it: there is no room to write it out.
-      return el('div', { className: 'stat', title: locked ? `${names[stat].does} (un punto cada cinco niveles)` : names[stat].does },
-        el('span', {}, names[stat].name), el('em', {}, more ? `+${more}%` : ''), add);
+      const name = el('span', {}, names[stat].name);
+      // By touch there is no pointing: touching its name says it below the book.
+      name.addEventListener('click', () => { said = `${names[stat].name}: ${does}`; draw(); });
+      return el('div', { className: 'stat', title: does }, name, el('em', {}, more ? `+${more}%` : ''), add);
     });
     const { has, knows } = s.carried;
     // What they were told is in the words of whoever told it, or of the story itself.
@@ -144,32 +162,44 @@ export function mountSheet(game: Phaser.Game): void {
       tipBoard.style.top = `${Math.max(0, Math.min(frame.height - tipBoard.offsetHeight, from.top - frame.top))}px`;
       tipBoard.style.left = `${Math.max(0, from.left - frame.left - tipBoard.offsetWidth - 8)}px`;
     };
+    let made = 0;
     const bag = () => {
       const pack = s.pack;
       const icon = (src: string) => { const img = el('img', { src, alt: '' }); img.addEventListener('load', () => { img.width = img.naturalWidth * k; }); return img; };
       const square = (full: boolean, onPoint: (cell: HTMLElement) => void, onClick?: () => void, ...kids: (Node | string)[]) => {
         const cell = el('button', { className: `square${full ? ' full' : ''}` }, ...kids);
         cell.addEventListener('mousedown', e => e.preventDefault());
-        cell.addEventListener('mouseenter', () => onPoint(cell));
-        cell.addEventListener('mouseleave', () => tip());
-        if (onClick) cell.addEventListener('click', () => { onClick(); draw(); });
+        if (!touch.on) {
+          cell.addEventListener('mouseenter', () => onPoint(cell));
+          cell.addEventListener('mouseleave', () => tip());
+          if (onClick) cell.addEventListener('click', () => { onClick(); draw(); });
+          return cell;
+        }
+        // By touch: touched once it is shown, touched again it is used.
+        const n = made++;
+        cell.addEventListener('click', () => {
+          if (picked !== n || !onClick) { picked = n; onPoint(cell); return; }
+          picked = undefined;
+          onClick();
+          draw();
+        });
         return cell;
       };
       const words = (does: string) => does.split(': ').slice(-1)[0].replace(/^./, c => c.toUpperCase());
       const worn = (Object.keys(PLACES) as Place[]).map(place => {
         const id = pack.worn[place], item = id ? ITEMS[id] : undefined;
         return item
-          ? square(true, cell => tip(cell, item.name, `${PLACES[place]} · puesto`, words(item.does), 'Clic para sacárselo'), () => pack.wear(item.id), icon(item.icon))
+          ? square(true, cell => tip(cell, item.name, `${PLACES[place]} · puesto`, words(item.does), `${click} para sacárselo`), () => pack.wear(item.id), icon(item.icon))
           : square(false, cell => tip(cell, PLACES[place], 'Vacío'), undefined, el('span', { className: 'letter' }, PLACES[place][0]));
       });
       // The bag: what there is to use up, and what is owned to wear but not on.
       const loose = [...pack.owned].filter(id => pack.worn[ITEMS[id].wear!.place] !== id).map(id => {
         const item = ITEMS[id];
-        return square(true, cell => tip(cell, item.name, PLACES[item.wear!.place], words(item.does), 'Clic para ponérselo'), () => pack.wear(id), icon(item.icon));
+        return square(true, cell => tip(cell, item.name, PLACES[item.wear!.place], words(item.does), `${click} para ponérselo`), () => pack.wear(id), icon(item.icon));
       });
       const uses = Object.entries(pack.bag).filter(([, n]) => n > 0).map(([id, n]) => {
         const item = ITEMS[id], useful = s.useful(id);
-        return square(true, cell => tip(cell, item.name, 'Se usa una vez', words(item.does), useful ? 'Clic para usar' : 'Ahora no hace falta'),
+        return square(true, cell => tip(cell, item.name, 'Se usa una vez', words(item.does), useful ? `${click} para usar` : 'Ahora no hace falta'),
           useful ? () => { s.use(id); } : undefined, icon(item.icon), el('span', { className: 'n' }, String(n)));
       });
       const kept = [...loose, ...uses];
@@ -181,11 +211,11 @@ export function mountSheet(game: Phaser.Game): void {
     };
     const side = (n: 0 | 1, ...kids: (Node | string)[]) => {
       const at = page.sides[n];
-      return el('div', { className: 'side', style: `left:${at.x * k}px;top:${at.y * k}px;width:${at.w * k}px;height:${at.h * k}px` } as never, ...kids);
+      return el('div', { className: 'side', hidden: single && n !== leaf, style: `left:${(at.x - from) * k}px;top:${at.y * k}px;width:${at.w * k}px;height:${at.h * k}px` } as never, ...kids);
     };
     const book = el('div', {
       className: 'book',
-      style: `width:${page.w * k}px;height:${page.h * k}px;background-image:url(${page.src});--k:${Math.min(k, 2)};--kk:${k};--plus:url(hud/mas_${hero}.png);--square:url(hud/cuadro_${hero}.png);--ink:${page.ink};--accent:${page.accent};--good:${page.good};--faint:${page.faint}`,
+      style: `width:${wide * k}px;height:${page.h * k}px;background-image:url(${page.src});background-size:${page.w * k}px ${page.h * k}px;background-position:${-from * k}px 0;--k:${touch.on ? 3 : Math.min(k, 2)};--kk:${k};--plus:url(hud/mas_${hero}.png);--square:url(hud/cuadro_${hero}.png);--ink:${page.ink};--accent:${page.accent};--good:${page.good};--faint:${page.faint}`,
     } as never,
       side(0,
         el('div', { className: 'top' }, el('h1', {}, HEROES[hero]), el('span', {}, `Nivel ${growth.level}`)),
@@ -203,11 +233,22 @@ export function mountSheet(game: Phaser.Game): void {
           ...list('Sabe', knows.map(told), 'Nada todavía.'),
         ])));
     book.append(tipBoard);
-    root.replaceChildren(book, el('span', { className: 'foot' }, 'I para volver'));
+    // Below the book: what was last asked about, the way to its other page, and the way out.
+    const turn = el('button', { className: 'turn', textContent: leaf ? '‹ Personaje' : 'Bolsa y cuaderno ›' });
+    turn.addEventListener('click', () => { leaf = leaf ? 0 : 1; picked = undefined; draw(); });
+    root.replaceChildren(book,
+      ...(said ? [el('span', { className: 'foot said' }, said)] : []),
+      el('div', { className: 'ways' }, ...(single ? [turn] : []), touch.on ? leave : el('span', { className: 'foot' }, 'I para volver')));
   };
   addEventListener('resize', () => { if (open) draw(); });
 
   let open = false;
+  /** Which page is shown, where there is room for one only; what was last asked about; and by touch, which square was touched last. */
+  let leaf: 0 | 1 = 0;
+  let said = '';
+  let picked: number | undefined;
+  const leave = el('button', { className: 'leave', textContent: 'Volver' });
+  leave.addEventListener('click', () => key('KeyI'));
   let tab: 'bolsa' | 'cuaderno' = 'bolsa';
   const toggle = () => {
     const s = scene();
@@ -215,6 +256,8 @@ export function mountSheet(game: Phaser.Game): void {
     if (!s || document.body.classList.contains('talking')) return;
     if (!open && game.scene.isPaused('game')) return;
     open = !open;
+    said = '';
+    picked = undefined;
     if (open) { game.scene.pause('game'); draw(); } else game.scene.resume('game');
     root.hidden = !open;
   };

@@ -751,3 +751,24 @@ del arco eran la misma.
 - **El capitán dejó de ser provisorio:** tiene dibujo y manera propia, y
   es el jefe de la última tanda.
 - Detalle de cada uno en [`docs/personajes/tropa.md`](../personajes/tropa.md).
+
+## El celular en vertical
+
+No es una etapa del arco, pero cambió cómo se arma todo lo que se muestra.
+
+- **Lo que se toca no es lo que se aprieta.** Los botones de la pantalla
+  mandan las mismas teclas que el teclado (`src/touch.ts`), así nada del
+  juego tuvo que saber que existen. Lo único propio es apuntar: un botón
+  que apunta se mantiene y se arrastra, y suelta al soltarlo; con un toque
+  va solo al enemigo más cercano.
+- **La pantalla chica se dibuja más grande y se muestra más chica.** A dos
+  píxeles de pantalla por cada uno del juego, en un celular entraba medio
+  personaje. El lado corto nunca tiene menos de 560 píxeles propios
+  (`SHORT` en `src/main.ts`), y con eso el HUD entra sin rehacerlo.
+- **Todo lo que se cerraba con una tecla tiene un botón** (`.leave`), y
+  todo lo que se veía al señalar se ve con un toque y se hace con el
+  segundo: tienda, bolsa.
+- **El libro se lee de a una página** cuando abierto entero no se llega a
+  leer.
+- Los botones son los cuadros de la hoja de cada héroe con los íconos de
+  su HUD: no se generó ningún dibujo nuevo.

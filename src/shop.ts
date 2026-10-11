@@ -2,6 +2,7 @@ import type Phaser from 'phaser';
 import { ITEMS, PLACES } from './machi/pack';
 import type { Npc } from './npc/npc';
 import type { GameScene } from './scenes/GameScene';
+import { key, touch } from './touch';
 
 // Buying from someone: their display case, as in the old dungeon games. A
 // cabinet of dark wood with what they sell set out in its compartments, their
@@ -60,6 +61,8 @@ const STYLE = `
   #shop .tip .cost.dear { color: #e0604a; }
   #shop .tip .cost.had { color: #8f8168; }
   #shop .foot { color: #8f8168; text-shadow: none; }
+  #shop .foot.how { max-width: 92vw; text-align: center; }
+  #shop .leave { margin-top: 4px; }
 `;
 
 /** Puts the price list there to be opened beside whoever sells, over a game. */
@@ -78,21 +81,29 @@ export function mountShop(game: Phaser.Game): void {
     return img;
   };
 
+  const leave = el('button', { className: 'leave', textContent: 'Volver' });
+  leave.addEventListener('click', () => key('KeyT'));
   let seller: Npc | undefined;
   /** A word on what was last done. */
   let told = '';
+  /** By touch: what was touched last. Touched once it is shown; touched again it is bought. */
+  let picked: string | undefined;
   const draw = () => {
     const s = scene();
     if (!s || !seller) return;
     const pack = s.pack, hero = s.playing;
-    const k = Math.max(1, Math.floor(Math.min(innerWidth * 0.96 / CASE.w, (innerHeight - 40) * 0.96 / CASE.h)));
+    const room = Math.min(innerWidth * 0.98 / CASE.w, (innerHeight - 90) * 0.96 / CASE.h);
+    // In whole pixels of its own where it can be; on a screen too narrow for two to each, as wide as the screen.
+    const k = room >= 2 ? Math.floor(room) : Math.max(1, room);
+    const narrow = k < 2;
+    const how = touch.on ? 'Tocá algo para verlo, y de nuevo para comprarlo.' : 'Señalá algo para verlo, clic para comprarlo.';
     const part = (name: string, at: { x: number; y: number; w: number; h: number }, ...kids: (Node | string)[]) =>
       el('div', { className: `part ${name}`, style: `left:${at.x * k}px;top:${at.y * k}px;width:${at.w * k}px;height:${at.h * k}px` } as never, ...kids);
     const coin = () => pic('cosas/moneda_chica.png', Math.min(k, 2));
     // The plank: what the hero has to spend, and a word on what was last done.
     const plank = part('plank', CASE.plank,
       el('div', { className: 'line' },
-        el('span', {}, told || 'Señalá algo para verlo, clic para comprarlo.'),
+        el('span', {}, told || (narrow ? '' : how)),
         el('span', { className: 'gold' }, `Tenés ${pack.gold}`, coin())));
     // The small board that comes up beside whatever is pointed at.
     const board = el('div', { className: 'tip', hidden: true });
@@ -122,9 +133,12 @@ export function mountShop(game: Phaser.Game): void {
       const cell = el('button', { className: `cell full${had ? ' had' : pack.gold < item.price ? ' dear' : ''}`, ariaLabel: item.name }, pic(item.icon, k));
       if (pack.bag[item.id]) cell.append(el('span', { className: 'n' }, String(pack.bag[item.id])));
       cell.addEventListener('mousedown', e => e.preventDefault());
-      cell.addEventListener('mouseenter', () => tip(item.id, cell));
-      cell.addEventListener('mouseleave', () => tip());
+      if (!touch.on) {
+        cell.addEventListener('mouseenter', () => tip(item.id, cell));
+        cell.addEventListener('mouseleave', () => tip());
+      }
       cell.addEventListener('click', () => {
+        if (touch.on && picked !== item.id) { picked = item.id; told = ''; tip(item.id, cell); return; }
         told = s.buy(item.id) ? `Comprado: ${item.name}.` : had ? 'Eso ya lo tenés.' : 'No te alcanza.';
         draw();
       });
@@ -135,12 +149,17 @@ export function mountShop(game: Phaser.Game): void {
         part('sign', CASE.sign, seller.name),
         part('grid', CASE.back, ...cells),
         plank, board),
-      el('span', { className: 'foot' }, 'T para volver'));
+      ...(narrow && !told ? [el('span', { className: 'foot how' }, how)] : []),
+      touch.on ? leave : el('span', { className: 'foot' }, 'T para volver'));
+    // What was touched is still shown once the case is set out again.
+    const again = picked ? cells[stock.findIndex(item => item.id === picked)] : undefined;
+    if (again) tip(picked, again);
   };
   addEventListener('resize', () => { if (seller) draw(); });
 
   const close = () => {
     seller = undefined;
+    picked = undefined;
     root.hidden = true;
     game.scene.resume('game');
   };

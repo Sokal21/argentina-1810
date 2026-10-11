@@ -57,6 +57,11 @@ export class Keys {
     return v;
   }
 
+  /** Whether a key that aims while it is held is down. */
+  get aiming(): boolean {
+    return this.strike || this.healHeld;
+  }
+
   /**
    * The ability keys. Each character reads them their own way: `strike` is
    * Q held down, `heal` is one press of E, and `second` is E held down.

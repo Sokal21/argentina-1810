@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
+import { touch } from '../touch';
 import type { Hero } from '../machi/data';
 
 // The screen is laid out on a canvas of this size, shown as large as fits.
 const W = 460, H = 410;
 const CARD_Y = 196;     // centre of the cards
+const CARDS_W = 400;     // how wide the two cards are together, with a little air
 const APART = 104;      // each card's centre, from the middle of the screen
 const FADE = 350;       // milliseconds to fade in and out
 const DIM = 0x4a4654;   // tint of the card that is not chosen
@@ -91,7 +93,7 @@ export class SelectScene extends Phaser.Scene {
     this.texts.push(this.add.text(W / 2, 15, 'Elegí tu destino', {
       fontFamily: GOTHIC, fontSize: BIG, color: '#e2c478', stroke: '#0d0b12', strokeThickness: 4,
     }).setOrigin(0.5).setLetterSpacing(1));
-    this.texts.push(this.add.text(W / 2, H - 10, 'Flechas para elegir   ·   Enter o clic para jugar', {
+    this.texts.push(this.add.text(W / 2, H - 10, touch.on ? 'Tocá a quien quieras jugar' : 'Flechas para elegir   ·   Enter o clic para jugar', {
       fontFamily: GOTHIC, fontSize: BIG, color: '#b8ad98', stroke: '#0d0b12', strokeThickness: 4,
     }).setOrigin(0.5).setScale(HALF));
 
@@ -180,8 +182,10 @@ export class SelectScene extends Phaser.Scene {
   // cards stay crisp; the lettering is drawn at the size it is seen at.
   private layout(): void {
     const { width, height } = this.scale;
-    const fit = Math.min(width / W, height / H);
-    const zoom = fit >= 1 ? Math.floor(fit * 2) / 2 : fit;
+    // On a screen held upright the two cards alone fill its width.
+    const upright = height > width;
+    const fit = Math.min(width / (upright ? CARDS_W : W), height / H);
+    const zoom = fit >= 1 && !upright ? Math.floor(fit * 2) / 2 : fit;
     this.cameras.main.setZoom(zoom).centerOn(W / 2, H / 2);
     // The river covers the whole screen, whatever its shape, at a whole
     // number of screen pixels to each of its own.

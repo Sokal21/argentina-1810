@@ -4,6 +4,7 @@ import type { Ability } from '../machi/abilities';
 import type { Arm } from '../machi/controller';
 import type { Hero } from '../machi/data';
 import type { GameScene } from './GameScene';
+import { clearOf, touch } from '../touch';
 import { TIPS, type Tip } from './tips';
 
 const MARGIN = 6;    // screen pixels between the frame and the bottom edge
@@ -123,6 +124,8 @@ interface Panel {
  */
 export class HudScene extends Phaser.Scene {
   private panels = {} as Record<Hero, Panel>;
+  /** How tall the HUD stands on the page, as last told to the buttons. */
+  private stands = 0;
 
   constructor() {
     super('hud');
@@ -174,7 +177,7 @@ export class HudScene extends Phaser.Scene {
       const picture = this.add.image(x, y, icon).setOrigin(0, 0);
       // A shade drawn down over the icon, which lifts as the cooldown runs out.
       const shade = this.add.rectangle(x, y, ICON, 0, 0x0c0a08, 0.72).setOrigin(0, 0);
-      const label = this.add.text(x + ICON - 1, y + ICON, key, {
+      const label = this.add.text(x + ICON - 1, y + ICON, touch.on ? '' : key, {
         fontFamily: CAPS.family, fontSize: `${CAPS.size}px`,
         color: '#f0e3c4', stroke: '#14110f', strokeThickness: 3,
       }).setOrigin(1, 1);
@@ -194,7 +197,7 @@ export class HudScene extends Phaser.Scene {
       box.add([icon, shade]);
       power = { icon, shade };
     }
-    const key = this.add.text(cx + ICON - 1, cy + ICON, 'R', {
+    const key = this.add.text(cx + ICON - 1, cy + ICON, touch.on ? '' : 'R', {
       fontFamily: CAPS.family, fontSize: `${CAPS.size}px`,
       color: '#f0e3c4', stroke: '#14110f', strokeThickness: 3,
     }).setOrigin(1, 1);
@@ -204,7 +207,7 @@ export class HudScene extends Phaser.Scene {
     const flaskIcon = this.add.image(fx, fy, layout.flask).setOrigin(0, 0);
     const caps = { fontFamily: CAPS.family, fontSize: `${CAPS.size}px`, color: '#f0e3c4', stroke: '#14110f', strokeThickness: 3 };
     const left = this.add.text(fx + 1, fy - 1, '', caps).setOrigin(0, 0);
-    box.add([flaskIcon, left, this.add.text(fx + ICON - 1, fy + ICON, 'C', caps).setOrigin(1, 1)]);
+    box.add([flaskIcon, left, this.add.text(fx + ICON - 1, fy + ICON, touch.on ? '' : 'C', caps).setOrigin(1, 1)]);
     // Their growth: the bar drawn for them, its channel filled as far as they have come, the level
     // in its recess, and beside it a word when there are points to give out.
     const { bar: drawn } = layout, gx = drawn.x + drawn.channel.x, gy = drawn.y + drawn.channel.y;
@@ -236,6 +239,9 @@ export class HudScene extends Phaser.Scene {
       const theirs = hero === game.playing;
       panel.box.setVisible(theirs);
       if (!theirs) { if (this.note?.hero === hero) this.hideNote(); continue; }
+      // By touch the buttons sit over it: they are told how tall it stands, their bar and their money with it.
+      const stands = Math.round((this.scale.height - panel.box.y + (10 - Math.min(0, panel.layout.bar.y)) * panel.box.scaleY) * this.scale.zoom);
+      if (stands !== this.stands) clearOf(this.stands = stands);
       for (const slot of panel.slots) {
         const { ready, cooldown } = game.skill(slot.ability);
         slot.shade.setSize(ICON, Math.round(ICON * cooldown));
@@ -258,7 +264,7 @@ export class HudScene extends Phaser.Scene {
       panel.growth.bar.setSize(filled, channel.h);
       panel.growth.top.setSize(filled, 1);
       panel.growth.level.setText(String(growth.level));
-      panel.growth.points.setText(growth.points ? `+${growth.points} · I` : '');
+      panel.growth.points.setText(growth.points ? (touch.on ? `+${growth.points}` : `+${growth.points} · I`) : '');
       panel.growth.gold.setText(String(game.pack.gold));
       // Empty, the flask is dull until somewhere safe is reached.
       const { left } = game.draughts;
