@@ -65,7 +65,10 @@ const STYLE = `
   /* What is still cooling down has a shade over it, which lifts. */
   #pad button i { position: absolute; left: 12%; right: 12%; top: 12%; height: calc(76% * var(--cool, 0)); background: rgba(12, 10, 8, .72); pointer-events: none; }
   #pad button b { position: absolute; right: 9px; bottom: 6px; font-weight: normal; color: #f0e3c4; text-shadow: 0 2px 0 #14110f, 0 0 4px #000; pointer-events: none; }
-  #pad .glyph { font-size: 42px; color: #2a1d12; pointer-events: none; }
+  #pad .glyph { font-size: 42px; line-height: .7; color: #2a1d12; pointer-events: none; }
+  /* What a button without a picture does, written on it. */
+  #pad .dash { flex-direction: column; gap: 3px; }
+  #pad .dash small { font: 8px/1 'Silkscreen', ui-monospace, monospace; letter-spacing: .02em; color: #2a1d12; pointer-events: none; }
   #pad .attack { right: 10px; bottom: calc(var(--hud) + 14px); --u: 4; }
   #pad .attack img { width: 48px; }
   #pad .dash { right: 106px; bottom: calc(var(--hud) + 14px); }
@@ -136,6 +139,17 @@ export function mountTouch(game: Phaser.Game): void {
     node.append(...kids);
     return node;
   };
+  // Nothing here is zoomed into: not by pinching, nor by touching twice in a hurry, which a phone
+  // takes for asking to, whatever the page says.
+  for (const pinch of ['gesturestart', 'gesturechange'] as const) document.addEventListener(pinch, e => e.preventDefault());
+  document.addEventListener('dblclick', e => e.preventDefault());
+  let last = 0;
+  document.addEventListener('touchend', e => {
+    const now = e.timeStamp, hurried = now - last < 350;
+    last = now;
+    // What is meant to be touched twice still is: only the zoom is stopped.
+    if (hurried && !(e.target as HTMLElement).closest?.('button, input, #dialog-options')) e.preventDefault();
+  }, { passive: false });
   // Nothing held on the screen brings up the browser's own menus.
   pad.addEventListener('contextmenu', e => e.preventDefault());
 
@@ -212,7 +226,7 @@ export function mountTouch(game: Phaser.Game): void {
   const left = el('b', ''), points = el('b', '');
   const buttons = {
     attack: button('attack', ...held2('Space'), 'attack', icons.attack, orb),
-    dash: button('dash', () => key('ShiftLeft'), undefined, undefined, Object.assign(el('span', 'glyph'), { textContent: '»' })),
+    dash: button('dash', () => key('ShiftLeft'), undefined, undefined, Object.assign(el('span', 'glyph'), { textContent: '»' }), Object.assign(el('small', ''), { textContent: 'ESQUIVAR' })),
     first: button('first', ...held2('KeyQ'), 'first', icons.first, cool.first),
     second: button('second', ...held2('KeyE'), 'second', icons.second, cool.second),
     power: button('power', () => key('KeyR'), undefined, undefined, icons.power),

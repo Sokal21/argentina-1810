@@ -15,6 +15,9 @@
   @font-face { font-family: 'Jacquard 12'; src: url('/fonts/Jacquard12-Regular.ttf') format('truetype'); font-display: block; }
   @font-face { font-family: 'Silkscreen'; src: url('/fonts/Silkscreen-Regular.ttf') format('truetype'); font-display: block; }
   html, body { margin: 0; height: 100%; background: #14110f; overflow: hidden; }
+  /* Touching twice is not asking for a closer look: nothing here is zoomed into. What scrolls still scrolls. */
+  * { touch-action: manipulation; }
+  #game, #game canvas { touch-action: none; }
   #game { width: 100vw; height: 100vh; height: 100dvh; overflow: hidden; }
   #game canvas { display: block; }
   /* While developing: which animation is on screen, small, in a corner. */
