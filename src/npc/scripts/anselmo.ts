@@ -353,6 +353,31 @@ export const ANSELMO: Script = {
         },
       ],
     },
+    // What he asks once the father has his news: that the man in the sacristy be heard before anything is decided.
+    {
+      id: 'amparar',
+      given: 'hecha:noticia',
+      until: 'acepto:entregar',
+      asks: 'amparar',
+      options: [
+        {
+          says: 'Ese hombre está en sagrado, padre. Por mi mano no sale de acá. Voy a hablar con él.',
+          answer: 'Entonces vaya, hijo, y escúchelo antes de juzgarlo. Está en la sacristía, y tiene más miedo que culpa.',
+          animo: 2,
+          quiere: 'encargar_amparo',
+        },
+        {
+          says: '¿Y qué gano yo amparando a un godo?',
+          answer: 'Nada que se pueda contar en reales. Lo que sabe ese muchacho, puede que sí le sirva. Pero no se lo pido por eso.',
+          animo: 0,
+        },
+        {
+          says: 'El pueblo lo va a querer, y no le falta razón.',
+          answer: 'El pueblo quiere a alguien, hijo, y ese es el que tiene más a mano. No es lo mismo.',
+          animo: -1,
+        },
+      ],
+    },
     {
       // What he asks once the plan is told: the three fires. Asked again until the hero gives his word.
       id: 'fogatas',

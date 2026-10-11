@@ -73,6 +73,30 @@ export const VADO: Quest[] = [
     ],
   },
   {
+    id: 'amparar',
+    name: 'Amparar a Mateo',
+    xp: 160,
+    gold: 20,
+    // Fray Anselmo asks it, once the father has his news: speak to the man before deciding anything.
+    opens: ['acepto:amparar'],
+    steps: [
+      { says: 'Hablá con Mateo, en la sacristía, hasta que te cuente lo que sabe de la columna.', all: ['sabe:columna', 'sabe:capitan'] },
+      { says: 'Volvé al pueblo y decile a don Braulio que no se lo vas a entregar.', when: ['dijo:no'] },
+    ],
+  },
+  {
+    id: 'rehenes',
+    name: 'Los rehenes',
+    xp: 160,
+    gold: 60,
+    // The village asks it, through don Braulio: the friars mean to take the wounded out by night.
+    opens: ['acepto:rehenes'],
+    steps: [
+      { says: 'Averiguá en la capilla por dónde van a sacar las carretas.', when: ['sabe:carretas'] },
+      { says: 'Volvé al pueblo y decíselo a don Braulio.', when: ['dijo:carretas'] },
+    ],
+  },
+  {
     id: 'fogatas',
     name: 'Las tres fogatas',
     xp: 220,
@@ -90,5 +114,6 @@ export const VADO: Quest[] = [
 export const FACTS: Record<string, string> = {
   'sabe:rastro': 'El rastro de sangre va hacia la capilla.',
   'sabe:tobias': 'Tobías vive. Está en la capilla, con una pierna rota.',
+  'sabe:carretas': 'Las carretas de los heridos salen de noche por detrás de la capilla, hacia la senda.',
   'sabe:mateo': 'A Tobías lo cargó hasta la capilla Mateo, un soldado del rey que desertó.',
 };

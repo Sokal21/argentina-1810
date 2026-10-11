@@ -151,3 +151,21 @@ describe('the three fires', () => {
     expect(story.isDone('fogatas')).toBe(true);
   });
 });
+
+describe('the two that are settled by talking', () => {
+  it('shelters Mateo: hear all he knows, then tell the innkeeper no', () => {
+    const story = new Story(VADO);
+    story.tell('acepto:amparar'); story.tell('sabe:capitan');
+    expect(story.current[0].step.says).toContain('Mateo');
+    story.tell('sabe:columna');
+    expect(story.current[0].step.says).toContain('don Braulio');
+    story.tell('dijo:no');
+    expect(story.isDone('amparar')).toBe(true);
+  });
+
+  it('gives up the wounded: see where the carts go, then say so', () => {
+    const story = new Story(VADO);
+    story.tell('acepto:rehenes'); story.tell('sabe:carretas'); story.tell('dijo:carretas');
+    expect(story.isDone('rehenes')).toBe(true);
+  });
+});

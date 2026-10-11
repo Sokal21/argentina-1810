@@ -71,6 +71,69 @@ export const BRAULIO: Script = {
         },
       ],
     },
+    // The no he is owed, once the hero has taken the friar's side; and the village's own errand, the hostages.
+    {
+      id: 'negar',
+      given: 'acepto:amparar',
+      after: ['saludo'],
+      asks: 'negar',
+      options: [
+        {
+          says: 'En la capilla hay un soldado del rey: el que cargó a tu hijo. Está en sagrado, y no te lo voy a entregar.',
+          answer: 'Así que eras de ellos. Mi hijo vive por vos y eso no lo olvido; pero de esta casa, de hoy en más, no esperes nada.',
+          animo: -1,
+          quiere: 'oir_no',
+        },
+        {
+          says: 'Hay cosas de la capilla que todavía no te puedo decir.',
+          answer: 'Entonces no vengas a mi mostrador con medias palabras. Cuando tengas algo entero, hablá.',
+          animo: 0,
+        },
+      ],
+    },
+    {
+      id: 'rehenes',
+      given: 'hecha:fogatas',
+      after: ['saludo'],
+      asks: 'rehenes',
+      options: [
+        {
+          says: 'Yo entro a la capilla cuando quiero. Te averiguo por dónde salen.',
+          answer: 'Eso quería oír. Fijate dónde tienen las carretas y para dónde miran. Lo demás lo arreglan los muchachos.',
+          animo: 1,
+          quiere: 'encargar_rehenes',
+        },
+        {
+          says: '¿Para qué quieren a unos heridos?',
+          answer: 'Para que el capitán lo piense dos veces antes de cruzar. Un herido de ellos vale por diez de los nuestros.',
+          animo: 0,
+        },
+        {
+          says: 'A hombres que no se pueden parar no los toco.',
+          answer: 'Mirá qué fino. A doña Remedios nadie le preguntó si se podía parar.',
+          animo: -1,
+        },
+      ],
+    },
+    {
+      id: 'carretas',
+      given: 'sabe:carretas',
+      after: ['saludo'],
+      asks: 'carretas',
+      options: [
+        {
+          says: 'Las carretas están detrás de la capilla, de cara a la senda. Salen de noche, por ahí.',
+          answer: 'Por la senda, de noche. Ciriaco los va a estar esperando. Hiciste bien, soldado: el pueblo no se olvida.',
+          animo: 2,
+          quiere: 'oir_carretas',
+        },
+        {
+          says: 'Vi las carretas. Antes de decirte nada, quiero saber qué les van a hacer.',
+          answer: 'Lo que haga falta para que esa columna no pase. ¿O vos viniste a otra cosa?',
+          animo: 0,
+        },
+      ],
+    },
     {
       // He has turned his back: a first chance to mend it, or to be shown the door.
       id: 'torcido',

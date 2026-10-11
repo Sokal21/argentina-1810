@@ -263,10 +263,10 @@ pueblo" no queda cumplido por haber estado antes), `hablo:QUIEN`,
 | 3 | La capilla | `hecha:hijo` | monte (`zona:T`) · capilla (`zona:K`) · `hablo:anselmo` · `hablo:tobias`. Deja `sabe:tobias` | **Hecha** |
 | 4 | La noticia | `hecha:capilla` | pueblo (`zona:P`) · `dijo:noticia`. Aparte, si quiere: `dijo:mateo` | **Hecha** |
 | 5a | Entregar al godo | `hecha:noticia` y `dijo:mateo`; la pide don Braulio | sacar a Mateo · llevarlo vivo al pozo | Falta: **escolta** |
-| 5b | Amparar a Mateo | `hecha:noticia`; la pide fray Anselmo | `sabe:columna` y `sabe:capitan` · `dijo:no` a don Braulio | Falta poco: solo charla |
+| 5b | Amparar a Mateo | `acepto:amparar`: la pide fray Anselmo después de `hecha:noticia` | `sabe:columna` y `sabe:capitan` · `dijo:no` a don Braulio | **Hecha** |
 | 6a | La campana a la fragua | `hecha:5a` o `hecha:5b`; don Braulio | bajar la campana · llevarla en carreta a la fragua | Falta: **usar un lugar**, **escolta** |
 | 6b | Las tres fogatas | `acepto:fogatas`: la pide fray Anselmo cuando ya contó el plan (`sabe:rebato`). Cuando exista la 5, además después de ella | `tiene:lena` · las tres `armada:LOMA`, en cualquier orden, cada una con su guardia vencida | **Hecha** |
-| 7a | Los rehenes | `hecha:6a` o `hecha:6b`; don Braulio | averiguar por dónde salen · `dijo:carretas` | Falta poco: solo charla |
+| 7a | Los rehenes | `acepto:rehenes`: la pide don Braulio después de `hecha:fogatas` (y de la 6a, cuando exista) | `sabe:carretas`, mirando las carretas detrás de la capilla · `dijo:carretas` | **Hecha** |
 | 7b | La escolta | ídem; fray Anselmo | llevar las dos carretas a la Loma del Medio | Falta: **escolta** |
 | 8a | La emboscada | dos de 5a, 6a, 7a | aguantar tres oleadas · vencer al capitán | Falta: **oleadas**, **el capitán** |
 | 8b | El rebato | dos de 5b, 6b, 7b, y la campana en su lugar | encender las fogatas · estar en la loma al aclarar | Falta: **usar un lugar**, quizá **oleadas** |

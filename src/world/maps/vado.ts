@@ -137,6 +137,8 @@ export const vadoDeLasVizcachas: WorldMap = {
   // The three rises that look down on the ford: on each a signal fire can be built, once
   // there is wood for it and the soldiers who hold the rise are down.
   spots: [
+    // Behind the chapel, where the friars keep their two carts: whoever has been asked can see which way they are to go.
+    { id: 'carretas', name: 'Las carretas', plot: [122, 20], does: 'mirar las carretas', given: 'acepto:rehenes', happening: 'sabe:carretas', note: 'Dos carretas con paja y mantas, de cara a la senda. Salen por acá, de noche.' },
     { id: 'fogata_este', name: 'La fogata del Este', plot: [75, 20], does: 'armar la fogata', given: 'tiene:lena', guarded: true, happening: 'armada:este', note: 'La fogata de la Loma del Este está armada.', sprite: 'cosas/fogata.png' },
     { id: 'fogata_medio', name: 'La fogata del Medio', plot: [63, 21], does: 'armar la fogata', given: 'tiene:lena', guarded: true, happening: 'armada:medio', note: 'La fogata de la Loma del Medio está armada.', sprite: 'cosas/fogata.png' },
     { id: 'fogata_oeste', name: 'La fogata del Oeste', plot: [52, 20], does: 'armar la fogata', given: 'tiene:lena', guarded: true, happening: 'armada:oeste', note: 'La fogata de la Loma del Oeste está armada.', sprite: 'cosas/fogata.png' },
