@@ -1905,6 +1905,11 @@
       "asset_id": "45de76fa-b074-4a85-9ae3-8bdfb3232bf2",
       "label": "shop: items_2",
       "file": "assets/cosas/concept/items_2.png"
+    },
+    {
+      "asset_id": "f5ee4fec-e42e-4053-810b-3780ce2c6481",
+      "label": "shop: display cabinet, empty",
+      "file": "assets/hud/concept/escaparate_1.png"
     }
   ]
 }

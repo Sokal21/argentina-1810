@@ -658,11 +658,16 @@ quedan anotadas para mejorar más adelante, en la etapa 16.*
 - **Quien te cerró la puerta no te vende.** La tienda es de don Braulio:
   si se hartó de Cabral, tampoco hay comercio. Pelearse con alguien cuesta
   también eso.
-- **Las pantallas, dibujadas:** la lista de precios es un papel clavado en
-  un tablón, con el estilo del HUD de Cabral, dibujado vacío y escrito por
-  código. Los cuatro íconos (vendas, odre, sable, monedas) salieron de una
-  sola imagen, cortada. La página del personaje sumó dos pestañas en su
-  lado derecho: la bolsa y el cuaderno.
+- **La tienda es un escaparate, no una lista.** La primera versión era un
+  papel clavado en un tablón con renglones de texto; el usuario pidió
+  madera, grilla y el aire de las tiendas del Diablo. Ahora es un cajón de
+  madera con casilleros donde las cosas están a la vista: se señala una y
+  el listón de abajo dice qué es, qué cuesta y qué hace; un clic la compra.
+  El cajón se generó vacío; los casilleros se dibujan por script
+  (`tools/build_hud_buttons.py`), para que la grilla quede pareja, y se
+  ponen por código. Los cuatro íconos (vendas, odre, sable, monedas)
+  salieron de una sola imagen, cortada. La página del personaje sumó dos
+  pestañas en su lado derecho: la bolsa y el cuaderno.
 - **Qué quedó afuera:** Inti no tiene a quién comprarle, porque en su mapa
   no hay nadie; los lugares de peto, botas y talismán están pero no hay
   nada que ponerles; no se puede vender.

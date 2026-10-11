@@ -31,16 +31,16 @@ export interface Item {
 export const ITEMS: Record<string, Item> = {
   venda: {
     id: 'venda', name: 'Vendas', price: 45, icon: 'cosas/venda.png', use: 'mend',
-    does: 'Se usan una vez: devuelven dos golpes de vida.',
+    does: 'Una vez: devuelven dos golpes de vida.',
   },
   odre: {
     id: 'odre', name: 'Odre de caña', price: 70, icon: 'cosas/odre.png', use: 'refill',
-    does: 'Se usa una vez: vuelve a llenar el frasco, estés donde estés.',
+    does: 'Una vez: llena el frasco, estés donde estés.',
   },
   sable: {
     id: 'sable', name: 'Sable de tropa', price: 260, icon: 'cosas/sable.png', only: 'cabral',
     wear: { place: 'weapon', stat: 'basic', adds: 0.25 },
-    does: 'Arma. Bien templado y recién afilado: un cuarto más de daño en cada sablazo.',
+    does: 'Arma: un cuarto más de daño por sablazo.',
   },
 };
 

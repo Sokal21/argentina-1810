@@ -63,3 +63,37 @@ for hero, look in LOOKS.items():
     strip.paste(stud(look, lit_up=True), (SIDE, 0))
     strip.save(ROOT / f'mas_{hero}.png')
     print(f'mas_{hero}.png', strip.size)
+
+
+def compartment(lit_up=False):
+    """A square compartment of a shop's display case: a recess in dark wood, shaded where its
+    walls overhang it and lit along its sill, with a frame of lighter wood round it."""
+    side = 28
+    frame, frame_lit, frame_dark = (96, 68, 44), (128, 94, 62), (58, 40, 26)
+    back, deep, sill = (40, 29, 22), (24, 17, 13), (74, 53, 36)
+    if lit_up:
+        frame, frame_lit, back, sill = (150, 112, 60), (196, 156, 88), (56, 42, 30), (104, 78, 50)
+    img = Image.new('RGBA', (side, side), (0, 0, 0, 0))
+    px = img.load()
+    last = side - 1
+    for y in range(side):
+        for x in range(side):
+            d = min(x, y, last - x, last - y)        # how far in from the edge
+            if d == 0:
+                px[x, y] = (*((16, 12, 10)), 255)    # the line round it
+            elif d == 1:
+                px[x, y] = (*(frame_lit if (y == 1 or x == 1) else frame_dark), 255)
+            elif d == 2:
+                px[x, y] = (*frame, 255)
+            elif d == 3:
+                px[x, y] = (*(deep if (y == 3 or x == 3) else sill), 255)   # overhang above and left, sill below and right
+            else:
+                px[x, y] = (*back, 255)
+    return img
+
+
+case = Image.new('RGBA', (56, 28), (0, 0, 0, 0))
+case.paste(compartment(), (0, 0))
+case.paste(compartment(lit_up=True), (28, 0))
+case.save(ROOT / 'casilla.png')
+print('casilla.png', case.size)
