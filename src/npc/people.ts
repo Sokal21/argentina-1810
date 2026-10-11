@@ -128,6 +128,16 @@ export const ANSELMO: Npc = {
       note: 'Dato conseguido: Tobías, el hijo de don Braulio, está vivo en la capilla, con una pierna rota.',
     },
     {
+      key: 'sobrino',
+      wants: 'contar_sobrino',
+      tells: ['sobrino'],
+      needs: 7,
+      withheld: 'De quiénes son tus heridos no decís más que lo que se ve: son hombres lastimados.',
+      granted: 'Uno de los seis soldados del rey que cuidás, un alférez muy joven que delira de fiebre, es sobrino del capitán que manda la columna. Ya confiás en este forastero: si pregunta por los heridos o por cómo tratar con el capitán, se lo decís, y le decís que devolverlo vivo vale más que cualquier amenaza.',
+      given: 'Ya le dijiste que el alférez herido es sobrino del capitán.',
+      note: 'Dato conseguido: el alférez herido es sobrino del capitán de la columna.',
+    },
+    {
       key: 'rebato',
       wants: 'contar_rebato',
       tells: ['rebato', 'fogata'],
@@ -175,6 +185,17 @@ export const MATEO: Npc = {
   },
   trust: 1,
   favours: [
+    {
+      // The same thing the boy can tell, from the man himself: it is one fact, whoever it comes from.
+      key: 'mateo',
+      wants: 'contar_salvo',
+      tells: ['rapaz', 'a cuestas'],
+      needs: 2,
+      withheld: 'Por qué estás acá escondido no se lo decís a un uniforme enemigo.',
+      granted: 'Si este forastero te pregunta sin amenazarte qué te trajo acá o por qué desertaste, le contás que cargaste a cuestas media legua a un rapaz del pueblo herido, hasta la capilla, y que por eso no volviste con los tuyos.',
+      given: 'Ya le contaste que cargaste al rapaz herido hasta la capilla.',
+      note: 'Dato conseguido: fue Mateo quien cargó a Tobías hasta la capilla.',
+    },
     {
       key: 'columna',
       wants: 'contar_columna',

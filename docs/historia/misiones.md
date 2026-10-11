@@ -346,10 +346,10 @@ Lo que Cabral llega a saber, y que queda en su cuaderno.
 |---|---|
 | El rastro va hacia la capilla | El poncho |
 | Tobías vive | Fray Anselmo |
-| Lo salvó un soldado realista | Tobías |
+| Lo salvó un soldado realista | Tobías, o el propio Mateo |
 | La columna cruza al amanecer del tercer día | Tobías |
 | Vienen sin pólvora y con hambre | Mateo |
 | El capitán le teme a las milicias | Mateo |
 | Son ochenta | Mateo |
-| Uno de los heridos es sobrino del capitán | Fray Anselmo |
+| Uno de los heridos es sobrino del capitán | Fray Anselmo, cuando confía mucho |
 | La campana es el único bronce del paraje | Don Braulio |

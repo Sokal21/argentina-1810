@@ -104,16 +104,18 @@ export const MATEO: Script = {
           says: '¿Desertaste, o te dejaron atrás?',
           answer: 'Me quedé yo. Traje a cuestas a un rapaz del pueblo, herido, y ya no volví. Pregúntele al fraile, que le entablilló la pierna delante de mí.',
           animo: 0,
+          quiere: 'contar_salvo',
         },
         {
           says: 'Te escapaste de la pelea por miedo, y ahora te tapa un fraile. ¿O me equivoco?',
-          answer: 'Se equivoca. Miedo tengo ahora; aquel día cargué media legua a un rapaz herido, y por eso no pude volver. No me conoce usted.',
+          answer: 'Se equivoca. Miedo tengo ahora; aquel día hice lo que había que hacer, y por eso no pude volver. No me conoce usted, y no le debo la cuenta.',
           animo: -1,
         },
         {
           says: 'Nadie se esconde en una sacristía por gusto. Contame qué te trajo hasta acá.',
           answer: 'Un rapaz del pueblo, con la pierna rota. Gritaba como mi hermano pequeño, allá en Mondoñedo. Lo levanté sin pensar, y media legua después ya no había manera de volver.',
           animo: 2,
+          quiere: 'contar_salvo',
         },
       ],
     },
@@ -292,7 +294,7 @@ export const MATEO: Script = {
         },
         {
           says: 'Lo que me contaste puede ahorrar muchas muertes. Quedate escondido hasta que pase.',
-          answer: 'Aquí me quedo, pegado a la pared. Y si ve al rapaz de la pierna, dígale que no la apoye todavía.',
+          answer: 'Aquí me quedo, pegado a la pared. Y si ve al chico de la pierna, dígale que no la apoye todavía.',
           animo: 1,
         },
         {

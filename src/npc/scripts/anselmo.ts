@@ -305,6 +305,55 @@ export const ANSELMO: Script = {
       ],
     },
     {
+      // He comes with the boy's poncho in his hands: it says what he is here for better than words.
+      id: 'poncho',
+      given: 'tiene:poncho',
+      until: 'sabe:tobias',
+      after: ['saludo'],
+      options: [
+        {
+          says: 'Encontré esto en el campo de la pelea, padre. Es de un chico. El rastro me trajo hasta su puerta.',
+          answer: 'Conozco ese poncho. Lo traía puesto cuando me lo dejaron en el umbral. Pase y siéntese, hijo: quien camina tanto por un chico ajeno merece que lo escuchen.',
+          animo: 2,
+        },
+        {
+          says: 'Este poncho tiene sangre, y la sangre viene para acá. ¿De quién es?',
+          answer: 'De alguien que llegó más muerto que vivo, y que ya no sangra. Baje la voz y le sigo contando.',
+          animo: 0,
+        },
+        {
+          says: 'Acá tienen a un chico del pueblo. Lo sé por esto. Tráigamelo.',
+          answer: 'Acá no se le trae nadie a nadie, hijo. Guarde ese poncho y empiece de nuevo, con otro modo.',
+          animo: -1,
+        },
+      ],
+    },
+    {
+      // Who one of his wounded is: worth more to the captain than any threat.
+      id: 'sobrino',
+      trust: 7,
+      after: ['heridos'],
+      options: [
+        {
+          says: 'Hay uno entre los heridos que no es como los otros, padre. El que delira. ¿Quién es?',
+          answer: 'Tiene buen ojo. Es alférez, casi un chico, y es sobrino del capitán que manda esa columna. Devuelto vivo, vale más que diez amenazas.',
+          animo: 1,
+          quiere: 'contar_sobrino',
+        },
+        {
+          says: 'Si quiero tratar con el capitán, ¿con qué voy?',
+          answer: 'Con lo que él más quiere. El alférez que delira en aquel catre es su sobrino. Llévele la noticia de que vive, y lo va a escuchar.',
+          animo: 0,
+          quiere: 'contar_sobrino',
+        },
+        {
+          says: 'Alguno de esos ha de valer un rescate. Dígame cuál.',
+          answer: 'Acá ninguno tiene precio, hijo. Esa pregunta hágasela a otro.',
+          animo: -1,
+        },
+      ],
+    },
+    {
       // What he asks once the plan is told: the three fires. Asked again until the hero gives his word.
       id: 'fogatas',
       given: 'sabe:rebato',

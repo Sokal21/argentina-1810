@@ -90,4 +90,5 @@ export const VADO: Quest[] = [
 export const FACTS: Record<string, string> = {
   'sabe:rastro': 'El rastro de sangre va hacia la capilla.',
   'sabe:tobias': 'Tobías vive. Está en la capilla, con una pierna rota.',
+  'sabe:mateo': 'A Tobías lo cargó hasta la capilla Mateo, un soldado del rey que desertó.',
 };
