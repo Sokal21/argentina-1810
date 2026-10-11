@@ -46,6 +46,8 @@ export interface Spot {
   does: string;
   /** It can be done only once this has happened in the story; */
   given?: string;
+  /** and no longer once this has; */
+  until?: string;
   /** and only while nobody who holds the zone it is in is left standing. */
   guarded?: boolean;
   /** What doing it is, to the story. */
@@ -55,7 +57,15 @@ export interface Spot {
    * and holding out against the last of them is a happening of its own. Whoever falls can
    * make the stand again.
    */
-  stand?: { from: [number, number]; waves: number[]; won: string };
+  stand?: {
+    from: [number, number];
+    waves: number[];
+    won: string;
+    /** Fewer come, if this has happened: what was done beforehand counts. */
+    eased?: { given: string; waves: number[] };
+    /** Whoever commands them comes last, alone, and takes this much to bring down. */
+    leader?: { name: string; life: number };
+  };
   /** Shown to the player when it is done. */
   note?: string;
   /** Its drawing once it is done. */

@@ -46,6 +46,8 @@ export class RealistaBrain {
   /** Seconds spent in the current mode. */
   t = 0;
   life = LIFE;
+  /** How much he takes to bring down: more for one who commands. */
+  max = LIFE;
   /** Which way he faces across the screen: 1 right, -1 left. */
   faceX = 1;
   /** Whether he faces up the screen, showing his back. */
@@ -187,7 +189,7 @@ export class RealistaBrain {
   private respawn(): void {
     this.x = this.home.x;
     this.y = this.home.y;
-    this.life = LIFE;
+    this.life = this.max;
     this.reload = 0.8 + this.rnd() * 0.8;
     this.rest = 0;
     this.enter('stand');

@@ -674,8 +674,8 @@ quedan anotadas para mejorar más adelante, en la etapa 16.*
 
 ## Etapa 10 · Las misiones, una por una
 
-*En curso. Hechas 11 de 13; faltan los dos finales con aliados, la
-emboscada y el rebato.*
+*Hechas las trece, esperando el visto bueno. Lo que quedó provisorio está
+anotado al final.*
 
 - **Primero el diagrama.** Antes de escribir ninguna se armó la tabla de
   las trece (`docs/historia/misiones.md`, "Cómo se encadenan en el
@@ -716,3 +716,16 @@ emboscada y el rebato.*
   excluyentes por lo que cada uno pide: quien aceptó amparar a Mateo ya
   no recibe el pedido de entregarlo, y lo mismo campana contra fogatas y
   rehenes contra escolta.
+- **"Dos de tres" es una regla, no una misión.** Los finales con aliados
+  piden haber cumplido al menos dos de las tres misiones de un bando. La
+  historia ganó **reglas** (`RULES` en `src/story/vado.ts`): cuando pasaron
+  tantas cosas de una lista, y salvo que haya pasado otra, pasa una más
+  (`listo:emboscada`). El rebato además pide que la campana no se haya
+  bajado. Con las tres cumplidas vienen menos enemigos, o ninguno.
+- **Mezclar bandos puede dejar sin ninguno de los dos finales,** y
+  entonces queda el vado, solo. Hay un test que juega justamente eso.
+- **Lo que quedó provisorio:** el capitán es un fusilero más alto y más
+  duro, sin dibujo ni manera propia; los paisanos no pelean a tu lado en
+  la emboscada; entregar a Mateo no lo mata ni cierra el campanario; lo
+  que se escolta se desliza en vez de caminar; después de un final el
+  juego sigue en vez de volver al título.

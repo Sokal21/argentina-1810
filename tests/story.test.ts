@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Story, type Quest } from '../src/story/story';
-import { VADO } from '../src/story/vado';
+import { RULES, VADO } from '../src/story/vado';
 
 const quests: Quest[] = [
   { id: 'a', name: 'A', opens: ['empieza'], steps: [{ says: 'ir', when: ['en:x'] }, { says: 'hablar', when: ['hablo:y'] }], leaves: ['sabe:algo'] },
@@ -202,5 +202,48 @@ describe('the three that are a thing brought somewhere', () => {
     const story = new Story(VADO);
     for (const h of ['acepto:campana', 'bajada:campana', 'llego:campana']) story.tell(h);
     expect(story.holds('balas')).toBe(true);
+  });
+});
+
+describe('the two ends with others', () => {
+  const play = (...happenings: string[]) => {
+    const story = new Story(VADO, RULES);
+    for (const h of happenings) story.tell(h);
+    return story;
+  };
+  const done = (id: string, ...steps: string[]) => [`acepto:${id}`, ...steps];
+  const entregar = done('entregar', 'lleva:mateo', 'entregado:mateo');
+  const campana = done('campana', 'bajada:campana', 'llego:campana');
+  const rehenes = done('rehenes', 'sabe:carretas', 'dijo:carretas');
+  const amparar = done('amparar', 'sabe:columna', 'sabe:capitan', 'dijo:no');
+  const fogatas = done('fogatas', 'tiene:lena', 'armada:este', 'armada:medio', 'armada:oeste');
+  const escolta = done('escolta', 'lleva:carretas', 'llego:carretas');
+
+  it("one of the village's three is not enough for its ambush; two are", () => {
+    expect(play(...entregar).isOpen('emboscada')).toBe(false);
+    const story = play(...entregar, ...rehenes);
+    expect(story.isOpen('emboscada')).toBe(true);
+    expect(story.has('entera:emboscada')).toBe(false);
+    story.tell('planta:emboscada'); story.tell('aguanto:emboscada');
+    expect(story.has('final:emboscada')).toBe(true);
+  });
+
+  it("two of the friars' three ready the rebato, and all three make it whole", () => {
+    expect(play(...amparar, ...fogatas).isOpen('rebato')).toBe(true);
+    expect(play(...amparar, ...fogatas).has('entero:rebato')).toBe(false);
+    expect(play(...amparar, ...fogatas, ...escolta).has('entero:rebato')).toBe(true);
+  });
+
+  it('there is no rebato once the bell has come down, whatever else was done', () => {
+    const story = play(...campana, ...amparar, ...escolta);
+    expect(story.isOpen('rebato')).toBe(false);
+  });
+
+  it('mixing the two sides can leave neither ready: then there is only the ford, alone', () => {
+    const story = play(...entregar, ...fogatas);
+    expect(story.isOpen('emboscada')).toBe(false);
+    expect(story.isOpen('rebato')).toBe(false);
+    story.tell('planta:vado'); story.tell('aguanto:vado');
+    expect(story.has('final:solo')).toBe(true);
   });
 });

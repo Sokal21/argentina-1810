@@ -127,6 +127,14 @@ export class Realista {
     return this;
   }
 
+  /** Makes him one who commands: he takes that much to bring down, and stands a little taller than his men. */
+  commands(life: number): this {
+    this.brain.max = this.brain.life = life;
+    this.shown = life;
+    this.sprite.setScale(SCALE * 1.18);
+    return this;
+  }
+
   /** Takes him off the field at once, for good. */
   dismiss(): void {
     this.brain.vanish();
@@ -237,10 +245,10 @@ export class Realista {
 
     this.zone.setPosition(x, y - TORSO.up);
     (this.zone.body as Phaser.Physics.Arcade.Body).enable = alive;
-    const hurt = alive && b.life < LIFE;
+    const hurt = alive && b.life < b.max;
     this.barBack.setPosition(x, y - BAR_UP).setVisible(hurt);
     this.bar.setPosition(x - BAR_W / 2, y - BAR_UP).setVisible(hurt)
-      .setSize(Math.max(0, BAR_W * this.shown / LIFE), 2);
+      .setSize(Math.max(0, BAR_W * this.shown / b.max), 2);
 
     if (this.fx) this.fx.amount = this.flash;
     else if (this.flash > 0) this.sprite.setTintFill(0xff2a1f);

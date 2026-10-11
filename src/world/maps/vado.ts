@@ -143,10 +143,14 @@ export const vadoDeLasVizcachas: WorldMap = {
     { id: 'carretas', name: 'Las carretas de los heridos', sprite: 'cosas/carreta.png', from: [122, 20], to: [62, 20], does: 'sacar las carretas', given: 'acepto:escolta', happening: 'llego:carretas', life: 6, pace: 46, note: 'Las carretas llegaron a la loma. Los heridos están donde los van a ver.' },
   ],
   spots: [
+    // The same ford with the village behind him: more come, and their captain last; fewer if all the village asked was done.
+    { id: 'emboscada', name: 'El vado', plot: [62, 10], does: 'esperar a la columna con el pueblo', given: 'listo:emboscada', happening: 'planta:emboscada', note: 'Los paisanos están en los juncos. Ya vienen.', stand: { from: [62, 8], waves: [4, 5, 5], eased: { given: 'entera:emboscada', waves: [3, 4, 4] }, leader: { name: 'El capitán', life: 14 }, won: 'aguanto:emboscada' } },
+    // The middle rise, where he is to be seen: the fire lit, the bell ringing behind. A vanguard comes to see whether it is true, unless everything was in place.
+    { id: 'rebato', name: 'La Loma del Medio', plot: [61, 21], does: 'encender la fogata y esperar el alba', given: 'listo:rebato', happening: 'planta:rebato', note: 'La fogata prende. Atrás, lejos, empieza a sonar la campana.', stand: { from: [62, 17], waves: [4], eased: { given: 'entero:rebato', waves: [] }, won: 'aguanto:rebato' } },
     // The belfry: the bell comes down onto a cart, for whoever the village has sent for it.
     { id: 'campana', name: 'El campanario', plot: [121, 21], does: 'bajar la campana', given: 'acepto:campana', happening: 'bajada:campana', note: 'La campana está en la carreta. Pesa como un muerto.' },
     // The ford itself, where the column has to cross: whoever plants himself there, alone, has it come at him.
-    { id: 'vado', name: 'El vado', plot: [62, 10], does: 'plantarse y esperar a la columna', happening: 'planta:vado', note: 'Ya vienen.', stand: { from: [62, 8], waves: [3, 4, 5], won: 'aguanto:vado' } },
+    { id: 'vado', name: 'El vado', plot: [62, 10], does: 'plantarse y esperar a la columna', until: 'listo:emboscada', happening: 'planta:vado', note: 'Ya vienen.', stand: { from: [62, 8], waves: [3, 4, 5], won: 'aguanto:vado' } },
     // Behind the chapel, where the friars keep their two carts: whoever has been asked can see which way they are to go.
     { id: 'carretas', name: 'Las carretas', plot: [122, 20], does: 'mirar las carretas', given: 'acepto:rehenes', happening: 'sabe:carretas', note: 'Dos carretas con paja y mantas, de cara a la senda. Salen por acá, de noche.' },
     { id: 'fogata_este', name: 'La fogata del Este', plot: [75, 20], does: 'armar la fogata', given: 'tiene:lena', guarded: true, happening: 'armada:este', note: 'La fogata de la Loma del Este está armada.', sprite: 'cosas/fogata.png' },

@@ -15,6 +15,22 @@ const STYLE = `
 
 /** What each ending is called and says, by the happening that is it. */
 export const ENDINGS: Record<string, { title: string; says: string[] }> = {
+  'final:emboscada': {
+    title: 'La emboscada',
+    says: [
+      'La columna entró al vado con el agua a la rodilla y los juncos se llenaron de gritos. Cuando cayó el capitán, lo que quedaba de ella tiró las armas o se ahogó queriendo volver.',
+      'En el pueblo hubo vino hasta la noche. Doña Remedios durmió por primera vez en tres días, y don Braulio le sirvió a Cabral sin cobrarle.',
+      'La capilla del páramo amaneció con la puerta cerrada. Nadie tocó a misa.',
+    ],
+  },
+  'final:rebato': {
+    title: 'El rebato',
+    says: [
+      'Al aclarar, la campana tocó a rebato y en las tres lomas ardían los fuegos. En la del medio había un granadero de pie, de uniforme, donde todos pudieran verlo.',
+      'El capitán miró las lomas, miró las carretas con sus heridos vivos, y dio la orden de volver. La columna desanduvo la orilla norte sin disparar un tiro.',
+      'No murió nadie. En el pueblo no se lo perdonaron: la posada no volvió a abrirle la puerta.',
+    ],
+  },
   'final:solo': {
     title: 'Solo en el vado',
     says: [

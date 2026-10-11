@@ -46,7 +46,7 @@ import { showEnding } from '../story/ending';
 import { mountBoard } from '../story/board';
 import { Story } from '../story/story';
 import { THINGS } from '../story/things';
-import { FACTS, VADO } from '../story/vado';
+import { FACTS, RULES, VADO } from '../story/vado';
 import { Vitals } from '../world/vitals';
 import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Charge as Cargo, type Spot, type WorldMap } from '../world/zones';
 
@@ -495,7 +495,7 @@ export class GameScene extends Phaser.Scene {
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
         // A stand can be made again until it has been held; anything else is done once.
         const done = at.stand?.won ?? at.happening;
-        this.talkers.push({ name: at.name, x, y, hint, spot: { at, mark }, there: () => !this.story?.has(done) && this.battle?.at !== at && (!at.given || !!this.story?.has(at.given)) });
+        this.talkers.push({ name: at.name, x, y, hint, spot: { at, mark }, there: () => !this.story?.has(done) && this.battle?.at !== at && (!at.given || !!this.story?.has(at.given)) && !(at.until && this.story?.has(at.until)) });
       }
       // A trail along the ground, under everything that stands.
       if (this.map?.trails?.length && !this.textures.exists('mark')) {
@@ -549,7 +549,9 @@ export class GameScene extends Phaser.Scene {
           if (at.guarded && this.held(at)) return;
           // A stand is begun, not done: the place stays, for whoever has to make it again.
           if (at.stand) {
-            this.battle = { at, waves: new Waves(at.stand.waves), sent: [] };
+            // What was done beforehand counts: fewer come. Whoever commands them comes last, alone.
+            const eased = at.stand.eased && this.story?.has(at.stand.eased.given) ? at.stand.eased.waves : at.stand.waves;
+            this.battle = { at, waves: new Waves(at.stand.leader ? [...eased, 1] : eased), sent: [] };
             if (at.note) this.board?.say(at.note);
             this.story?.tell(at.happening);
             return;
@@ -585,7 +587,7 @@ export class GameScene extends Phaser.Scene {
       // A map with a story: it begins.
       this.board?.remove();
       // A map without a story has none to tell, but the same place on screen to be told things in.
-      this.story = new Story(his && this.map === vadoDeLasVizcachas ? VADO : []);
+      this.story = his && this.map === vadoDeLasVizcachas ? new Story(VADO, RULES) : new Story([]);
       this.board = mountBoard(this.story, FACTS);
       // A mission done is worth experience.
       this.story.listen(news => {
@@ -801,15 +803,17 @@ export class GameScene extends Phaser.Scene {
       const { at, waves, sent } = this.battle, stand = at.stand!, map = this.map;
       const coming = waves.update(dt, sent.filter(soldier => soldier.alive).length);
       if (typeof coming === 'number') {
+        const leads = !!stand.leader && waves.come === waves.sizes.length;
         const from = middle(stand.from), bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
         for (let n = 0; n < coming; n++) {
           // Abreast, a few paces apart.
           const soldier = new Realista(this, from.x + (n - (coming - 1) / 2) * 46, from.y + (n % 2) * 18, bounds).sent((x, y) => zoneAt(map, x, y) !== undefined);
+          if (leads) soldier.commands(stand.leader!.life);
           this.realistas.push(soldier);
           sent.push(soldier);
           this.physics.add.overlap(this.bolts.bodies, soldier.zone, this.struck);
         }
-        this.board?.say(`Oleada ${waves.come} de ${waves.sizes.length}.`);
+        this.board?.say(leads ? `${stand.leader!.name}.` : `Oleada ${waves.come} de ${waves.sizes.length - (stand.leader ? 1 : 0)}.`);
       } else if (coming === 'won') {
         this.battle = undefined;
         this.story?.tell(stand.won);
@@ -1196,7 +1200,7 @@ export class GameScene extends Phaser.Scene {
     if (this.battle) {
       for (const soldier of this.battle.sent) soldier.dismiss();
       this.battle = undefined;
-      this.board?.say('La columna pasó. Podés volver a plantarte en el vado.');
+      this.board?.say('No aguantaste. Podés volver a intentarlo.');
     }
     this.machi.rise();
     this.machi.x = this.start.x;

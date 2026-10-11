@@ -33,6 +33,18 @@ export interface Step {
   all?: string[];
 }
 
+/**
+ * Something that follows from others: once so many of a list have happened, and unless
+ * something else has, it has happened too. "Two of the village's three, and the story is
+ * ready for its ambush."
+ */
+export interface Rule {
+  then: string;
+  of: string[];
+  count: number;
+  unless?: string;
+}
+
 /** What a happening brought about, for whoever shows it. */
 export type News =
   | { kind: 'opened'; quest: Quest }
@@ -47,7 +59,7 @@ export class Story {
   private progress = new Map<string, number>();
   private listeners: ((news: News[]) => void)[] = [];
 
-  constructor(readonly quests: Quest[]) {}
+  constructor(readonly quests: Quest[], private rules: Rule[] = []) {}
 
   /** Has this taken place? */
   has(happening: string): boolean {
@@ -135,6 +147,12 @@ export class Story {
             }
             moved = true;
           }
+        }
+        // And whatever follows from several things having happened.
+        for (const rule of this.rules) {
+          if (this.seen.has(rule.then) || waiting.includes(rule.then)) continue;
+          if (rule.unless && this.seen.has(rule.unless)) continue;
+          if (rule.of.filter(o => this.seen.has(o)).length >= rule.count) waiting.push(rule.then);
         }
       }
     }

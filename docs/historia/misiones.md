@@ -268,8 +268,8 @@ pueblo" no queda cumplido por haber estado antes), `hablo:QUIEN`,
 | 6b | Las tres fogatas | `acepto:fogatas`: la pide fray Anselmo cuando ya contó el plan (`sabe:rebato`). Cuando exista la 5, además después de ella | `tiene:lena` · las tres `armada:LOMA`, en cualquier orden, cada una con su guardia vencida | **Hecha** |
 | 7a | Los rehenes | `acepto:rehenes`: la pide don Braulio después de `hecha:fogatas` (y de la 6a, cuando exista) | `sabe:carretas`, mirando las carretas detrás de la capilla · `dijo:carretas` | **Hecha** |
 | 7b | La escolta | `acepto:escolta`: la pide fray Anselmo con las fogatas armadas, mientras no se hayan aceptado los rehenes | `lleva:carretas` · `llego:carretas`, en la Loma del Medio | **Hecha** |
-| 8a | La emboscada | dos de 5a, 6a, 7a | aguantar tres oleadas · vencer al capitán | Falta: **oleadas**, **el capitán** |
-| 8b | El rebato | dos de 5b, 6b, 7b, y la campana en su lugar | encender las fogatas · estar en la loma al aclarar | Falta: **usar un lugar**, quizá **oleadas** |
+| 8a | La emboscada | `listo:emboscada`: dos de las tres del pueblo cumplidas | `planta:emboscada`, en el vado · tres oleadas y el capitán (`aguanto:emboscada`). Con las tres cumplidas vienen menos. Deja `final:emboscada` | **Hecha** |
+| 8b | El rebato | `listo:rebato`: dos de las tres de los frailes cumplidas, y la campana sin bajar | `planta:rebato`, en la Loma del Medio · rechazar a la avanzada, o nada si están las tres (`aguanto:rebato`). Deja `final:rebato` | **Hecha** |
 | 8c | Solo en el vado | `planta:vado`: plantarse en el vado, cuando sea; no depende de nadie | aguantar tres oleadas (`aguanto:vado`). Deja `final:solo` | **Hecha** |
 
 Lo que el juego todavía no sabe hacer, y que varias misiones comparten:
@@ -289,7 +289,9 @@ Lo que el juego todavía no sabe hacer, y que varias misiones comparten:
   llegan por tandas desde una parcela, la siguiente recién cuando cayó el
   último de la anterior, y aguantarlas todas es un suceso. Quien cae puede
   volver a plantarse.
-- **El capitán.** Un enemigo nuevo: es de la etapa de enemigos.
+- **El capitán: provisorio.** Hoy es un fusilero más alto que aguanta
+  catorce golpes. Su dibujo y su manera de pelear son de la etapa de
+  enemigos. Tampoco pelean todavía los paisanos a tu lado.
 
 Y lo que se decide hablando ya tiene su manera: lo que un personaje **pide**
 (un encargo) puede esperar a que haya pasado algo, y su aceptación es un
