@@ -140,25 +140,27 @@ export const ANSELMO: Script = {
       ],
     },
     {
+      // The hero may come knowing of the boy or not: the innkeeper may never have spoken to him.
+      // So he asks after the boy he can see on the cot, and it is the friar who names him and his father.
       id: 'tobias',
       trust: 5,
       after: ['heridos'],
       options: [
         {
-          says: 'En la posada hay un padre que no duerme, buscando a su hijo. ¿Sabe usted algo del chico?',
-          answer: 'Tobías, el de Braulio. Está vivo, hijo: lo tengo acá, con la pierna rota por una bala, y va a sanar. Llevale esa noticia a su padre, que treinta años lo conozco y sé lo que estará penando.',
+          says: 'Entre sus heridos hay un chico, padre. Si alguien lo anda buscando, yo puedo llevar la noticia.',
+          answer: 'Lo buscan, sí. Es Tobías, el de Braulio, el posadero. Está vivo, hijo: tiene la pierna rota por una bala, y va a sanar. Llevale esa noticia a su padre, que treinta años lo conozco y sé lo que estará penando.',
           animo: 1,
           quiere: 'contar_tobias',
         },
         {
-          says: 'Si tiene al hijo del posadero, me lo llevo hoy, como esté.',
-          answer: 'Tobías vive y va a sanar, y por eso mismo no sale de acá: tiene la pierna rota por una bala. A un chico así no se lo carga como a una bolsa.',
+          says: 'Ese chico no es soldado. Si es del pueblo, me lo llevo hoy, como esté.',
+          answer: 'Es Tobías, el hijo de Braulio, el posadero. Vive y va a sanar, y por eso mismo no sale de acá: tiene la pierna rota por una bala. A un chico así no se lo carga como a una bolsa.',
           animo: -1,
           quiere: 'contar_tobias',
         },
         {
-          says: 'Busco a Tobías, el hijo del posadero. ¿Está acá?',
-          answer: 'Acá está. Catorce años y la pierna rota por una bala, pero vive y va a sanar.',
+          says: '¿Quién es el chico de aquel catre, padre?',
+          answer: 'Tobías, el hijo de Braulio, el posadero. Catorce años y la pierna rota por una bala, pero vive y va a sanar.',
           animo: 0,
           quiere: 'contar_tobias',
         },
@@ -192,7 +194,7 @@ export const ANSELMO: Script = {
       after: ['batalla'],
       options: [
         {
-          says: 'El pueblo arma una emboscada, y a mí me sirve.',
+          says: 'A esa columna hay que esperarla en el vado y matar a cuantos se pueda. A mí eso me sirve.',
           answer: 'Te sirve a vos. A las viudas que deje, de un lado y del otro, no les sirve a ninguna.',
           animo: -1,
         },
@@ -220,7 +222,7 @@ export const ANSELMO: Script = {
           quiere: 'contar_rebato',
         },
         {
-          says: '¿Qué tiene pensado usted para frenarlos?',
+          says: '¿Usted cómo los frenaría, padre?',
           answer: 'Asustarlos, que sale más barato que matarlos. Campana a rebato desde el campanario y fogatas en las tres lomas la noche antes del cruce, para que crean que la milicia de toda la campaña los espera en el vado.',
           animo: 0,
           quiere: 'contar_rebato',
@@ -234,6 +236,7 @@ export const ANSELMO: Script = {
     },
     {
       id: 'sacristia',
+      until: 'hablo:mateo',
       trust: 4,
       after: ['heridos'],
       options: [
@@ -256,23 +259,25 @@ export const ANSELMO: Script = {
       ],
     },
     {
+      // He has just named the innkeeper as the boy's father. What the innkeeper wants, the hero
+      // may not have heard: he asks, and the friar tells.
       id: 'pueblo',
       trust: 6,
       after: ['tobias'],
       options: [
         {
-          says: 'Don Braulio quiere que alguien pague. ¿Usted qué le diría, que lo conoce?',
-          answer: 'Que treinta años le conozco el genio y el corazón, y que el corazón es mejor. Le quemaron el pago y le faltó el hijo: no es mala gente, es gente dolida.',
+          says: '¿Usted lo conoce bien al padre del chico? ¿Qué clase de hombre es?',
+          answer: 'Treinta años le conozco el genio y el corazón, y el corazón es mejor. Le quemaron el pago y le faltó el hijo: no es mala gente, es gente dolida, y hoy quiere que alguien pague.',
           animo: 1,
         },
         {
-          says: '¿Qué hay entre usted y el posadero?',
+          says: '¿Cómo se lleva la capilla con el pueblo?',
           answer: 'Treinta años de vecinos y de respeto. Hoy tiramos para lados contrarios, y nos duele a los dos.',
           animo: 0,
         },
         {
-          says: 'El posadero tiene razón: al que quema un rancho se lo cuelga.',
-          answer: 'Colgá a uno y mañana queman dos. Eso lo vi hacer, y nunca le devolvió el rancho a nadie.',
+          says: 'A los que le hicieron eso a un chico habría que colgarlos del primer árbol.',
+          answer: 'Colgá a uno y mañana queman dos ranchos. Eso lo vi hacer, y nunca le devolvió nada a nadie.',
           animo: -1,
         },
       ],
@@ -296,6 +301,30 @@ export const ANSELMO: Script = {
           says: 'No le prometo nada, padre. Tengo una orden y la voy a cumplir.',
           answer: 'Prefiero eso a una promesa hueca. Cumplila, pero mirá bien por dónde: hay más de un camino al mismo vado.',
           animo: 0,
+        },
+      ],
+    },
+    {
+      // What he asks once the plan is told: the three fires. Asked again until the hero gives his word.
+      id: 'fogatas',
+      given: 'sabe:rebato',
+      asks: 'fogatas',
+      options: [
+        {
+          says: 'Las lomas las guardan soldados, padre. Eso es trabajo mío: yo armo las fogatas.',
+          answer: 'Dios se lo pague, hijo. La leña y la yesca están junto a la capilla. Tres lomas, tres fuegos: que se vean desde el vado.',
+          animo: 1,
+          quiere: 'encargar_fogatas',
+        },
+        {
+          says: '¿Y si no se asustan? Es mucho fiarse de tres fuegos y una campana.',
+          answer: 'Puede que no se asusten. Pero si sale bien no muere nadie, y eso vale probarlo antes que lo otro.',
+          animo: 0,
+        },
+        {
+          says: 'Yo vine a pelear, no a prender fogones.',
+          answer: 'Para pelear siempre hay tiempo, hijo. Para lo otro, mañana ya es tarde.',
+          animo: -1,
         },
       ],
     },

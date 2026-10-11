@@ -9,6 +9,11 @@ export interface Thing {
 }
 
 export const THINGS: Record<string, Thing> = {
+  lena: {
+    name: 'Leña y yesca',
+    sprite: 'cosas/lena.png',
+    note: 'Leña seca y yesca: alcanza para tres fogatas.',
+  },
   poncho: {
     name: 'Poncho de Tobías',
     sprite: 'cosas/poncho.png',

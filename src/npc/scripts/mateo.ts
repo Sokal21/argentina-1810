@@ -2,7 +2,8 @@ import type { Script } from '../script';
 
 // Mateo, the Galician deserter hiding in the sacristy. He starts cornered at trust 1: the first
 // moments ask for no trust and only let him breathe (stay at the door, put the musket down, the
-// buttonless coat). Asking why he saved the boy is what opens him; then what he needs, a promise,
+// buttonless coat). Asking what brought him here is what opens him, and it is he who tells of the
+// boy: the hero may have found him without anyone saying who he is. Then what he needs, a promise,
 // the column (5), the friar, the captain (7). Any threat, or "godo"/"traidor", shuts him.
 export const MATEO: Script = {
   who: 'mateo',
@@ -56,7 +57,7 @@ export const MATEO: Script = {
       after: ['saludo'],
       options: [
         {
-          says: 'Hablá, o te entrego al pueblo, que ya tiene la soga lista.',
+          says: 'Hablá, o te entrego a los paisanos. A una casaca del rey, por acá, no le preguntan nada.',
           answer: 'Entonces ya está todo dicho. Lléveme a la soga, que de mi boca no sale nada.',
           animo: -2,
           quiere: 'echar',
@@ -100,18 +101,18 @@ export const MATEO: Script = {
       after: ['casaca'],
       options: [
         {
-          says: '¿Es cierto lo del chico de la pierna rota?',
-          answer: 'Cierto. Pregúntele al fraile, que le entablilló la pierna delante de mí.',
+          says: '¿Desertaste, o te dejaron atrás?',
+          answer: 'Me quedé yo. Traje a cuestas a un rapaz del pueblo, herido, y ya no volví. Pregúntele al fraile, que le entablilló la pierna delante de mí.',
           animo: 0,
         },
         {
-          says: 'Lo salvaste para tener con qué comprar el perdón, ¿no?',
-          answer: 'Si fuera por perdón lo habría dejado en la puerta y habría corrido. No me conoce usted.',
+          says: 'Te escapaste de la pelea por miedo, y ahora te tapa un fraile. ¿O me equivoco?',
+          answer: 'Se equivoca. Miedo tengo ahora; aquel día cargué media legua a un rapaz herido, y por eso no pude volver. No me conoce usted.',
           animo: -1,
         },
         {
-          says: 'Cargaste media legua a un chico que no era de los tuyos. ¿Por qué?',
-          answer: 'Gritaba como mi hermano pequeño, allá en Mondoñedo. Lo levanté sin pensar, y media legua después ya no había manera de volver.',
+          says: 'Nadie se esconde en una sacristía por gusto. Contame qué te trajo hasta acá.',
+          answer: 'Un rapaz del pueblo, con la pierna rota. Gritaba como mi hermano pequeño, allá en Mondoñedo. Lo levanté sin pensar, y media legua después ya no había manera de volver.',
           animo: 2,
         },
       ],
@@ -128,13 +129,13 @@ export const MATEO: Script = {
           animo: 1,
         },
         {
-          says: 'Me cansé. Afuera hay un pueblo entero que paga por un godo.',
+          says: 'Me cansé. Por un godo escondido, cualquier paisano de por acá me da lo que pida.',
           answer: 'Pues véndame. Pero lo que sé se va conmigo al hoyo.',
           animo: -2,
           quiere: 'echar',
         },
         {
-          says: 'Me quedan pocos días. No puedo esperarte.',
+          says: 'No tengo tiempo. No puedo esperarte.',
           answer: 'Ni yo le he pedido que espere. Cada cual con su prisa.',
           animo: 0,
         },
@@ -178,7 +179,7 @@ export const MATEO: Script = {
           animo: 0,
         },
         {
-          says: 'Te doy mi palabra: por mi mano no llegás al pueblo.',
+          says: 'Te doy mi palabra: yo no te entrego a nadie. Ni a los tuyos ni a los de acá.',
           answer: 'Eso sí lo puede cumplir un hombre solo. Se la tomo, y no me olvido de quién me la dio.',
           animo: 1,
         },
@@ -215,13 +216,13 @@ export const MATEO: Script = {
       after: ['columna'],
       options: [
         {
-          says: 'El fraile te tiene de carta contra el pueblo. Por eso te esconde.',
+          says: 'El fraile no te esconde de balde. Con vos algo se va a querer cobrar.',
           answer: 'No hable así de él. Es el único que me ha mirado sin medirme el cuello.',
           animo: -1,
         },
         {
-          says: 'Fray Anselmo te ampara sin pedirte nada. Yo tampoco lo entiendo, pero lo respeto.',
-          answer: 'Le pregunté qué quería a cambio y me dio un caldo. Tres días, y todavía no sé qué le debo.',
+          says: 'El fraile te ampara, y no parece hombre de andar cobrando. No lo entiendo del todo, pero lo respeto.',
+          answer: 'Yo tampoco lo entiendo. Le pregunté qué quería a cambio y me dio un caldo. Tres días, y todavía no sé qué le debo.',
           animo: 1,
         },
         {
@@ -268,8 +269,8 @@ export const MATEO: Script = {
           animo: 0,
         },
         {
-          says: '¿Qué dejaste allá en Galicia?',
-          answer: 'Una madre, dos vacas y la niebla. Me llevaron en una leva; nadie me preguntó si quería rey.',
+          says: '¿Qué dejaste allá, en tu tierra?',
+          answer: 'En Galicia, una madre, dos vacas y la niebla. Me llevaron en una leva; nadie me preguntó si quería rey.',
           animo: 1,
         },
         {

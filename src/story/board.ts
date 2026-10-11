@@ -19,7 +19,7 @@ const STYLE = `
 const STAYS = 5200;   // milliseconds a word of news is left up
 
 /** Puts the story on the page, and keeps it up to date. Returns what takes it off again. */
-export function mountBoard(story: Story, facts: Record<string, string> = {}): { say(text: string): void; remove(): void } {
+export function mountBoard(story: Story, facts: Record<string, string> = {}): { say(text: string): void; refresh(): void; remove(): void } {
   const style = document.head.appendChild(Object.assign(document.createElement('style'), { textContent: STYLE }));
   const root = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'quests' }));
   const list = root.appendChild(document.createElement('section'));
@@ -28,7 +28,9 @@ export function mountBoard(story: Story, facts: Record<string, string> = {}): { 
   const draw = () => {
     list.replaceChildren(...story.current.map(({ quest, step }) => {
       const item = document.createElement('div');
-      item.append(Object.assign(document.createElement('b'), { textContent: quest.name }), step.says);
+      // A step that waits on several things says how many of them are done.
+      const tally = step.all ? ` (${story.count(step)} de ${step.all.length})` : '';
+      item.append(Object.assign(document.createElement('b'), { textContent: quest.name }), step.says + tally);
       return item;
     }));
   };
@@ -51,5 +53,5 @@ export function mountBoard(story: Story, facts: Record<string, string> = {}): { 
   };
   story.listen(told);
   draw();
-  return { say, remove: () => { root.remove(); style.remove(); } };
+  return { say, refresh: draw, remove: () => { root.remove(); style.remove(); } };
 }

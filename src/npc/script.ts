@@ -27,8 +27,10 @@ export interface Beat {
   below?: number;
   /** and only after these other moments have passed, */
   after?: string[];
-  /** and only once this has happened in the story. */
+  /** and only once this has happened in the story, */
   given?: string;
+  /** and no longer once this has: there is no asking after a boy who has been found. */
+  until?: string;
   /**
    * The key of something they ask, which this moment is the asking of. Such a moment does not
    * come up only once: whenever there is nothing else left to say it comes up again, until what
@@ -55,8 +57,9 @@ export function passed(script: Script, lines: Line[]): Set<string> {
 export function offered(script: Script, trust: number, lines: Line[], took: (key: string) => boolean = () => false, has: (happening: string) => boolean = () => false): Beat | undefined {
   const done = passed(script, lines);
   const can = (beat: Beat) => trust >= (beat.trust ?? 0) && trust < (beat.below ?? Infinity) && (beat.after ?? []).every(id => done.has(id))
-    && (!beat.given || has(beat.given));
-  return script.beats.find(beat => !done.has(beat.id) && can(beat))
+    && (!beat.given || has(beat.given)) && !(beat.until && has(beat.until));
+  // What they ask is not asked once it has been taken on, by whatever words.
+  return script.beats.find(beat => !done.has(beat.id) && can(beat) && !(beat.asks !== undefined && took(beat.asks)))
     // Nothing new: whatever they ask and has not been taken on is asked again.
     ?? script.beats.find(beat => beat.asks !== undefined && !took(beat.asks) && can(beat));
 }

@@ -151,4 +151,30 @@ describe('what was written for each of them', () => {
     const turn = await talk.say(beat!.options[0].says);
     expect(turn.agreed.map(e => e.happening)).toEqual(['dijo:noticia']);
   });
+
+  it('stops asking after the boy once he has been found, and does not ask twice what was taken on', async () => {
+    const script = SCRIPTS.braulio;
+    const talk = new Talk(PEOPLE.braulio, 'cabral', scripted(script));
+    const knows = new Set<string>(['sabe:tobias']);
+    talk.happened = h => knows.has(h);
+    const ids: string[] = [];
+    for (let turn = 0; turn < 30; turn++) {
+      const beat = offered(script, talk.trust, talk.lines, key => talk.took(key), talk.happened);
+      if (!beat) break;
+      ids.push(beat.id);
+      await talk.say((beat.options.find(o => o.quiere && o.quiere !== 'echar') ?? [...beat.options].sort((a, b) => b.animo - a.animo)[0]).says);
+    }
+    for (const gone of ['tobias', 'buscar', 'palabra']) expect(ids).not.toContain(gone);
+    expect(ids).toContain('noticia');
+    // And without the news: his word given in one moment is not asked for again in another.
+    const before = new Talk(PEOPLE.braulio, 'cabral', scripted(script));
+    const seen: string[] = [];
+    for (let turn = 0; turn < 30; turn++) {
+      const beat = offered(script, before.trust, before.lines, key => before.took(key), before.happened);
+      if (!beat) break;
+      seen.push(beat.id);
+      await before.say((beat.options.find(o => o.quiere && o.quiere !== 'echar') ?? [...beat.options].sort((a, b) => b.animo - a.animo)[0]).says);
+    }
+    expect(seen.filter(id => id === 'buscar' || id === 'palabra')).toHaveLength(1);
+  });
 });

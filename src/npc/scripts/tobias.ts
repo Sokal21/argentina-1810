@@ -3,7 +3,8 @@ import type { Script } from '../script';
 // Tobías, the innkeeper's son, on his cot in the chapel. He starts out trusting and only needs to be
 // given talk: the sabre, his leg and his father lead to who carried him (trust 7) and to what he
 // overheard about the crossing (trust 8). Slighting his father or threatening his rescuer sinks it,
-// and the two low-trust moments are where it is mended or ended.
+// and the two low-trust moments are where it is mended or ended. The hero may come without ever
+// having spoken to the father: only the moment that waits on his word to him takes that as known.
 export const TOBIAS: Script = {
   who: 'tobias',
   beats: [
@@ -11,13 +12,13 @@ export const TOBIAS: Script = {
       id: 'saludo',
       options: [
         {
-          says: 'De verdad, y pesa. Me manda tu tata: no duerme desde que faltás.',
-          answer: '¡Sabía que me iba a buscar! Dígale que estoy entero, que es la pierna nomás. ¿Y cuánto pesa? ¿Corta de los dos lados?',
+          says: 'De verdad, y pesa. Después te lo muestro; primero decime cómo andás vos.',
+          answer: '¡Ando bien! Es la pierna nomás, que no me dejan apoyarla. ¿Y cuánto pesa? ¿Corta de los dos lados?',
           animo: 1,
         },
         {
-          says: 'Es de verdad. Vengo de la posada.',
-          answer: '¿De la posada? ¿Y mi tata qué dijo, estaba enojado? Yo le quería avisar, pero acá no me dejan ni pararme.',
+          says: 'Es de verdad. ¿Y vos quién sos, que preguntás tanto?',
+          answer: '¡Tobías! El hijo de don Braulio, el de la posada. Yo le quería avisar a mi tata que estoy acá, pero no me dejan ni pararme.',
           animo: 0,
         },
         {
@@ -37,7 +38,7 @@ export const TOBIAS: Script = {
           animo: 0,
         },
         {
-          says: 'Alguien te cargó hasta acá. A ese lo voy a encontrar, y no para darle las gracias.',
+          says: 'A vos alguien te trajo, y me lo estás escondiendo. Lo voy a encontrar, y no para darle las gracias.',
           answer: '¡A él no lo toque! No le digo nada más, ni una palabra.',
           animo: -2,
           quiere: 'echar',
@@ -55,15 +56,38 @@ export const TOBIAS: Script = {
       after: ['enojo'],
       options: [
         {
-          says: 'Sos tan terco como el posadero que te crió, y tan poca cosa como él.',
+          says: 'Sos un mocoso malcriado. Poca cosa ha de ser el padre que te crió así.',
           answer: 'De mi tata no habla nadie así. Váyase.',
           animo: -2,
           quiere: 'echar',
         },
         {
-          says: 'Tenés razón en enojarte. A tu padre lo respeto, y a vos también.',
+          says: 'Tenés razón en enojarte. Te hablé mal, y no te lo merecías.',
           answer: 'Bueno... si es así, está bien. Pero despacito, que todavía estoy enojado.',
           animo: 1,
+        },
+      ],
+    },
+    {
+      // Only for whoever gave the father his word: it is the one thing here that takes the inn as known.
+      id: 'manda',
+      given: 'acepto:hijo',
+      after: ['saludo'],
+      options: [
+        {
+          says: 'Me manda tu tata, Tobías. No duerme desde que faltás.',
+          answer: '¡Sabía que me iba a buscar! Dígale que estoy entero, que es la pierna nomás. ¿Estaba muy enojado?',
+          animo: 1,
+        },
+        {
+          says: 'Vengo de la posada. Tu padre me pidió que te buscara.',
+          answer: '¿De la posada? ¿Y mi tata qué dijo? Yo le quería avisar, pero acá no me dejan ni pararme.',
+          animo: 0,
+        },
+        {
+          says: 'Tu padre me mandó a buscarte, y bastante trabajo me diste.',
+          answer: 'Yo no le pedí que viniera... Bueno, perdone. ¿Pero mi tata está bien?',
+          animo: -1,
         },
       ],
     },
@@ -97,8 +121,8 @@ export const TOBIAS: Script = {
           animo: 1,
         },
         {
-          says: 'Una bala por mirón. Barato te salió.',
-          answer: 'Barato no, que duele como el diablo. Y no fui de mirón: fui porque acá nunca pasa nada.',
+          says: 'Eso te pasa por meterte donde hay tiros. Barato te salió.',
+          answer: 'Barato no, que duele como el diablo. Y no fui por meterme: fui porque acá nunca pasa nada.',
           animo: -1,
         },
         {
@@ -119,12 +143,12 @@ export const TOBIAS: Script = {
           quiere: 'echar',
         },
         {
-          says: 'Tu tata te quiere de vuelta. Cuando puedas moverte, yo te llevo.',
+          says: 'Tu tata te ha de querer de vuelta. Cuando puedas moverte, yo te llevo.',
           answer: '¿De veras me lleva? ¡Aunque sea en una carreta de los frailes! Mi tata me va a retar delante de todos y después no me va a soltar en una semana, va a ver.',
           animo: 1,
         },
         {
-          says: 'Tu padre es duro de tratar.',
+          says: '¿Y cómo es tu tata? ¿Bravo?',
           answer: 'Rezonga con todos, pero es de boca nomás. Hay que saberlo llevar: yo ya le conozco las mañas.',
           animo: 0,
         },
@@ -142,7 +166,7 @@ export const TOBIAS: Script = {
           animo: 0,
         },
         {
-          says: 'No me digas quién te sacó del campo, si no podés. Decime nomás si era buena gente.',
+          says: 'No me digas quién te trajo, si no podés. Decime nomás si era buena gente.',
           answer: '¡La mejor! Me habló todo el camino para que no me durmiera. Me muero por contarle, pero le di mi palabra al fraile.',
           animo: 1,
         },
@@ -193,7 +217,7 @@ export const TOBIAS: Script = {
           animo: -1,
         },
         {
-          says: 'Eso no lo decido yo solo. El pueblo anda con sangre en el ojo.',
+          says: 'Eso no lo decido yo solo. A un soldado del rey, por acá, no lo van a mirar bien.',
           answer: 'Ya sé, ño Ciriaco debe estar gritando en la puerta de la posada. Pero si yo le cuento a mi tata lo que hizo Mateo, me tiene que escuchar, ¿no?',
           animo: 0,
         },
@@ -203,15 +227,15 @@ export const TOBIAS: Script = {
       id: 'soldados',
       trust: 6,
       below: 8,
-      after: ['sable'],
+      after: ['sable', 'pierna'],
       options: [
         {
-          says: 'Un granadero no pregunta dos veces. ¿Qué decían los godos?',
+          says: 'Un granadero no pregunta dos veces. ¿Qué les oíste decir a los godos?',
           answer: '¡Si no me acuerdo, no me acuerdo! Gritaban mucho y yo tenía la cara contra el pasto.',
           animo: -1,
         },
         {
-          says: 'Estuviste tirado cerca de ellos. ¿Oíste cuándo piensan moverse?',
+          says: 'Caíste en ese campo, cerca de ellos. ¿Oíste cuándo piensan moverse?',
           answer: 'Algo dijeron, sí, pero yo estaba medio ido del dolor y no me acuerdo bien. No quiero decirle una macana y que después sea por mi culpa.',
           animo: 0,
         },

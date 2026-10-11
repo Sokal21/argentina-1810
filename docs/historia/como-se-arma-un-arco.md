@@ -671,3 +671,33 @@ quedan anotadas para mejorar más adelante, en la etapa 16.*
 - **Qué quedó afuera:** Inti no tiene a quién comprarle, porque en su mapa
   no hay nadie; los lugares de peto, botas y talismán están pero no hay
   nada que ponerles; no se puede vender.
+
+## Etapa 10 · Las misiones, una por una
+
+*En curso. Hechas la 3, la 4 y la 6b; diagramadas todas.*
+
+- **Primero el diagrama.** Antes de escribir ninguna se armó la tabla de
+  las trece (`docs/historia/misiones.md`, "Cómo se encadenan en el
+  juego"): qué abre cada una, qué cumple cada paso y qué le falta al juego
+  para poder hacerla. De ahí salió que nueve misiones compartían cuatro
+  mecánicas que no existían, y en qué orden convenía hacerlas.
+- **Llegar a un lugar no se guarda.** "Volvé al pueblo" se cumplía solo,
+  porque Cabral ya había estado. Ahora llegar a un lugar cuenta para el
+  paso que lo está esperando en ese momento, y nada más.
+- **Lo que se dice depende de lo que se sabe.** Un encargo o un momento de
+  una charla puede esperar a que haya pasado algo (`given`) y retirarse
+  cuando pasó otra cosa (`until`): "tu hijo vive" se ofrece recién cuando
+  Cabral lo sabe, y don Braulio deja de pedir que lo busquen.
+- **Revisar los diálogos con el diagrama en la mano.** Los guiones los
+  habían escrito cuatro agentes sin saber el orden de la historia, y
+  Cabral daba por sabidas cosas que no podía saber: el usuario encontró
+  que trataba de sospechosos a frailes que no conocía. Con la cadena
+  diagramada, un agente repasó frase por frase qué sabe Cabral en cada
+  momento y reescribió unas cuarenta. La regla que quedó: una opción mala
+  es mala por el carácter de Cabral, nunca por saber de más.
+- **Usar un lugar y zona limpia** (`spots` en el mapa): un punto donde se
+  hace algo una vez, que puede pedir algo antes y que no quede guardia en
+  pie. Con eso salió "Las tres fogatas": la leña aparece junto a la
+  capilla cuando fray Anselmo la pide, y en cada loma hay que vencer a la
+  guardia para armar la fogata. Un paso puede esperar varias cosas en
+  cualquier orden, y el cartel dice cuántas van.

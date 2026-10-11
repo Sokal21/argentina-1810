@@ -13,6 +13,7 @@ import type { Quest } from './story';
 //   sabe:DATO        the hero has been told something
 //   cerro:QUIEN      someone has had enough of the hero
 //   dijo:QUE         the hero has told someone something they needed to hear
+//   armada:LOMA      a signal fire has been built on one of the rises
 //   hecha:MISION     a mission is done
 //
 // Coming to a place (en:, zona:) is not kept: it counts for the step waiting on it and no more.
@@ -69,6 +70,18 @@ export const VADO: Quest[] = [
     steps: [
       { says: 'Volvé al pueblo.', when: ['zona:P', 'dijo:noticia'] },
       { says: 'Decile a don Braulio que su hijo vive. Pensá bien qué más le decís.', when: ['dijo:noticia'] },
+    ],
+  },
+  {
+    id: 'fogatas',
+    name: 'Las tres fogatas',
+    xp: 220,
+    gold: 40,
+    // Fray Anselmo asks: the bell will say the country has risen, and someone has to see it.
+    opens: ['acepto:fogatas'],
+    steps: [
+      { says: 'Juntá leña y yesca junto a la capilla.', when: ['tiene:lena'] },
+      { says: 'En cada una de las tres lomas, vencé a la guardia y armá la fogata.', all: ['armada:este', 'armada:medio', 'armada:oeste'] },
     ],
   },
 ];

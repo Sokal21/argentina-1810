@@ -49,7 +49,7 @@ export class Talk {
 
   /** What they have to ask now: whatever of theirs is not waiting on something that has yet to happen. */
   private get asking(): Errand[] {
-    return (this.npc.errands ?? []).filter(e => !e.given || this.happened(e.given));
+    return (this.npc.errands ?? []).filter(e => (!e.given || this.happened(e.given)) && !(e.until && this.happened(e.until)));
   }
   over = false;
 

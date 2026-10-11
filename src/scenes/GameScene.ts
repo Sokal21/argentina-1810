@@ -45,7 +45,7 @@ import { Story } from '../story/story';
 import { THINGS } from '../story/things';
 import { FACTS, VADO } from '../story/vado';
 import { Vitals } from '../world/vitals';
-import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type WorldMap } from '../world/zones';
+import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Spot, type WorldMap } from '../world/zones';
 
 const ZOOM = 2;            // screen pixels per sprite pixel
 const FIELD = { width: 1280, height: 800 }; // the bare field, in sprite pixels
@@ -116,7 +116,7 @@ interface Orb extends Vec { t: number; glow: Phaser.GameObjects.Image; shadow: P
 // Those who only say their one thing are heard from a little further off.
 const TALK = { near: 52, heard: 84, trial: [-140, -80] as [number, number], standIn: 'pulpero/sprite.png' };
 /** Someone standing on the map: one to talk to (`npc`), or one who only says what the sign over them shows. */
-interface Talker { name: string; npc?: Npc; x: number; y: number; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image } }
+interface Talker { name: string; npc?: Npc; x: number; y: number; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image }; /** Somewhere something can be done, and the mark on the ground that says so. */ spot?: { at: Spot; mark: Phaser.GameObjects.Image }; /** Whether it is there to be dealt with at all just now; always, if unsaid. */ there?: () => boolean }
 // How near a named place counts as having come to it, in plots; and how many blows of life a bandage gives back.
 const ARRIVED = 1, MENDS = 2;
 // The sign over them comes up and goes out over this long, in seconds.
@@ -248,6 +248,7 @@ export class GameScene extends Phaser.Scene {
     for (const src of new Set([TALK.standIn, ...everyone.flatMap(p => p.sprite ?? [])])) this.load.image(src, src);
     for (const { idle } of everyone) if (idle) this.load.spritesheet(idle.sheet, idle.sheet, { frameWidth: idle.size, frameHeight: idle.size });
     for (const { sprite } of Object.values(THINGS)) this.load.image(sprite, sprite);
+    for (const sprite of new Set(Object.values(MAPS).flatMap(map => map?.spots ?? []).flatMap(spot => spot.sprite ?? []))) this.load.image(sprite, sprite);
   }
 
   create(): void {
@@ -436,16 +437,35 @@ export class GameScene extends Phaser.Scene {
         this.talkers.push({ name: one.name, x, y, hint });
       }
       // What lies about to be picked up: it is taken by coming to it and saying so.
-      for (const { what, plot } of this.map?.things ?? []) {
+      for (const { what, plot, given } of this.map?.things ?? []) {
         const thing = THINGS[what];
         if (!thing || !this.textures.exists(thing.sprite)) continue;
         const { x, y } = middle(plot);
-        const drawn = this.add.image(x, y, thing.sprite).setOrigin(0.5, 1).setDepth(y);
+        const drawn = this.add.image(x, y, thing.sprite).setOrigin(0.5, 1).setDepth(y).setVisible(!given);
         const hint = this.add.text(x, y - drawn.height - 6, 'F · levantar', {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4',
           stroke: '#14110f', strokeThickness: 3,
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
-        this.talkers.push({ name: thing.name, x, y, hint, take: { what, drawn } });
+        // What waits on something having happened is not there until it has.
+        this.talkers.push({ name: thing.name, x, y, hint, take: { what, drawn }, there: given ? () => !!this.story?.has(given) : undefined });
+      }
+      // Places where something can be done, once: a ring of stones on the ground marks each
+      // while it can be, and what was done stands there after.
+      if (this.map?.spots?.length && !this.textures.exists('spot')) {
+        const g = this.make.graphics({}, false);
+        g.lineStyle(2, 0x3a3027, 0.9).strokeEllipse(13, 7, 22, 10);
+        for (let n = 0; n < 7; n++) g.fillStyle(n % 2 ? 0x8a8478 : 0x6b665c).fillRect(Math.round(13 + Math.cos(n * 0.9) * 11) - 1, Math.round(7 + Math.sin(n * 0.9) * 5) - 1, 3, 2);
+        g.generateTexture('spot', 26, 14);
+        g.destroy();
+      }
+      for (const at of this.map?.spots ?? []) {
+        const { x, y } = middle(at.plot);
+        const mark = this.add.image(x, y, 'spot').setOrigin(0.5, 0.5).setDepth(-1e6 + 1.8).setVisible(false);
+        const hint = this.add.text(x, y - 30, `F · ${at.does}`, {
+          fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
+          stroke: '#14110f', strokeThickness: 3,
+        }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
+        this.talkers.push({ name: at.name, x, y, hint, spot: { at, mark }, there: () => !this.story?.has(at.happening) && (!at.given || !!this.story?.has(at.given)) });
       }
       // A trail along the ground, under everything that stands.
       if (this.map?.trails?.length && !this.textures.exists('mark')) {
@@ -483,6 +503,27 @@ export class GameScene extends Phaser.Scene {
           this.beside = undefined;
           this.board?.say(THINGS[near.take.what].note);
           this.story?.tell(`tiene:${near.take.what}`);
+          return;
+        }
+        if (near.spot) {
+          const { at, mark } = near.spot;
+          // Not while anyone who holds the place is still on their feet.
+          if (at.guarded && this.held(at)) return;
+          mark.destroy();
+          near.hint.destroy();
+          this.talkers = this.talkers.filter(t => t !== near);
+          this.beside = undefined;
+          // What was done stands there from now on, and is in the way like anything else.
+          if (at.sprite && this.textures.exists(at.sprite)) {
+            const done = this.add.image(near.x, near.y, at.sprite).setOrigin(0.5, 1).setDepth(near.y);
+            this.sight.add([done]);
+            this.sight.look(this.cameras.main.worldView);
+            this.built.push({ x: near.x, y: near.y - 4, hw: done.width * 0.3, hh: 4 });
+          }
+          if (at.note) this.board?.say(at.note);
+          this.story?.tell(at.happening);
+          // One of several is done: the count on the board moves, though no step has.
+          this.board?.refresh();
           return;
         }
         const npc = near.npc;
@@ -667,7 +708,17 @@ export class GameScene extends Phaser.Scene {
     // them comes up as one draws near and goes out as one leaves, rather than snapping.
     let nearest: Talker | undefined;
     for (const talker of this.talkers) {
+      // What is not there just now is neither drawn nor to be dealt with.
+      const there = talker.there?.() ?? true;
+      talker.take?.drawn.setVisible(there);
+      talker.spot?.mark.setVisible(there);
+      if (!there) continue;
       if (ground(talker, this.machi) <= (talker.npc ? TALK.near : TALK.heard) && (!nearest || ground(talker, this.machi) < ground(nearest, this.machi))) nearest = talker;
+    }
+    // A place still held says so instead of offering what is done there.
+    if (nearest?.spot) {
+      const { at } = nearest.spot, wanted = at.guarded && this.held(at) ? 'Vencé a la guardia' : `F · ${at.does}`;
+      if (nearest.hint.text !== wanted) nearest.hint.setText(wanted);
     }
     this.beside = nearest;
     // Somewhere safe, the flask is filled again.
@@ -1233,6 +1284,13 @@ export class GameScene extends Phaser.Scene {
     this.machi.x = place.x + 40;
     this.machi.y = place.y + 8;
     return true;
+  }
+
+  /** Whether anyone posted to hold the zone a place is in is still on their feet. */
+  private held(at: Spot): boolean {
+    const letter = this.map ? letterAt(this.map, ...at.plot) : undefined;
+    for (const [soldier, post] of this.posts) if (post.letter === letter && soldier.alive) return true;
+    return false;
   }
 
   /** What the hero being played owns. */

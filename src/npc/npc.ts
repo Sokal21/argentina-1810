@@ -48,6 +48,8 @@ export interface Errand {
   key: string;
   /** Something that has to have happened before they can ask it, if anything: news cannot be told before it is known. */
   given?: string;
+  /** And something after which they no longer ask it: nobody is sent to look for a boy who has been found. */
+  until?: string;
   /** What its being taken on is, to the story; `acepto:KEY` if unsaid. */
   happening?: string;
   /** The word the model answers with when the other has just taken it on. */

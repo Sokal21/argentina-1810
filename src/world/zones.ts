@@ -36,6 +36,26 @@ export interface Objective {
   stands?: string;
 }
 
+/** Somewhere on a map where something can be done, once: a bell to bring down, a fire to build. */
+export interface Spot {
+  id: string;
+  /** What the place is called once the thing is done. */
+  name: string;
+  plot: [number, number];
+  /** What is done there, as the sign over it says: "armar la fogata". */
+  does: string;
+  /** It can be done only once this has happened in the story; */
+  given?: string;
+  /** and only while nobody who holds the zone it is in is left standing. */
+  guarded?: boolean;
+  /** What doing it is, to the story. */
+  happening: string;
+  /** Shown to the player when it is done. */
+  note?: string;
+  /** Its drawing once it is done. */
+  sprite?: string;
+}
+
 /** Something built, and the plot it stands in: for now a plain block of its size, until it is drawn. */
 export interface Building {
   name: string;
@@ -65,7 +85,9 @@ export interface WorldMap {
   /** Who can be talked to, by the name the game knows them under, and the plot each stands in. */
   people?: { who: string; plot: [number, number]; /** Which way they look across the screen; right if unsaid. */ faces?: 'left' | 'right' }[];
   /** What lies about to be picked up, by the name the story knows it under, and the plot each lies in. */
-  things?: { what: string; plot: [number, number] }[];
+  things?: { what: string; plot: [number, number]; /** It lies there only once this has happened in the story. */ given?: string }[];
+  /** Places where something can be done, once. */
+  spots?: Spot[];
   /** Trails left along the ground: each from a plot to the nearest plot of a zone. */
   trails?: { from: [number, number]; to: string }[];
   /** Rows of plots a stream runs along, first and last: whatever of them nobody can cross is deep water. */
@@ -145,6 +167,9 @@ export function faults(map: WorldMap): string[] {
   }
   for (const { what, plot } of map.things ?? []) {
     if (letterAt(map, ...plot) === undefined) found.push(`${what} lies where nobody can reach it`);
+  }
+  for (const { id, plot } of map.spots ?? []) {
+    if (letterAt(map, ...plot) === undefined) found.push(`${id} is where nobody can stand`);
   }
   return found;
 }

@@ -125,3 +125,29 @@ describe('the hook of El vado de las Vizcachas', () => {
     expect(story.isDone('capilla')).toBe(true);
   });
 });
+
+describe('a step that waits on several things', () => {
+  const quests: Quest[] = [{ id: 'f', name: 'F', opens: ['empieza'], steps: [{ says: 'las tres', all: ['a', 'b', 'c'] }, { says: 'después', when: ['d'] }] }];
+
+  it('is done when all of them have happened, in whatever order, and says how many have', () => {
+    const story = new Story(quests);
+    story.tell('empieza'); story.tell('c');
+    expect(story.count(story.current[0].step)).toBe(1);
+    story.tell('a');
+    expect(story.current[0].step.says).toBe('las tres');
+    story.tell('b');
+    expect(story.current[0].step.says).toBe('después');
+  });
+});
+
+describe('the three fires', () => {
+  it('are a mission of their own: wood first, then a fire on each rise in any order', () => {
+    const story = new Story(VADO);
+    story.tell('acepto:fogatas');
+    expect(story.current.map(c => c.step.says)).toEqual(['Juntá leña y yesca junto a la capilla.']);
+    story.tell('tiene:lena'); story.tell('armada:medio'); story.tell('armada:oeste');
+    expect(story.isDone('fogatas')).toBe(false);
+    story.tell('armada:este');
+    expect(story.isDone('fogatas')).toBe(true);
+  });
+});

@@ -40,8 +40,8 @@ export const BRAULIO: Script = {
           quiere: 'oir_noticia',
         },
         {
-          says: 'Lo vi con mis ojos. Está entero, charlatán como siempre, y pregunta por vos.',
-          answer: 'Charlatán... entonces es él, nomás. Gracias, soldado. No me voy a olvidar de esto.',
+          says: 'Traigo noticia de tu hijo, y es buena: vive. Lo cuidan los frailes en la capilla, y va a sanar.',
+          answer: 'Con Anselmo... entonces está en buenas manos. Gracias, soldado. No me voy a olvidar de esto.',
           animo: 2,
           quiere: 'oir_noticia',
         },
@@ -143,6 +143,7 @@ export const BRAULIO: Script = {
     },
     {
       id: 'tobias',
+      until: 'sabe:tobias',
       trust: 2,
       after: ['uniforme'],
       options: [
@@ -153,12 +154,12 @@ export const BRAULIO: Script = {
         },
         {
           says: 'Tengo una columna que parar. No me entretengas con penas de pueblo.',
-          answer: 'Las penas de pueblo son las que te dan de comer, soldado. Pará tu columna solo, entonces.',
+          answer: 'Las penas de pueblo son las que te dan de comer, soldado. La mía se llama Tobías, tiene catorce años, y hace tres días que fue a mirar la pelea y no volvió. Pará tu columna solo, entonces.',
           animo: -1,
         },
         {
-          says: 'Dicen que en la pelea se perdió gente del paraje. ¿Es cierto?',
-          answer: 'Dicen bien. Se perdió un rancho, se perdió gente, y se perdió mi Tobías, que tiene catorce años y fue a mirar. No me lo hagas contar dos veces.',
+          says: 'En la pelea del otro día, ¿se perdió gente del paraje?',
+          answer: 'Se perdió. Se perdió un rancho, se perdió gente, y se perdió mi Tobías, que tiene catorce años y fue a mirar. No me lo hagas contar dos veces.',
           animo: 0,
         },
       ],
@@ -166,6 +167,7 @@ export const BRAULIO: Script = {
     {
       // What he wants the soldier for. A word against the boy is the one thing he does not let pass.
       id: 'buscar',
+      until: 'sabe:tobias',
       trust: 3,
       after: ['tobias'],
       options: [
@@ -192,6 +194,7 @@ export const BRAULIO: Script = {
       // What he asks, put plainly. It needs no trust, only that he has spoken of the boy; and it
       // comes up again whenever there is nothing else to say, until the hero gives his word.
       id: 'palabra',
+      until: 'sabe:tobias',
       after: ['tobias'],
       asks: 'hijo',
       options: [
@@ -239,7 +242,7 @@ export const BRAULIO: Script = {
       trust: 4,
       options: [
         {
-          says: 'Es la guerra, don. La tropa del rey cumple órdenes, como cualquiera.',
+          says: 'Un rancho quemado es cosa de la guerra, don. La tropa del rey cumple órdenes, como cualquiera.',
           answer: '¿Órdenes? Andá a decírselo a la viuda que quedó sin techo. En esta casa no se dice una palabra a favor de los godos.',
           animo: -2,
         },
@@ -280,23 +283,27 @@ export const BRAULIO: Script = {
       ],
     },
     {
-      // The chapel comes up, and he still keeps to himself what the village says about it.
+      // The chapel comes up, and he still keeps to himself what the village says about it. The hero
+      // has heard of no friars yet: it is he who names them, whatever is asked, and the one that
+      // sits badly does so for its scorn, not for knowing anything. Every answer lets on that
+      // there is talk about the chapel, which is what the bell is asked after.
       id: 'fraile',
+      until: 'hablo:anselmo',
       trust: 5,
       options: [
         {
-          says: '¿Quién más cuida gente por acá? Por si al chico lo levantó alguno.',
-          answer: 'Fray Anselmo, en la capilla del páramo. Nos conocemos hace treinta años y no pensamos igual en nada, pero mala gente no es. Preguntale a él.',
+          says: '¿Quién más cuida gente por acá, además de vos?',
+          answer: 'Fray Anselmo, en la capilla del páramo. Nos conocemos hace treinta años y no pensamos igual en nada, pero mala gente no es: levanta a cuanto lastimado encuentra. Lo que anda diciendo el pueblo de su capilla es otro cantar.',
           animo: 1,
         },
         {
-          says: 'Esos frailes seguro esconden algo. Habría que entrarles a la fuerza.',
-          answer: 'Con Anselmo tengo mis cuentas, pero son mías. Vos a esa capilla entrás con el sombrero en la mano.',
+          says: 'Acá no veo más que viejos y miedo. ¿No queda nadie que sirva para algo en este paraje?',
+          answer: 'Queda fray Anselmo, en la capilla del páramo, que sirve más que muchos de sable. Con él tengo mis cuentas, y el pueblo tiene las suyas con su capilla; pero vos ahí entrás con el sombrero en la mano.',
           animo: -1,
         },
         {
-          says: '¿Qué hay en el páramo?',
-          answer: 'Una capilla, unos frailes y mucho viento. Lo demás que se dice de ese lugar no es para andar repitiéndolo.',
+          says: '¿Qué hay más allá del campo de la pelea?',
+          answer: 'Un páramo, y en el páramo una capilla, unos frailes y mucho viento. Lo demás que se dice de ese lugar no es para andar repitiéndolo.',
           animo: 0,
         },
       ],
@@ -305,9 +312,10 @@ export const BRAULIO: Script = {
       // The bell. He tells it to someone who asks as one of theirs, not to someone collecting a debt.
       id: 'campana',
       trust: 7,
+      after: ['fraile'],
       options: [
         {
-          says: 'Ya me gané tu confianza. Largá lo que sabés del páramo.',
+          says: 'Ya me gané tu confianza. Largá lo que se dice de esa capilla.',
           answer: 'La confianza no es apuesta a la taba, para cobrarla en el acto. Preguntá como amigo y te contesto como amigo.',
           animo: -1,
         },
@@ -318,7 +326,7 @@ export const BRAULIO: Script = {
           quiere: 'contar_campana',
         },
         {
-          says: 'Oí que acá murmuran algo de la capilla. ¿Qué es?',
+          says: 'Dijiste que de la capilla se murmura algo. ¿Qué es?',
           answer: 'Murmuran porque no se animan a decirlo fuerte. La campana de la capilla es de bronce, y quieren bajarla y fundirla para hacer balas. Que el fraile no lo sepa por vos.',
           animo: 0,
           quiere: 'contar_campana',
@@ -336,7 +344,7 @@ export const BRAULIO: Script = {
           animo: 0,
         },
         {
-          says: 'No sé si te traigo al chico, don Braulio. Pero no vuelvo sin saber qué fue de él.',
+          says: 'Me vuelvo al campo, don Braulio. Si piso otra vez esta posada, es con algo cierto para vos.',
           answer: 'Con eso me alcanza para dormir un rato. Andá, y cuidá el cuero: acá te queda el jarro esperando.',
           animo: 1,
         },

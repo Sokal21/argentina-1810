@@ -265,7 +265,7 @@ pueblo" no queda cumplido por haber estado antes), `hablo:QUIEN`,
 | 5a | Entregar al godo | `hecha:noticia` y `dijo:mateo`; la pide don Braulio | sacar a Mateo · llevarlo vivo al pozo | Falta: **escolta** |
 | 5b | Amparar a Mateo | `hecha:noticia`; la pide fray Anselmo | `sabe:columna` y `sabe:capitan` · `dijo:no` a don Braulio | Falta poco: solo charla |
 | 6a | La campana a la fragua | `hecha:5a` o `hecha:5b`; don Braulio | bajar la campana · llevarla en carreta a la fragua | Falta: **usar un lugar**, **escolta** |
-| 6b | Las tres fogatas | ídem; fray Anselmo | leña y yesca · en cada loma: vencer a la guardia y armar la fogata | Falta: **usar un lugar**, **zona limpia** |
+| 6b | Las tres fogatas | `acepto:fogatas`: la pide fray Anselmo cuando ya contó el plan (`sabe:rebato`). Cuando exista la 5, además después de ella | `tiene:lena` · las tres `armada:LOMA`, en cualquier orden, cada una con su guardia vencida | **Hecha** |
 | 7a | Los rehenes | `hecha:6a` o `hecha:6b`; don Braulio | averiguar por dónde salen · `dijo:carretas` | Falta poco: solo charla |
 | 7b | La escolta | ídem; fray Anselmo | llevar las dos carretas a la Loma del Medio | Falta: **escolta** |
 | 8a | La emboscada | dos de 5a, 6a, 7a | aguantar tres oleadas · vencer al capitán | Falta: **oleadas**, **el capitán** |
@@ -274,12 +274,14 @@ pueblo" no queda cumplido por haber estado antes), `hablo:QUIEN`,
 
 Lo que el juego todavía no sabe hacer, y que varias misiones comparten:
 
-- **Usar un lugar.** Pararse en un punto y hacer algo ahí: bajar la campana,
-  armar una fogata, encenderla. Es lo mismo que levantar el poncho, con
-  otra palabra en el cartel.
+- **Usar un lugar: hecho.** Pararse en un punto y hacer algo ahí, una vez
+  (`spots` en el mapa): armar una fogata hoy; bajar la campana o encender
+  las fogatas, cuando toque. Un lugar puede pedir que antes haya pasado
+  algo, y que no quede en pie nadie de los que guardan su zona.
 - **Escolta.** Algo que sigue a Cabral, es lento, y hay que defender: Mateo,
   la carreta de la campana, las carretas de los heridos.
-- **Zona limpia.** Saber cuándo cayeron todos los que guardaban una zona.
+- **Zona limpia: hecho.** El juego sabe si queda en pie alguno de los que
+  guardan una zona, y un lugar guardado lo dice en su cartel.
 - **Oleadas.** Enemigos que llegan por tandas a un lugar, y un final cuando
   no quedan.
 - **El capitán.** Un enemigo nuevo: es de la etapa de enemigos.

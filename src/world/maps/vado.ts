@@ -129,7 +129,18 @@ export const vadoDeLasVizcachas: WorldMap = {
   ],
   // The boy's poncho, where he fell by the overturned gun, and the blood that leads from it
   // to the path up to the chapel.
-  things: [{ what: 'poncho', plot: [59, 37] }],
+  things: [
+    { what: 'poncho', plot: [59, 37] },
+    // Wood and tinder for the friar's fires, set out by the chapel once he has asked for them.
+    { what: 'lena', plot: [116, 20], given: 'acepto:fogatas' },
+  ],
+  // The three rises that look down on the ford: on each a signal fire can be built, once
+  // there is wood for it and the soldiers who hold the rise are down.
+  spots: [
+    { id: 'fogata_este', name: 'La fogata del Este', plot: [75, 20], does: 'armar la fogata', given: 'tiene:lena', guarded: true, happening: 'armada:este', note: 'La fogata de la Loma del Este está armada.', sprite: 'cosas/fogata.png' },
+    { id: 'fogata_medio', name: 'La fogata del Medio', plot: [63, 21], does: 'armar la fogata', given: 'tiene:lena', guarded: true, happening: 'armada:medio', note: 'La fogata de la Loma del Medio está armada.', sprite: 'cosas/fogata.png' },
+    { id: 'fogata_oeste', name: 'La fogata del Oeste', plot: [52, 20], does: 'armar la fogata', given: 'tiene:lena', guarded: true, happening: 'armada:oeste', note: 'La fogata de la Loma del Oeste está armada.', sprite: 'cosas/fogata.png' },
+  ],
   trails: [{ from: [59, 37], to: 'S' }],
   buildings: [
     { name: 'La posada', plot: [10, 45], wide: 150, deep: 46, tall: 44, colour: 0x8a7a5c },

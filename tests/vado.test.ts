@@ -79,3 +79,13 @@ test('whoever is drawn standing about has a sheet of whole frames, the size it s
     expect([png.readUInt32BE(16), png.readUInt32BE(20)], one.name).toEqual([one.idle!.size * one.idle!.frames, one.idle!.size]);
   }
 });
+
+test('each place where something can be done is on ground that is walked, and its fire is on its own rise', () => {
+  const spots = map.spots ?? [];
+  expect(spots.map(s => s.id).sort()).toEqual(['fogata_este', 'fogata_medio', 'fogata_oeste']);
+  const rise = { fogata_oeste: '1', fogata_medio: '2', fogata_este: '3' } as Record<string, string>;
+  for (const spot of spots) expect(letterAt(map, ...spot.plot), spot.id).toBe(rise[spot.id]);
+  // Each rise is held: there is a guard to be beaten before anything is built on it.
+  for (const letter of Object.values(rise)) expect(map.zones[letter].foes).toBeGreaterThan(0);
+  expect(faults(map)).toEqual([]);
+});

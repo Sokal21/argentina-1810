@@ -50,6 +50,7 @@ export const BRAULIO: Npc = {
   errands: [
     {
       key: 'hijo',
+      until: 'sabe:tobias',
       wants: 'encargar_hijo',
       asks: 'Necesitás que alguien cruce el campo de la pelea y busque a tu hijo Tobías: vos no podés ir, está lleno de soldados del rey. Si viene al caso se lo contás a este forastero, aunque te cueste pedir. SOLO si él te dice con claridad que lo va a buscar o que te va a ayudar, se lo agradecés a tu manera, le decís que es flaco y lleva un poncho que le queda grande, y poné "encargar_hijo" en "quiere". Si solo pregunta o duda, no.',
       taken: 'Este forastero te dio su palabra de buscar a tu hijo Tobías. Esperás noticias.',
@@ -61,7 +62,7 @@ export const BRAULIO: Npc = {
       given: 'sabe:tobias',
       happening: 'dijo:noticia',
       wants: 'oir_noticia',
-      asks: 'Este forastero viene de la capilla del páramo y puede traer noticias de tu hijo. Estás desesperado por saber. SOLO si él te dice con claridad que Tobías vive, o que lo vio vivo, te quebrás un instante, le agradecés a tu manera y poné "oir_noticia" en "quiere".',
+      asks: 'Este forastero anduvo por el campo y puede traer noticias de tu hijo. Estás desesperado por saber. SOLO si él te dice con claridad que Tobías vive, o que lo vio vivo, te quebrás un instante, le agradecés a tu manera y poné "oir_noticia" en "quiere".',
       taken: 'Ya sabés por este forastero que tu hijo Tobías vive: está en la capilla del páramo, con una pierna rota, al cuidado de los frailes. Le debés eso. Ahora querés saber quién lo llevó hasta ahí y qué hacían los frailes con él.',
       agrees: ['vive', 'está vivo', 'lo vi', 'lo encontré', 'tu hijo está', 'su hijo está', 'tobías está'],
       note: 'Don Braulio ya sabe que su hijo vive.',
@@ -71,7 +72,7 @@ export const BRAULIO: Npc = {
       given: 'sabe:mateo',
       happening: 'dijo:mateo',
       wants: 'oir_mateo',
-      asks: 'No sabés quién llevó a tu hijo herido hasta la capilla. SOLO si este forastero te dice que fue un soldado del rey, un godo, o lo nombra, se te endurece la cara: hay un godo escondido en la capilla, y poné "oir_mateo" en "quiere".',
+      asks: 'No sabés quién levantó a tu hijo herido del campo. SOLO si este forastero te dice que fue un soldado del rey, un godo, o lo nombra, se te endurece la cara: hay un godo escondido entre los frailes, y poné "oir_mateo" en "quiere".',
       taken: 'Sabés por este forastero que a tu hijo lo cargó hasta la capilla un soldado del rey, un desertor, y que sigue escondido ahí. Lo querés en el pueblo: que le salvara al chico no borra lo que hicieron los suyos.',
       agrees: ['mateo', 'gallego', 'un godo', 'soldado del rey', 'un realista', 'desertor'],
       note: 'Le dijiste a don Braulio quién salvó a su hijo. El pueblo ya sabe que hay un godo en la capilla.',
@@ -135,6 +136,17 @@ export const ANSELMO: Npc = {
       granted: 'Tu plan es el rebato: tocar la campana a rebato desde el campanario y encender fogatas en las tres lomas la noche antes de que la columna cruce el vado, para que los realistas crean que la milicia de toda la campaña los espera y se vuelvan sin pelear. Ya confiás en este forastero: si pregunta cómo evitar la batalla, se lo contás.',
       given: 'Ya le contaste el plan del rebato.',
       note: 'Dato conseguido: el plan del rebato. Campana y fogatas en las tres lomas para que la columna se vuelva sin pelear.',
+    },
+  ],
+  errands: [
+    {
+      key: 'fogatas',
+      given: 'sabe:rebato',
+      wants: 'encargar_fogatas',
+      asks: 'Ya le contaste a este forastero tu plan del rebato. Para que sirva hacen falta tres fogatas armadas en las tres lomas que miran al vado, y esas lomas las guardan soldados del rey: vos no podés ir. Se lo pedís. SOLO si él te dice con claridad que las va a armar o que te va a ayudar, le decís que la leña y la yesca están junto a la capilla y poné "encargar_fogatas" en "quiere".',
+      taken: 'Este forastero te dio su palabra de armar las tres fogatas en las lomas. La leña y la yesca están junto a la capilla.',
+      agrees: ['las armo', 'yo las armo', 'voy a armar', 'las voy a armar', 'lo ayudo', 'le ayudo', 'te ayudo', 'cuente conmigo', 'yo me encargo', 'me encargo'],
+      note: 'Le diste tu palabra a fray Anselmo: vas a armar las tres fogatas. La leña está junto a la capilla.',
     },
   ],
   greets: 'Ave María Purísima. Pase, hijo, que acá no se le cierra la puerta a nadie.',

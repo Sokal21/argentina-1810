@@ -1910,6 +1910,16 @@
       "asset_id": "f5ee4fec-e42e-4053-810b-3780ce2c6481",
       "label": "shop: display cabinet, empty",
       "file": "assets/hud/concept/escaparate_1.png"
+    },
+    {
+      "asset_id": "83da9311-931d-4acc-8c00-b48f125221fa",
+      "label": "vado things: firewood bundle and unlit signal fire, fogata_1",
+      "file": "assets/cosas/concept/fogata_1.png"
+    },
+    {
+      "asset_id": "56afa8f4-7f71-4422-9ec8-b285065e3757",
+      "label": "vado things: firewood bundle and unlit signal fire, fogata_2",
+      "file": "assets/cosas/concept/fogata_2.png"
     }
   ]
 }

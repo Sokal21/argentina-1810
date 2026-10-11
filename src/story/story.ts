@@ -27,7 +27,10 @@ export interface Quest {
 export interface Step {
   /** What the player is told to do. */
   says: string;
-  when: string[];
+  /** It is done when any one of these has happened, */
+  when?: string[];
+  /** or when every one of these has, in whatever order. */
+  all?: string[];
 }
 
 /** What a happening brought about, for whoever shows it. */
@@ -78,6 +81,16 @@ export class Story {
     });
   }
 
+  // Whether a step is done by what has happened so far.
+  private met(step: Step): boolean {
+    return !!step.when?.some(w => this.seen.has(w)) || (!!step.all?.length && step.all.every(a => this.seen.has(a)));
+  }
+
+  /** How many of the things a step waits on all of have happened. */
+  count(step: Step): number {
+    return (step.all ?? []).filter(a => this.seen.has(a)).length;
+  }
+
   /** Is told of whatever follows from each happening, as it follows. */
   listen(listener: (news: News[]) => void): void {
     this.listeners.push(listener);
@@ -113,7 +126,7 @@ export class Story {
             this.progress.set(quest.id, 0);
             news.push({ kind: 'opened', quest });
             moved = true;
-          } else if (done < quest.steps.length && quest.steps[done].when.some(w => this.seen.has(w))) {
+          } else if (done < quest.steps.length && this.met(quest.steps[done])) {
             this.progress.set(quest.id, done + 1);
             if (done + 1 < quest.steps.length) news.push({ kind: 'step', quest, step: quest.steps[done + 1] });
             else {
