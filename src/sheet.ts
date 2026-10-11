@@ -57,22 +57,37 @@ const STYLE = `
   #sheet .stat button:hover, #sheet .stat button:focus-visible { background-position: 100% 0; }
   #sheet .stat button:active { transform: translate(1px, 1px); }
   #sheet img { image-rendering: pixelated; }
-  #sheet .tabs { display: flex; gap: 10px; border-bottom: 2px solid var(--faint); }
+  #sheet .tabs { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid var(--faint); }
   #sheet .tabs button { all: unset; cursor: pointer; color: var(--faint); }
   #sheet .tabs button.on { color: var(--accent); }
   #sheet .tabs button:hover { color: var(--ink); }
-  #sheet .gold { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
-  #sheet .place { display: flex; justify-content: space-between; gap: 8px; }
-  #sheet .place .what { color: var(--faint); }
-  #sheet .thing { display: grid; grid-template-columns: auto 1fr auto; gap: 0 6px; align-items: center; }
-  #sheet .thing button { all: unset; cursor: pointer; padding: 0 6px; color: #f0e3c4; background: var(--accent); }
-  #sheet .thing button[disabled] { visibility: hidden; }
+  #sheet .gold { display: flex; align-items: center; gap: 4px; margin-left: auto; color: var(--ink); }
+  #sheet .squares { display: grid; grid-template-columns: repeat(4, calc(22px * var(--kk))); gap: calc(2px * var(--kk)); margin-top: 3px; }
+  #sheet .square {
+    all: unset; position: relative; width: calc(22px * var(--kk)); height: calc(22px * var(--kk)); display: flex; align-items: center; justify-content: center;
+    background: var(--square) 0 0 / 200% 100% no-repeat; image-rendering: pixelated;
+  }
+  #sheet .square.full { cursor: pointer; }
+  #sheet .square:hover, #sheet .square:focus-visible { background-position: 100% 0; }
+  #sheet .square .letter { color: var(--faint); opacity: .7; }
+  #sheet .square .n { position: absolute; right: calc(2px * var(--kk)); bottom: 0; line-height: 1; color: var(--good); }
+  /* What is pointed at, on a small board of its own beside it. */
+  #sheet .tip {
+    position: absolute; z-index: 2; width: max-content; max-width: calc(110px * var(--kk)); padding: 6px 10px 7px; pointer-events: none;
+    background: #1c140e; color: #f0e3c4; box-shadow: 0 0 0 2px #7a5a36, 0 0 0 4px #0a0807, 4px 6px 0 4px rgba(0, 0, 0, .45);
+  }
+  #sheet .tip b { display: block; font-weight: normal; color: #e2c478; }
+  #sheet .tip i { display: block; font-style: normal; color: #8f8168; }
+  #sheet .tip p { margin: 4px 0; }
+  #sheet .tip .act { color: #8fd18a; }
   #sheet ul { margin: 0; padding: 0; list-style: none; }
   #sheet li { margin-top: 2px; }
   #sheet .none { color: var(--faint); }
   #sheet .foot { color: #8f8168; }
 `;
 
+/** How many squares the bag has. */
+const BAG = 8;
 const HEROES: Record<Hero, string> = { inti: 'Inti', cabral: 'Cabral' };
 
 /** Puts the page there to be opened with I, over a game. */
@@ -109,31 +124,59 @@ export function mountSheet(game: Phaser.Game): void {
     // What they were told is in the words of whoever told it, or of the story itself.
     const notes = Object.fromEntries(Object.values(PEOPLE).flatMap(p => p.favours.map(f => [f.key, f.note.replace(/^Dato conseguido: /, '')])));
     const told = (key: string) => (notes[key] ?? FACTS[`sabe:${key}`] ?? key).replace(/^./, first => first.toUpperCase());
+    const coin = () => { const img = el('img', { src: 'cosas/moneda_chica.png', alt: '' }); img.addEventListener('load', () => { img.width = img.naturalWidth * Math.min(k, 2); }); return img; };
     const tabButton = (name: typeof tab, label: string) => {
       const b = el('button', { textContent: label, className: name === tab ? 'on' : '' });
       b.addEventListener('mousedown', e => e.preventDefault());
       b.addEventListener('click', () => { tab = name; draw(); });
       return b;
     };
-    // What they own: their money, what they wear in each place, and what they have to use up.
+    // What they own, set out in squares: what they wear, one square to a place, and below it
+    // their bag. Whatever is pointed at brings up a small board beside it, and a click uses it,
+    // puts it on or takes it off.
+    const tipBoard = el('div', { className: 'tip', hidden: true });
+    const tip = (cell?: HTMLElement, name = '', kind = '', does = '', act = '') => {
+      tipBoard.hidden = !cell;
+      if (!cell) return;
+      tipBoard.replaceChildren(el('b', {}, name), el('i', {}, kind), ...(does ? [el('p', {}, does)] : []), ...(act ? [el('span', { className: 'act' }, act)] : []));
+      // Beside the square, toward the middle of the page it is on, and never off the picture.
+      const book = cell.closest('.book') as HTMLElement, from = cell.getBoundingClientRect(), frame = book.getBoundingClientRect();
+      tipBoard.style.top = `${Math.max(0, Math.min(frame.height - tipBoard.offsetHeight, from.top - frame.top))}px`;
+      tipBoard.style.left = `${Math.max(0, from.left - frame.left - tipBoard.offsetWidth - 8)}px`;
+    };
     const bag = () => {
-      const pack = s.pack, kk = Math.min(k, 2);
-      const icon = (src: string) => { const img = el('img', { src, alt: '' }); img.addEventListener('load', () => { img.width = img.naturalWidth * kk; }); return img; };
+      const pack = s.pack;
+      const icon = (src: string) => { const img = el('img', { src, alt: '' }); img.addEventListener('load', () => { img.width = img.naturalWidth * k; }); return img; };
+      const square = (full: boolean, onPoint: (cell: HTMLElement) => void, onClick?: () => void, ...kids: (Node | string)[]) => {
+        const cell = el('button', { className: `square${full ? ' full' : ''}` }, ...kids);
+        cell.addEventListener('mousedown', e => e.preventDefault());
+        cell.addEventListener('mouseenter', () => onPoint(cell));
+        cell.addEventListener('mouseleave', () => tip());
+        if (onClick) cell.addEventListener('click', () => { onClick(); draw(); });
+        return cell;
+      };
+      const words = (does: string) => does.split(': ').slice(-1)[0].replace(/^./, c => c.toUpperCase());
       const worn = (Object.keys(PLACES) as Place[]).map(place => {
         const id = pack.worn[place], item = id ? ITEMS[id] : undefined;
-        return el('div', { className: 'place', title: item?.does ?? '' }, el('span', { className: 'what' }, PLACES[place]), el('span', { className: item ? '' : 'none' }, item?.name ?? '—'));
+        return item
+          ? square(true, cell => tip(cell, item.name, `${PLACES[place]} · puesto`, words(item.does), 'Clic para sacárselo'), () => pack.wear(item.id), icon(item.icon))
+          : square(false, cell => tip(cell, PLACES[place], 'Vacío'), undefined, el('span', { className: 'letter' }, PLACES[place][0]));
+      });
+      // The bag: what there is to use up, and what is owned to wear but not on.
+      const loose = [...pack.owned].filter(id => pack.worn[ITEMS[id].wear!.place] !== id).map(id => {
+        const item = ITEMS[id];
+        return square(true, cell => tip(cell, item.name, PLACES[item.wear!.place], words(item.does), 'Clic para ponérselo'), () => pack.wear(id), icon(item.icon));
       });
       const uses = Object.entries(pack.bag).filter(([, n]) => n > 0).map(([id, n]) => {
-        const item = ITEMS[id];
-        const use = el('button', { textContent: 'usar', disabled: !s.useful(id) });
-        use.addEventListener('mousedown', e => e.preventDefault());
-        use.addEventListener('click', () => { if (s.use(id)) draw(); });
-        return el('div', { className: 'thing', title: item.does }, icon(item.icon), el('span', {}, `${item.name} ×${n}`), use);
+        const item = ITEMS[id], useful = s.useful(id);
+        return square(true, cell => tip(cell, item.name, 'Se usa una vez', words(item.does), useful ? 'Clic para usar' : 'Ahora no hace falta'),
+          useful ? () => { s.use(id); } : undefined, icon(item.icon), el('span', { className: 'n' }, String(n)));
       });
+      const kept = [...loose, ...uses];
+      const empty = Array.from({ length: Math.max(0, BAG - kept.length) }, () => square(false, () => tip()));
       return [
-        el('div', { className: 'gold' }, icon('cosas/moneda.png'), `${pack.gold} reales`),
-        el('h2', {}, 'Lleva puesto'), ...worn,
-        el('h2', {}, 'Para usar'), ...(uses.length ? uses : [el('div', { className: 'none' }, 'Nada todavía.')]),
+        el('h2', {}, 'Lleva puesto'), el('div', { className: 'squares' }, ...worn),
+        el('h2', {}, 'Bolsa'), el('div', { className: 'squares' }, ...kept, ...empty),
       ];
     };
     const side = (n: 0 | 1, ...kids: (Node | string)[]) => {
@@ -142,7 +185,7 @@ export function mountSheet(game: Phaser.Game): void {
     };
     const book = el('div', {
       className: 'book',
-      style: `width:${page.w * k}px;height:${page.h * k}px;background-image:url(${page.src});--k:${Math.min(k, 2)};--plus:url(hud/mas_${hero}.png);--ink:${page.ink};--accent:${page.accent};--good:${page.good};--faint:${page.faint}`,
+      style: `width:${page.w * k}px;height:${page.h * k}px;background-image:url(${page.src});--k:${Math.min(k, 2)};--kk:${k};--plus:url(hud/mas_${hero}.png);--square:url(hud/cuadro_${hero}.png);--ink:${page.ink};--accent:${page.accent};--good:${page.good};--faint:${page.faint}`,
     } as never,
       side(0,
         el('div', { className: 'top' }, el('h1', {}, HEROES[hero]), el('span', {}, `Nivel ${growth.level}`)),
@@ -153,11 +196,13 @@ export function mountSheet(game: Phaser.Game): void {
           el('span', { className: 'points' }, growth.points ? `${growth.points} ${growth.points === 1 ? 'punto' : 'puntos'}` : '')),
         ...stats),
       side(1,
-        el('div', { className: 'tabs' }, tabButton('bolsa', 'Bolsa'), tabButton('cuaderno', 'Cuaderno')),
+        // The two leaves of this side, and at the end of the line what they have to spend.
+        el('div', { className: 'tabs' }, tabButton('bolsa', 'Bolsa'), tabButton('cuaderno', 'Cuaderno'), el('span', { className: 'gold' }, String(s.pack.gold), coin())),
         ...(tab === 'bolsa' ? bag() : [
           ...list('Lleva', has.map(what => THINGS[what]?.name ?? what), 'Nada todavía.'),
           ...list('Sabe', knows.map(told), 'Nada todavía.'),
         ])));
+    book.append(tipBoard);
     root.replaceChildren(book, el('span', { className: 'foot' }, 'I para volver'));
   };
   addEventListener('resize', () => { if (open) draw(); });

@@ -97,3 +97,41 @@ case.paste(compartment(), (0, 0))
 case.paste(compartment(lit_up=True), (28, 0))
 case.save(ROOT / 'casilla.png')
 print('casilla.png', case.size)
+
+
+# The squares things are kept in on each hero's own page: ruled in ink on his paper, stitched
+# onto her hide. For each: the line round it, what is inside, the shade along its top and left,
+# and the line it takes when pointed at.
+SQUARES = {
+    'cabral': dict(line=(86, 60, 34), inside=(224, 192, 122), shade=(198, 164, 98), lit=(122, 36, 22)),
+    'inti': dict(line=(98, 76, 54), inside=(198, 176, 142), shade=(172, 150, 118), lit=(52, 72, 42)),
+}
+
+
+def square(look, lit_up=False, side=22):
+    img = Image.new('RGBA', (side, side), (0, 0, 0, 0))
+    px = img.load()
+    last = side - 1
+    line = look['lit'] if lit_up else look['line']
+    for y in range(side):
+        for x in range(side):
+            d = min(x, y, last - x, last - y)
+            if d == 0:
+                # Drawn by hand: the corners are left open, and the line breaks here and there.
+                corner = (x in (0, last)) and (y in (0, last))
+                gap = not lit_up and (x * 7 + y * 13) % 17 == 0
+                if not corner and not gap:
+                    px[x, y] = (*line, 255)
+            elif d == 1 and (y == 1 or x == 1):
+                px[x, y] = (*look['shade'], 255)
+            else:
+                px[x, y] = (*look['inside'], 255)
+    return img
+
+
+for hero, look in SQUARES.items():
+    strip = Image.new('RGBA', (44, 22), (0, 0, 0, 0))
+    strip.paste(square(look), (0, 0))
+    strip.paste(square(look, lit_up=True), (22, 0))
+    strip.save(ROOT / f'cuadro_{hero}.png')
+    print(f'cuadro_{hero}.png', strip.size)
