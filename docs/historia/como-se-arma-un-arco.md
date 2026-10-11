@@ -674,9 +674,8 @@ quedan anotadas para mejorar más adelante, en la etapa 16.*
 
 ## Etapa 10 · Las misiones, una por una
 
-*En curso. Hechas 8 de 13: la 3, la 4, la 5b, la 6b, la 7a y el final 8c;
-diagramadas todas. Faltan las tres de escolta y los dos finales con
-aliados.*
+*En curso. Hechas 11 de 13; faltan los dos finales con aliados, la
+emboscada y el rebato.*
 
 - **Primero el diagrama.** Antes de escribir ninguna se armó la tabla de
   las trece (`docs/historia/misiones.md`, "Cómo se encadenan en el
@@ -709,3 +708,11 @@ aliados.*
   el arco tuvo principio y fin jugables antes de tener el medio completo, y
   la regla de "siempre hay una última salida" dejó de ser una promesa. Quien
   cae puede volver a plantarse.
+- **La escolta sigue los pasos, no al héroe.** Lo que se lleva (Mateo, la
+  carreta de la campana, las carretas de los heridos) no busca a Cabral en
+  línea recta: recuerda por dónde pasó y va por ahí, más lento. Así no
+  hace falta enseñarle el mapa, y nunca se mete en el pajonal. Con eso
+  salieron las tres misiones de llevar algo. Las decisiones quedaron
+  excluyentes por lo que cada uno pide: quien aceptó amparar a Mateo ya
+  no recibe el pedido de entregarlo, y lo mismo campana contra fogatas y
+  rehenes contra escolta.

@@ -41,13 +41,14 @@ import { MEND, Mending } from '../fx/mend';
 import { Sight } from '../world/sight';
 import { trail } from '../world/trail';
 import { Waves } from '../world/waves';
+import { Escort } from '../world/escort';
 import { showEnding } from '../story/ending';
 import { mountBoard } from '../story/board';
 import { Story } from '../story/story';
 import { THINGS } from '../story/things';
 import { FACTS, VADO } from '../story/vado';
 import { Vitals } from '../world/vitals';
-import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Spot, type WorldMap } from '../world/zones';
+import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Charge as Cargo, type Spot, type WorldMap } from '../world/zones';
 
 const ZOOM = 2;            // screen pixels per sprite pixel
 const FIELD = { width: 1280, height: 800 }; // the bare field, in sprite pixels
@@ -118,7 +119,9 @@ interface Orb extends Vec { t: number; glow: Phaser.GameObjects.Image; shadow: P
 // Those who only say their one thing are heard from a little further off.
 const TALK = { near: 52, heard: 84, trial: [-140, -80] as [number, number], standIn: 'pulpero/sprite.png' };
 /** Someone standing on the map: one to talk to (`npc`), or one who only says what the sign over them shows. */
-interface Talker { name: string; npc?: Npc; x: number; y: number; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image }; /** Somewhere something can be done, and the mark on the ground that says so. */ spot?: { at: Spot; mark: Phaser.GameObjects.Image }; /** Whether it is there to be dealt with at all just now; always, if unsaid. */ there?: () => boolean }
+interface Talker { name: string; npc?: Npc; x: number; y: number; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image }; /** Somewhere something can be done, and the mark on the ground that says so. */ spot?: { at: Spot; mark: Phaser.GameObjects.Image }; /** Something waiting there to be led off. */ charge?: Led; /** Whoever stands there, to be hidden with them. */ figure?: Phaser.GameObjects.GameObject[]; /** Whether it is there to be dealt with at all just now; always, if unsaid. */ there?: () => boolean }
+/** Something being brought somewhere: what, where it is, its drawing and the bar of what it can still take, and whether it is on its way. */
+interface Led { at: Cargo; body: Escort; drawn: Phaser.GameObjects.Image; bar: Phaser.GameObjects.Rectangle; going: boolean }
 // How near a named place counts as having come to it, in plots; and how many blows of life a bandage gives back.
 const ARRIVED = 1, MENDS = 2;
 // The sign over them comes up and goes out over this long, in seconds.
@@ -174,6 +177,8 @@ export class GameScene extends Phaser.Scene {
   /** What has happened in this game, on a map that has a story; and what shows it. */
   private story?: Story;
   private board?: ReturnType<typeof mountBoard>;
+  /** Everything on the map that is to be brought somewhere. */
+  private led: Led[] = [];
   /** A stand being made: where, the waves still to come, and those who have. */
   private battle?: { at: Spot; waves: Waves; sent: Realista[] };
   /** The plot the hero was last seen in, so the story is told only when it changes. */
@@ -252,6 +257,7 @@ export class GameScene extends Phaser.Scene {
     for (const src of new Set([TALK.standIn, ...everyone.flatMap(p => p.sprite ?? [])])) this.load.image(src, src);
     for (const { idle } of everyone) if (idle) this.load.spritesheet(idle.sheet, idle.sheet, { frameWidth: idle.size, frameHeight: idle.size });
     for (const { sprite } of Object.values(THINGS)) this.load.image(sprite, sprite);
+    for (const sprite of new Set(Object.values(MAPS).flatMap(map => map?.charges ?? []).map(c => c.sprite))) this.load.image(sprite, sprite);
     for (const sprite of new Set(Object.values(MAPS).flatMap(map => map?.spots ?? []).flatMap(spot => spot.sprite ?? []))) this.load.image(sprite, sprite);
   }
 
@@ -407,7 +413,7 @@ export class GameScene extends Phaser.Scene {
       const named = this.map?.people?.map(({ who, plot, faces }) => ({ npc: PEOPLE[who], ...middle(plot), left: faces === 'left' })).filter(p => p.npc)
         ?? (import.meta.env.DEV ? [{ npc: BRAULIO, x: this.start.x + TALK.trial[0], y: this.start.y + TALK.trial[1], left: false }] : []);
       for (const { npc, x, y, left } of named) {
-        this.add.ellipse(x, y, 22, 8, 0x000000, 0.28).setDepth(y - 0.5);
+        const shade = this.add.ellipse(x, y, 22, 8, 0x000000, 0.28).setDepth(y - 0.5);
         const figure = this.stand(x, y, npc.sprite ?? TALK.standIn, npc.idle, left);
         // Whoever has no drawing yet is a shape in their own colour, with their name over them.
         if (!npc.sprite) {
@@ -421,7 +427,9 @@ export class GameScene extends Phaser.Scene {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4',
           stroke: '#14110f', strokeThickness: 3,
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
-        this.talkers.push({ name: npc.name, npc, x, y, hint });
+        // Whoever is to be led off somewhere stops standing about once that is settled: they wait to go.
+        const taken = this.map?.charges?.find(c => c.who === npc.id);
+        this.talkers.push({ name: npc.name, npc, x, y, hint, figure: [figure, shade], there: taken?.given ? () => !this.story?.has(taken.given!) : undefined });
       }
       // Those who are not talked to: what each has to say shows over them when one comes near.
       for (const { who, plot, faces } of this.map?.people ?? []) {
@@ -452,6 +460,22 @@ export class GameScene extends Phaser.Scene {
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
         // What waits on something having happened is not there until it has.
         this.talkers.push({ name: thing.name, x, y, hint, take: { what, drawn }, there: given ? () => !!this.story?.has(given) : undefined });
+      }
+      // What is to be brought somewhere waits where the map says, once there is reason to take it.
+      this.led = [];
+      for (const at of this.map?.charges ?? []) {
+        if (!this.textures.exists(at.sprite)) continue;
+        const { x, y } = middle(at.from);
+        const drawn = this.add.image(x, y, at.sprite).setOrigin(0.5, 1).setDepth(y).setVisible(false);
+        const bar = this.add.rectangle(x, y - drawn.height - 4, 24, 3, 0xd23c2a).setDepth(1e6).setVisible(false);
+        const hint = this.add.text(x, y - drawn.height - 10, `F · ${at.does}`, {
+          fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
+          stroke: '#14110f', strokeThickness: 3,
+        }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
+        const charge: Led = { at, body: new Escort({ x, y }, at.life, at.pace), drawn, bar, going: false };
+        this.led.push(charge);
+        // It waits to be led off whenever it is not on its way and has not arrived.
+        this.talkers.push({ name: at.name, x, y, hint, charge, there: () => !charge.going && !this.story?.has(at.happening) && (!at.given || !!this.story?.has(at.given)) });
       }
       // Places where something can be done, once: a ring of stones on the ground marks each
       // while it can be, and what was done stands there after.
@@ -509,6 +533,14 @@ export class GameScene extends Phaser.Scene {
           this.beside = undefined;
           this.board?.say(THINGS[near.take.what].note);
           this.story?.tell(`tiene:${near.take.what}`);
+          return;
+        }
+        if (near.charge) {
+          // Led off: from here on it comes along behind.
+          near.charge.going = true;
+          this.beside = undefined;
+          this.board?.say(`${near.charge.at.name}: no te alejes, y que no se le arrimen.`);
+          this.story?.tell(`lleva:${near.charge.at.id}`);
           return;
         }
         if (near.spot) {
@@ -733,6 +765,7 @@ export class GameScene extends Phaser.Scene {
       const there = talker.there?.() ?? true;
       talker.take?.drawn.setVisible(there);
       talker.spot?.mark.setVisible(there);
+      for (const part of talker.figure ?? []) (part as Phaser.GameObjects.Image).setVisible(there);
       if (!there) continue;
       if (ground(talker, this.machi) <= (talker.npc ? TALK.near : TALK.heard) && (!nearest || ground(talker, this.machi) < ground(nearest, this.machi))) nearest = talker;
     }
@@ -742,6 +775,27 @@ export class GameScene extends Phaser.Scene {
       if (nearest.hint.text !== wanted) nearest.hint.setText(wanted);
     }
     this.beside = nearest;
+    // What is being brought somewhere comes along behind the hero, worn down by whoever gets near it.
+    for (const charge of this.led) {
+      const { at, body, drawn, bar } = charge, arrived = !!this.story?.has(at.happening);
+      const waiting = !charge.going && !arrived && (!at.given || !!this.story?.has(at.given));
+      // Once it has arrived it stays where it was brought.
+      drawn.setVisible(charge.going || waiting || arrived);
+      bar.setVisible(charge.going && body.life < body.max);
+      if (!charge.going) continue;
+      body.follow(dt, this.machi);
+      const hurt = body.harm(dt, this.realistas.filter(soldier => soldier.alive).map(soldier => soldier.ground));
+      if (hurt) this.sparks.emitParticleAt(body.x, body.y - 20, 6);
+      drawn.setPosition(Math.round(body.x), Math.round(body.y)).setDepth(body.y).setFlipX(this.machi.x < body.x);
+      bar.setPosition(Math.round(body.x), Math.round(body.y) - drawn.height - 4).setSize(24 * body.life / body.max, 3);
+      const to = middle(at.to);
+      if (body.lost) this.lose(charge, `${at.name}: se perdió por el camino. Hay que volver a buscarla.`);
+      else if (body.at(to, PLOT_W * 1.2)) {
+        charge.going = false;
+        if (at.note) this.board?.say(at.note);
+        this.story?.tell(at.happening);
+      }
+    }
     // A stand: each wave comes from where the map says, once the last of the one before is down.
     if (this.battle && this.map) {
       const { at, waves, sent } = this.battle, stand = at.stand!, map = this.map;
@@ -1136,6 +1190,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private rise(): void {
+    // Whatever he was bringing is left without him: it goes back to where it waited.
+    for (const charge of this.led) if (charge.going) this.lose(charge, `${charge.at.name}: quedó sin quien la lleve. Hay que volver a buscarla.`);
     // A stand that was lost is over: those who came go back, and it can be made again.
     if (this.battle) {
       for (const soldier of this.battle.sent) soldier.dismiss();
@@ -1330,6 +1386,14 @@ export class GameScene extends Phaser.Scene {
     this.machi.x = place.x + 40;
     this.machi.y = place.y + 8;
     return true;
+  }
+
+  // What was being brought is lost: it is back where it waited, whole, to be led off again.
+  private lose(charge: Led, says: string): void {
+    charge.going = false;
+    charge.body.reset();
+    charge.drawn.setPosition(charge.body.x, charge.body.y).setDepth(charge.body.y);
+    this.board?.say(says);
   }
 
   /** Whether anyone posted to hold the zone a place is in is still on their feet. */

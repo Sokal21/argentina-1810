@@ -136,7 +136,15 @@ export const vadoDeLasVizcachas: WorldMap = {
   ],
   // The three rises that look down on the ford: on each a signal fire can be built, once
   // there is wood for it and the soldiers who hold the rise are down.
+  // What has to be brought across the country, with Cabral leading it and the king's soldiers in between.
+  charges: [
+    { id: 'mateo', name: 'Mateo', who: 'mateo', sprite: 'mateo/sprite.png', from: [121, 18], to: [12, 47], does: 'llevarse a Mateo', given: 'acepto:entregar', happening: 'entregado:mateo', life: 4, pace: 56, note: 'Mateo llegó al pozo. Los paisanos ya lo rodean.' },
+    { id: 'campana', name: 'La carreta de la campana', sprite: 'cosas/carreta.png', from: [121, 21], to: [14, 44], does: 'llevar la carreta', given: 'bajada:campana', happening: 'llego:campana', life: 6, pace: 46, note: 'La campana está en la fragua. Para mañana va a ser balas.' },
+    { id: 'carretas', name: 'Las carretas de los heridos', sprite: 'cosas/carreta.png', from: [122, 20], to: [62, 20], does: 'sacar las carretas', given: 'acepto:escolta', happening: 'llego:carretas', life: 6, pace: 46, note: 'Las carretas llegaron a la loma. Los heridos están donde los van a ver.' },
+  ],
   spots: [
+    // The belfry: the bell comes down onto a cart, for whoever the village has sent for it.
+    { id: 'campana', name: 'El campanario', plot: [121, 21], does: 'bajar la campana', given: 'acepto:campana', happening: 'bajada:campana', note: 'La campana está en la carreta. Pesa como un muerto.' },
     // The ford itself, where the column has to cross: whoever plants himself there, alone, has it come at him.
     { id: 'vado', name: 'El vado', plot: [62, 10], does: 'plantarse y esperar a la columna', happening: 'planta:vado', note: 'Ya vienen.', stand: { from: [62, 8], waves: [3, 4, 5], won: 'aguanto:vado' } },
     // Behind the chapel, where the friars keep their two carts: whoever has been asked can see which way they are to go.

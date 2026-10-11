@@ -62,6 +62,29 @@ export interface Spot {
   sprite?: string;
 }
 
+/** Something to be brought somewhere: it waits where it is, is led off, and has to arrive whole. */
+export interface Charge {
+  id: string;
+  name: string;
+  sprite: string;
+  /** Where it waits, and where it has to be brought. */
+  from: [number, number];
+  to: [number, number];
+  /** What leading it off is, as the sign over it says: "llevar la carreta". */
+  does: string;
+  /** It is there to be led off only once this has happened in the story. */
+  given?: string;
+  /** What its arriving is, to the story. Its being led off is `lleva:ID`. */
+  happening: string;
+  /** Blows it takes before it is lost, and the pixels a second it moves at: slower than the hero walks. */
+  life: number;
+  pace: number;
+  /** Whoever of those standing on the map it is: once there is reason to take them they stop standing about, and wait to go. */
+  who?: string;
+  /** Shown to the player when it arrives. */
+  note?: string;
+}
+
 /** Something built, and the plot it stands in: for now a plain block of its size, until it is drawn. */
 export interface Building {
   name: string;
@@ -94,6 +117,8 @@ export interface WorldMap {
   things?: { what: string; plot: [number, number]; /** It lies there only once this has happened in the story. */ given?: string }[];
   /** Places where something can be done, once. */
   spots?: Spot[];
+  /** What has to be brought from one place to another, with the hero leading it. */
+  charges?: Charge[];
   /** Trails left along the ground: each from a plot to the nearest plot of a zone. */
   trails?: { from: [number, number]; to: string }[];
   /** Rows of plots a stream runs along, first and last: whatever of them nobody can cross is deep water. */
@@ -176,6 +201,9 @@ export function faults(map: WorldMap): string[] {
   }
   for (const { id, plot } of map.spots ?? []) {
     if (letterAt(map, ...plot) === undefined) found.push(`${id} is where nobody can stand`);
+  }
+  for (const { id, from, to } of map.charges ?? []) {
+    if (letterAt(map, ...from) === undefined || letterAt(map, ...to) === undefined) found.push(`${id} begins or ends where nobody can stand`);
   }
   return found;
 }

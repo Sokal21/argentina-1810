@@ -8,6 +8,9 @@ export interface Thing {
   note: string;
 }
 
+/** What is had without ever having lain on the ground, by what it is called. */
+export const NAMED: Record<string, string> = { balas: 'Balas de bronce' };
+
 export const THINGS: Record<string, Thing> = {
   lena: {
     name: 'Leña y yesca',

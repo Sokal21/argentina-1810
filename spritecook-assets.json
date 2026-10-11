@@ -1920,6 +1920,11 @@
       "asset_id": "56afa8f4-7f71-4422-9ec8-b285065e3757",
       "label": "vado things: firewood bundle and unlit signal fire, fogata_2",
       "file": "assets/cosas/concept/fogata_2.png"
+    },
+    {
+      "asset_id": "0d430172-b751-4052-a694-2746138b5335",
+      "label": "vado thing: two-wheeled cart",
+      "file": "assets/cosas/concept/carreta_2.png"
     }
   ]
 }

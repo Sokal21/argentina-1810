@@ -262,12 +262,12 @@ pueblo" no queda cumplido por haber estado antes), `hablo:QUIEN`,
 | 2 | El hijo perdido | `acepto:hijo`, o `tiene:poncho` | campo de batalla (`zona:B`) · `tiene:poncho` · la senda (`zona:S`) | **Hecha** |
 | 3 | La capilla | `hecha:hijo` | monte (`zona:T`) · capilla (`zona:K`) · `hablo:anselmo` · `hablo:tobias`. Deja `sabe:tobias` | **Hecha** |
 | 4 | La noticia | `hecha:capilla` | pueblo (`zona:P`) · `dijo:noticia`. Aparte, si quiere: `dijo:mateo` | **Hecha** |
-| 5a | Entregar al godo | `hecha:noticia` y `dijo:mateo`; la pide don Braulio | sacar a Mateo · llevarlo vivo al pozo | Falta: **escolta** |
+| 5a | Entregar al godo | `acepto:entregar`: la pide don Braulio cuando sabe del godo (`dijo:mateo`), mientras no se haya amparado a Mateo | `lleva:mateo` · `entregado:mateo`, en el pozo | **Hecha** |
 | 5b | Amparar a Mateo | `acepto:amparar`: la pide fray Anselmo después de `hecha:noticia` | `sabe:columna` y `sabe:capitan` · `dijo:no` a don Braulio | **Hecha** |
-| 6a | La campana a la fragua | `hecha:5a` o `hecha:5b`; don Braulio | bajar la campana · llevarla en carreta a la fragua | Falta: **usar un lugar**, **escolta** |
+| 6a | La campana a la fragua | `acepto:campana`: la pide don Braulio cuando ya contó lo del bronce (`sabe:campana`), mientras no se hayan aceptado las fogatas | `bajada:campana`, en el campanario · `llego:campana`, en la fragua. Deja `tiene:balas` | **Hecha** |
 | 6b | Las tres fogatas | `acepto:fogatas`: la pide fray Anselmo cuando ya contó el plan (`sabe:rebato`). Cuando exista la 5, además después de ella | `tiene:lena` · las tres `armada:LOMA`, en cualquier orden, cada una con su guardia vencida | **Hecha** |
 | 7a | Los rehenes | `acepto:rehenes`: la pide don Braulio después de `hecha:fogatas` (y de la 6a, cuando exista) | `sabe:carretas`, mirando las carretas detrás de la capilla · `dijo:carretas` | **Hecha** |
-| 7b | La escolta | ídem; fray Anselmo | llevar las dos carretas a la Loma del Medio | Falta: **escolta** |
+| 7b | La escolta | `acepto:escolta`: la pide fray Anselmo con las fogatas armadas, mientras no se hayan aceptado los rehenes | `lleva:carretas` · `llego:carretas`, en la Loma del Medio | **Hecha** |
 | 8a | La emboscada | dos de 5a, 6a, 7a | aguantar tres oleadas · vencer al capitán | Falta: **oleadas**, **el capitán** |
 | 8b | El rebato | dos de 5b, 6b, 7b, y la campana en su lugar | encender las fogatas · estar en la loma al aclarar | Falta: **usar un lugar**, quizá **oleadas** |
 | 8c | Solo en el vado | `planta:vado`: plantarse en el vado, cuando sea; no depende de nadie | aguantar tres oleadas (`aguanto:vado`). Deja `final:solo` | **Hecha** |
@@ -278,8 +278,11 @@ Lo que el juego todavía no sabe hacer, y que varias misiones comparten:
   (`spots` en el mapa): armar una fogata hoy; bajar la campana o encender
   las fogatas, cuando toque. Un lugar puede pedir que antes haya pasado
   algo, y que no quede en pie nadie de los que guardan su zona.
-- **Escolta.** Algo que sigue a Cabral, es lento, y hay que defender: Mateo,
-  la carreta de la campana, las carretas de los heridos.
+- **Escolta: hecho.** Algo que espera en un lugar, se lo saca con F, viene
+  detrás de Cabral más lento que él, y lo va gastando cada enemigo que se
+  le arrima (`charges` en el mapa, `src/world/escort.ts`). Sigue los pasos
+  de Cabral, así que nunca sale de lo caminable. Si se pierde, o si Cabral
+  cae, vuelve a su lugar y hay que ir a buscarlo de nuevo.
 - **Zona limpia: hecho.** El juego sabe si queda en pie alguno de los que
   guardan una zona, y un lugar guardado lo dice en su cartel.
 - **Oleadas: hecho.** Un lugar puede ser donde se hace frente: los enemigos

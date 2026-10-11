@@ -14,6 +14,7 @@ import type { Quest } from './story';
 //   cerro:QUIEN      someone has had enough of the hero
 //   dijo:QUE         the hero has told someone something they needed to hear
 //   armada:LOMA      a signal fire has been built on one of the rises
+//   lleva:QUE        something to be brought somewhere has been led off; its arriving has a name of its own
 //   planta:LUGAR     the hero has made a stand somewhere; aguanto:LUGAR, he has held it
 //   final:CUAL       the story has ended, and how
 //   hecha:MISION     a mission is done
@@ -96,6 +97,43 @@ export const VADO: Quest[] = [
     steps: [
       { says: 'Averiguá en la capilla por dónde van a sacar las carretas.', when: ['sabe:carretas'] },
       { says: 'Volvé al pueblo y decíselo a don Braulio.', when: ['dijo:carretas'] },
+    ],
+  },
+  {
+    id: 'entregar',
+    name: 'Entregar al godo',
+    xp: 160,
+    gold: 80,
+    // The village asks it, through don Braulio: the deserter, alive.
+    opens: ['acepto:entregar'],
+    steps: [
+      { says: 'Andá a la capilla y sacá a Mateo de la sacristía.', when: ['lleva:mateo'] },
+      { says: 'Llevalo vivo, por el campo, hasta el pozo del pueblo.', when: ['entregado:mateo'] },
+    ],
+  },
+  {
+    id: 'campana',
+    name: 'La campana a la fragua',
+    xp: 220,
+    gold: 80,
+    // Without lead there is no ambush, and there is only one bronze in the country.
+    opens: ['acepto:campana'],
+    steps: [
+      { says: 'Andá a la capilla y bajá la campana del campanario.', when: ['bajada:campana'] },
+      { says: 'Llevá la carreta, cruzando el campo, hasta la fragua del pueblo.', when: ['llego:campana'] },
+    ],
+    leaves: ['tiene:balas'],
+  },
+  {
+    id: 'escolta',
+    name: 'La escolta',
+    xp: 220,
+    gold: 30,
+    // Fray Anselmo asks it: the wounded, to the rise over the ford, before it is light.
+    opens: ['acepto:escolta'],
+    steps: [
+      { says: 'Sacá las carretas de atrás de la capilla.', when: ['lleva:carretas'] },
+      { says: 'Llevalas, bajando la senda y cruzando el campo, hasta la Loma del Medio.', when: ['llego:carretas'] },
     ],
   },
   {

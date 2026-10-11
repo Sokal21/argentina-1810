@@ -4,7 +4,7 @@ import { NAMES, STATS, STEP, toNext } from './machi/growth';
 import { ITEMS, PLACES, type Place } from './machi/pack';
 import { PEOPLE } from './npc/people';
 import type { GameScene } from './scenes/GameScene';
-import { THINGS } from './story/things';
+import { NAMED, THINGS } from './story/things';
 import { FACTS } from './story/vado';
 
 // The hero's own page: how far they have grown and what their points have
@@ -199,7 +199,7 @@ export function mountSheet(game: Phaser.Game): void {
         // The two leaves of this side, and at the end of the line what they have to spend.
         el('div', { className: 'tabs' }, tabButton('bolsa', 'Bolsa'), tabButton('cuaderno', 'Cuaderno'), el('span', { className: 'gold' }, String(s.pack.gold), coin())),
         ...(tab === 'bolsa' ? bag() : [
-          ...list('Lleva', has.map(what => THINGS[what]?.name ?? what), 'Nada todavía.'),
+          ...list('Lleva', has.map(what => THINGS[what]?.name ?? NAMED[what] ?? what), 'Nada todavía.'),
           ...list('Sabe', knows.map(told), 'Nada todavía.'),
         ])));
     book.append(tipBoard);

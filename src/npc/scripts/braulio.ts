@@ -71,6 +71,57 @@ export const BRAULIO: Script = {
         },
       ],
     },
+    // What the village asks of him, each in its turn: the deserter, and the bell.
+    {
+      id: 'entregar',
+      given: 'dijo:mateo',
+      until: 'acepto:amparar',
+      after: ['saludo'],
+      asks: 'entregar',
+      options: [
+        {
+          says: 'Si lo querés, te lo traigo. Vivo, como pedís.',
+          answer: 'Vivo. Que camine hasta el pozo por sus propios pies y mire a doña Remedios a la cara. Andá.',
+          animo: 1,
+          quiere: 'encargar_entrega',
+        },
+        {
+          says: '¿Y qué le van a hacer?',
+          answer: 'Lo que se le hace a un godo en un pueblo que enterró a los suyos. No preguntes lo que ya sabés.',
+          animo: 0,
+        },
+        {
+          says: 'Ese hombre le salvó la vida a tu hijo.',
+          answer: 'Y los suyos casi se la quitan. Una cosa no paga la otra.',
+          animo: -1,
+        },
+      ],
+    },
+    {
+      id: 'campana_pedido',
+      given: 'sabe:campana',
+      until: 'acepto:fogatas',
+      after: ['campana'],
+      asks: 'campana',
+      options: [
+        {
+          says: 'Si hace falta bronce, yo voy por esa campana.',
+          answer: 'Así me gusta. Bajala del campanario y traela en carreta a la fragua. Si el fraile no te da la llave, la puerta es de madera.',
+          animo: 1,
+          quiere: 'encargar_campana',
+        },
+        {
+          says: 'Es la campana de una capilla, don.',
+          answer: 'Es bronce, y es el único que hay. Con rezos no se para una columna.',
+          animo: 0,
+        },
+        {
+          says: 'Fundan sus ollas. Yo no robo iglesias.',
+          answer: 'Con ollas no alcanza ni para una descarga. Andá a rezar con ellos, entonces.',
+          animo: -1,
+        },
+      ],
+    },
     // The no he is owed, once the hero has taken the friar's side; and the village's own errand, the hostages.
     {
       id: 'negar',

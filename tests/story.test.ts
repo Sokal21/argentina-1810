@@ -180,3 +180,27 @@ describe('the last way out', () => {
     expect(story.has('final:solo')).toBe(true);
   });
 });
+
+describe('the three that are a thing brought somewhere', () => {
+  for (const [id, steps] of Object.entries({
+    entregar: ['lleva:mateo', 'entregado:mateo'],
+    campana: ['bajada:campana', 'llego:campana'],
+    escolta: ['lleva:carretas', 'llego:carretas'],
+  })) {
+    it(`${id}: taken on, led off, and arrived`, () => {
+      const story = new Story(VADO);
+      story.tell(`acepto:${id}`);
+      expect(story.isOpen(id)).toBe(true);
+      story.tell(steps[0]);
+      expect(story.isDone(id)).toBe(false);
+      story.tell(steps[1]);
+      expect(story.isDone(id)).toBe(true);
+    });
+  }
+
+  it('leaves the village its bullets when the bell reaches the forge', () => {
+    const story = new Story(VADO);
+    for (const h of ['acepto:campana', 'bajada:campana', 'llego:campana']) story.tell(h);
+    expect(story.holds('balas')).toBe(true);
+  });
+});

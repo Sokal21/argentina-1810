@@ -402,5 +402,30 @@ export const ANSELMO: Script = {
         },
       ],
     },
+    // What he asks once the fires are built: the wounded, out to the rise.
+    {
+      id: 'escolta',
+      given: 'hecha:fogatas',
+      until: 'acepto:rehenes',
+      asks: 'escolta',
+      options: [
+        {
+          says: 'Yo las llevo, padre. A esos hombres no los toca nadie mientras yo camine al lado.',
+          answer: 'Son seis, y uno es casi un chico. Las carretas están atrás. Vaya despacio, que cada pozo del camino les duele.',
+          animo: 2,
+          quiere: 'encargar_escolta',
+        },
+        {
+          says: '¿Y si el capitán los ve y cruza igual?',
+          answer: 'Entonces habremos hecho lo que se podía. Pero un hombre que ve vivo a su sobrino lo piensa dos veces.',
+          animo: 0,
+        },
+        {
+          says: 'Seis godos menos no le hacen falta a nadie.',
+          answer: 'Le hacen falta a sus madres, hijo. Y a usted, para poder dormir.',
+          animo: -2,
+        },
+      ],
+    },
   ],
 };

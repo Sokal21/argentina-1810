@@ -82,10 +82,21 @@ test('whoever is drawn standing about has a sheet of whole frames, the size it s
 
 test('each place where something can be done is on ground that is walked, and its fire is on its own rise', () => {
   const spots = map.spots ?? [];
-  expect(spots.map(s => s.id).sort()).toEqual(['carretas', 'fogata_este', 'fogata_medio', 'fogata_oeste', 'vado']);
+  expect(spots.map(s => s.id).sort()).toEqual(['campana', 'carretas', 'fogata_este', 'fogata_medio', 'fogata_oeste', 'vado']);
   const rise = { fogata_oeste: '1', fogata_medio: '2', fogata_este: '3' } as Record<string, string>;
   for (const spot of spots.filter(s => rise[s.id])) expect(letterAt(map, ...spot.plot), spot.id).toBe(rise[spot.id]);
   // Each rise is held: there is a guard to be beaten before anything is built on it.
   for (const letter of Object.values(rise)) expect(map.zones[letter].foes).toBeGreaterThan(0);
   expect(faults(map)).toEqual([]);
+});
+
+test('whatever is to be brought somewhere begins and ends on ground that is walked, and there is a way between', async () => {
+  const { wayTo } = await import('../src/world/trail');
+  for (const charge of map.charges ?? []) {
+    expect(letterAt(map, ...charge.from), charge.id).toBeDefined();
+    const zone = letterAt(map, ...charge.to)!;
+    expect(wayTo(map, charge.from, zone).length, charge.id).toBeGreaterThan(1);
+    // Slower than the hero walks, or there is nothing to it.
+    expect(charge.pace).toBeLessThan(70);
+  }
 });
