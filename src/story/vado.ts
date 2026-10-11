@@ -12,7 +12,10 @@ import type { Quest } from './story';
 //   tiene:COSA       the hero has picked something up
 //   sabe:DATO        the hero has been told something
 //   cerro:QUIEN      someone has had enough of the hero
+//   dijo:QUE         the hero has told someone something they needed to hear
 //   hecha:MISION     a mission is done
+//
+// Coming to a place (en:, zona:) is not kept: it counts for the step waiting on it and no more.
 
 export const VADO: Quest[] = [
   {
@@ -41,9 +44,37 @@ export const VADO: Quest[] = [
     ],
     leaves: ['sabe:rastro'],
   },
+  {
+    id: 'capilla',
+    name: 'La capilla',
+    xp: 140,
+    gold: 30,
+    // Nobody gives it: it is following the trail.
+    opens: ['hecha:hijo'],
+    steps: [
+      { says: 'Seguí hacia el este, por el bañado o por el camino real, hasta el monte de talas.', when: ['zona:T', 'zona:S', 'zona:K'] },
+      { says: 'Subí por la senda hasta la capilla.', when: ['zona:K', 'hablo:anselmo', 'hablo:tobias'] },
+      { says: 'Hablá con fray Anselmo.', when: ['hablo:anselmo', 'hablo:tobias'] },
+      { says: 'Buscá a Tobías entre los heridos y hablá con él.', when: ['hablo:tobias'] },
+    ],
+    // He has seen the boy with his own eyes, whatever the friar chose to say.
+    leaves: ['sabe:tobias'],
+  },
+  {
+    id: 'noticia',
+    name: 'La noticia',
+    xp: 100,
+    gold: 30,
+    opens: ['hecha:capilla'],
+    steps: [
+      { says: 'Volvé al pueblo.', when: ['zona:P', 'dijo:noticia'] },
+      { says: 'Decile a don Braulio que su hijo vive. Pensá bien qué más le decís.', when: ['dijo:noticia'] },
+    ],
+  },
 ];
 
 /** What the hero is told he knows, by the happening that says so. */
 export const FACTS: Record<string, string> = {
   'sabe:rastro': 'El rastro de sangre va hacia la capilla.',
+  'sabe:tobias': 'Tobías vive. Está en la capilla, con una pierna rota.',
 };

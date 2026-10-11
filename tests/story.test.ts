@@ -91,11 +91,37 @@ describe('the hook of El vado de las Vizcachas', () => {
     expect(story.isDone('hijo')).toBe(true);
   });
 
-  it('counts the path only once the poncho is found', () => {
+  it('does not count the path walked before the poncho was found: coming to a place is not kept', () => {
     const story = play('empieza', 'acepto:hijo', 'zona:B', 'zona:S');
-    expect(story.isDone('hijo')).toBe(false);
     story.tell('tiene:poncho');
-    // He had been there already: it is settled the moment he has the poncho.
+    expect(story.isDone('hijo')).toBe(false);
+    expect(story.has('zona:S')).toBe(false);
+    // He has to come to it now.
+    story.tell('zona:S');
     expect(story.isDone('hijo')).toBe(true);
+  });
+
+  it('goes on to the chapel, and from there back with the news', () => {
+    const story = play('empieza', 'en:La posada', 'hablo:braulio', 'acepto:hijo', 'zona:B', 'tiene:poncho', 'zona:S');
+    expect(story.current.map(c => c.quest.id)).toEqual(['capilla']);
+    // He was in the path when it opened: the first step is done by his being there, told again.
+    story.tell('zona:S');
+    expect(story.current[0].step.says).toContain('capilla');
+    story.tell('zona:K'); story.tell('hablo:anselmo');
+    expect(story.current[0].step.says).toContain('Tobías');
+    story.tell('hablo:tobias');
+    expect(story.isDone('capilla')).toBe(true);
+    expect(story.knows('tobias')).toBe(true);
+    // The village is somewhere he has been: he has to go back to it all the same.
+    expect(story.current.map(c => c.step.says)).toEqual(['Volvé al pueblo.']);
+    story.tell('zona:P');
+    expect(story.current[0].step.says).toContain('don Braulio');
+    story.tell('dijo:noticia');
+    expect(story.isDone('noticia')).toBe(true);
+  });
+
+  it('lets the boy be found before anyone has spoken to the friar', () => {
+    const story = play('empieza', 'tiene:poncho', 'zona:S', 'zona:K', 'hablo:tobias');
+    expect(story.isDone('capilla')).toBe(true);
   });
 });

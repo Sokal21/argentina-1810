@@ -640,7 +640,7 @@ quedan anotadas para mejorar más adelante, en la etapa 16.*
 
 ## Etapa 8 · Oro, tienda, inventario y cuaderno
 
-*Hecha, esperando el visto bueno.*
+*Cerrada.*
 
 - **Qué decidió el usuario:** solo tienda (se compra; nada de mejorar
   piezas por ahora), una lista de cosas **muy** básica (dos de utilidad y

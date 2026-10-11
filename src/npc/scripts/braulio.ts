@@ -27,6 +27,51 @@ export const BRAULIO: Script = {
       ],
     },
     {
+      // The news he has been waiting for, once the hero has it to give: it is asked for until given.
+      id: 'noticia',
+      given: 'sabe:tobias',
+      after: ['saludo'],
+      asks: 'noticia',
+      options: [
+        {
+          says: 'Tu hijo vive, don Braulio. Está en la capilla, con una pierna rota, pero vive.',
+          answer: 'Vive... Sentate, que me tiemblan las manos. Catorce años y tres noches sin dormir: lo que haya en esta casa es tuyo.',
+          animo: 2,
+          quiere: 'oir_noticia',
+        },
+        {
+          says: 'Lo vi con mis ojos. Está entero, charlatán como siempre, y pregunta por vos.',
+          answer: 'Charlatán... entonces es él, nomás. Gracias, soldado. No me voy a olvidar de esto.',
+          animo: 2,
+          quiere: 'oir_noticia',
+        },
+        {
+          says: 'Antes de decirte nada: ¿qué pensás hacer con los que lo cuidan?',
+          answer: 'Primero decime si mi hijo respira. Después hablamos de lo que quieras.',
+          animo: -1,
+        },
+      ],
+    },
+    {
+      // Who saved the boy. Telling it sets the village on the deserter; keeping it is a choice too.
+      id: 'quien',
+      given: 'sabe:mateo',
+      after: ['noticia'],
+      options: [
+        {
+          says: 'Lo cargó hasta la capilla un soldado del rey. Un desertor. Sigue ahí, escondido.',
+          answer: 'Un godo. En la capilla, comiendo el pan de los frailes mientras acá enterramos a los nuestros. Eso lo tienen que saber los muchachos.',
+          animo: 0,
+          quiere: 'oir_mateo',
+        },
+        {
+          says: 'Lo levantó alguien que pasaba. No sé más.',
+          answer: 'Alguien que pasaba, por un campo lleno de godos. Hum. Algo no me estás contando, pero hoy no te lo voy a reclamar.',
+          animo: 0,
+        },
+      ],
+    },
+    {
       // He has turned his back: a first chance to mend it, or to be shown the door.
       id: 'torcido',
       below: 2,

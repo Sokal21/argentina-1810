@@ -6,6 +6,9 @@
 // is drawn, and nothing here knows how a thing came about: whether someone
 // was talked to by writing or by choosing is all one to it.
 
+/** Coming to a place or into a zone: it happens each time, and is not kept. */
+const PASSING = /^(en|zona):/;
+
 /** A mission: what opens it, and the steps it is done in. */
 export interface Quest {
   id: string;
@@ -83,17 +86,22 @@ export class Story {
   /**
    * Something took place. Says what came of it, having settled everything
    * that follows: a step done may finish a mission, and that may open another.
-   * What has already happened does not happen again.
+   * What has already happened does not happen again, except coming to a place:
+   * that is not kept. It counts for whatever step is waiting on it at the
+   * moment and is then forgotten, so "go back to the village" is not done
+   * already for having been there before.
    */
   tell(happening: string): News[] {
     if (this.seen.has(happening)) return [];
     const news: News[] = [];
     const waiting = [happening];
+    const passing = new Set<string>();
     while (waiting.length) {
       const next = waiting.shift()!;
       if (this.seen.has(next)) continue;
       this.seen.add(next);
-      this.happened.push(next);
+      if (PASSING.test(next)) passing.add(next);
+      else this.happened.push(next);
       // Settled over and over until nothing more moves: steps are done in order, and a
       // later one may already have happened before the mission opened.
       for (let moved = true; moved;) {
@@ -117,6 +125,7 @@ export class Story {
         }
       }
     }
+    for (const gone of passing) this.seen.delete(gone);
     if (news.length) for (const listener of this.listeners) listener(news);
     return news;
   }

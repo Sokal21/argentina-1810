@@ -243,6 +243,54 @@ a medias es llegar con menos.
 
 ---
 
+## Cómo se encadenan en el juego
+
+Lo de arriba es la historia. Esto es cómo está armada, misión por misión:
+qué la abre, qué cumple cada paso, y qué le hace falta al juego para
+poder hacerla. Cada cosa que pasa le llega a la historia como un **suceso**
+(`src/story/story.ts`), y las misiones son datos (`src/story/vado.ts`).
+
+Los sucesos: `en:LUGAR` y `zona:LETRA` (llegar a un lugar; **no se
+guardan**: cuentan solo para el paso que los está esperando, así "volvé al
+pueblo" no queda cumplido por haber estado antes), `hablo:QUIEN`,
+`acepto:QUE` (dar la palabra), `dijo:QUE` (contarle algo a alguien),
+`tiene:COSA`, `sabe:DATO`, `cerro:QUIEN`, `hecha:MISION`.
+
+| # | Misión | La abre | Pasos, y qué los cumple | Estado |
+|---|---|---|---|---|
+| 1 | La posada | `empieza` | llegar (`en:La posada`) · hablar (`hablo:braulio`) | **Hecha** |
+| 2 | El hijo perdido | `acepto:hijo`, o `tiene:poncho` | campo de batalla (`zona:B`) · `tiene:poncho` · la senda (`zona:S`) | **Hecha** |
+| 3 | La capilla | `hecha:hijo` | monte (`zona:T`) · capilla (`zona:K`) · `hablo:anselmo` · `hablo:tobias`. Deja `sabe:tobias` | **Hecha** |
+| 4 | La noticia | `hecha:capilla` | pueblo (`zona:P`) · `dijo:noticia`. Aparte, si quiere: `dijo:mateo` | **Hecha** |
+| 5a | Entregar al godo | `hecha:noticia` y `dijo:mateo`; la pide don Braulio | sacar a Mateo · llevarlo vivo al pozo | Falta: **escolta** |
+| 5b | Amparar a Mateo | `hecha:noticia`; la pide fray Anselmo | `sabe:columna` y `sabe:capitan` · `dijo:no` a don Braulio | Falta poco: solo charla |
+| 6a | La campana a la fragua | `hecha:5a` o `hecha:5b`; don Braulio | bajar la campana · llevarla en carreta a la fragua | Falta: **usar un lugar**, **escolta** |
+| 6b | Las tres fogatas | ídem; fray Anselmo | leña y yesca · en cada loma: vencer a la guardia y armar la fogata | Falta: **usar un lugar**, **zona limpia** |
+| 7a | Los rehenes | `hecha:6a` o `hecha:6b`; don Braulio | averiguar por dónde salen · `dijo:carretas` | Falta poco: solo charla |
+| 7b | La escolta | ídem; fray Anselmo | llevar las dos carretas a la Loma del Medio | Falta: **escolta** |
+| 8a | La emboscada | dos de 5a, 6a, 7a | aguantar tres oleadas · vencer al capitán | Falta: **oleadas**, **el capitán** |
+| 8b | El rebato | dos de 5b, 6b, 7b, y la campana en su lugar | encender las fogatas · estar en la loma al aclarar | Falta: **usar un lugar**, quizá **oleadas** |
+| 8c | Solo en el vado | ninguna de las otras alcanza, o todos cerrados | aguantar un tiempo en el vado | Falta: **oleadas** |
+
+Lo que el juego todavía no sabe hacer, y que varias misiones comparten:
+
+- **Usar un lugar.** Pararse en un punto y hacer algo ahí: bajar la campana,
+  armar una fogata, encenderla. Es lo mismo que levantar el poncho, con
+  otra palabra en el cartel.
+- **Escolta.** Algo que sigue a Cabral, es lento, y hay que defender: Mateo,
+  la carreta de la campana, las carretas de los heridos.
+- **Zona limpia.** Saber cuándo cayeron todos los que guardaban una zona.
+- **Oleadas.** Enemigos que llegan por tandas a un lugar, y un final cuando
+  no quedan.
+- **El capitán.** Un enemigo nuevo: es de la etapa de enemigos.
+
+Y lo que se decide hablando ya tiene su manera: lo que un personaje **pide**
+(un encargo) puede esperar a que haya pasado algo, y su aceptación es un
+suceso con nombre propio. Así "decile que su hijo vive" solo se ofrece
+cuando Cabral lo sabe.
+
+---
+
 ## Secundarias
 
 No hacen falta para terminar. Mueven la fama.

@@ -46,6 +46,10 @@ export interface Idle {
 /** Something they ask to have done. It is taken on by telling them so, not by hearing them out. */
 export interface Errand {
   key: string;
+  /** Something that has to have happened before they can ask it, if anything: news cannot be told before it is known. */
+  given?: string;
+  /** What its being taken on is, to the story; `acepto:KEY` if unsaid. */
+  happening?: string;
   /** The word the model answers with when the other has just taken it on. */
   wants: string;
   /** What they are told about it while it is theirs to ask, and once it has been taken on. */

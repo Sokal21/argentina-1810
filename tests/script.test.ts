@@ -83,7 +83,8 @@ describe('what was written for each of them', () => {
         expect(talk.over).toBe(false);
         for (const favour of npc.favours) expect(talk.has(favour.key), favour.key).toBe(true);
         // And is asked whatever they have to ask, and takes it on.
-        for (const errand of npc.errands ?? []) expect(talk.took(errand.key), errand.key).toBe(true);
+        // (what waits on something having happened in the story is not asked here: nothing has).
+        for (const errand of (npc.errands ?? []).filter(e => !e.given)) expect(talk.took(errand.key), errand.key).toBe(true);
       });
 
       it('shuts for good on whoever always says the worst', async () => {
@@ -127,5 +128,27 @@ describe('what was written for each of them', () => {
     const turn = await talk.say(again!.options.find(o => o.quiere === 'encargar_hijo')!.says);
     expect(turn.agreed.map(e => e.key)).toEqual(['hijo']);
     expect(offered(script, talk.trust, talk.lines, key => talk.took(key))?.asks).toBeUndefined();
+  });
+
+  it('has don Braulio wait for the news only once there is news, and takes it when it is told', async () => {
+    const script = SCRIPTS.braulio;
+    const talk = new Talk(PEOPLE.braulio, 'cabral', scripted(script));
+    const knows = new Set<string>();
+    talk.happened = h => knows.has(h);
+    const next = () => offered(script, talk.trust, talk.lines, key => talk.took(key), talk.happened);
+    expect(script.beats.find(b => b.id === 'noticia')?.given).toBe('sabe:tobias');
+    // Before he has been to the chapel there is no such thing to say.
+    for (let turn = 0; turn < 30; turn++) {
+      const beat = next();
+      if (!beat) break;
+      expect(beat.id).not.toBe('noticia');
+      if (beat.asks) { await talk.say(beat.options.find(o => o.quiere)!.says); continue; }
+      await talk.say([...beat.options].sort((a, b) => b.animo - a.animo)[0].says);
+    }
+    knows.add('sabe:tobias');
+    const beat = next();
+    expect(beat?.id).toBe('noticia');
+    const turn = await talk.say(beat!.options[0].says);
+    expect(turn.agreed.map(e => e.happening)).toEqual(['dijo:noticia']);
   });
 });

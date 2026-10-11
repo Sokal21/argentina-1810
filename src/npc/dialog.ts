@@ -22,7 +22,9 @@ export interface Effects {
   /** They were told something: the key of what. */
   told?: (key: string) => void;
   /** Something they asked was taken on: the key of what. */
-  agreed?: (key: string) => void;
+  agreed?: (key: string, happening?: string) => void;
+  /** Whether something has happened in the story: some things are asked or told only once it has. */
+  has?: (happening: string) => boolean;
   /** The talk is over, and something was said in it. */
   talked?: () => void;
   /** They have had enough, for good. */
@@ -94,6 +96,7 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
   const script = chosen() ? SCRIPTS[npc.id] ?? { who: npc.id, beats: [] } : undefined;
   const talk = talks.get(known) ?? new Talk(npc, hero, voice(script));
   talks.set(known, talk);
+  talk.happened = effects.has ?? (() => false);
 
   const root = el('dialog'), text = el('dialog-text'), note = el('dialog-note'), name = el('dialog-name');
   const form = el<HTMLFormElement>('dialog-form'), input = el<HTMLInputElement>('dialog-input'), options = el('dialog-options');
@@ -153,7 +156,7 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
   // What can be said now, where it is chosen: each on a line, also taken by its number.
   const offer = () => {
     if (!script) return;
-    const beat = talk.over ? undefined : offered(script, talk.trust, talk.lines, key => talk.took(key));
+    const beat = talk.over ? undefined : offered(script, talk.trust, talk.lines, key => talk.took(key), talk.happened);
     options.replaceChildren(...(beat?.options ?? []).map((option, n) => {
       const button = Object.assign(document.createElement('button'), { textContent: option.says });
       button.dataset.n = String(n + 1);
@@ -193,7 +196,7 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
         note.textContent = favour.note;
       }
       for (const errand of turn.agreed) {
-        effects.agreed?.(errand.key);
+        effects.agreed?.(errand.key, errand.happening);
         note.textContent = errand.note;
       }
       if (turn.over) { note.textContent = `${talk.npc.name} no quiere saber más nada con vos.`; effects.closed?.(); }

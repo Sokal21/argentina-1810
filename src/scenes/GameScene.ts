@@ -490,7 +490,8 @@ export class GameScene extends Phaser.Scene {
         openDialog(this.game, this.hero, npc, {
           heal: () => this.vitals.heal(this.vitals.max),
           told: key => this.story?.tell(`sabe:${key}`),
-          agreed: key => this.story?.tell(`acepto:${key}`),
+          agreed: (key, happening) => this.story?.tell(happening ?? `acepto:${key}`),
+          has: happening => !!this.story?.has(happening),
           talked: () => this.story?.tell(`hablo:${npc.id}`),
           closed: () => this.story?.tell(`cerro:${npc.id}`),
         });
@@ -503,6 +504,8 @@ export class GameScene extends Phaser.Scene {
       // A mission done is worth experience.
       this.story.listen(news => {
         for (const n of news) {
+          // Wherever he stands is told again: a mission just opened may be waiting on his being there.
+          this.plotWas = '';
           if (n.kind !== 'done') continue;
           if (n.quest.gold) { this.pack.gold += n.quest.gold; this.board?.say(`+${n.quest.gold} reales`); }
           if (n.quest.xp) this.earn(n.quest.xp);

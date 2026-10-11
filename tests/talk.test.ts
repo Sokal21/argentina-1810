@@ -106,7 +106,8 @@ describe('everyone who can be talked to', () => {
       const talk = new Talk(npc, 'cabral', async (_system, _lines, wants) => { asked.push(wants); return { dice: 'Hum.', animo: 0, quiere: 'nada' }; });
       expect(talk.brief()).toContain(`SOLO como ${npc.name}`);
       await talk.say('buenas');
-      expect(asked[0]).toEqual(['nada', ...npc.favours.map(f => f.wants), ...(npc.errands ?? []).map(e => e.wants), 'echar']);
+      // Only what does not wait on something having happened: nothing has yet.
+      expect(asked[0]).toEqual(['nada', ...npc.favours.map(f => f.wants), ...(npc.errands ?? []).filter(e => !e.given).map(e => e.wants), 'echar']);
     }
   });
 
