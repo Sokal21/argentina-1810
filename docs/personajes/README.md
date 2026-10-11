@@ -11,6 +11,7 @@ diseñar a alguien que conviva con ellos.
 | **Cabral** | Granadero a caballo. Guerrero cuerpo a cuerpo, usa furia | [cabral.md](cabral.md) |
 | **Chonchón** | Cabeza voladora de un kalku. Enemigo | [chonchon.md](chonchon.md) |
 | **Soldado realista** | Infante español. Enemigo: dispara de lejos, sable de cerca | [realista.md](realista.md) |
+| **La tropa realista** | Sableador, tirador, sargento y capitán. Enemigos | [tropa.md](tropa.md) |
 
 La historia de Cabral, con su gente, sus misiones y su mapa, está en
 [`docs/historia/`](../historia/).

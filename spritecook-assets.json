@@ -1925,6 +1925,91 @@
       "asset_id": "0d430172-b751-4052-a694-2746138b5335",
       "label": "vado thing: two-wheeled cart",
       "file": "assets/cosas/concept/carreta_2.png"
+    },
+    {
+      "asset_id": "0f23ad40-3ba2-40e8-afcb-199c3cfe029d",
+      "label": "royalist enemy concept: sableador",
+      "file": "assets/realista/concept/sableador_1.png"
+    },
+    {
+      "asset_id": "e44cf539-249f-4144-adbc-26ef8bd1b692",
+      "label": "royalist enemy concept: tirador",
+      "file": "assets/realista/concept/tirador_1.png"
+    },
+    {
+      "asset_id": "0474efee-84c1-4234-abc6-a3519786150c",
+      "label": "royalist enemy concept: sargento",
+      "file": "assets/realista/concept/sargento_1.png"
+    },
+    {
+      "asset_id": "f1a4b920-c4b7-4803-a964-cea47ae3aa16",
+      "label": "royalist enemy concept: capitan",
+      "file": "assets/realista/concept/capitan_1.png"
+    },
+    {
+      "asset_id": "c2d4ed49-bab3-4c94-bc6f-29432fa30254",
+      "label": "royalist sableador: corre — untouched",
+      "file": "assets/tropa/sableador_corre_original.png"
+    },
+    {
+      "asset_id": "3bafe324-7dbd-41af-9abd-fae60fd28f1d",
+      "label": "royalist sableador: tajo — untouched",
+      "file": "assets/tropa/sableador_tajo_original.png"
+    },
+    {
+      "asset_id": "07aa5e56-bee8-4438-937e-f3a339ac5974",
+      "label": "royalist sableador: muerte — untouched",
+      "file": "assets/tropa/sableador_muerte_original.png"
+    },
+    {
+      "asset_id": "caa37d31-2295-422c-bfbf-caddd4a82faa",
+      "label": "royalist tirador: tiro — untouched",
+      "file": "assets/tropa/tirador_tiro_original.png"
+    },
+    {
+      "asset_id": "cc278575-cc87-45be-adac-e403383fbab8",
+      "label": "royalist tirador: muerte — untouched",
+      "file": "assets/tropa/tirador_muerte_original.png"
+    },
+    {
+      "asset_id": "e933da0b-62e9-4bf8-8643-a8d617166270",
+      "label": "royalist sargento: marcha — untouched",
+      "file": "assets/tropa/sargento_marcha_original.png"
+    },
+    {
+      "asset_id": "a8f69283-00ea-4c2a-9cff-9968586a1d0f",
+      "label": "royalist sargento: golpe — untouched",
+      "file": "assets/tropa/sargento_golpe_original.png"
+    },
+    {
+      "asset_id": "5cedb931-3793-47cf-b00b-740c73eae639",
+      "label": "royalist sargento: grito — untouched",
+      "file": "assets/tropa/sargento_grito_original.png"
+    },
+    {
+      "asset_id": "e25e25e1-dae9-4175-92ff-6f483499de48",
+      "label": "royalist sargento: muerte — untouched",
+      "file": "assets/tropa/sargento_muerte_original.png"
+    },
+    {
+      "asset_id": "b775a9ff-8460-42e6-8405-1f371014a28f",
+      "label": "royalist capitan: marcha — untouched",
+      "file": "assets/tropa/capitan_marcha_original.png"
+    },
+    {
+      "asset_id": "09d8c4eb-6094-48d5-9403-3b6a37d65d42",
+      "label": "royalist capitan: tiro — untouched",
+      "file": "assets/tropa/capitan_tiro_original.png"
+    },
+    {
+      "asset_id": "30cf5dd8-63c4-4ca4-88c5-9533ca97920e",
+      "label": "royalist capitan: estocada — untouched",
+      "file": "assets/tropa/capitan_estocada_original.png"
+    },
+    {
+      "asset_id": "c4fa9c62-10fa-4e69-95a9-be5337eb88d4",
+      "label": "royalist capitan: muerte — untouched",
+      "file": "assets/tropa/capitan_muerte_original.png"
     }
   ]
 }

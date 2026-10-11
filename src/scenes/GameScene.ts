@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { BALL, Bolts, EMBER, SHOT } from '../bolts';
 import { Realista } from '../realista/Realista';
+import { Trooper } from '../tropa/Trooper';
+import { KINDS, type KindName } from '../tropa/brain';
 import { cheats, tune } from '../tuning';
 import { Charge, ULTIMATE } from '../machi/ultimate';
 import { RAGE, Rage } from '../machi/rage';
@@ -128,7 +130,9 @@ const ARRIVED = 1, MENDS = 2;
 const HINT_FADE = { in: 0.35, out: 0.6 };
 
 /** Anything that can be fought. */
-type Foe = Enemy | Chonchon | Realista;
+/** Any of the king's men: the fusilier, or one of the other kinds. */
+type Soldier = Realista | Trooper;
+type Foe = Enemy | Chonchon | Soldier;
 
 export class GameScene extends Phaser.Scene {
   private keys!: Keys;
@@ -180,7 +184,7 @@ export class GameScene extends Phaser.Scene {
   /** Everything on the map that is to be brought somewhere. */
   private led: Led[] = [];
   /** A stand being made: where, the waves still to come, and those who have. */
-  private battle?: { at: Spot; waves: Waves; sent: Realista[] };
+  private battle?: { at: Spot; waves: Waves; sent: Soldier[] };
   /** The plot the hero was last seen in, so the story is told only when it changes. */
   private plotWas = '';
   /** The orbs Inti's kills leave on the ground for a while. */
@@ -208,9 +212,9 @@ export class GameScene extends Phaser.Scene {
   private echoIn = 0;
   private enemies: Enemy[] = [];
   private chonchones: Chonchon[] = [];
-  private realistas: Realista[] = [];
+  private realistas: Soldier[] = [];
   /** The post each soldier who holds one stands at. */
-  private posts = new Map<Realista, Post>();
+  private posts = new Map<Soldier, Post>();
   /** What the royalists fire. */
   private shots!: Bolts;
   private abilities = new Abilities();
@@ -249,6 +253,7 @@ export class GameScene extends Phaser.Scene {
     }
     Chonchon.preload(this);
     Realista.preload(this);
+    Trooper.preload(this);
     Nahuel.preload(this);
     loadScenery(this);
     loadCountry(this);
@@ -305,7 +310,7 @@ export class GameScene extends Phaser.Scene {
     this.posts.clear();
     this.realistas = !his ? [] : held.length && map
       ? held.map(post => {
-        const soldier = new Realista(this, post.x, post.y, bounds).hold((x, y) => zoneAt(map, x, y) !== undefined);
+        const soldier = this.enlist(post.kind, post.x, post.y, bounds).hold((x, y) => zoneAt(map, x, y) !== undefined);
         this.posts.set(soldier, post);
         return soldier;
       })
@@ -720,9 +725,16 @@ export class GameScene extends Phaser.Scene {
         continue;
       }
       const drawn = feet && this.nahuel.lures(realista.ground, feet);
-      const { shot, cut } = realista.update(dt * tune.foes, drawn ? this.nahuel.ground : feet);
-      if (shot) this.shots.spawn(shot);
-      if (cut && !drawn) this.hurt();
+      const deed = realista.update(dt * tune.foes, drawn ? this.nahuel.ground : feet);
+      if (deed.shot) this.shots.spawn(deed.shot);
+      if (deed.cut && !drawn) this.hurt();
+      // A sergeant's shout quickens whoever of his own is within hearing.
+      const rally = (deed as { rally?: { reach: number; lasts: number } }).rally;
+      if (rally) {
+        for (const other of this.realistas) {
+          if (other !== realista && other.alive && ground(other.ground, at) <= rally.reach) other.hurry(rally.lasts);
+        }
+      }
     }
     this.useAbilities(dt, standing);
     this.unleash(dt, standing);
@@ -807,8 +819,7 @@ export class GameScene extends Phaser.Scene {
         const from = middle(stand.from), bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
         for (let n = 0; n < coming; n++) {
           // Abreast, a few paces apart.
-          const soldier = new Realista(this, from.x + (n - (coming - 1) / 2) * 46, from.y + (n % 2) * 18, bounds).sent((x, y) => zoneAt(map, x, y) !== undefined);
-          if (leads) soldier.commands(stand.leader!.life);
+          const soldier = this.enlist(leads ? stand.leader!.kind : undefined, from.x + (n - (coming - 1) / 2) * 46, from.y + (n % 2) * 18, bounds).sent((x, y) => zoneAt(map, x, y) !== undefined);
           this.realistas.push(soldier);
           sent.push(soldier);
           this.physics.add.overlap(this.bolts.bodies, soldier.zone, this.struck);
@@ -1400,6 +1411,11 @@ export class GameScene extends Phaser.Scene {
     this.board?.say(says);
   }
 
+  // One of the king's men of a kind, by its name: a fusilier, unless it is one of the others.
+  private enlist(kind: string | undefined, x: number, y: number, bounds: { minX: number; maxX: number; minY: number; maxY: number }): Soldier {
+    return kind && kind in KINDS ? new Trooper(this, kind as KindName, x, y) : new Realista(this, x, y, bounds);
+  }
+
   /** Whether anyone posted to hold the zone a place is in is still on their feet. */
   private held(at: Spot): boolean {
     const letter = this.map ? letterAt(this.map, ...at.plot) : undefined;
@@ -1452,6 +1468,11 @@ export class GameScene extends Phaser.Scene {
     foe.hit(dx, dy, amount * (stat ? this.growth.gives(stat) * this.pack.gives(stat) : 1));
     if (foe.alive) return;
     // Bringing it down is worth experience, and it leaves what it had on it.
+    if (foe instanceof Trooper) {
+      this.pack.gold += KINDS[foe.kind].spoils;
+      this.earn(KINDS[foe.kind].worth);
+      return;
+    }
     const kind = foe instanceof Realista ? 'realista' : foe instanceof Chonchon ? 'chonchon' : 'cubo';
     this.pack.gold += SPOILS[kind];
     this.earn(WORTH[kind]);

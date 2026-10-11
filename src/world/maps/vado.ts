@@ -14,16 +14,16 @@ export const vadoDeLasVizcachas: WorldMap = {
   zones: {
     P: { name: 'El pueblo', safe: true, edge: ['cortadera'], fence: 'stakes' },
     H: { name: 'Las chacras', foes: 3, edge: ['tuna', 'maiz'], scatter: { maiz: 0.05 } },
-    D: { name: 'El cardal', foes: 5, edge: ['cardo'] },
+    D: { name: 'El cardal', foes: 5, mix: ['sableador', 'fusilero', 'sableador', 'fusilero', 'sableador'], edge: ['cardo'] },
     B: { name: 'El campo de batalla', foes: 6, edge: ['cortadera'] },
-    M: { name: 'El bañado', foes: 4, edge: ['junco'], scatter: { junco: 0.08 }, water: 'marsh' },
+    M: { name: 'El bañado', foes: 4, mix: ['tirador', 'fusilero', 'tirador', 'fusilero'], edge: ['junco'], scatter: { junco: 0.08 }, water: 'marsh' },
     C: { name: 'El camino real', foes: 5, edge: ['cortadera'], scatter: { cortadera: 0.03 } },
-    T: { name: 'El monte de talas', foes: 6, edge: ['tala'], scatter: { tala: 0.16 } },
-    S: { name: 'La senda', foes: 5, edge: ['cardo'] },
+    T: { name: 'El monte de talas', foes: 6, mix: ['sargento', 'fusilero', 'fusilero', 'sableador', 'fusilero', 'sableador'], edge: ['tala'], scatter: { tala: 0.16 } },
+    S: { name: 'La senda', foes: 5, mix: ['sargento', 'sableador', 'fusilero', 'sableador', 'fusilero'], edge: ['cardo'] },
     K: { name: 'El páramo de la capilla', safe: true, edge: ['cortadera'], scatter: { tala: 0.03 }, fence: 'wall' },
-    1: { name: 'La Loma del Oeste', foes: 3, edge: ['cortadera'] },
-    2: { name: 'La Loma del Medio', foes: 4, edge: ['cortadera', 'cardo'] },
-    3: { name: 'La Loma del Este', foes: 3, edge: ['cortadera'] },
+    1: { name: 'La Loma del Oeste', foes: 3, mix: ['tirador', 'fusilero', 'fusilero'], edge: ['cortadera'] },
+    2: { name: 'La Loma del Medio', foes: 4, mix: ['tirador', 'fusilero', 'fusilero', 'tirador'], edge: ['cortadera', 'cardo'] },
+    3: { name: 'La Loma del Este', foes: 3, mix: ['tirador', 'fusilero', 'fusilero'], edge: ['cortadera'] },
     V: { name: 'El vado', foes: 4, edge: ['junco'], water: 'ford' },
     N: { name: 'La orilla norte', edge: ['cortadera', 'junco'] },
   },
@@ -144,7 +144,7 @@ export const vadoDeLasVizcachas: WorldMap = {
   ],
   spots: [
     // The same ford with the village behind him: more come, and their captain last; fewer if all the village asked was done.
-    { id: 'emboscada', name: 'El vado', plot: [62, 10], does: 'esperar a la columna con el pueblo', given: 'listo:emboscada', happening: 'planta:emboscada', note: 'Los paisanos están en los juncos. Ya vienen.', stand: { from: [62, 8], waves: [4, 5, 5], eased: { given: 'entera:emboscada', waves: [3, 4, 4] }, leader: { name: 'El capitán', life: 14 }, won: 'aguanto:emboscada' } },
+    { id: 'emboscada', name: 'El vado', plot: [62, 10], does: 'esperar a la columna con el pueblo', given: 'listo:emboscada', happening: 'planta:emboscada', note: 'Los paisanos están en los juncos. Ya vienen.', stand: { from: [62, 8], waves: [4, 5, 5], eased: { given: 'entera:emboscada', waves: [3, 4, 4] }, leader: { name: 'El capitán', kind: 'capitan' }, won: 'aguanto:emboscada' } },
     // The middle rise, where he is to be seen: the fire lit, the bell ringing behind. A vanguard comes to see whether it is true, unless everything was in place.
     { id: 'rebato', name: 'La Loma del Medio', plot: [61, 21], does: 'encender la fogata y esperar el alba', given: 'listo:rebato', happening: 'planta:rebato', note: 'La fogata prende. Atrás, lejos, empieza a sonar la campana.', stand: { from: [62, 17], waves: [4], eased: { given: 'entero:rebato', waves: [] }, won: 'aguanto:rebato' } },
     // The belfry: the bell comes down onto a cart, for whoever the village has sent for it.

@@ -63,6 +63,8 @@ export class RealistaBrain {
   private home: Vec;
   /** Whether he is back on his own a while after he falls. One who holds a post is not: he waits to be called. */
   returns = true;
+  /** Seconds he is quickened for, as by a sergeant's shout: he walks and reloads faster. */
+  quick = 0;
   /** He goes for whoever he is after however far off they are: he was sent, and does not have to catch sight of them. */
   relentless = false;
   /** The ground he can walk on, if not all of it. */
@@ -85,7 +87,8 @@ export class RealistaBrain {
   update(dt: number, her: Vec | null): Deed {
     this.t += dt;
     if (this.alive) {
-      this.reload = Math.max(0, this.reload - dt);
+      this.quick = Math.max(0, this.quick - dt);
+      this.reload = Math.max(0, this.reload - dt * (this.quick > 0 ? 1.5 : 1));
       this.rest = Math.max(0, this.rest - dt);
     }
     // Offset to her on the ground, and how far that is.
@@ -104,7 +107,7 @@ export class RealistaBrain {
         if (far <= RANGE && this.reload <= 0) { this.enter('aim'); return NOTHING; }
         // Out of range he closes; in range and reloading he comes on more
         // slowly, so standing off does not keep him at bay for ever.
-        const pace = far > RANGE ? WALK : WALK * 0.5;
+        const pace = (far > RANGE ? WALK : WALK * 0.5) * (this.quick > 0 ? 1.5 : 1);
         this.enter('walk');
         this.move(this.dir.x * pace * dt, this.dir.y * pace * dt);
         return NOTHING;

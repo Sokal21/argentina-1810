@@ -729,3 +729,25 @@ anotado al final.*
   la emboscada; entregar a Mateo no lo mata ni cierra el campanario; lo
   que se escolta se desliza en vez de caminar; después de un final el
   juego sigue en vez de volver al título.
+
+## Etapa 13 · Los enemigos
+
+Se adelantó a los edificios: con un solo tipo de soldado, todas las peleas
+del arco eran la misma.
+
+- **Primero qué te obliga a hacer cada uno, después cómo se ve.** Las
+  cuatro clases salieron de una pregunta: qué tiene que hacer distinto el
+  jugador. Uno que te corre, uno que no se mueve y hay que ir a buscar,
+  uno que conviene matar primero y uno que hay que aguantar. Con eso
+  escrito, un concepto por clase alcanzó.
+- **Un cerebro con parámetros, no cuatro.** El fusilero tenía el suyo; los
+  nuevos comparten uno (`src/tropa/brain.ts`) donde cada clase dice si
+  camina, tira, pega o arenga. Sumar una quinta es una línea y sus hojas.
+- **La mezcla es un dato de la zona.** Cada zona lista qué clases tiene
+  (`mix`); la guarnición, el despertar y el volver al puesto son los
+  mismos de la etapa 3.
+- **Sólo de frente.** Para cuidar créditos se animó una sola vista por
+  clase, espejada. Trece animaciones en vez de más de cuarenta.
+- **El capitán dejó de ser provisorio:** tiene dibujo y manera propia, y
+  es el jefe de la última tanda.
+- Detalle de cada uno en [`docs/personajes/tropa.md`](../personajes/tropa.md).

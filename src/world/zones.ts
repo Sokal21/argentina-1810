@@ -18,8 +18,10 @@ export interface Zone {
   scatter?: Record<string, number>;
   /** What people have put up along its edge, where it meets ground nobody can cross. */
   fence?: 'stakes' | 'wall';
-  /** How many soldiers hold it. */
+  /** How many soldiers hold it, */
   foes?: number;
+  /** and of what kinds, gone through in order man by man; all fusiliers, if unsaid. */
+  mix?: string[];
   /**
    * Water: `ford` is shallow water one wades through, `marsh` wet ground
    * with standing pools, and `shore` dry ground beside water, which makes
@@ -64,7 +66,7 @@ export interface Spot {
     /** Fewer come, if this has happened: what was done beforehand counts. */
     eased?: { given: string; waves: number[] };
     /** Whoever commands them comes last, alone, and takes this much to bring down. */
-    leader?: { name: string; life: number };
+    leader?: { name: string; kind: string };
   };
   /** Shown to the player when it is done. */
   note?: string;

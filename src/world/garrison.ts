@@ -8,7 +8,7 @@ import { letterAt, PLOT_H, PLOT_W, type WorldMap } from './zones';
 // so nobody is ever seen to appear.
 
 /** A soldier's post: where he stands, and the zone he holds. */
-export interface Post { x: number; y: number; letter: string }
+export interface Post { x: number; y: number; letter: string; /** What kind of soldier holds it; a fusilier, if unsaid. */ kind?: string }
 
 /** How many men stand together, at most. */
 export const PICKET = 3;
@@ -55,6 +55,8 @@ export function garrison(map: WorldMap, seed = 1): Post[] {
         x: Math.round((col + 0.5) * PLOT_W + Math.cos(turn) * out),
         y: Math.round((row + 0.5) * PLOT_H + Math.sin(turn) * out / 2),
         letter,
+        // The zone's own mix of kinds, gone through in order: its first man is its first kind.
+        kind: zone.mix?.[n % zone.mix.length],
       });
     }
   }

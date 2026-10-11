@@ -135,6 +135,11 @@ export class Realista {
     return this;
   }
 
+  /** Quickens him for a while, as a sergeant's shout does. */
+  hurry(seconds: number): void {
+    this.brain.quick = Math.max(this.brain.quick, seconds);
+  }
+
   /** Takes him off the field at once, for good. */
   dismiss(): void {
     this.brain.vanish();
