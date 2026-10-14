@@ -95,6 +95,11 @@ export interface Charge {
   who?: string;
   /** Shown to the player when it arrives. */
   note?: string;
+  /**
+   * Someone who walks rather than slides: their walk, drawn heading right, as a row of square
+   * frames: the side of one, how many, how many a second, and where the feet are in one.
+   */
+  walk?: { sheet: string; size: number; frames: number; rate: number; ax: number; up: number };
 }
 
 /** Something built, and the plot it stands in: for now a plain block of its size, until it is drawn. */

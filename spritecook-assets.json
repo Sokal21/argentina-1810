@@ -2010,6 +2010,11 @@
       "asset_id": "c4fa9c62-10fa-4e69-95a9-be5337eb88d4",
       "label": "royalist capitan: muerte — untouched",
       "file": "assets/tropa/capitan_muerte_original.png"
+    },
+    {
+      "asset_id": "0c1673a7-496f-40a3-8dce-6858d53a632f",
+      "label": "mateo: walk (8 frames, heading right)",
+      "file": "assets/mateo/camina_original.png"
     }
   ]
 }

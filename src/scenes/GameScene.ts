@@ -127,7 +127,7 @@ const TALK = { near: 52, heard: 84, trial: [-140, -80] as [number, number], stan
 /** Someone standing on the map: one to talk to (`npc`), or one who only says what the sign over them shows. */
 interface Talker { name: string; npc?: Npc; x: number; y: number; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image }; /** Somewhere something can be done, and the mark on the ground that says so. */ spot?: { at: Spot; mark: Phaser.GameObjects.Image }; /** Something waiting there to be led off. */ charge?: Led; /** Whoever stands there, to be hidden with them. */ figure?: Phaser.GameObjects.GameObject[]; /** Whether it is there to be dealt with at all just now; always, if unsaid. */ there?: () => boolean }
 /** Something being brought somewhere: what, where it is, its drawing and the bar of what it can still take, and whether it is on its way. */
-interface Led { at: Cargo; body: Escort; drawn: Phaser.GameObjects.Image; bar: Phaser.GameObjects.Rectangle; going: boolean }
+interface Led { at: Cargo; body: Escort; drawn: Phaser.GameObjects.Sprite; bar: Phaser.GameObjects.Rectangle; going: boolean }
 // How near a named place counts as having come to it, in plots; and how many blows of life a bandage gives back.
 const ARRIVED = 1, MENDS = 2;
 // The sign over them comes up and goes out over this long, in seconds.
@@ -273,6 +273,7 @@ export class GameScene extends Phaser.Scene {
     for (const { idle } of everyone) if (idle) this.load.spritesheet(idle.sheet, idle.sheet, { frameWidth: idle.size, frameHeight: idle.size });
     for (const { sprite } of Object.values(THINGS)) this.load.image(sprite, sprite);
     for (const sprite of new Set(Object.values(MAPS).flatMap(map => map?.charges ?? []).map(c => c.sprite))) this.load.image(sprite, sprite);
+    for (const { walk } of Object.values(MAPS).flatMap(map => map?.charges ?? [])) if (walk) this.load.spritesheet(walk.sheet, walk.sheet, { frameWidth: walk.size, frameHeight: walk.size });
     for (const sprite of new Set(Object.values(MAPS).flatMap(map => map?.spots ?? []).flatMap(spot => spot.sprite ?? []))) this.load.image(sprite, sprite);
   }
 
@@ -481,7 +482,11 @@ export class GameScene extends Phaser.Scene {
       for (const at of this.map?.charges ?? []) {
         if (!this.textures.exists(at.sprite)) continue;
         const { x, y } = middle(at.from);
-        const drawn = this.add.image(x, y, at.sprite).setOrigin(0.5, 1).setDepth(y).setVisible(false);
+        const drawn = this.add.sprite(x, y, at.sprite).setOrigin(0.5, 1).setDepth(y).setVisible(false);
+        const { walk } = at;
+        if (walk && this.textures.exists(walk.sheet) && !this.anims.exists(walk.sheet)) {
+          this.anims.create({ key: walk.sheet, frames: this.anims.generateFrameNumbers(walk.sheet, { start: 0, end: walk.frames - 1 }), frameRate: walk.rate, repeat: -1 });
+        }
         const bar = this.add.rectangle(x, y - drawn.height - 4, 24, 3, 0xd23c2a).setDepth(1e6).setVisible(false);
         const hint = this.add.text(x, y - drawn.height - 10, prompt('F', at.does), {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
@@ -815,12 +820,20 @@ export class GameScene extends Phaser.Scene {
       body.follow(dt, this.machi);
       const hurt = body.harm(dt, this.realistas.filter(soldier => soldier.alive).map(soldier => soldier.ground));
       if (hurt) this.sparks.emitParticleAt(body.x, body.y - 20, 6);
-      drawn.setPosition(Math.round(body.x), Math.round(body.y)).setDepth(body.y).setFlipX(this.machi.x < body.x);
+      drawn.setPosition(Math.round(body.x), Math.round(body.y)).setDepth(body.y).setFlipX(body.facing < 0);
+      // Whoever walks is seen walking while they go, and stands as drawn while they wait.
+      const { walk } = at;
+      if (walk && this.anims.exists(walk.sheet)) {
+        if (body.moving && drawn.anims.currentAnim?.key !== walk.sheet) drawn.play(walk.sheet);
+        else if (!body.moving && drawn.anims.isPlaying) drawn.stop().setTexture(at.sprite).setOrigin(0.5, 1);
+        if (body.moving) drawn.setDisplayOrigin(body.facing < 0 ? walk.size - walk.ax : walk.ax, walk.size - walk.up);
+      }
       bar.setPosition(Math.round(body.x), Math.round(body.y) - drawn.height - 4).setSize(24 * body.life / body.max, 3);
       const to = middle(at.to);
       if (body.lost) this.lose(charge, `${at.name}: se perdió por el camino. Hay que volver a buscarla.`);
       else if (body.at(to, PLOT_W * 1.2)) {
         charge.going = false;
+        this.halt(charge);
         if (at.note) this.board?.say(at.note);
         this.story?.tell(at.happening);
       }
@@ -1485,10 +1498,16 @@ export class GameScene extends Phaser.Scene {
     return true;
   }
 
+  // Whoever was walking stands as drawn.
+  private halt(charge: Led): void {
+    if (charge.drawn.anims.isPlaying) charge.drawn.stop().setTexture(charge.at.sprite).setOrigin(0.5, 1);
+  }
+
   // What was being brought is lost: it is back where it waited, whole, to be led off again.
   private lose(charge: Led, says: string): void {
     charge.going = false;
     charge.body.reset();
+    this.halt(charge);
     charge.drawn.setPosition(charge.body.x, charge.body.y).setDepth(charge.body.y);
     this.board?.say(says);
   }
