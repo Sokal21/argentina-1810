@@ -160,4 +160,32 @@ export class Story {
     if (news.length) for (const listener of this.listeners) listener(news);
     return news;
   }
+
+  /**
+   * For trying things out: makes happen whatever moves a mission one step on, as if it had been
+   * done in the game. One not yet open is opened by its first door; one under way has the step
+   * it is on done. Says what was made to happen, or nothing if the mission is done or unknown.
+   */
+  advance(id: string): string[] {
+    const quest = this.quests.find(q => q.id === id);
+    if (!quest || this.isDone(id)) return [];
+    const done = this.progress.get(id);
+    if (done === undefined) {
+      this.tell(quest.opens[0]);
+      return [quest.opens[0]];
+    }
+    const step = quest.steps[done];
+    const wanted = step.when?.length ? [step.when[0]] : (step.all ?? []).filter(a => !this.seen.has(a));
+    for (const happening of wanted) this.tell(happening);
+    return wanted;
+  }
+
+  /** For trying things out: opens a mission if it is not, and does every step of it. */
+  finish(id: string): string[] {
+    const told: string[] = [];
+    // Never more times than it has steps and a door: a step that cannot be done is not tried for ever.
+    const quest = this.quests.find(q => q.id === id);
+    for (let i = 0; quest && i <= quest.steps.length && !this.isDone(id); i++) told.push(...this.advance(id));
+    return told;
+  }
 }

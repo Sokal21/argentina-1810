@@ -1462,6 +1462,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** For trying things out: the places on this map one can be set down at, people first. */
+  /** For trying things out: the story of the map being played, if it has one. */
+  get tale(): Story | undefined {
+    return this.story;
+  }
+
   get places(): { name: string; x: number; y: number }[] {
     return [
       ...this.talkers.map(t => ({ name: t.name, x: t.x, y: t.y })),

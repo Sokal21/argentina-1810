@@ -37,6 +37,8 @@ const STYLE = `
  * developing.
  */
 export function mountDevPanel(game: Phaser.Game): void {
+  // The buttons played by touch make room for it.
+  document.body.classList.add('dev');
   const scene = () => (game.scene.isActive('game') ? game.scene.getScene('game') as GameScene : null);
   document.head.appendChild(Object.assign(document.createElement('style'), { textContent: STYLE }));
 
@@ -85,12 +87,12 @@ export function mountDevPanel(game: Phaser.Game): void {
   heading('Definitiva');
   (['orbs', 'orbLife', 'blows', 'rage', 'beast'] as DialName[]).forEach(slider);
 
-  heading('Voz de los personajes');
+  // Who answers for the people can only be changed while developing: published, it is always what was written.
   const voices = Object.assign(document.createElement('select'), { style: 'width:100%;font:inherit;background:#2a231c;color:#e6d8b8;border:1px solid #5a4a38;padding:3px' });
   voices.replaceChildren(...Object.entries(VOICES).map(([name, label]) => new Option(label, name)));
   voices.value = voiceName();
   voices.addEventListener('change', () => { setVoice(voices.value as VoiceName); voices.blur(); });
-  panel.appendChild(voices);
+  if (import.meta.env.DEV) panel.append(Object.assign(document.createElement('h4'), { textContent: 'Voz de los personajes' }), voices);
 
   heading('Ir a');
   // Filled each time it is opened: the places are those of whatever map is being played.
@@ -105,6 +107,38 @@ export function mountDevPanel(game: Phaser.Game): void {
   panel.appendChild(places);
   // And each time the panel is opened, so the list is never that of a game not yet begun.
   gear.addEventListener('click', fill);
+
+  heading('Misiones');
+  // Each mission with how far along it is; the buttons make happen what moves it on, as if it
+  // had been done in the game, so a mission late in the story can be tried without playing up to it.
+  const quests = Object.assign(document.createElement('select'), { style: 'width:100%;font:inherit;background:#2a231c;color:#e6d8b8;border:1px solid #5a4a38;padding:3px;margin-bottom:6px' });
+  const told = Object.assign(document.createElement('div'), { style: 'margin-top:6px;color:#8fd18a;word-break:break-word' });
+  const list = () => {
+    const story = scene()?.tale, kept = quests.value;
+    if (!story?.quests.length) { quests.replaceChildren(new Option('Este mapa no tiene misiones', '')); return; }
+    const under = new Map(story.current.map(({ quest, step }) => [quest.id, quest.steps.indexOf(step)]));
+    quests.replaceChildren(...story.quests.map(quest => {
+      const state = story.isDone(quest.id) ? '✓' : under.has(quest.id) ? `▶ ${under.get(quest.id)! + 1}/${quest.steps.length}` : '○';
+      return new Option(`${state}  ${quest.name}`, quest.id);
+    }));
+    if (kept && story.quests.some(q => q.id === kept)) quests.value = kept;
+  };
+  quests.addEventListener('mousedown', list);
+  quests.addEventListener('change', () => quests.blur());
+  panel.appendChild(quests);
+  const moves = row();
+  const move = (text: string, act: (story: NonNullable<GameScene['tale']>, id: string) => string[]) =>
+    button(moves, text, s => {
+      const story = s.tale;
+      if (!story || !quests.value) return;
+      const happened = act(story, quests.value);
+      told.textContent = happened.length ? `Pasó: ${happened.join(', ')}` : 'Ya está cumplida.';
+      list();
+    });
+  move('Siguiente paso', (story, id) => story.advance(id));
+  move('Cumplirla', (story, id) => story.finish(id));
+  panel.appendChild(told);
+  gear.addEventListener('click', list);
 
   heading('Enemigos');
   const foes = row();

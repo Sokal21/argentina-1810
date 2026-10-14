@@ -36,6 +36,9 @@ const game = new Phaser.Game({
 if (import.meta.env.DEV) {
   (globalThis as { game?: Phaser.Game }).game = game;
   // The panel and its sliders exist only here; the published build drops them.
+}
+// The panel for trying things out: always while developing, and in the published game with ?dev.
+if (import.meta.env.DEV || new URLSearchParams(location.search).has('dev')) {
   void import('./devPanel').then(({ mountDevPanel }) => mountDevPanel(game));
 }
 

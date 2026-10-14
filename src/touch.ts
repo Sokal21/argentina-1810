@@ -130,7 +130,6 @@ export function mountTouch(game: Phaser.Game): void {
   }
   if (!touch.on || document.getElementById('pad')) return;
   document.body.classList.add('touch');
-  if (import.meta.env.DEV) document.body.classList.add('dev');
   document.head.appendChild(Object.assign(document.createElement('style'), { textContent: STYLE }));
   const pad = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'pad', hidden: true }));
   pad.style.setProperty('--hud', `${tall}px`);

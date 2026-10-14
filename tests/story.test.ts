@@ -247,3 +247,24 @@ describe('the two ends with others', () => {
     expect(story.has('final:solo')).toBe(true);
   });
 });
+
+describe('trying missions out', () => {
+  it('opens one by its first door, then does its steps one at a time, then has nothing left to do', () => {
+    const story = new Story(VADO, RULES);
+    const quest = VADO[0];
+    expect(story.advance(quest.id)).toEqual([quest.opens[0]]);
+    expect(story.isOpen(quest.id)).toBe(true);
+    const told = story.finish(quest.id);
+    expect(story.isDone(quest.id)).toBe(true);
+    expect(told.length).toBeGreaterThan(0);
+    expect(story.advance(quest.id)).toEqual([]);
+  });
+
+  it('can finish every mission of the ford, each from the start of the story', () => {
+    for (const quest of VADO) {
+      const story = new Story(VADO, RULES);
+      story.finish(quest.id);
+      expect(story.isDone(quest.id), quest.id).toBe(true);
+    }
+  });
+});
