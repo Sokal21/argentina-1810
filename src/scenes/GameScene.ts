@@ -46,6 +46,7 @@ import { Waves } from '../world/waves';
 import { Escort } from '../world/escort';
 import { showEnding } from '../story/ending';
 import { prompt, touch } from '../touch';
+import { Indoors, ROOMS, type Entering } from '../world/inside';
 import { grownOf, keep, load, ownedOf, regrow, repack, type Saved } from '../save';
 import { keptTalks, restoreTalks } from '../npc/dialog';
 import { mountBoard } from '../story/board';
@@ -222,6 +223,8 @@ export class GameScene extends Phaser.Scene {
   private sight = new Sight();
   /** The ground taken up by what is built on the map. */
   private built: Footprint[] = [];
+  /** The buildings that are drawn, and going into them. */
+  private indoors?: Indoors;
   /** How far the world reaches, in sprite pixels. */
   private size = FIELD;
   private start = { x: FIELD.width / 2, y: FIELD.height / 2 };
@@ -279,6 +282,11 @@ export class GameScene extends Phaser.Scene {
     for (const { idle } of everyone) if (idle) this.load.spritesheet(idle.sheet, idle.sheet, { frameWidth: idle.size, frameHeight: idle.size });
     for (const { sprite } of Object.values(THINGS)) this.load.image(sprite, sprite);
     for (const sprite of new Set(Object.values(MAPS).flatMap(map => map?.charges ?? []).map(c => c.sprite))) this.load.image(sprite, sprite);
+    // The buildings that are drawn, and the rooms inside them.
+    for (const b of Object.values(MAPS).flatMap(map => map?.buildings ?? [])) {
+      if (b.sprite) this.load.image(b.sprite, b.sprite);
+      if (b.inside) this.load.image(b.inside.sprite, b.inside.sprite);
+    }
     for (const { walk } of Object.values(MAPS).flatMap(map => map?.charges ?? [])) if (walk) this.load.spritesheet(walk.sheet, walk.sheet, { frameWidth: walk.size, frameHeight: walk.size });
     for (const sprite of new Set(Object.values(MAPS).flatMap(map => map?.spots ?? []).flatMap(spot => spot.sprite ?? []))) this.load.image(sprite, sprite);
   }
@@ -293,6 +301,10 @@ export class GameScene extends Phaser.Scene {
     if (this.map) layGround(this, this.map);
     else this.drawGround();
     this.built = this.map ? raiseBuildings(this, this.map) : [];
+    // How one goes into a building is still being tried: ?entrar=directo, or by default through a fade.
+    const entering = new URLSearchParams(location.search).get('entrar') === 'directo' ? 'directo' : 'fundido';
+    this.indoors = this.map ? new Indoors(this, this.map, entering as Entering) : undefined;
+    if (this.indoors && this.map) this.indoors.bounds = extent(this.map);
     // The plants first: the fences are drawn from their picture.
     this.country = this.map?.bare ? new Country(this, this.map, this.sight) : undefined;
     if (this.map?.bare) raiseFences(this, this.map, this.sight);
@@ -433,7 +445,8 @@ export class GameScene extends Phaser.Scene {
     this.talkers = [];
     {
       // Whoever the map names, each in their plot; on one that names nobody, while developing, the innkeeper, to try things on.
-      const named = this.map?.people?.map(({ who, plot, faces }) => ({ npc: PEOPLE[who], ...middle(plot), left: faces === 'left' })).filter(p => p.npc)
+      // Whoever is indoors stands in the room; the rest, on their plot.
+      const named = this.map?.people?.map(({ who, plot, faces, inside }) => ({ npc: PEOPLE[who], ...(inside && this.indoors?.spot(inside.building, inside.at) || middle(plot)), left: faces === 'left' })).filter(p => p.npc)
         ?? (import.meta.env.DEV ? [{ npc: BRAULIO, x: this.start.x + TALK.trial[0], y: this.start.y + TALK.trial[1], left: false }] : []);
       for (const { npc, x, y, left } of named) {
         const shade = this.add.ellipse(x, y, 22, 8, 0x000000, 0.28).setDepth(y - 0.5);
@@ -648,7 +661,13 @@ export class GameScene extends Phaser.Scene {
       this.vitals.life = this.vitals.max;
       this.plotWas = '';
       this.story?.tell('empieza');
-      if (saved) { this.machi.x = saved.at.x; this.machi.y = saved.at.y; this.stood = { ...saved.at }; }
+      if (saved) {
+        // Inside somewhere they are put back in the room; anywhere off the map's ground, back where the story starts.
+        const indoors = !!saved.inside && !!this.indoors?.resume(saved.inside);
+        const lost = !indoors && (!this.map || !zoneAt(this.map, saved.at.x, saved.at.y));
+        const at = lost ? this.start : saved.at;
+        this.machi.x = at.x; this.machi.y = at.y; this.stood = { ...at };
+      }
       this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.board?.remove());
       // The game is kept every few seconds, and whenever the page is left or hidden.
       const leaving = () => { if (document.visibilityState === 'hidden') this.keep(); };
@@ -677,6 +696,8 @@ export class GameScene extends Phaser.Scene {
     const cam = this.cameras.main;
     cam.setZoom(ZOOM);
     cam.setBounds(0, 0, this.size.width, this.size.height);
+    // A room somewhere of its own is past the map's edge: the camera is not kept off it.
+    if (this.indoors?.indoors && this.indoors.mode === 'fundido') cam.removeBounds();
     cam.setRoundPixels(true);
     // Follow her feet, framed a little above them so her body is centred.
     cam.startFollow(this.shadow, true, 1, 1, 0, CHEST);
@@ -739,11 +760,21 @@ export class GameScene extends Phaser.Scene {
         this.machi.y = clear.y;
       }
     }
-    if (this.map) {
+    // Inside, the floor of the room holds them; outside, the map's ground.
+    if (this.indoors?.indoors) {
+      const held = this.indoors.hold(from, this.machi);
+      this.machi.x = held.x;
+      this.machi.y = held.y;
+    } else if (this.map) {
+      const clear = this.indoors?.block(from, this.machi) ?? this.machi;
+      this.machi.x = clear.x;
+      this.machi.y = clear.y;
       const held = walk(this.map, from, this.machi);
       this.machi.x = held.x;
       this.machi.y = held.y;
     }
+    this.indoors?.check(this.machi);
+    this.indoors?.update(this.time.now);
     this.forest?.reveal(this.machi, dt);
     this.country?.reveal(this.machi, dt);
     this.meadow?.follow();
@@ -1151,7 +1182,8 @@ export class GameScene extends Phaser.Scene {
 
   // Puts a character on the field at a spot, with their own art.
   private enter(hero: Hero, at: Vec): MachiController {
-    const body = new MachiController({ minX: 12, maxX: this.size.width - 12, minY: FRAME, maxY: this.size.height - 6 }, KITS[hero]);
+    // Below the map is room for the rooms that are somewhere of their own: the map's ground keeps them off it otherwise.
+    const body = new MachiController({ minX: 12, maxX: this.size.width - 12, minY: FRAME, maxY: this.size.height + ROOMS }, KITS[hero]);
     body.x = at.x;
     body.y = at.y;
     return body;
@@ -1627,6 +1659,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.story || !this.stood) return;
     keep(this.hero, {
       at: { x: Math.round(this.stood.x), y: Math.round(this.stood.y) },
+      inside: this.indoors?.within,
       growth: grownOf(this.growth),
       pack: ownedOf(this.pack),
       flask: this.flask.left,

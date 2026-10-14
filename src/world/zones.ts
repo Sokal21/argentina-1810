@@ -112,6 +112,23 @@ export interface Building {
   deep: number;
   tall: number;
   colour: number;
+  /** Its drawing, which stands on the plot by the middle of its foot; without one it is a block. */
+  sprite?: string;
+  /** In the drawing's own pixels: the corners of the ground it stands on, and where its door is. */
+  base?: [number, number][];
+  door?: [number, number];
+  /**
+   * Its inside, for one that can be gone into: the drawing of the room, how many times its size
+   * it is shown, and in its own pixels the corners of its floor, the door, and where one arrives.
+   */
+  inside?: {
+    sprite: string; scale?: number; floor: [number, number][]; door: [number, number]; arrive: [number, number];
+    /** What stands in the room and hides whoever is behind it, nor can be walked through: the outline of each in the drawing. */
+    furniture?: [number, number][][];
+    /** Fires burning in it: the box of each one's flames in the drawing; and how far their light carries, in world pixels. */
+    fires?: [number, number, number, number][];
+    light?: number;
+  };
 }
 
 export interface WorldMap {
@@ -129,7 +146,11 @@ export interface WorldMap {
   bare?: boolean;
   buildings?: Building[];
   /** Who can be talked to, by the name the game knows them under, and the plot each stands in. */
-  people?: { who: string; plot: [number, number]; /** Which way they look across the screen; right if unsaid. */ faces?: 'left' | 'right' }[];
+  people?: {
+    who: string; plot: [number, number]; /** Which way they look across the screen; right if unsaid. */ faces?: 'left' | 'right';
+    /** Someone who is indoors: the building, and where they stand in its room's drawing. */
+    inside?: { building: string; at: [number, number] };
+  }[];
   /** What lies about to be picked up, by the name the story knows it under, and the plot each lies in. */
   things?: { what: string; plot: [number, number]; /** It lies there only once this has happened in the story. */ given?: string }[];
   /** Places where something can be done, once. */

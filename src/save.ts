@@ -15,6 +15,8 @@ const KEY = (hero: Hero) => `1810.partida.${hero}`;
 export interface Saved {
   v: number;
   at: { x: number; y: number };
+  /** The building they were inside, if they were. */
+  inside?: string;
   growth: { level: number; xp: number; points: number; spent: Record<Stat, number> };
   pack: { gold: number; bag: Record<string, number>; worn: Partial<Record<Place, string>>; owned: string[] };
   flask: number;

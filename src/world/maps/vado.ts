@@ -111,7 +111,7 @@ export const vadoDeLasVizcachas: WorldMap = {
   // Who can be talked to, and where: the innkeeper at his door, the friar before
   // his chapel with the boy beside him, and the deserter round by the sacristy.
   people: [
-    { who: 'braulio', plot: [9, 46] },
+    { who: 'braulio', plot: [9, 46], inside: { building: 'La posada', at: [182, 158] } },
     // He looks down the path, the way anyone comes.
     { who: 'anselmo', plot: [117, 21], faces: 'left' },
     { who: 'tobias', plot: [119, 21] },
@@ -159,7 +159,14 @@ export const vadoDeLasVizcachas: WorldMap = {
   ],
   trails: [{ from: [59, 37], to: 'S' }],
   buildings: [
-    { name: 'La posada', plot: [10, 45], wide: 150, deep: 46, tall: 44, colour: 0x8a7a5c },
+    { name: 'La posada', plot: [10, 45], wide: 150, deep: 46, tall: 44, colour: 0x8a7a5c, sprite: 'edificios/posada.png', base: [[20, 200], [140, 240], [330, 195], [210, 155]], door: [205, 229],
+      inside: {
+        sprite: 'edificios/posada_adentro.png', scale: 1.6, floor: [[14, 177], [160, 118], [305, 173], [153, 238]], door: [52, 168], arrive: [70, 178],
+        // The counter, with whoever keeps it behind.
+        furniture: [[[140, 92], [248, 126], [248, 160], [140, 128]]],
+        // The hearth.
+        fires: [[95, 112, 24, 30]], light: 230,
+      } },
     { name: 'La fragua', plot: [14, 44], wide: 60, deep: 30, tall: 34, colour: 0x5e5248 },
     { name: 'El rancho quemado', plot: [7, 43], wide: 80, deep: 34, tall: 22, colour: 0x2e2a26 },
     { name: 'La tapera', plot: [92, 32], wide: 70, deep: 32, tall: 20, colour: 0x6f6654 },

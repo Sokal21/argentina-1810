@@ -104,6 +104,8 @@ export class Country {
 export function raiseBuildings(scene: Phaser.Scene, map: WorldMap): Footprint[] {
   const taken: Footprint[] = [];
   for (const b of map.buildings ?? []) {
+    // One that is drawn is stood up by whoever goes into it.
+    if (b.sprite && scene.textures.exists(b.sprite)) continue;
     const { x, y } = middle(b.plot);
     const colour = (share: number) => {
       const part = (shift: number) => Math.round(((b.colour >> shift) & 0xff) * share) << shift;
