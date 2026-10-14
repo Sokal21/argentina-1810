@@ -127,6 +127,13 @@ export interface Building {
     sprite: string; scale?: number; floor: [number, number][]; door: [number, number]; arrive: [number, number];
     /** What stands in the room and hides whoever is behind it, nor can be walked through: the outline of each in the drawing. */
     furniture?: [number, number][][];
+    /**
+     * What hides whoever is behind it but is walked round as part of something larger: a row of
+     * benches is gone round as one, not threaded through. And the ground taken up by each such
+     * larger thing, which is only kept off.
+     */
+    screens?: [number, number][][];
+    blocks?: [number, number][][];
     /** Fires burning in it: the box of each one's flames in the drawing; and how far their light carries, in world pixels. */
     fires?: [number, number, number, number][];
     light?: number;

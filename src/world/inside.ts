@@ -51,7 +51,7 @@ interface Drawn {
   base: Vec[];
   /** The door, outside, in the world. */
   door: Vec;
-  room?: { image: Phaser.GameObjects.Image; floor: Vec[]; door: Vec; arrive: Vec; back?: Phaser.GameObjects.Rectangle; place: (p: [number, number]) => Vec; furniture: { pieces: Phaser.GameObjects.Image[]; poly: Vec[] }[]; fires: Hearth[] };
+  room?: { image: Phaser.GameObjects.Image; floor: Vec[]; door: Vec; arrive: Vec; back?: Phaser.GameObjects.Rectangle; place: (p: [number, number]) => Vec; furniture: { pieces: Phaser.GameObjects.Image[]; poly: Vec[]; solid: boolean }[]; blocks: Vec[][]; fires: Hearth[] };
 }
 
 export class Indoors {
@@ -88,7 +88,8 @@ export class Indoors {
         const image = scene.add.image(origin.x, origin.y, inside.sprite).setOrigin(0, 0).setScale(k).setDepth(-1e6 + 6).setAlpha(mode === 'directo' ? 0 : 1);
         const back = mode === 'fundido' ? scene.add.rectangle(image.x + image.displayWidth / 2, image.y + image.displayHeight / 2, image.displayWidth + 2400, image.displayHeight + 1600, 0x07060a).setDepth(-1e6 + 5) : undefined;
         // What stands in the room and hides whoever is behind it: cut out of the room's drawing, it is drawn again over them.
-        const furniture = (inside.furniture ?? []).map((cut, n) => {
+        const cuts = [...(inside.furniture ?? []).map(cut => ({ cut, solid: true })), ...(inside.screens ?? []).map(cut => ({ cut, solid: false }))];
+        const furniture = cuts.map(({ cut, solid }, n) => {
           const poly = cut.map(place);
           const key = `${inside.sprite}:mueble${n}`;
           if (!scene.textures.exists(key)) {
@@ -102,7 +103,7 @@ export class Indoors {
             g.drawImage(src, 0, 0);
             tex.refresh();
           }
-          return { pieces: slices(scene, key, origin, poly, k), poly };
+          return { pieces: slices(scene, key, origin, poly, k), poly, solid };
         });
         if (mode === 'directo') for (const piece of furniture) for (const p of piece.pieces) p.setAlpha(0);
         // Its fires, burning over the drawn ones, and the light they throw.
@@ -110,7 +111,7 @@ export class Indoors {
           const corner = place([fx, fy]);
           return new Hearth(scene, { x: corner.x, y: corner.y, w: fw * k, h: fh * k }, k, inside.light ?? 160, -1e6 + 6.5);
         });
-        one.room = { image, floor: inside.floor.map(place), door: place(inside.door), arrive: place(inside.arrive), back, place, furniture, fires };
+        one.room = { image, floor: inside.floor.map(place), door: place(inside.door), arrive: place(inside.arrive), back, place, furniture, blocks: (inside.blocks ?? []).map(b => b.map(place)), fires };
       }
       this.drawn.push(one);
     }
@@ -183,7 +184,7 @@ export class Indoors {
   hold(from: Vec, to: Vec): Vec {
     const room = this.inside?.room;
     if (!room) return { ...to };
-    return slide(from, to, p => within(p, room.floor) && !room.furniture.some(f => within(p, f.poly)));
+    return slide(from, to, p => within(p, room.floor) && !room.furniture.some(f => f.solid && within(p, f.poly)) && !room.blocks.some(b => within(p, b)));
   }
 
   /** Takes the hero in through a door they have come to, or out through one inside. */

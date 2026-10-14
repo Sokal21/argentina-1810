@@ -176,13 +176,17 @@ export const vadoDeLasVizcachas: WorldMap = {
     { name: 'La capilla', plot: [118, 19], wide: 110, deep: 50, tall: 62, colour: 0xd9d2bf, sprite: 'edificios/capilla.png', base: [[18, 207], [150, 250], [340, 170], [208, 127]], door: [80, 232],
       inside: {
         sprite: 'edificios/capilla_adentro.png', scale: 1.6, floor: [[18, 178], [155, 132], [296, 178], [150, 236]], door: [52, 172], arrive: [72, 180],
-        // The altar and its step, the four benches and the two cots.
+        // The altar and its step, and the two cots.
         furniture: [
           [[150, 130], [173, 108], [240, 118], [233, 160]],
-          [[100, 127], [110, 122], [146, 140], [136, 156]], [[75, 141], [86, 136], [120, 155], [108, 168]],
-          [[157, 152], [168, 147], [203, 166], [192, 181]], [[132, 166], [143, 160], [178, 178], [166, 195]],
           [[207, 180], [260, 155], [290, 170], [237, 200]], [[130, 213], [190, 188], [213, 200], [155, 232]],
         ],
+        // The four benches, in two rows: each row is walked round as one.
+        screens: [
+          [[100, 127], [110, 122], [146, 140], [136, 156]], [[75, 141], [86, 136], [120, 155], [108, 168]],
+          [[157, 152], [168, 147], [203, 166], [192, 181]], [[132, 166], [143, 160], [178, 178], [166, 195]],
+        ],
+        blocks: [[[73, 142], [108, 120], [149, 140], [110, 170]], [[130, 166], [166, 146], [206, 166], [168, 197]]],
         // Its candles: light without a hearth.
         fires: [[200, 97, 0, 0]], light: 200,
       } },
