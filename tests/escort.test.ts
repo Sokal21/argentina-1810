@@ -54,3 +54,14 @@ test('lost, it is put back where it began, whole', () => {
   escort.reset();
   expect([escort.x, escort.y, escort.life]).toEqual([5, 7, 2]);
 });
+
+test('led off and brought back past it, it turns back too instead of walking the loop out and back', () => {
+  const escort = new Escort({ x: 0, y: 0 }, 5, 40);
+  led(escort, 200, 2);   // the leader is far ahead; it has only begun to follow
+  const outward = escort.x;
+  // He turns and walks back past it, and on beyond it the other way.
+  for (let x = 200; x >= -200; x -= 4) escort.follow(0.05, { x, y: 0 });
+  // It never went on out after him toward where he had been, and now it heads the way he went.
+  expect(escort.x).toBeLessThan(outward);
+  expect(escort.facing).toBe(-1);
+});
