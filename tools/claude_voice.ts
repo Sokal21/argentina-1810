@@ -44,10 +44,16 @@ export function claudeVoice(): Plugin {
     name: 'claude-voice',
     apply: 'serve',
     configureServer(server) {
+      // Only this machine may speak through Claude or the local model, even when the server is open
+      // to the network. A tunnel connects from this machine too, so the address is not enough: what
+      // comes through one names another host, and is turned away.
+      const ours = (req: { socket: { remoteAddress?: string }; headers: Record<string, string | string[] | undefined> }) =>
+        ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress ?? '')
+        && /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(String(req.headers.host ?? ''))
+        && !req.headers['x-forwarded-for'] && !req.headers['cf-connecting-ip'];
+      server.middlewares.use('/ollama', (req, res, next) => { if (ours(req)) next(); else { res.statusCode = 403; res.end(); } });
       server.middlewares.use('/claude', (req, res) => {
-        // Only this machine may speak through it, even when the server is open to the network.
-        const from = req.socket.remoteAddress ?? '';
-        if (req.method !== 'POST' || !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(from)) { res.statusCode = 403; res.end(); return; }
+        if (req.method !== 'POST' || !ours(req)) { res.statusCode = 403; res.end(); return; }
         let body = '';
         req.on('data', chunk => { body += chunk; if (body.length > 64_000) req.destroy(); });
         req.on('end', () => {

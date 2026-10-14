@@ -12,6 +12,8 @@ export default defineConfig({
   plugins: [claudeVoice()],
   // While developing, the characters one can talk to are voiced by a model
   // running on this machine: /ollama is passed on to it.
-  server: { proxy: { '/ollama': { target: 'http://127.0.0.1:11434', changeOrigin: true, rewrite: path => path.replace(/^\/ollama/, '') } } },
+  // A tunnel's address is let in too, to try the game on a phone from anywhere; what it may reach is
+  // limited in tools/claude_voice.ts.
+  server: { allowedHosts: ['.trycloudflare.com'], proxy: { '/ollama': { target: 'http://127.0.0.1:11434', changeOrigin: true, rewrite: path => path.replace(/^\/ollama/, '') } } },
   test: { include: ['tests/**/*.test.ts'] },
 });
