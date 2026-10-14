@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BLOW, CALM, EBB, FURY, Fury, WOUND } from '../src/machi/fury';
-
-const DT = 1 / 60;
-const wait = (f: Fury, seconds: number) => { for (let t = 0; t < seconds; t += DT) f.update(DT); };
+import { BLOW, FURY, Fury, WOUND } from '../src/machi/fury';
 
 describe('fury', () => {
   it('starts empty and is earned by landing blows and by taking them', () => {
@@ -19,19 +16,12 @@ describe('fury', () => {
     expect(f.value).toBe(FURY);
   });
 
-  it('keeps while he fights, and ebbs away once he has been left alone a while', () => {
+  it('keeps what was earned, however long he goes without fighting', () => {
     const f = new Fury();
     f.gain(50);
-    wait(f, CALM - 0.1);
+    // Nothing takes it away but spending it or falling: it has no way to ebb.
+    expect('update' in f).toBe(false);
     expect(f.value).toBe(50);
-    wait(f, 1.1);
-    expect(f.value).toBeCloseTo(50 - EBB, 0);
-    f.gain(BLOW);
-    const held = f.value;
-    wait(f, CALM - 0.1);
-    expect(f.value).toBe(held);
-    wait(f, 20);
-    expect(f.value).toBe(0);
   });
 
   it('pays for an ability only when there is enough', () => {

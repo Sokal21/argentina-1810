@@ -65,7 +65,9 @@ Los números son los vigentes al escribir esto. Viven en `src/machi/data.ts`
 
 - Sube **12** por cada enemigo que alcanza un sablazo.
 - Sube **20** por cada golpe que recibe.
-- Si pasa **4 segundos** sin pegar ni recibir, baja 10 por segundo.
+- **No baja con el tiempo**: lo que ganó lo guarda hasta gastarlo. Antes
+  bajaba 10 por segundo tras 4 sin pelear, y así costaba juntar para el
+  mosquete o la granada; el usuario pidió sacarlo.
 - Se pierde entera al morir.
 - Las habilidades la gastan y **no** la cargan.
 

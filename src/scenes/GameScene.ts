@@ -228,7 +228,7 @@ export class GameScene extends Phaser.Scene {
   /** What the royalists fire. */
   private shots!: Bolts;
   private abilities = new Abilities();
-  /** Cabral's fury. It ebbs whoever is being played, so swapping away does not keep it. */
+  /** Cabral's fury. It never ebbs: what he earns is kept until he spends it or falls. */
   private fury = new Fury();
   /** What the hero drinks from when things go badly. */
   private flask = new Flask();
@@ -754,9 +754,8 @@ export class GameScene extends Phaser.Scene {
     }
     this.useAbilities(dt, standing);
     this.unleash(dt, standing);
-    // In his rage his fury neither ebbs nor is spent.
+    // In his rage his fury is not spent.
     if (this.wrath.active) this.fury.gain(FURY);
-    else this.fury.update(dt);
     const blow = this.machi.takeStrike();
     if (blow) this.land(blow);
     const cast = this.machi.takeCast();
