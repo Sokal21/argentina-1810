@@ -42,6 +42,8 @@ export const KINDS = {
 } satisfies Record<string, Kind>;
 export type KindName = keyof typeof KINDS;
 
+// How far to one side of her one heads while still well off, and how near one comes before turning straight in.
+const ROUND = 170, RING = 26, ARRIVED = 0.35; // how near he begins to go round her, how far outside his reach, and how near his side counts as reached
 export const DYING = 1.2;   // seconds he takes to fall
 export const RETURNS = 7;   // seconds until one who is not at a post is back
 /** How much faster one who has been rallied walks and reloads. */
@@ -133,7 +135,8 @@ export class TroopBrain {
         const hurt = k.fury && this.life <= this.max / 2 ? k.fury : 1;
         const pace = k.pace * haste * hurt * (k.shot && far <= k.shot.range ? 0.5 : 1);
         this.enter('walk');
-        this.move(this.dir.x * pace * dt, this.dir.y * pace * dt);
+        const way = this.toward(to, far);
+        this.move(way.x * pace * dt, way.y * pace * dt);
         return NOTHING;
       }
       case 'aim': {
@@ -203,6 +206,34 @@ export class TroopBrain {
     this.dir = { x: to.x / len, y: to.y / len };
     if (Math.abs(to.x) > 1) this.faceX = to.x >= 0 ? 1 : -1;
     this.back = to.y < 0;
+  }
+
+  /**
+   * Which way round her he comes at: an offset on the ground, up to a step long, set by whoever
+   * commands him. Far off he heads for a point that far to one side of her, and turns straight
+   * in only as he closes, so that a squad comes at her from several sides and not in a knot.
+   */
+  flank = { x: 0, y: 0 };
+
+  /** Eases him aside by so much along the ground, as far as the ground lets him: someone else is where he stands. */
+  shove(dx: number, dy: number): void {
+    if (this.alive) this.move(dx, dy);
+  }
+
+  // The way he walks toward her. Far off, straight at her. Nearer, he goes round her, just
+  // outside his reach, to his own side of her (his flank), and only then closes in: a squad that
+  // came together ends up round her and not in a knot in front, where one swing takes them all.
+  private toward(to: { x: number; y: number }, far: number): { x: number; y: number } {
+    const reach = (this.kind.blow?.near ?? 60), ring = reach + RING;
+    const side = Math.atan2(this.flank.y, this.flank.x), at = Math.atan2(-to.y, -to.x);
+    let turn = side - at;
+    turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+    if (far > ROUND || Math.abs(turn) < ARRIVED || (this.flank.x === 0 && this.flank.y === 0)) return { x: to.x / (far || 1), y: to.y / (far || 1) };
+    // Round her, the short way, and in or out toward the ring.
+    const out = { x: -to.x / far, y: -to.y / far }, sign = Math.sign(turn);
+    const tx = -out.y * sign, ty = out.x * sign, pull = Math.max(-1, Math.min(1, (far - ring) / RING));
+    const x = tx - out.x * pull, y = ty - out.y * pull, len = Math.hypot(x, y) || 1;
+    return { x: x / len, y: y / len };
   }
 
   private move(dx: number, dy: number): void {

@@ -87,6 +87,12 @@ export class Trooper {
     if (!this.sprite.visible && !this.shadow.visible) return;
     for (const part of [this.sprite, this.shadow, this.barBack, this.bar]) part.setVisible(false);
   }
+  /** Which way round the hero he comes at; see the brain. */
+  set flank(side: { x: number; y: number }) { this.brain.flank = side; }
+
+  /** Eases him aside along the ground. */
+  shove(dx: number, dy: number): void { this.brain.shove(dx, dy); }
+
   hurry(seconds: number): void {
     this.brain.hurry(seconds);
   }

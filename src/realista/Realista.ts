@@ -136,6 +136,12 @@ export class Realista {
   }
 
   /** Quickens him for a while, as a sergeant's shout does. */
+  /** Which way round the hero he comes at; see the brain. */
+  set flank(side: { x: number; y: number }) { this.brain.flank = side; }
+
+  /** Eases him aside along the ground. */
+  shove(dx: number, dy: number): void { this.brain.shove(dx, dy); }
+
   hurry(seconds: number): void {
     this.brain.quick = Math.max(this.brain.quick, seconds);
   }

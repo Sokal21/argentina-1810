@@ -60,6 +60,10 @@ const ZOOM = 2;            // screen pixels per sprite pixel
 // By touch: how near an enemy the sabre goes for by itself, how far off a musket dragged all
 // the way points, and how long an arm let go is kept up waiting to go off.
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
+// Soldiers are kept this far apart on the ground, easing apart at this many of it a second: a squad
+// does not stand in one knot where a single swing takes them all. And the turn from one soldier's side
+// of the hero to the next, so that sides never repeat.
+const SPACE = 34, PARTING = 90, GOLDEN = Math.PI * (3 - Math.sqrt(5));
 const KEEP = 4;            // seconds between one keeping of the game and the next
 const FIELD = { width: 1280, height: 800 }; // the bare field, in sprite pixels
 // The map each hero walks; one who has none fights on the bare field.
@@ -223,6 +227,8 @@ export class GameScene extends Phaser.Scene {
   private sight = new Sight();
   /** The ground taken up by what is built on the map. */
   private built: Footprint[] = [];
+  /** How many soldiers have been stood on the map, to give each a side of his own. */
+  private enlisted = 0;
   /** The buildings that are drawn, and going into them. */
   private indoors?: Indoors;
   /** How far the world reaches, in sprite pixels. */
@@ -786,6 +792,7 @@ export class GameScene extends Phaser.Scene {
       if (chonchon.update(dt * tune.foes, drawn ? this.nahuel.ground : feet) && !drawn) this.hurt();
     }
     // Royalists shoot from where they stand, and cut whoever is beside them.
+    const awake: Soldier[] = [];
     for (const realista of this.realistas) {
       // One too far off to be seen or to see is left as he is. If he has fallen and the
       // zone he held is left behind, he is back at his post, where nobody saw him come.
@@ -797,6 +804,7 @@ export class GameScene extends Phaser.Scene {
       }
       const drawn = feet && this.nahuel.lures(realista.ground, feet);
       const deed = realista.update(dt * tune.foes, drawn ? this.nahuel.ground : feet);
+      if (realista.alive) awake.push(realista);
       if (deed.shot) this.shots.spawn(deed.shot);
       if (deed.cut && !drawn) this.hurt();
       // A sergeant's shout quickens whoever of his own is within hearing.
@@ -805,6 +813,19 @@ export class GameScene extends Phaser.Scene {
         for (const other of this.realistas) {
           if (other !== realista && other.alive && ground(other.ground, at) <= rally.reach) other.hurry(rally.lasts);
         }
+      }
+    }
+    // Nobody stands in another's boots: any two too close are eased apart, each half the way.
+    for (let i = 0; i < awake.length; i++) {
+      for (let j = i + 1; j < awake.length; j++) {
+        const a = awake[i].ground, b = awake[j].ground;
+        const dx = b.x - a.x, dy = (b.y - a.y) / ISO_Y, far = Math.hypot(dx, dy);
+        if (far >= SPACE) continue;
+        // Two on the very same spot part along a way of their own.
+        const [ux, uy] = far > 0.01 ? [dx / far, dy / far] : [Math.cos(i + j), Math.sin(i + j)];
+        const step = Math.min(SPACE - far, PARTING * dt) / 2;
+        awake[i].shove(-ux * step, -uy * step);
+        awake[j].shove(ux * step, uy * step);
       }
     }
     this.useAbilities(dt, standing);
@@ -1570,7 +1591,11 @@ export class GameScene extends Phaser.Scene {
 
   // One of the king's men of a kind, by its name: a fusilier, unless it is one of the others.
   private enlist(kind: string | undefined, x: number, y: number, bounds: { minX: number; maxX: number; minY: number; maxY: number }): Soldier {
-    return kind && kind in KINDS ? new Trooper(this, kind as KindName, x, y) : new Realista(this, x, y, bounds);
+    const soldier = kind && kind in KINDS ? new Trooper(this, kind as KindName, x, y) : new Realista(this, x, y, bounds);
+    // Each comes at the hero from a side of his own: one after another round the circle, never two the same.
+    const angle = this.enlisted++ * GOLDEN;
+    soldier.flank = { x: Math.cos(angle), y: Math.sin(angle) };
+    return soldier;
   }
 
   /** Whether anyone posted to hold the zone a place is in is still on their feet. */

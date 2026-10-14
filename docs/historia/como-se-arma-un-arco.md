@@ -791,3 +791,13 @@ No es una etapa del arco, pero cambió cómo se arma todo lo que se muestra.
   avanzó cada misión y se pone tal cual, sin avisar a nadie.
 - Lo que quedó en el mapa se deduce de la historia: lo levantado no está,
   lo construido está en pie, lo llevado está donde se llevó.
+
+## Soldados que no van en montón
+
+Un grupo de soldados llegaba junto y se paraba en un solo nudo delante del
+héroe: un sablazo los alcanzaba a todos. Ahora cada soldado tiene **su lado**
+(`flank`, repartido con el ángulo áureo para que no se repitan): de lejos
+viene derecho, y al acercarse **rodea al héroe** justo fuera de su alcance
+hasta su lado, y recién ahí entra. Además, dos soldados nunca se paran a
+menos de 34 píxeles: se apartan solos. Los tiradores siguen tirando desde
+donde están.

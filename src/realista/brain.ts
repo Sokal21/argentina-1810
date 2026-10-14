@@ -5,6 +5,8 @@ export const LIFE = 4;          // blows it takes to bring down
 export const WALK = 36;         // sprite pixels per second along the ground
 export const SIGHT = 300;       // further than this he does not notice anyone
 export const RANGE = 190;       // he closes to this before shooting
+// How far to one side of her he heads while he is still well off, and how near he comes before he turns straight in.
+const ROUND = 170, RING = 26, ARRIVED = 0.35; // how near he begins to go round her, how far outside his reach, and how near his side counts as reached
 export const NEAR = 48;         // closer than this he draws his sabre instead
 export const AIM = 0.85;        // seconds from shouldering the musket to the shot: the warning
 export const LOCK = 0.25;       // seconds before the shot at which his aim stops following
@@ -109,7 +111,8 @@ export class RealistaBrain {
         // slowly, so standing off does not keep him at bay for ever.
         const pace = (far > RANGE ? WALK : WALK * 0.5) * (this.quick > 0 ? 1.5 : 1);
         this.enter('walk');
-        this.move(this.dir.x * pace * dt, this.dir.y * pace * dt);
+        const way = this.toward(to, far);
+        this.move(way.x * pace * dt, way.y * pace * dt);
         return NOTHING;
       }
       case 'aim': {
@@ -175,6 +178,34 @@ export class RealistaBrain {
   /** Puts him back at his post, whole, if he has fallen. */
   revive(): void {
     if (!this.alive) this.respawn();
+  }
+
+  /**
+   * Which way round her he comes at: an offset on the ground, up to a step long, set by whoever
+   * commands him. Far off he heads for a point that far to one side of her, and turns straight
+   * in only as he closes, so that a squad comes at her from several sides and not in a knot.
+   */
+  flank = { x: 0, y: 0 };
+
+  /** Eases him aside by so much along the ground, as far as the ground lets him: someone else is where he stands. */
+  shove(dx: number, dy: number): void {
+    if (this.alive) this.move(dx, dy);
+  }
+
+  // The way he walks toward her. Far off, straight at her. Nearer, he goes round her, just
+  // outside his reach, to his own side of her (his flank), and only then closes in: a squad that
+  // came together ends up round her and not in a knot in front, where one swing takes them all.
+  private toward(to: { x: number; y: number }, far: number): { x: number; y: number } {
+    const reach = NEAR, ring = reach + RING;
+    const side = Math.atan2(this.flank.y, this.flank.x), at = Math.atan2(-to.y, -to.x);
+    let turn = side - at;
+    turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+    if (far > ROUND || Math.abs(turn) < ARRIVED || (this.flank.x === 0 && this.flank.y === 0)) return { x: to.x / (far || 1), y: to.y / (far || 1) };
+    // Round her, the short way, and in or out toward the ring.
+    const out = { x: -to.x / far, y: -to.y / far }, sign = Math.sign(turn);
+    const tx = -out.y * sign, ty = out.x * sign, pull = Math.max(-1, Math.min(1, (far - ring) / RING));
+    const x = tx - out.x * pull, y = ty - out.y * pull, len = Math.hypot(x, y) || 1;
+    return { x: x / len, y: y / len };
   }
 
   // Moves along the ground; the vertical part is foreshortened on screen.

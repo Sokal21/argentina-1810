@@ -41,8 +41,15 @@ if (import.meta.env.DEV) {
   (globalThis as { game?: Phaser.Game }).game = game;
   // The panel and its sliders exist only here; the published build drops them.
 }
-// The panel for trying things out: always while developing, and in the published game with ?dev.
-if (import.meta.env.DEV || new URLSearchParams(location.search).has('dev')) {
+// The panel for trying things out: always while developing. In the published game it is turned on
+// by opening it once with ?dev, and stays on in that browser until it is opened with ?dev=0.
+const devAsked = new URLSearchParams(location.search).get('dev');
+try {
+  if (devAsked === '0') localStorage.removeItem('1810.dev');
+  else if (devAsked !== null) localStorage.setItem('1810.dev', '1');
+} catch { /* only this once, then */ }
+const devOn = (() => { try { return localStorage.getItem('1810.dev') === '1'; } catch { return false; } })();
+if (import.meta.env.DEV || (devAsked !== null && devAsked !== '0') || devOn) {
   void import('./devPanel').then(({ mountDevPanel }) => mountDevPanel(game));
 }
 
