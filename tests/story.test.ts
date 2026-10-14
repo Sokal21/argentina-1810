@@ -268,3 +268,18 @@ describe('trying missions out', () => {
     }
   });
 });
+
+describe('taking a story up again', () => {
+  it('is where it was left, steps done by coming to a place included, and nobody is told', () => {
+    const story = new Story(VADO, RULES);
+    story.finish(VADO[0].id);
+    story.finish(VADO[1].id);
+    const later = new Story(VADO, RULES);
+    let told = 0;
+    later.listen(() => told++);
+    later.restore(JSON.parse(JSON.stringify(story.happened)), JSON.parse(JSON.stringify(story.reached)));
+    expect(later.isDone(VADO[0].id) && later.isDone(VADO[1].id)).toBe(true);
+    expect(later.current.map(c => c.quest.id)).toEqual(story.current.map(c => c.quest.id));
+    expect(told).toBe(0);
+  });
+});

@@ -51,6 +51,10 @@
   #keys dt, #taps dt { color: #ff7a00; white-space: nowrap; }
   #keys dd, #taps dd { margin: 0; color: #cdbf9d; }
   #keys[hidden], #taps[hidden] { display: none; }
+  #pause .saved { margin: 0 0 8px; color: #cdbf9d; }
+  #pause .again { all: unset; cursor: pointer; display: block; width: max-content; padding: 8px 18px 9px; color: #e0604a; box-shadow: 0 0 0 2px #7a2416, 0 0 0 4px #0a0807; }
+  #pause .again:hover, #pause .again:focus-visible { background: #2a1610; }
+  #pause .again.sure { background: #7a2416; color: #f0e3c4; }
   #pause small { display: block; margin-top: 16px; text-align: center; font-size: 21px; color: #6b5c44; }
   /* A way out of anything that a key closes, for whoever has no keys. */
   .leave { all: unset; cursor: pointer; display: none; margin: 14px auto 0; padding: 8px 26px 9px; background: #2a2018; color: #f0e3c4; box-shadow: 0 0 0 2px #e2c478, 0 0 0 4px #0a0807; font: 21px/1 'Jacquard 12', Georgia, serif; letter-spacing: .04em; }
@@ -186,6 +190,9 @@
       <dt>Cartel</dt><dd>Hablar, levantar y comprar aparecen cuando hay con qué</dd>
       <dt>Libro</dt><dd>Personaje: nivel, puntos, lo que lleva y lo que sabe</dd>
     </dl>
+    <h2>Partida</h2>
+    <p class="saved">Se guarda sola mientras jugás. Al volver, seguís donde quedaste.</p>
+    <button id="again" class="again">Empezar de nuevo</button>
     <small>Esc para seguir</small>
   </div>
 </div>

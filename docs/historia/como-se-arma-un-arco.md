@@ -772,3 +772,22 @@ No es una etapa del arco, pero cambió cómo se arma todo lo que se muestra.
   leer.
 - Los botones son los cuadros de la hoja de cada héroe con los íconos de
   su HUD: no se generó ningún dibujo nuevo.
+
+## Etapa 14 · Guardar la partida
+
+- **Se guarda sola**, cada cuatro segundos y al cerrar u ocultar la página,
+  en el navegador y una por héroe (`src/save.ts`). Al volver a elegir al
+  mismo héroe se sigue donde quedó; la pausa tiene "Empezar de nuevo", que
+  pregunta dos veces.
+- **Qué se guarda:** dónde estaba parado (la última vez que estaba en pie),
+  nivel, experiencia y puntos, oro y objetos, tragos del frasco, todo lo que
+  pasó en la historia, cuánto avanzó cada misión y cómo quedó cada charla.
+- **Qué no:** volver es como haber descansado. Los muertos se levantan, lo
+  que se iba escoltando espera donde empezó, una tanda a medio pelear no
+  sigue y las guarniciones vuelven a su puesto.
+- **La historia no se repite, se restituye.** Volver a contar lo que pasó
+  habría pagado dos veces y mostrado el final otra vez, y los pasos que se
+  cumplen al llegar a un lugar no quedan entre lo que pasó. Se guarda cuánto
+  avanzó cada misión y se pone tal cual, sin avisar a nadie.
+- Lo que quedó en el mapa se deduce de la historia: lo levantado no está,
+  lo construido está en pie, lo llevado está donde se llevó.

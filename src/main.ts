@@ -7,6 +7,7 @@ import { HudScene } from './scenes/HudScene';
 import { SelectScene } from './scenes/SelectScene';
 import { TitleScene } from './scenes/TitleScene';
 import { key, mountTouch, touch } from './touch';
+import { forget } from './save';
 
 // The pixel type is fetched now, so it is there by the time anything is written in it.
 void document.fonts.load("8px 'Silkscreen'");
@@ -83,6 +84,18 @@ refresh();
 // Escape stops the game where it is, and starts it again.
 const pause = document.getElementById('pause')!;
 let paused = false;
+// Beginning again throws away the game kept for whoever is being played. It asks once more first.
+const again = document.getElementById('again')!;
+again.addEventListener('click', () => {
+  if (!again.classList.contains('sure')) {
+    again.classList.add('sure');
+    again.textContent = '¿Seguro? Se pierde todo. Tocá de nuevo';
+    return;
+  }
+  forget((game.scene.getScene('game') as GameScene).playing);
+  location.reload();
+});
+
 // Without keys: the menu is left by its own button.
 document.getElementById('resume')!.addEventListener('click', () => key('Escape'));
 const togglePause = () => {
@@ -92,6 +105,8 @@ const togglePause = () => {
   // What it says of the controls is what there is to hand: keys, or the buttons on the screen.
   document.getElementById('keys')!.hidden = touch.on;
   document.getElementById('taps')!.hidden = !touch.on;
+  again.classList.remove('sure');
+  again.textContent = 'Empezar de nuevo';
   if (paused) game.scene.pause('game');
   else game.scene.resume('game');
   pause.hidden = !paused;

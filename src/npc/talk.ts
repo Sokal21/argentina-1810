@@ -39,6 +39,9 @@ const MEMORY = 12;   // lines of the conversation the character is shown
  * trust allows it, whatever the model says it wants. Once they have had
  * enough it is over for good: words do not open what words closed.
  */
+/** What a conversation has come to, as it is kept between one sitting and the next. */
+export interface KeptTalk { trust: number; lines: Line[]; granted: string[]; taken: string[]; over: boolean }
+
 export class Talk {
   trust: number;
   readonly lines: Line[] = [];
@@ -56,6 +59,20 @@ export class Talk {
   constructor(readonly npc: Npc, private hero: Hero, private voice: Voice) {
     this.trust = npc.trust;
     this.lines.push({ who: 'npc', text: npc.greets });
+  }
+
+  /** What it has come to, to be kept. */
+  kept(): KeptTalk {
+    return { trust: this.trust, lines: [...this.lines], granted: [...this.granted], taken: [...this.taken], over: this.over };
+  }
+
+  /** Picks up where it was left, from what was kept. */
+  restore(kept: KeptTalk): void {
+    this.trust = kept.trust;
+    this.lines.splice(0, this.lines.length, ...kept.lines);
+    this.granted = new Set(kept.granted);
+    this.taken = new Set(kept.taken);
+    this.over = kept.over;
   }
 
   /** Whether something they ask has been taken on. */

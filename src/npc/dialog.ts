@@ -5,7 +5,7 @@ import { ollama } from './ollama';
 import type { Npc } from './npc';
 import { offered, scripted, type Script } from './script';
 import { SCRIPTS } from './scripts';
-import { Talk, type Voice } from './talk';
+import { Talk, type KeptTalk, type Voice } from './talk';
 
 // `framed` is for a portrait cut square out of a picture, which wants an
 // edge; one drawn as a figure on nothing stands free, like his.
@@ -33,15 +33,34 @@ export interface Effects {
 
 // Each remembers each hero for as long as the page is open, and one who has had enough stays so.
 const talks = new Map<string, Talk>();
+// What was kept of conversations from an earlier sitting, until each is taken up again.
+const kept = new Map<string, KeptTalk>();
+const over = (known: string) => talks.get(known)?.over ?? kept.get(known)?.over ?? false;
 
 /** Whether someone has had enough of a hero, and will have no more to do with them. */
 export function closedTo(hero: Hero, npc: Npc): boolean {
-  return !!talks.get(`${hero}:${npc.id}`)?.over;
+  return over(`${hero}:${npc.id}`);
 }
 
 /** Whether every one of some people has had enough of a hero: nobody is left to talk to. */
 export function shunned(hero: Hero, people: Npc[]): boolean {
-  return people.length > 0 && people.every(npc => talks.get(`${hero}:${npc.id}`)?.over);
+  return people.length > 0 && people.every(npc => over(`${hero}:${npc.id}`));
+}
+
+/** Everything a hero's conversations have come to, by whom they were with, to be kept. */
+export function keptTalks(hero: Hero): Record<string, KeptTalk> {
+  const all: Record<string, KeptTalk> = {};
+  for (const [known, talk] of kept) if (known.startsWith(`${hero}:`)) all[known.slice(hero.length + 1)] = talk;
+  for (const [known, talk] of talks) if (known.startsWith(`${hero}:`)) all[known.slice(hero.length + 1)] = talk.kept();
+  return all;
+}
+
+/** Takes up a hero's conversations where an earlier sitting left them. */
+export function restoreTalks(hero: Hero, saved: Record<string, KeptTalk>): void {
+  for (const [who, talk] of Object.entries(saved)) {
+    talks.delete(`${hero}:${who}`);
+    kept.set(`${hero}:${who}`, talk);
+  }
 }
 let open = false;
 
@@ -94,7 +113,12 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
   open = true;
   const known = `${hero}:${npc.id}`;
   const script = chosen() ? SCRIPTS[npc.id] ?? { who: npc.id, beats: [] } : undefined;
-  const talk = talks.get(known) ?? new Talk(npc, hero, voice(script));
+  let talk = talks.get(known);
+  if (!talk) {
+    talk = new Talk(npc, hero, voice(script));
+    const before = kept.get(known);
+    if (before) { talk.restore(before); kept.delete(known); }
+  }
   talks.set(known, talk);
   talk.happened = effects.has ?? (() => false);
 

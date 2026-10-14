@@ -46,6 +46,8 @@ import { Waves } from '../world/waves';
 import { Escort } from '../world/escort';
 import { showEnding } from '../story/ending';
 import { prompt, touch } from '../touch';
+import { grownOf, keep, load, ownedOf, regrow, repack, type Saved } from '../save';
+import { keptTalks, restoreTalks } from '../npc/dialog';
 import { mountBoard } from '../story/board';
 import { Story } from '../story/story';
 import { THINGS } from '../story/things';
@@ -57,6 +59,7 @@ const ZOOM = 2;            // screen pixels per sprite pixel
 // By touch: how near an enemy the sabre goes for by itself, how far off a musket dragged all
 // the way points, and how long an arm let go is kept up waiting to go off.
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
+const KEEP = 4;            // seconds between one keeping of the game and the next
 const FIELD = { width: 1280, height: 800 }; // the bare field, in sprite pixels
 // The map each hero walks; one who has none fights on the bare field.
 const MAPS: Partial<Record<Hero, WorldMap>> = { inti: bosquePatagonico, cabral: vadoDeLasVizcachas };
@@ -167,6 +170,9 @@ export class GameScene extends Phaser.Scene {
   private heading: Vec = { x: 0, y: 1 };
   private pointed: Vec = { x: 0, y: 0 };
   private loosing: Arm | null = null;
+  /** Where the hero last stood on their feet, which is where a game left is taken up; and seconds until it is next kept. */
+  private stood?: Vec;
+  private keeping = 0;
   private loosingFor = 0;
   private armWas: Record<Arm, boolean> = { musket: false, grenade: false };
   private attackWas = false;
@@ -615,6 +621,10 @@ export class GameScene extends Phaser.Scene {
       this.board?.remove();
       // A map without a story has none to tell, but the same place on screen to be told things in.
       this.story = his && this.map === vadoDeLasVizcachas ? new Story(VADO, RULES) : new Story([]);
+      // A game left earlier is taken up where it was, before anyone is listening to the story,
+      // so nothing is paid or told a second time.
+      const saved = load(this.hero);
+      if (saved) this.resume(saved);
       this.board = mountBoard(this.story, FACTS);
       // A mission done is worth experience.
       this.story.listen(news => {
@@ -638,7 +648,15 @@ export class GameScene extends Phaser.Scene {
       this.vitals.life = this.vitals.max;
       this.plotWas = '';
       this.story?.tell('empieza');
+      if (saved) { this.machi.x = saved.at.x; this.machi.y = saved.at.y; this.stood = { ...saved.at }; }
       this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.board?.remove());
+      // The game is kept every few seconds, and whenever the page is left or hidden.
+      const leaving = () => { if (document.visibilityState === 'hidden') this.keep(); };
+      const closing = () => this.keep();
+      document.addEventListener('visibilitychange', leaving);
+      addEventListener('pagehide', closing);
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { this.keep(); document.removeEventListener('visibilitychange', leaving); removeEventListener('pagehide', closing); });
+      this.keeping = KEEP;
       // ?ir=capilla sets the hero down there from the start.
       const wanted = import.meta.env.DEV ? new URLSearchParams(location.search).get('ir') : null;
       if (wanted) this.goTo(wanted);
@@ -861,6 +879,8 @@ export class GameScene extends Phaser.Scene {
     }
     // Somewhere safe, the flask is filled again.
     this.flask.update(dt);
+    if (this.vitals.standing) this.stood = { x: this.machi.x, y: this.machi.y };
+    if (this.keeping > 0 && (this.keeping -= dt) <= 0) { this.keep(); this.keeping = KEEP; }
     // What mana comes back by itself comes back faster for every point put into it.
     if (this.hero === 'inti') this.abilities.mana = Math.min(MANA, this.abilities.mana + REGEN * (this.growth.gives('flow') - 1) * dt);
     this.mending?.update(dt, this.machi);
@@ -1600,6 +1620,54 @@ export class GameScene extends Phaser.Scene {
     this.vitals.max = max;
     // Life gained is life had: a point does not leave them wounded.
     if (more > 0) this.vitals.heal(more);
+  }
+
+  /** Keeps the game as it stands, for the next time it is opened. */
+  keep(): void {
+    if (!this.story || !this.stood) return;
+    keep(this.hero, {
+      at: { x: Math.round(this.stood.x), y: Math.round(this.stood.y) },
+      growth: grownOf(this.growth),
+      pack: ownedOf(this.pack),
+      flask: this.flask.left,
+      happened: [...this.story.happened],
+      reached: this.story.reached,
+      talks: keptTalks(this.hero),
+    });
+  }
+
+  // Takes up a game left earlier: growth, what is owned, the flask, the conversations, and
+  // everything that happened, with what it left on the map.
+  private resume(saved: Saved): void {
+    regrow(this.growth, saved.growth);
+    repack(this.pack, saved.pack);
+    this.flask.left = saved.flask;
+    restoreTalks(this.hero, saved.talks);
+    this.story?.restore(saved.happened, saved.reached);
+    const has = (happening: string) => !!this.story?.has(happening);
+    for (const talker of [...this.talkers]) {
+      // What was picked up is not lying there any more.
+      if (talker.take && has(`tiene:${talker.take.what}`)) {
+        talker.take.drawn.destroy();
+        talker.hint.destroy();
+        this.talkers = this.talkers.filter(t => t !== talker);
+      }
+      // What was made somewhere stands there.
+      const at = talker.spot?.at;
+      if (at && !at.stand && has(at.happening) && at.sprite && this.textures.exists(at.sprite)) {
+        const done = this.add.image(talker.x, talker.y, at.sprite).setOrigin(0.5, 1).setDepth(talker.y);
+        this.sight.add([done]);
+        this.built.push({ x: talker.x, y: talker.y - 4, hw: done.width * 0.3, hh: 4 });
+      }
+    }
+    // What was brought somewhere is where it was brought.
+    for (const charge of this.led) {
+      if (!has(charge.at.happening)) continue;
+      const to = middle(charge.at.to);
+      charge.body.x = to.x;
+      charge.body.y = to.y;
+      charge.drawn.setPosition(to.x, to.y).setDepth(to.y);
+    }
   }
 
   /** What the hero carries and what they have been told, by the story's own words for them. */

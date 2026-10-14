@@ -151,6 +151,7 @@ export function mountDevPanel(game: Phaser.Game): void {
   button(hero, 'Curar y llenar', s => s.restore());
   button(hero, 'Cargar definitiva', s => s.chargeUp());
   button(hero, 'Subir un nivel', s => s.levelUp());
+  button(hero, 'Guardar ya', s => s.keep());
   const check = Object.assign(document.createElement('label'), { className: 'check' });
   const box = Object.assign(document.createElement('input'), { type: 'checkbox' });
   box.addEventListener('change', () => { cheats.unhurt = box.checked; box.blur(); });

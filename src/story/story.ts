@@ -161,6 +161,23 @@ export class Story {
     return news;
   }
 
+  /** How far each mission that has opened has got: how many of its steps are done. */
+  get reached(): Record<string, number> {
+    return Object.fromEntries(this.progress);
+  }
+
+  /**
+   * Takes up a story where it was left, as kept: what had happened and how far each mission had
+   * got, set back as they were. Nothing follows from it and nobody is told: it all happened before.
+   * Kept as they were rather than told again, because a step done by coming to a place is not
+   * among what happened, and would not be done again.
+   */
+  restore(happened: string[], reached: Record<string, number>): void {
+    this.happened.splice(0, this.happened.length, ...happened);
+    this.seen = new Set(happened);
+    this.progress = new Map(Object.entries(reached).filter(([id]) => this.quests.some(q => q.id === id)));
+  }
+
   /**
    * For trying things out: makes happen whatever moves a mission one step on, as if it had been
    * done in the game. One not yet open is opened by its first door; one under way has the step
