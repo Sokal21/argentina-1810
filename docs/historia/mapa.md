@@ -215,6 +215,23 @@ Columna y fila de la parcela, contando desde arriba a la izquierda.
 | **El vado** | 62, 10 | Vado | Cinco parcelas de ancho, piedra y agua baja, entre juncos |
 | Donde forma la columna | 62, 4 | Orilla norte | Solo en el final |
 
+## Los edificios
+
+Etapa 12. Elegidos el **14 de octubre de 2026**, de tres conceptos de cada uno
+(`assets/edificios/concept/`, con Cabral al lado para la escala):
+
+- **Exterior: el concepto 1 de la posada** (`posada_1.png`): adobe
+  blanqueado manchado al pie, paja alta y desordenada, puerta de tablas,
+  ventana enrejada, palenque y barriles. Es el modelo de los demás
+  edificios. Con la textura del campo, no aplanado como los personajes.
+- **Interior: el concepto 1** (`interior_1.png`): cálido, la luz del fogón,
+  mostrador con ventana enrejada, botellas en estantes, un cuero en el piso.
+  Hay que rehacerlo a la escala de los personajes: así dibujado, la mesa le
+  llega a Cabral a la rodilla.
+- **Tamaño:** la puerta, del alto de un hombre. La posada entera queda en
+  unos 240 píxeles de alto, cinco veces el bloque que hay hoy: los edificios
+  van a ocupar más lugar en el pueblo y en el páramo.
+
 ## Los enemigos que hacen falta
 
 Hoy hay un solo realista: el fusilero que dispara de lejos y saca el sable

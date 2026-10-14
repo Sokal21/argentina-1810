@@ -2015,6 +2015,36 @@
       "asset_id": "0c1673a7-496f-40a3-8dce-6858d53a632f",
       "label": "mateo: walk (8 frames, heading right)",
       "file": "assets/mateo/camina_original.png"
+    },
+    {
+      "asset_id": "c1faee78-d422-4a8f-b788-16c36f55fc51",
+      "label": "posada exterior concept 1",
+      "file": "assets/edificios/concept/posada_1.png"
+    },
+    {
+      "asset_id": "675a0d05-ea9c-4456-a3d7-08ffdc5eaaf7",
+      "label": "posada exterior concept 2",
+      "file": "assets/edificios/concept/posada_2.png"
+    },
+    {
+      "asset_id": "501f3bb6-448d-4e96-ab09-d0d5ab8d3fe7",
+      "label": "posada exterior concept 3",
+      "file": "assets/edificios/concept/posada_3.png"
+    },
+    {
+      "asset_id": "892cffec-1df1-4902-9db9-3937c0fd3e0b",
+      "label": "posada interior concept 1",
+      "file": "assets/edificios/concept/interior_1.png"
+    },
+    {
+      "asset_id": "3b26213b-2964-413d-88e2-8bf52161ffb8",
+      "label": "posada interior concept 2",
+      "file": "assets/edificios/concept/interior_2.png"
+    },
+    {
+      "asset_id": "fe189318-bdc6-440a-aa24-83ec5db73d63",
+      "label": "posada interior concept 3",
+      "file": "assets/edificios/concept/interior_3.png"
     }
   ]
 }
