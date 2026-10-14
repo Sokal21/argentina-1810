@@ -75,7 +75,8 @@ export class Hearth {
    * @param reach how far its light carries, in world pixels
    */
   constructor(scene: Phaser.Scene, at: { x: number; y: number; w: number; h: number }, cell: number, reach: number, depth: number) {
-    if (scene.renderer.type === Phaser.WEBGL) {
+    // A box of no size is light without flames: candles, a lamp.
+    if (scene.renderer.type === Phaser.WEBGL && at.w > 0 && at.h > 0) {
       this.flames = scene.add.shader(hearthShader(scene), at.x, at.y, at.w, at.h).setOrigin(0, 0).setDepth(depth);
       this.flames.setUniform('cell.value', cell);
       this.parts.push(this.flames);

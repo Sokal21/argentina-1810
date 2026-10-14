@@ -1527,12 +1527,12 @@ export class GameScene extends Phaser.Scene {
     return figure;
   }
 
-  /** For trying things out: the places on this map one can be set down at, people first. */
   /** For trying things out: the story of the map being played, if it has one. */
   get tale(): Story | undefined {
     return this.story;
   }
 
+  /** For trying things out: the places on this map one can be set down at, people first. */
   get places(): { name: string; x: number; y: number }[] {
     return [
       ...this.talkers.map(t => ({ name: t.name, x: t.x, y: t.y })),
@@ -1545,9 +1545,12 @@ export class GameScene extends Phaser.Scene {
     const plain = (text: string) => text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const place = this.places.find(p => plain(p.name) === plain(name)) ?? this.places.find(p => plain(p.name).includes(plain(name)));
     if (!place) return false;
-    // A step to one side and toward the viewer, so as not to land on whoever or whatever is there.
-    this.machi.x = place.x + 40;
-    this.machi.y = place.y + 8;
+    // A step to one side and toward the viewer, so as not to land on whoever or whatever is there;
+    // into the room they are in, if they are indoors.
+    const spot = { x: place.x + 40, y: place.y + 8 };
+    const at = this.indoors?.settle(spot) ?? spot;
+    this.machi.x = at.x;
+    this.machi.y = at.y;
     return true;
   }
 

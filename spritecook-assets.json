@@ -2045,6 +2045,66 @@
       "asset_id": "fe189318-bdc6-440a-aa24-83ec5db73d63",
       "label": "posada interior concept 3",
       "file": "assets/edificios/concept/interior_3.png"
+    },
+    {
+      "asset_id": "d7ceb50d-7ecf-4ee3-8c39-43423ce4a4e0",
+      "label": "capilla exterior 1 (chosen)",
+      "file": "assets/edificios/concept/capilla_1.png"
+    },
+    {
+      "asset_id": "5e1dfdd2-8030-40b6-be51-35c598dad101",
+      "label": "capilla exterior 2",
+      "file": "assets/edificios/concept/capilla_2.png"
+    },
+    {
+      "asset_id": "01f0df26-fdbd-4cfd-90e0-ae609ba3232a",
+      "label": "campanario 1",
+      "file": "assets/edificios/concept/campanario_1.png"
+    },
+    {
+      "asset_id": "417d7473-a16a-4c9a-8949-0e1fcfd339ce",
+      "label": "campanario 2 (chosen)",
+      "file": "assets/edificios/concept/campanario_2.png"
+    },
+    {
+      "asset_id": "03c91286-cb31-4059-9156-16c1c0839591",
+      "label": "fragua 1 (chosen)",
+      "file": "assets/edificios/concept/fragua_1.png"
+    },
+    {
+      "asset_id": "92667518-7c03-4ff0-9f2f-e5ade2dc9b42",
+      "label": "fragua 2 (came out tiny)",
+      "file": "assets/edificios/concept/fragua_2.png"
+    },
+    {
+      "asset_id": "d5aa077d-695d-4d65-8828-9cbc175e1d2c",
+      "label": "rancho quemado 1 (came out tiny)",
+      "file": "assets/edificios/concept/rancho_1.png"
+    },
+    {
+      "asset_id": "c68eb4d1-4a12-45f1-8565-bc092791248d",
+      "label": "rancho quemado 2 (chosen)",
+      "file": "assets/edificios/concept/rancho_2.png"
+    },
+    {
+      "asset_id": "4fa19471-9b68-4e04-8aaf-983ad8cb035f",
+      "label": "tapera 1 (chosen)",
+      "file": "assets/edificios/concept/tapera_1.png"
+    },
+    {
+      "asset_id": "9156631e-2660-4d90-871a-bfe4f80b519f",
+      "label": "tapera 2",
+      "file": "assets/edificios/concept/tapera_2.png"
+    },
+    {
+      "asset_id": "f49fa737-82d9-4878-8363-4ae84e7aba56",
+      "label": "capilla interior 1 (failed, 77x10)",
+      "file": "assets/edificios/concept/capilla_adentro_1.png"
+    },
+    {
+      "asset_id": "b5db8114-9f3b-451b-a8d9-fb712541d4d8",
+      "label": "capilla interior 2 (chosen)",
+      "file": "assets/edificios/concept/capilla_adentro_2.png"
     }
   ]
 }

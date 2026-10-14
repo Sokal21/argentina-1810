@@ -129,6 +129,28 @@ export class Indoors {
     return this.inside?.b.name;
   }
 
+  /**
+   * For trying things out: whatever room a spot is in, the hero is taken into it at once, or out
+   * of the one they are in if it is not in any. Says where on its floor to set them down.
+   */
+  settle(at: Vec): Vec {
+    const d = this.drawn.find(one => one.room && Phaser.Geom.Rectangle.Contains(one.room.image.getBounds(), at.x, at.y));
+    if (d?.room) {
+      if (this.inside !== d) this.resume(d.b.name);
+      return within(at, d.room.floor) ? at : { ...d.room.arrive };
+    }
+    if (this.inside) this.leave();
+    return at;
+  }
+
+  // Out at once, with nothing seen of it.
+  private leave(): void {
+    const d = this.inside!;
+    this.inside = undefined;
+    if (this.mode === 'fundido') this.scene.cameras.main.setBounds(0, 0, this.bounds.width, this.bounds.height);
+    else { for (const p of d.house) p.setAlpha(1); d.room!.image.setAlpha(0); for (const p of d.room!.furniture.flatMap(f => f.pieces)) p.setAlpha(0); }
+  }
+
   /** Puts the hero back inside a building at once, as when a game left there is taken up. Says whether it could. */
   resume(building: string): boolean {
     const d = this.drawn.find(one => one.b.name === building && one.room);

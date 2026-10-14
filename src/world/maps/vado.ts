@@ -113,8 +113,8 @@ export const vadoDeLasVizcachas: WorldMap = {
   people: [
     { who: 'braulio', plot: [9, 46], inside: { building: 'La posada', at: [182, 158] } },
     // He looks down the path, the way anyone comes.
-    { who: 'anselmo', plot: [117, 21], faces: 'left' },
-    { who: 'tobias', plot: [119, 21] },
+    { who: 'anselmo', plot: [117, 21], faces: 'left', inside: { building: 'La capilla', at: [88, 192] } },
+    { who: 'tobias', plot: [119, 21], inside: { building: 'La capilla', at: [120, 200] } },
     { who: 'mateo', plot: [121, 18] },
     // And those who only say the one thing they have to say: the village's by the inn and
     // the burnt house, the lay brother and the wounded ensign by the chapel, and the dying
@@ -167,10 +167,18 @@ export const vadoDeLasVizcachas: WorldMap = {
         // The hearth.
         fires: [[95, 112, 24, 30]], light: 230,
       } },
-    { name: 'La fragua', plot: [14, 44], wide: 60, deep: 30, tall: 34, colour: 0x5e5248 },
-    { name: 'El rancho quemado', plot: [7, 43], wide: 80, deep: 34, tall: 22, colour: 0x2e2a26 },
-    { name: 'La tapera', plot: [92, 32], wide: 70, deep: 32, tall: 20, colour: 0x6f6654 },
-    { name: 'La capilla', plot: [118, 19], wide: 110, deep: 50, tall: 62, colour: 0xd9d2bf },
-    { name: 'El campanario', plot: [120, 20], wide: 30, deep: 22, tall: 96, colour: 0x7a5b3c },
+    { name: 'La fragua', plot: [14, 44], wide: 60, deep: 30, tall: 34, colour: 0x5e5248, sprite: 'edificios/fragua.png', base: [[8, 119], [102, 155], [164, 128], [70, 92]] },
+    { name: 'El rancho quemado', plot: [7, 43], wide: 80, deep: 34, tall: 22, colour: 0x2e2a26, sprite: 'edificios/rancho_quemado.png', base: [[16, 128], [129, 174], [233, 104], [120, 58]] },
+    { name: 'La tapera', plot: [92, 32], wide: 70, deep: 32, tall: 20, colour: 0x6f6654, sprite: 'edificios/tapera.png', base: [[2, 143], [55, 187], [268, 115], [215, 71]] },
+    { name: 'La capilla', plot: [118, 19], wide: 110, deep: 50, tall: 62, colour: 0xd9d2bf, sprite: 'edificios/capilla.png', base: [[18, 207], [150, 250], [340, 170], [208, 127]], door: [80, 232],
+      inside: {
+        sprite: 'edificios/capilla_adentro.png', scale: 1.6, floor: [[18, 178], [155, 132], [296, 178], [150, 236]], door: [52, 172], arrive: [72, 180],
+        // The altar and its step.
+        furniture: [[[150, 130], [173, 108], [240, 118], [233, 160]]],
+        // Its candles: light without a hearth.
+        fires: [[200, 97, 0, 0]], light: 200,
+      } },
+    // Beside the chapel, a little apart, where the bell can be lowered onto a cart in front of it.
+    { name: 'El campanario', plot: [121, 20], wide: 30, deep: 22, tall: 96, colour: 0x7a5b3c, sprite: 'edificios/campanario.png', base: [[0, 283], [87, 312], [162, 299], [75, 270]] },
   ],
 };

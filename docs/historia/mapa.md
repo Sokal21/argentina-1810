@@ -228,6 +228,16 @@ Etapa 12. Elegidos el **14 de octubre de 2026**, de tres conceptos de cada uno
   mostrador con ventana enrejada, botellas en estantes, un cuero en el piso.
   Queda tal cual, mostrado 1,6 veces su tamaño: el usuario lo vio en el
   juego y le gustó así (14 de octubre).
+- **Los demás**, generados con la posada de modelo y elegidos por el agente
+  (el usuario dijo "mandale"): capilla 1 (cruz en el frente, catres bajo el
+  alero), campanario 2 (la campana se ve), fragua 1 (galpón abierto),
+  rancho quemado 2 y tapera 1. **Sala de la capilla:** la 2 (altar, bancos,
+  catres); la 1 salió rota. Fray Anselmo y Tobías están adentro; el lego y
+  el alférez, afuera. El campanario se corrió una parcela al este para no
+  pisar la capilla.
+- **Se entra** a la posada y a la capilla, con un fundido a negro: la sala
+  está aparte, debajo del mapa (`src/world/inside.ts`). Las casas se dibujan
+  en franjas para que quien pase por delante quede delante.
 - **Tamaño:** la puerta, del alto de un hombre. La posada entera queda en
   unos 240 píxeles de alto, cinco veces el bloque que hay hoy: los edificios
   van a ocupar más lugar en el pueblo y en el páramo.
