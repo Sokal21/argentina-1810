@@ -3,7 +3,9 @@
 // or not it is on screen: nothing is left out for being far away. So the
 // ground is ruled into squares, everything that stands still is kept by the
 // square its foot is in, and only the squares near what the camera sees are
-// shown.
+// shown. What is hidden is also taken off the scene's list of things to draw,
+// which the engine sorts by depth every frame anyone moves: sorting the
+// thousand in view is cheap, sorting fifteen thousand is not.
 
 /** The side of a square of ground, in world pixels. */
 export const SQUARE = 256;
@@ -13,6 +15,9 @@ export interface Standing {
   x: number;
   y: number;
   setVisible(shown: boolean): unknown;
+  /** Puts it on the scene's list of things to draw, and takes it off. */
+  addToDisplayList?(): unknown;
+  removeFromDisplayList?(): unknown;
   /** The ground its drawing covers. */
   getBounds(): { left: number; right: number; top: number; bottom: number };
 }
@@ -37,7 +42,7 @@ export class Sight {
       const square = this.squares.get(key);
       if (square) square.push(thing);
       else this.squares.set(key, [thing]);
-      thing.setVisible(false);
+      this.show(thing, false);
     }
   }
 
@@ -69,7 +74,13 @@ export class Sight {
   }
 
   private set(col: number, row: number, shown: boolean): void {
-    for (const thing of this.squares.get(this.key(col, row)) ?? []) thing.setVisible(shown);
+    for (const thing of this.squares.get(this.key(col, row)) ?? []) this.show(thing, shown);
+  }
+
+  private show(thing: Standing, shown: boolean): void {
+    thing.setVisible(shown);
+    if (shown) thing.addToDisplayList?.();
+    else thing.removeFromDisplayList?.();
   }
 
   // One number for a square, good for any map: a few thousand squares either way.

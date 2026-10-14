@@ -33,6 +33,8 @@ uniform float uStrength;
 uniform float uRustle;
 uniform float uTones;
 uniform float uWarmth;
+uniform vec2 uCells;     // the drawings may be laid in a grid in one picture: how many across and down
+uniform float uGrid;     // how much of the picture's height the grid takes: below it are drawings that stand still
 
 varying vec2 outTexCoord;
 varying float outTintEffect;
@@ -57,7 +59,16 @@ void main() {
   float own = outTint.g;
   float shown = max(1.0, floor(outTint.r * 255.0 + 0.5));
 
-  vec2 pixel = floor(outTexCoord * uSize);  // which pixel of the drawing this is
+  // Below the grid: something that is not blown, drawn as it is, in the same go as the plants.
+  if (outTexCoord.y > uGrid) {
+    gl_FragColor = texture2D(uMainSampler, outTexCoord) * outTint.a;
+    return;
+  }
+  // Which drawing of the grid this is, and where in it.
+  vec2 inGrid = outTexCoord / vec2(1.0, uGrid) * uCells;
+  vec2 cell = floor(inGrid);
+  vec2 local = inGrid - cell;
+  vec2 pixel = floor(local * uSize);  // which pixel of the drawing this is
   float up = 1.0 - (pixel.y + 0.5) / uSize.y; // 0 at the foot, 1 at the top
 
   // Swells some nine hundred pixels long, passing from left to right.
@@ -73,9 +84,9 @@ void main() {
   float shiver = drift(pixel * 0.22 + vec2(uTime * 2.6, uTime * 0.6) + own * 31.0) * 2.0 - 1.0;
   slid += crown * floor(shiver * uRustle * (0.3 + gust) + 0.5);
 
-  vec2 uv = vec2(outTexCoord.x - slid / uSize.x, outTexCoord.y);
-  vec4 texture = texture2D(uMainSampler, uv);
-  // Nothing is carried in from beyond the drawing's edge.
+  vec2 uv = vec2(local.x - slid / uSize.x, local.y);
+  vec4 texture = texture2D(uMainSampler, (cell + uv) / uCells * vec2(1.0, uGrid));
+  // Nothing is carried in from beyond the drawing's edge, nor from the next drawing over.
   if (uv.x < 0.0 || uv.x > 1.0) texture = vec4(0.0);
   // Each tree in a shade and a warmth of its own.
   float shade = 1.0 + (fract(own * 7.31) - 0.6) * uTones;
@@ -90,6 +101,8 @@ export class Wind extends Phaser.Renderer.WebGL.Pipelines.SinglePipeline {
   span = 1;
   /** The size every drawing given the wind has, in its own pixels. */
   drawn = { width: 1, height: 1 };
+  /** How many drawings across and down the picture they are drawn from holds. */
+  cells = { cols: 1, rows: 1, share: 1 };
   /** How far apart in shade and in warmth the things it blows are. */
   tones = TONES;
   warmth = WARMTH;
@@ -106,6 +119,8 @@ export class Wind extends Phaser.Renderer.WebGL.Pipelines.SinglePipeline {
     this.set1f('uRustle', RUSTLE);
     this.set1f('uTones', this.tones);
     this.set1f('uWarmth', this.warmth);
+    this.set2f('uCells', this.cells.cols, this.cells.rows);
+    this.set1f('uGrid', this.cells.share);
   }
 }
 
@@ -114,7 +129,7 @@ export class Wind extends Phaser.Renderer.WebGL.Pipelines.SinglePipeline {
  * pixels wide. Without WebGL they simply stand still. How far apart they are
  * in shade and in warmth can be told; left unsaid, it is as in the forest.
  */
-export function blow(scene: Phaser.Scene, things: Phaser.GameObjects.Image[], span: number, apart = { tones: TONES, warmth: WARMTH }): void {
+export function blow(scene: Phaser.Scene, things: Phaser.GameObjects.Image[], span: number, apart = { tones: TONES, warmth: WARMTH }, cells = { cols: 1, rows: 1, share: 1 }): void {
   if (scene.renderer.type !== Phaser.WEBGL || !things.length) return;
   const pipelines = (scene.renderer as Phaser.Renderer.WebGL.WebGLRenderer).pipelines;
   if (!pipelines.has('Wind')) pipelines.add('Wind', new Wind(scene.game));
@@ -122,6 +137,7 @@ export function blow(scene: Phaser.Scene, things: Phaser.GameObjects.Image[], sp
   wind.span = span;
   wind.tones = apart.tones;
   wind.warmth = apart.warmth;
+  wind.cells = cells;
   wind.drawn = { width: things[0].width, height: things[0].height };
   things.forEach((thing, i) => {
     // Red: how far across it stands. Green: a number of its own. Blue: its size.

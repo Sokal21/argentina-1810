@@ -27,6 +27,44 @@ export function loadScenery(scene: Phaser.Scene): void {
   for (const name of TREES) scene.load.image(name, `bosque/${name}.png`);
 }
 
+/**
+ * Lays several drawings in one picture, each a frame of it under the name it had, so that
+ * whatever is drawn from any of them can be drawn in one go: the graphics card is told of one
+ * picture instead of being handed a new one at every change from one drawing to the next, which
+ * on a phone was most of the cost of a frame. Drawings of one size are laid in a grid (the wind
+ * counts on it); of different sizes, in a row. Others of any size (`loose`) can be laid in a row
+ * under the grid. Says how many across and down the grid is, and how much of the picture's
+ * height it takes.
+ */
+export function packed(scene: Phaser.Scene, key: string, names: string[], loose: string[] = []): { cols: number; rows: number; share: number } {
+  const source = (name: string) => scene.textures.get(name).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+  const sources = names.map(source), extra = loose.map(source);
+  const even = sources.every(s => s.width === sources[0].width && s.height === sources[0].height);
+  const cols = even ? Math.ceil(Math.sqrt(names.length)) : names.length, rows = even ? Math.ceil(names.length / cols) : 1;
+  const gridW = even ? sources[0].width * cols : sources.reduce((sum, s) => sum + s.width, 0);
+  const gridH = even ? sources[0].height * rows : Math.max(...sources.map(s => s.height));
+  const h = gridH + (extra.length ? Math.max(...extra.map(s => s.height)) : 0);
+  if (!scene.textures.exists(key)) {
+    const w = Math.max(gridW, extra.reduce((sum, s) => sum + s.width, 0));
+    const tex = scene.textures.createCanvas(key, w, h)!;
+    const g = tex.getContext();
+    const lay = (name: string, s: HTMLImageElement | HTMLCanvasElement, x: number, y: number) => {
+      g.drawImage(s, x, y);
+      tex.add(name, 0, x, y, s.width, s.height);
+    };
+    let x = 0;
+    names.forEach((name, i) => {
+      const s = sources[i];
+      if (even) lay(name, s, (i % cols) * s.width, Math.floor(i / cols) * s.height);
+      else { lay(name, s, x, 0); x += s.width; }
+    });
+    x = 0;
+    loose.forEach((name, i) => { lay(name, extra[i], x, gridH); x += extra[i].width; });
+    tex.refresh();
+  }
+  return { cols, rows, share: gridH / h };
+}
+
 /** The shadow a drawing casts, and where in it the foot of the thing stands, as shares of its size. */
 export interface Shadow { key: string; footX: number; footY: number }
 

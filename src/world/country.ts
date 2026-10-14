@@ -3,7 +3,7 @@ import { blow } from '../fx/wind';
 import { palisade, walls } from './fences';
 import type { Footprint } from './footprint';
 import { plantCountry } from './plants';
-import { castShadow, mirrored } from './scenery';
+import { castShadow, mirrored, packed } from './scenery';
 import type { Sight } from './sight';
 import { extent, middle, type WorldMap } from './zones';
 
@@ -58,22 +58,29 @@ export class Country {
 
   /** @param sight what keeps the plants far from the camera out of the drawing; without it all are drawn */
   constructor(scene: Phaser.Scene, map: WorldMap, sight?: Sight) {
+    // Every drawing, each way round, and the shadow of each, in two pictures: whatever is in view
+    // is then drawn in a handful of goes instead of one for every plant.
+    const drawings = [...new Set(Object.values(PLANTS).flat())].flatMap(name => [name, mirrored(scene, name)]);
+    const shadowOf = new Map(drawings.map(name => [name, castShadow(scene, name, LIGHT)]));
+    // The fence posts go in it too, under the plants, so that a fence among plants is drawn with them.
+    const cells = packed(scene, 'campo:plantas', drawings, POSTS);
+    packed(scene, 'campo:sombras', [...shadowOf.values()].map(shadow => shadow.key));
     for (const planted of plantCountry(map)) {
       const drawings = PLANTS[planted.kind];
       if (!drawings) continue;
       const plant = { ...planted, size: planted.size * (GROWN[planted.kind] ?? 1) };
       const drawing = drawings[Math.floor(plant.which * drawings.length)];
       const name = plant.flipped ? mirrored(scene, drawing) : drawing;
-      const shadow = castShadow(scene, name, LIGHT);
-      this.shadows.push(scene.add.image(plant.x, plant.y, shadow.key)
+      const shadow = shadowOf.get(name)!;
+      this.shadows.push(scene.add.image(plant.x, plant.y, 'campo:sombras', shadow.key)
         .setOrigin(shadow.footX, shadow.footY).setScale(plant.size).setAlpha(SHADOW_ALPHA).setDepth(-1e6 + 2));
-      this.plants.push(scene.add.image(plant.x, plant.y, name).setOrigin(0.5, 1).setScale(plant.size).setDepth(plant.y));
+      this.plants.push(scene.add.image(plant.x, plant.y, 'campo:plantas', name).setOrigin(0.5, 1).setScale(plant.size).setDepth(plant.y));
       if (plant.inTheWay) {
         const foot = FEET[plant.kind] ?? FOOT, hh = foot.hh * plant.size;
         this.feet.push({ x: plant.x, y: plant.y - hh, hw: foot.hw * plant.size, hh });
       }
     }
-    blow(scene, this.plants, extent(map).width, APART);
+    blow(scene, this.plants, extent(map).width, APART, cells);
     sight?.add([...this.shadows, ...this.plants]);
   }
 
@@ -139,8 +146,15 @@ export function loadFences(scene: Phaser.Scene): void {
  */
 export function raiseFences(scene: Phaser.Scene, map: WorldMap, sight?: Sight): void {
   const pieces: Phaser.GameObjects.Image[] = [];
+  // The posts are in the plants' picture and drawn by the wind, which leaves them still: a fence
+  // among plants is then drawn in the same go as they are. Without the plants they are drawn as they are.
+  const among = scene.textures.exists('campo:plantas');
+  const windy = among && scene.renderer.type === Phaser.WEBGL && (scene.renderer as Phaser.Renderer.WebGL.WebGLRenderer).pipelines.has('Wind');
   for (const post of palisade(map)) {
-    pieces.push(scene.add.image(post.x, post.y, POSTS[Math.floor(post.which * POSTS.length)]).setOrigin(0.5, 1).setDepth(post.y));
+    const name = POSTS[Math.floor(post.which * POSTS.length)];
+    const piece = scene.add.image(post.x, post.y, among ? 'campo:plantas' : name, among ? name : undefined).setOrigin(0.5, 1).setDepth(post.y);
+    if (windy) piece.setPipeline('Wind');
+    pieces.push(piece);
   }
   // The wall's drawing twice over side by side, so a slice can begin anywhere along it.
   const front = scene.textures.get('tapia_frente').getSourceImage() as HTMLImageElement;

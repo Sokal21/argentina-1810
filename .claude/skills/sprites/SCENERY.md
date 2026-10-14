@@ -92,12 +92,21 @@ asked for these to be written down. Phaser does none of this for you.
   whatever raises new scenery, as `Forest`, `Country` and `raiseFences` do.
 - A loop over all of a map's things each frame (`reveal`) skips the ones not
   visible. Do not add another that looks at every plant.
-- **The wind draws one texture at a time.** It is a `SinglePipeline`, so
-  every change of drawing between one plant and the next in depth is a draw
-  call of its own. Each new drawing and each new kind of plant adds to that.
-  Culling keeps it to what is in view; if a view ever holds hundreds of
-  plants of many drawings, the answer is one atlas for all of them and a wind
-  shader that reads its frame, not more loose textures.
+- **Hidden is also off the draw list.** `Sight` takes what it hides off the
+  scene's display list, which Phaser sorts by depth every frame anything
+  moves: 15,000 things to sort became 1,100.
+- **One picture for everything drawn together** (`packed` in
+  `src/world/scenery.ts`). Every change of texture or of pipeline between one
+  thing and the next in depth is a draw call. Measured in October 2026, the
+  village took **790 draw calls a frame**, one per plant, shadow and post,
+  which on a phone was most of the cost. Now all the plants of the open
+  country (each way round) are one grid in one picture, the fence posts lie
+  under that grid in the same picture and are drawn by the wind as things
+  that stand still, and all the shadows are another picture: **about 50 draw
+  calls**. The wind shader reads which cell of the grid it is in (`uCells`,
+  `uGrid`). A new plant goes into `PLANTS` and is packed with the rest; a new
+  thing drawn among plants should go in the same picture, not a loose one.
+  Inti's forest is still loose (three drawings; it measured 55 calls).
 - **Keep a drawing's canvas tight.** The wind shader runs its noise on every
   pixel of the canvas before it knows whether anything is drawn there, and
   the canvas is shown at twice or more its size. All drawings of plants share
@@ -118,9 +127,12 @@ asked for these to be written down. Phaser does none of this for you.
   that enlarged.
 - Things made each frame (an array spread from two others, a list of every
   foe) are small but add up; walk what is already there.
-- **These are judged by measuring, running.** None of the above was profiled
-  when it was written: it was read from the code and from Phaser's. Ask the
-  user which map is slow and what changed before going further.
+- **These are judged by measuring, running.** Count draw calls, program
+  and texture changes by wrapping the WebGL context's `drawElements`,
+  `useProgram` and `bindTexture` for a few seconds at several places of the
+  map; time `displayList.depthSort` and the scene's `update`. Headless Chrome
+  draws on the CPU, so its frame times say nothing about a phone's GPU: trust
+  the counts, not the milliseconds.
 
 ## Showing it to the user
 

@@ -287,8 +287,9 @@ export class GameScene extends Phaser.Scene {
     if (this.map) layGround(this, this.map);
     else this.drawGround();
     this.built = this.map ? raiseBuildings(this, this.map) : [];
-    if (this.map?.bare) raiseFences(this, this.map, this.sight);
+    // The plants first: the fences are drawn from their picture.
     this.country = this.map?.bare ? new Country(this, this.map, this.sight) : undefined;
+    if (this.map?.bare) raiseFences(this, this.map, this.sight);
     this.meadow = this.map?.bare ? new Meadow(this, this.map.ground) : undefined;
     this.water = this.map?.bare ? new Water(this, this.map) : undefined;
     this.built.push(...(this.country?.feet ?? []));
