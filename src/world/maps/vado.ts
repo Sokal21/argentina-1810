@@ -115,7 +115,8 @@ export const vadoDeLasVizcachas: WorldMap = {
     // He looks down the path, the way anyone comes.
     { who: 'anselmo', plot: [117, 21], faces: 'left', inside: { building: 'La capilla', at: [88, 192] } },
     { who: 'tobias', plot: [119, 21], inside: { building: 'La capilla', at: [120, 200] } },
-    { who: 'mateo', plot: [121, 18] },
+    // Out of the bell tower's way, so as to be seen.
+    { who: 'mateo', plot: [123, 18] },
     // And those who only say the one thing they have to say: the village's by the inn and
     // the burnt house, the lay brother and the wounded ensign by the chapel, and the dying
     // soldier out on the battlefield.
@@ -138,7 +139,7 @@ export const vadoDeLasVizcachas: WorldMap = {
   // there is wood for it and the soldiers who hold the rise are down.
   // What has to be brought across the country, with Cabral leading it and the king's soldiers in between.
   charges: [
-    { id: 'mateo', name: 'Mateo', who: 'mateo', sprite: 'mateo/sprite.png', walk: { sheet: 'mateo/camina.png', size: 96, frames: 8, rate: 9, ax: 48, up: 1 }, from: [121, 18], to: [12, 47], does: 'llevarse a Mateo', given: 'acepto:entregar', happening: 'entregado:mateo', life: 4, pace: 56, note: 'Mateo llegó al pozo. Los paisanos ya lo rodean.' },
+    { id: 'mateo', name: 'Mateo', who: 'mateo', sprite: 'mateo/sprite.png', walk: { sheet: 'mateo/camina.png', size: 96, frames: 8, rate: 9, ax: 48, up: 1 }, from: [123, 18], to: [12, 47], does: 'llevarse a Mateo', given: 'acepto:entregar', happening: 'entregado:mateo', life: 4, pace: 56, note: 'Mateo llegó al pozo. Los paisanos ya lo rodean.' },
     { id: 'campana', name: 'La carreta de la campana', sprite: 'cosas/carreta.png', from: [121, 21], to: [14, 44], does: 'llevar la carreta', given: 'bajada:campana', happening: 'llego:campana', life: 6, pace: 46, note: 'La campana está en la fragua. Para mañana va a ser balas.' },
     { id: 'carretas', name: 'Las carretas de los heridos', sprite: 'cosas/carreta.png', from: [122, 20], to: [62, 20], does: 'sacar las carretas', given: 'acepto:escolta', happening: 'llego:carretas', life: 6, pace: 46, note: 'Las carretas llegaron a la loma. Los heridos están donde los van a ver.' },
   ],
@@ -168,13 +169,20 @@ export const vadoDeLasVizcachas: WorldMap = {
         fires: [[95, 112, 24, 30]], light: 230,
       } },
     { name: 'La fragua', plot: [14, 44], wide: 60, deep: 30, tall: 34, colour: 0x5e5248, sprite: 'edificios/fragua.png', base: [[8, 119], [102, 155], [164, 128], [70, 92]] },
-    { name: 'El rancho quemado', plot: [7, 43], wide: 80, deep: 34, tall: 22, colour: 0x2e2a26, sprite: 'edificios/rancho_quemado.png', base: [[16, 128], [129, 174], [233, 104], [120, 58]] },
+    { name: 'El rancho quemado', plot: [7, 43], wide: 80, deep: 34, tall: 22, colour: 0x2e2a26, sprite: 'edificios/rancho_quemado.png', base: [[16, 128], [129, 174], [233, 104], [120, 58]],
+      // The ashes at its foot, and inside through the hole in the wall.
+      embers: [[18, 140, 64, 34], [122, 160, 56, 16], [118, 100, 22, 40]] },
     { name: 'La tapera', plot: [92, 32], wide: 70, deep: 32, tall: 20, colour: 0x6f6654, sprite: 'edificios/tapera.png', base: [[2, 143], [55, 187], [268, 115], [215, 71]] },
     { name: 'La capilla', plot: [118, 19], wide: 110, deep: 50, tall: 62, colour: 0xd9d2bf, sprite: 'edificios/capilla.png', base: [[18, 207], [150, 250], [340, 170], [208, 127]], door: [80, 232],
       inside: {
         sprite: 'edificios/capilla_adentro.png', scale: 1.6, floor: [[18, 178], [155, 132], [296, 178], [150, 236]], door: [52, 172], arrive: [72, 180],
-        // The altar and its step.
-        furniture: [[[150, 130], [173, 108], [240, 118], [233, 160]]],
+        // The altar and its step, the four benches and the two cots.
+        furniture: [
+          [[150, 130], [173, 108], [240, 118], [233, 160]],
+          [[100, 127], [110, 122], [146, 140], [136, 156]], [[75, 141], [86, 136], [120, 155], [108, 168]],
+          [[157, 152], [168, 147], [203, 166], [192, 181]], [[132, 166], [143, 160], [178, 178], [166, 195]],
+          [[207, 180], [260, 155], [290, 170], [237, 200]], [[130, 213], [190, 188], [213, 200], [155, 232]],
+        ],
         // Its candles: light without a hearth.
         fires: [[200, 97, 0, 0]], light: 200,
       } },

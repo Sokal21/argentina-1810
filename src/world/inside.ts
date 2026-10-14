@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Hearth } from '../fx/hearth';
+import { Embers, Hearth } from '../fx/hearth';
 import { middle, type Building, type WorldMap } from './zones';
 
 // Buildings that are drawn, and going into them. Two ways of going in are being tried:
@@ -56,6 +56,7 @@ interface Drawn {
 
 export class Indoors {
   private drawn: Drawn[] = [];
+  private embers: Embers[] = [];
   /** Which room the hero is in, if any, and whether they are on their way in or out. */
   private inside?: Drawn;
   private busy = false;
@@ -74,6 +75,8 @@ export class Indoors {
       const house = slices(scene, b.sprite, at([0, 0]), base);
       const door = at(b.door ?? [source.width / 2, source.height]);
       const one: Drawn = { b, house, base, door };
+      // Embers still glowing in what burnt, each patch as far forward as its foot.
+      for (const box of b.embers ?? []) this.embers.push(new Embers(scene, b.sprite, box, at([box[0], box[1]]), 1, at([0, box[1] + box[3]]).y + 1));
       const inside = b.inside;
       if (inside && scene.textures.exists(inside.sprite)) {
         const k = inside.scale ?? 1;
@@ -163,6 +166,7 @@ export class Indoors {
 
   /** Keeps the fires burning, in whichever rooms can be seen. */
   update(time: number): void {
+    for (const embers of this.embers) embers.update(time);
     for (const d of this.drawn) {
       const room = d.room;
       if (!room?.fires.length) continue;

@@ -97,3 +97,78 @@ export class Hearth {
     this.flames?.setVisible(shown > 0.05);
   }
 }
+
+// Embers still glowing among the ashes of something burnt: a few pixels of the ash, here and
+// there, brighten and fade, each in its own time, slowly. Only where the drawing is dark and
+// solid, so none hang in the air beside it.
+const EMBERS = `
+precision mediump float;
+
+uniform float time;
+uniform vec2 resolution;
+uniform float cell;      // screen pixels to each pixel of the drawing
+uniform sampler2D drawn; // the drawing the ashes are in
+uniform vec4 area;       // the box over it, as shares of the drawing: left, top, width, height
+
+varying vec2 fragCoord;
+
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+void main() {
+  vec2 size = floor(resolution / cell);
+  vec2 p = floor(fragCoord / cell);
+  vec2 uv = area.xy + vec2((p.x + 0.5) / size.x, 1.0 - (p.y + 0.5) / size.y) * area.zw;
+  vec4 under = texture2D(drawn, uv);
+  float dark = 1.0 - max(under.r, max(under.g, under.b));
+  float h = hash(p);
+  if (under.a < 0.6 || dark < 0.4 || h < 0.9) { gl_FragColor = vec4(0.0); return; }
+  // Each its own slow breath, some hardly there.
+  float breath = 0.5 + 0.5 * sin(time * (0.7 + h * 1.6) + h * 61.0);
+  float glow = pow(breath, 2.0) * (0.45 + 0.55 * hash(p + 7.0));
+  if (glow < 0.1) { gl_FragColor = vec4(0.0); return; }
+  vec3 colour = mix(vec3(0.7, 0.12, 0.03), vec3(1.0, 0.62, 0.2), glow);
+  float alpha = min(1.0, 1.2 * glow);
+  gl_FragColor = vec4(colour * alpha, alpha);
+}
+`;
+
+export class Embers {
+  readonly shader?: Phaser.GameObjects.Shader;
+  /** A faint warmth over the patch, laid on as light, so it shows even where the night is darkest. */
+  private warmth?: Phaser.GameObjects.Image;
+  private seed = Math.random() * 100;
+
+  /**
+   * @param key   the drawing the ashes are in
+   * @param box   where in it, in its own pixels: left, top, width, height
+   * @param at    where that box is in the world
+   * @param cell  how many world pixels each pixel of the drawing is shown at
+   */
+  constructor(scene: Phaser.Scene, key: string, box: [number, number, number, number], at: { x: number; y: number }, cell: number, depth: number) {
+    const [x, y, w, h] = box;
+    this.warmth = scene.add.image(at.x + w * cell / 2, at.y + h * cell * 0.7, glowTexture(scene)).setBlendMode(Phaser.BlendModes.ADD)
+      .setScale(w * cell * 1.6 / 256, h * cell * 2.4 / 256).setDepth(depth + 0.1).setAlpha(0);
+    if (scene.renderer.type !== Phaser.WEBGL) return;
+    let base = scene.cache.shader.get('brasas') as Phaser.Display.BaseShader | undefined;
+    if (!base) {
+      base = new Phaser.Display.BaseShader('brasas', EMBERS, undefined, {
+        cell: { type: '1f', value: 1 },
+        drawn: { type: 'sampler2D', value: null },
+        area: { type: '4f', value: { x: 0, y: 0, z: 1, w: 1 } },
+      });
+      scene.cache.shader.add('brasas', base);
+    }
+    const source = scene.textures.get(key).getSourceImage() as HTMLImageElement;
+    this.shader = scene.add.shader(base, at.x, at.y, w * cell, h * cell).setOrigin(0, 0).setDepth(depth);
+    const shader = this.shader;
+    shader.setSampler2D('drawn', key);
+    shader.setUniform('cell.value', cell);
+    shader.setUniform('area.value', { x: x / source.width, y: y / source.height, z: w / source.width, w: h / source.height });
+  }
+
+  /** The warmth breathes slowly, never more than a little. */
+  update(time: number): void {
+    const t = time / 1000 + this.seed;
+    this.warmth?.setAlpha(0.06 + 0.05 * (0.5 + 0.5 * Math.sin(t * 0.9) * Math.sin(t * 2.3 + 1.0)));
+  }
+}

@@ -206,7 +206,7 @@ Columna y fila de la parcela, contando desde arriba a la izquierda.
 | El campamento del sargento | 97, 31 | Monte | Fogón, pabellón de fusiles |
 | El pie de la senda | 102, 29 | Senda | Donde empieza la subida |
 | **La capilla** | 118, 19 | Páramo | Nave chica de adobe blanqueado y **campanario aparte**, de madera. Los catres, bajo el alero |
-| La sacristía | 121, 18 | Páramo | Mateo |
+| La sacristía | 123, 18 | Páramo | Mateo |
 | El camposanto | 115, 22 | Páramo | Cruces de palo. Tumbas frescas, de los dos bandos |
 | Las carretas | 114, 20 | Páramo | Dos, con bueyes |
 | **La Loma del Oeste** | 50, 19 | Loma 1 | Un ombú chico. Primera fogata |

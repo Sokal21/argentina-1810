@@ -117,6 +117,8 @@ export interface Building {
   /** In the drawing's own pixels: the corners of the ground it stands on, and where its door is. */
   base?: [number, number][];
   door?: [number, number];
+  /** Where in the drawing embers still glow, for something burnt: the box of each patch. */
+  embers?: [number, number, number, number][];
   /**
    * Its inside, for one that can be gone into: the drawing of the room, how many times its size
    * it is shown, and in its own pixels the corners of its floor, the door, and where one arrives.
