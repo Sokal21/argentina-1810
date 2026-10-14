@@ -136,6 +136,9 @@ export class Realista {
   }
 
   /** Quickens him for a while, as a sergeant's shout does. */
+  /** How he finds his way round what is in the way; see the brain. */
+  set route(route: RealistaBrain['route']) { this.brain.route = route; }
+
   /** Which way round the hero he comes at; see the brain. */
   set flank(side: { x: number; y: number }) { this.brain.flank = side; }
 

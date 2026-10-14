@@ -801,3 +801,11 @@ viene derecho, y al acercarse **rodea al héroe** justo fuera de su alcance
 hasta su lado, y recién ahí entra. Además, dos soldados nunca se paran a
 menos de 34 píxeles: se apartan solos. Los tiradores siguen tirando desde
 donde están.
+
+Y se dan cuenta de lo que hay en el medio. Alrededor del héroe se arma una
+grilla fina (32×16) de lo que se puede caminar, sin casas ni terreno
+cerrado, y se cuenta cuántos pasos hay desde cada celda hasta él
+(`src/world/route.ts`). Un soldado que no tiene camino derecho, o que lleva
+un rato sin avanzar, sigue esa cuenta y rodea lo que estorba. Si no hay
+forma de llegar (el héroe adentro de una casa), se queda quieto en vez de
+empujar contra la pared.

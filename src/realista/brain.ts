@@ -110,8 +110,10 @@ export class RealistaBrain {
         // Out of range he closes; in range and reloading he comes on more
         // slowly, so standing off does not keep him at bay for ever.
         const pace = (far > RANGE ? WALK : WALK * 0.5) * (this.quick > 0 ? 1.5 : 1);
+        const way = this.way(to, far, dt);
+        // Nowhere to go that comes nearer her: he stands and waits, his gun ready if he has one.
+        if (!way) { this.enter('stand'); return NOTHING; }
         this.enter('walk');
-        const way = this.toward(to, far);
         this.move(way.x * pace * dt, way.y * pace * dt);
         return NOTHING;
       }
@@ -190,6 +192,36 @@ export class RealistaBrain {
   /** Eases him aside by so much along the ground, as far as the ground lets him: someone else is where he stands. */
   shove(dx: number, dy: number): void {
     if (this.alive) this.move(dx, dy);
+  }
+
+  /** Finds the way to her round what is in the way, if he is given one: which way to go, or nothing if he cannot get to her. */
+  route?: { way(at: Vec): Vec | null; reaches(at: Vec): boolean };
+  /** How far he got over the last little while, to know when he has stuck. */
+  private progress = { t: 0, x: 0, y: 0, stuck: 0 };
+
+  // Whether the ground is clear in a straight line from him toward her, as far as `far`.
+  private clear(to: Vec, far: number): boolean {
+    const on = this.ground;
+    if (!on) return true;
+    const len = Math.hypot(to.x, to.y) || 1;
+    for (let d = 16; d < far; d += 16) if (!on(this.x + to.x / len * d, this.y + to.y / len * d * ISO_Y)) return false;
+    return true;
+  }
+
+  // The way he walks: straight, or round her to his side, while nothing is in the way; round
+  // whatever is, by the route, when something is or when he has stuck. Null: she cannot be got
+  // to from where he is, and he had better stand.
+  private way(to: Vec, far: number, dt: number): Vec | null {
+    const p = this.progress;
+    p.t += dt;
+    if (p.t > 0.6) {
+      p.stuck = Math.hypot(this.x - p.x, this.y - p.y) < 6 ? p.stuck + 1 : 0;
+      p.t = 0; p.x = this.x; p.y = this.y;
+    }
+    if (!this.route) return this.toward(to, far);
+    if (!this.route.reaches(this) ) return null;
+    if (p.stuck === 0 && this.clear(to, far)) return this.toward(to, far);
+    return this.route.way(this) ?? this.toward(to, far);
   }
 
   // The way he walks toward her. Far off, straight at her. Nearer, he goes round her, just

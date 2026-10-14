@@ -122,6 +122,11 @@ export class Indoors {
     return this.drawn.find(d => d.b.name === building)?.room?.place(at);
   }
 
+  /** Whether a spot outside is on the ground a house stands on. */
+  blocked(at: Vec): boolean {
+    return this.drawn.some(d => within(at, d.base));
+  }
+
   /** Keeps a step outside off the ground the houses stand on, sliding along their walls. */
   block(from: Vec, to: Vec): Vec {
     const walls = this.drawn.filter(d => !(this.mode === 'directo' && d === this.inside)).map(d => d.base);

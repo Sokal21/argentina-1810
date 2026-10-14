@@ -47,6 +47,7 @@ import { Escort } from '../world/escort';
 import { showEnding } from '../story/ending';
 import { prompt, touch } from '../touch';
 import { Indoors, ROOMS, type Entering } from '../world/inside';
+import { Route } from '../world/route';
 import { grownOf, keep, load, ownedOf, regrow, repack, type Saved } from '../save';
 import { keptTalks, restoreTalks } from '../npc/dialog';
 import { mountBoard } from '../story/board';
@@ -227,6 +228,10 @@ export class GameScene extends Phaser.Scene {
   private sight = new Sight();
   /** The ground taken up by what is built on the map. */
   private built: Footprint[] = [];
+  /** The way round what is in the way to wherever the hero stands, for the enemy; on a map. */
+  private route?: Route;
+  /** Where soldiers can walk: on the map's ground, and not where a house stands. */
+  private walkable = (x: number, y: number): boolean => !!this.map && zoneAt(this.map, x, y) !== undefined && !this.indoors?.blocked({ x, y });
   /** How many soldiers have been stood on the map, to give each a side of his own. */
   private enlisted = 0;
   /** The buildings that are drawn, and going into them. */
@@ -311,6 +316,7 @@ export class GameScene extends Phaser.Scene {
     const entering = new URLSearchParams(location.search).get('entrar') === 'directo' ? 'directo' : 'fundido';
     this.indoors = this.map ? new Indoors(this, this.map, entering as Entering) : undefined;
     if (this.indoors && this.map) this.indoors.bounds = extent(this.map);
+    this.route = this.map ? new Route(this.walkable) : undefined;
     // The plants first: the fences are drawn from their picture.
     this.country = this.map?.bare ? new Country(this, this.map, this.sight) : undefined;
     if (this.map?.bare) raiseFences(this, this.map, this.sight);
@@ -346,7 +352,7 @@ export class GameScene extends Phaser.Scene {
     this.posts.clear();
     this.realistas = !his ? [] : held.length && map
       ? held.map(post => {
-        const soldier = this.enlist(post.kind, post.x, post.y, bounds).hold((x, y) => zoneAt(map, x, y) !== undefined);
+        const soldier = this.enlist(post.kind, post.x, post.y, bounds).hold(this.walkable);
         this.posts.set(soldier, post);
         return soldier;
       })
@@ -793,6 +799,9 @@ export class GameScene extends Phaser.Scene {
     }
     // Royalists shoot from where they stand, and cut whoever is beside them.
     const awake: Soldier[] = [];
+    // Indoors, nobody outside can get to the hero.
+    if (this.indoors?.indoors) this.route?.toward(null);
+    else this.route?.toward(this.machi);
     for (const realista of this.realistas) {
       // One too far off to be seen or to see is left as he is. If he has fallen and the
       // zone he held is left behind, he is back at his post, where nobody saw him come.
@@ -911,14 +920,14 @@ export class GameScene extends Phaser.Scene {
     }
     // A stand: each wave comes from where the map says, once the last of the one before is down.
     if (this.battle && this.map) {
-      const { at, waves, sent } = this.battle, stand = at.stand!, map = this.map;
+      const { at, waves, sent } = this.battle, stand = at.stand!;
       const coming = waves.update(dt, sent.filter(soldier => soldier.alive).length);
       if (typeof coming === 'number') {
         const leads = !!stand.leader && waves.come === waves.sizes.length;
         const from = middle(stand.from), bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
         for (let n = 0; n < coming; n++) {
           // Abreast, a few paces apart.
-          const soldier = this.enlist(leads ? stand.leader!.kind : undefined, from.x + (n - (coming - 1) / 2) * 46, from.y + (n % 2) * 18, bounds).sent((x, y) => zoneAt(map, x, y) !== undefined);
+          const soldier = this.enlist(leads ? stand.leader!.kind : undefined, from.x + (n - (coming - 1) / 2) * 46, from.y + (n % 2) * 18, bounds).sent(this.walkable);
           this.realistas.push(soldier);
           sent.push(soldier);
           this.physics.add.overlap(this.bolts.bodies, soldier.zone, this.struck);
@@ -1595,6 +1604,7 @@ export class GameScene extends Phaser.Scene {
     // Each comes at the hero from a side of his own: one after another round the circle, never two the same.
     const angle = this.enlisted++ * GOLDEN;
     soldier.flank = { x: Math.cos(angle), y: Math.sin(angle) };
+    if (this.route) soldier.route = this.route;
     return soldier;
   }
 
