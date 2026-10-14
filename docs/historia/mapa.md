@@ -226,8 +226,8 @@ Etapa 12. Elegidos el **14 de octubre de 2026**, de tres conceptos de cada uno
   edificios. Con la textura del campo, no aplanado como los personajes.
 - **Interior: el concepto 1** (`interior_1.png`): cálido, la luz del fogón,
   mostrador con ventana enrejada, botellas en estantes, un cuero en el piso.
-  Hay que rehacerlo a la escala de los personajes: así dibujado, la mesa le
-  llega a Cabral a la rodilla.
+  Queda tal cual, mostrado 1,6 veces su tamaño: el usuario lo vio en el
+  juego y le gustó así (14 de octubre).
 - **Tamaño:** la puerta, del alto de un hombre. La posada entera queda en
   unos 240 píxeles de alto, cinco veces el bloque que hay hoy: los edificios
   van a ocupar más lugar en el pueblo y en el páramo.
