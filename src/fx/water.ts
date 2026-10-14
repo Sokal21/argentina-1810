@@ -66,9 +66,12 @@ void main() {
 /** A map's water, kept under whatever the camera is looking at. */
 export class Water {
   private quad?: Phaser.GameObjects.Shader;
+  /** How much water there is in each plot, to know whether any is in view. */
+  private levels: number[][] = [];
 
   constructor(private scene: Phaser.Scene, map: WorldMap) {
     const levels = waterLevels(map);
+    this.levels = levels;
     if (scene.renderer.type !== Phaser.WEBGL || !levels.some(row => row.some(level => level > 0))) return;
     const rows = levels.length, cols = levels[0].length;
     const key = `water:${map.name}`;
@@ -98,10 +101,23 @@ export class Water {
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scene.scale.off(Phaser.Scale.Events.RESIZE, this.follow, this));
   }
 
+  // Whether any plot with water in it (or beside it, for the soft edge) is in view.
+  private inView(view: Phaser.Geom.Rectangle): boolean {
+    const rows = this.levels.length, cols = this.levels[0]?.length ?? 0;
+    const c0 = Math.max(0, Math.floor(view.x / PLOT_W) - 1), c1 = Math.min(cols - 1, Math.floor((view.x + view.width) / PLOT_W) + 1);
+    const r0 = Math.max(0, Math.floor(view.y / PLOT_H) - 1), r1 = Math.min(rows - 1, Math.floor((view.y + view.height) / PLOT_H) + 1);
+    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if (this.levels[r][c] > 0) return true;
+    return false;
+  }
+
   /** Brings it under the camera; to be called every step. */
   follow(): void {
     if (!this.quad) return;
     const view = this.scene.cameras.main.worldView;
+    // It is worked out for every pixel of the screen: where none is in view, it is not drawn at all.
+    const shown = this.inView(view);
+    this.quad.setVisible(shown);
+    if (!shown) return;
     const x = Math.floor(view.x) - 2, y = Math.floor(view.y) - 2;
     const w = Math.ceil(view.width) + 4, h = Math.ceil(view.height) + 4;
     if (this.quad.width !== w || this.quad.height !== h) this.quad.setSize(w, h);

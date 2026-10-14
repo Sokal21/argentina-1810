@@ -16,8 +16,11 @@ void document.fonts.load("21px 'Jacquard 12'");
 // The game is drawn two screen pixels to each of its own, which on a phone leaves room for very
 // little of it. Where the screen is small it is drawn as if it were larger and shown smaller: its
 // short side is never fewer than this many pixels.
-const SHORT = 560;
-const shown = () => Math.min(1, Math.min(innerWidth, innerHeight) / SHORT);
+// On a phone it may have to be fewer, if it does not run smoothly (see `quality` below).
+const SHORTS = [560, 440, 440];
+const QUALITY = '1810.calidad';
+let quality = (() => { try { return Math.min(2, Math.max(0, Number(localStorage.getItem(QUALITY)) || 0)); } catch { return 0; } })();
+const shown = () => Math.min(1, Math.min(innerWidth, innerHeight) / SHORTS[quality]);
 const sized = (k: number) => [Math.ceil(innerWidth / k), Math.ceil(innerHeight / k)] as const;
 
 const game = new Phaser.Game({
@@ -52,6 +55,48 @@ const fit = () => {
 addEventListener('resize', fit);
 visualViewport?.addEventListener('resize', fit);
 
+// How smoothly it runs, on a phone. A phone that has been playing a while warms up and slows
+// itself down; when the game has run under FLUID frames a second for several seconds together,
+// it asks less of it, a step at a time: first it is drawn at fewer pixels, then at thirty frames
+// a second, which is steadier than sixty that stumble. The step is kept for next time; the pause
+// menu puts it back.
+const FLUID = 45, WATCHED = 6;
+const NAMES = ['alta', 'liviana', 'liviana, a 30 cuadros'];
+const limit = (fps: number) => {
+  const loop = game.loop as unknown as { fpsLimit: number; hasFpsLimit: boolean; _limitRate: number; callback: (time: number, delta: number) => void; stop(): void; start(cb: (time: number, delta: number) => void): void };
+  if (loop.fpsLimit === fps) return;
+  loop.fpsLimit = fps;
+  loop.hasFpsLimit = fps > 0;
+  loop._limitRate = fps > 0 ? 1000 / fps : 0;
+  // The loop chooses how it steps when it starts.
+  const step = loop.callback;
+  loop.stop();
+  loop.start(step);
+};
+const setQuality = (level: number) => {
+  quality = level;
+  try { localStorage.setItem(QUALITY, String(level)); } catch { /* kept for this sitting only */ }
+  fit();
+  limit(level >= 2 ? 30 : 0);
+  const shownAs = document.getElementById('quality');
+  if (shownAs) shownAs.textContent = `Calidad: ${NAMES[level]}`;
+};
+game.events.once(Phaser.Core.Events.READY, () => { if (quality >= 2) limit(30); });
+const rates: number[] = [];
+let settling = 0;
+setInterval(() => {
+  const playing = game.scene.isActive('game') && document.visibilityState === 'visible';
+  if (!touch.on || !playing || quality >= 2) { rates.length = 0; settling = 0; return; }
+  // The first seconds of play are not counted: it is still loading and settling.
+  if (settling++ < 5) return;
+  rates.push(game.loop.actualFps);
+  if (rates.length > WATCHED) rates.shift();
+  if (rates.length === WATCHED && rates.reduce((a, b) => a + b, 0) / WATCHED < FLUID) {
+    rates.length = 0;
+    setQuality(quality + 1);
+  }
+}, 1000);
+
 mountTouch(game);
 mountSheet(game);
 mountShop(game);
@@ -84,6 +129,10 @@ refresh();
 // Escape stops the game where it is, and starts it again.
 const pause = document.getElementById('pause')!;
 let paused = false;
+// What the game asked less of the phone is shown in the pause menu, and touched it goes back to the best.
+const qualityButton = document.getElementById('quality')!;
+qualityButton.addEventListener('click', () => { setQuality(0); });
+
 // Beginning again throws away the game kept for whoever is being played. It asks once more first.
 const again = document.getElementById('again')!;
 again.addEventListener('click', () => {
@@ -105,6 +154,7 @@ const togglePause = () => {
   // What it says of the controls is what there is to hand: keys, or the buttons on the screen.
   document.getElementById('keys')!.hidden = touch.on;
   document.getElementById('taps')!.hidden = !touch.on;
+  qualityButton.textContent = `Calidad: ${NAMES[quality]}`;
   again.classList.remove('sure');
   again.textContent = 'Empezar de nuevo';
   if (paused) game.scene.pause('game');
