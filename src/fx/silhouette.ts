@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 
 // Someone's shadow as their own shape laid on the ground, as the plants' are, instead of a dark
 // oval: each frame they are drawn in is laid over on the ground once, the way the light falls,
-// and whatever frame they are in, its shadow is shown under them. Being tried out.
+// and whatever frame they are in, its shadow is shown under them.
 
 const LIGHT = { across: 0.6, down: -0.12 };   // as on the plants of open country
 const SHADE = '#06080a';
