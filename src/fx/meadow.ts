@@ -12,12 +12,14 @@ const TUFTS = 0.7;             // share of the cells that hold a tuft
 const TALL = 8;                // the tallest a blade grows, in pixels: about to the ankle
 const LEAN = 4;                // how far a gust carries the tip of the tallest blade
 const GUSTS = 0.32;            // how fast the swells cross the ground
+const TUFT = { w: 34, h: 16, below: 6 }; // the patch of grass drawn over someone's feet
 const FRAG = `
 precision mediump float;
 
 uniform float time;
 uniform vec2 resolution;
 uniform vec2 origin;     // the ground under the quad's top-left corner, in sprite pixels
+uniform float cut;       // only blades rooted below this row of ground: those in front of someone's feet
 uniform vec3 dark;
 uniform vec3 mid;
 uniform vec3 light;
@@ -58,7 +60,7 @@ void main() {
       vec2 root = c * vec2(${CELL_W.toFixed(1)}, ${CELL_H.toFixed(1)})
         + floor(vec2(hash(c + 1.3) * ${(CELL_W - 2).toFixed(1)} + 1.0, hash(c + 2.7) * ${CELL_H.toFixed(1)}));
       float up = root.y - at.y;           // pixels above the root
-      if (up < 0.0 || up >= ${TALL.toFixed(1)}) continue;
+      if (up < 0.0 || up >= ${TALL.toFixed(1)} || root.y <= cut) continue;
       float blow = wind(root);
       // Each tuft rocks a little in its own time, and lies over when a swell reaches it.
       float push = blow * ${LEAN.toFixed(1)} + sin(time * 2.3 + hash(c + 4.1) * 6.283) * 0.6;
@@ -96,15 +98,40 @@ export class Meadow {
     const colour = (c: number[]) => ({ type: '3f', value: { x: c[0], y: c[1], z: c[2] } });
     const base = new Phaser.Display.BaseShader('meadow', FRAG, undefined, {
       origin: { type: '2f', value: { x: 0, y: 0 } },
+      cut: { type: '1f', value: -1e6 },
       dark: colour(scaled(shades[0], 0.8)),
       mid: colour(scaled(shades[shades.length - 1], 1.16)),
       light: colour(scaled(shades[shades.length - 1], 1.5)),
     });
     // Just over the ground, under every shadow and everything that stands.
     this.quad = scene.add.shader(base, 0, 0, 16, 16).setOrigin(0, 0).setDepth(-1e6 + 1);
+    this.base = base;
     this.follow();
     scene.scale.on(Phaser.Scale.Events.RESIZE, this.follow, this);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scene.scale.off(Phaser.Scale.Events.RESIZE, this.follow, this));
+  }
+
+  private base?: Phaser.Display.BaseShader;
+  private tufts = new Map<object, Phaser.GameObjects.Shader>();
+
+  /**
+   * Grass in front of someone's feet: the same grass, in a small patch round their feet, drawn
+   * over them, with only the blades rooted nearer the viewer than their feet. Their ankles sink
+   * into it. Given nothing, their patch is put away.
+   */
+  over(who: object, feet: { x: number; y: number } | null): void {
+    if (!this.base) return;
+    let tuft = this.tufts.get(who);
+    if (!feet) { tuft?.setVisible(false); return; }
+    if (!tuft) {
+      tuft = this.scene.add.shader(this.base, 0, 0, TUFT.w, TUFT.h).setOrigin(0, 0);
+      this.tufts.set(who, tuft);
+    }
+    const x = Math.round(feet.x - TUFT.w / 2), y = Math.round(feet.y - TUFT.h + TUFT.below);
+    tuft.setVisible(true).setPosition(x, y).setDepth(feet.y + 0.6);
+    tuft.setUniform('origin.value.x', x);
+    tuft.setUniform('origin.value.y', y);
+    tuft.setUniform('cut.value', Math.round(feet.y) - 1);
   }
 
   /** Brings it under the camera; to be called every step. */

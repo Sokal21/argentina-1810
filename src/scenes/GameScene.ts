@@ -30,6 +30,7 @@ import { MUSKET } from '../machi/musket';
 import { overlaps, pushOut, type Footprint } from '../world/footprint';
 import { drawGround as layGround } from '../world/ground';
 import { Meadow } from '../fx/meadow';
+import { Silhouettes } from '../fx/silhouette';
 import { Water } from '../fx/water';
 import { Country, loadCountry, loadFences, raiseBuildings, raiseFences } from '../world/country';
 import { bosquePatagonico } from '../world/maps/bosque';
@@ -224,6 +225,9 @@ export class GameScene extends Phaser.Scene {
   private country?: Country;
   /** And the long grass all over it. */
   private meadow?: Meadow;
+  /** Being tried out, by ?prueba=sombras,pasto: shadows cast from each one's own shape, and grass over their feet. */
+  private trial = new Set((new URLSearchParams(location.search).get('prueba') ?? '').split(','));
+  private silhouettes?: Silhouettes;
   private water?: Water;
   /** What of the map's scenery is near enough the camera to be drawn. */
   private sight = new Sight();
@@ -807,6 +811,7 @@ export class GameScene extends Phaser.Scene {
     this.forest?.reveal(this.machi, dt);
     this.country?.reveal(this.machi, dt);
     this.meadow?.follow();
+    this.tryOut();
     this.water?.follow();
     // Chonchones go for where she stands; their teeth miss her mid-dash.
     for (const chonchon of this.chonchones) {
@@ -1779,6 +1784,32 @@ export class GameScene extends Phaser.Scene {
     if (fama >= 2 && later.fama_buena) return later.fama_buena;
     if (fama <= -2 && later.fama_mala) return later.fama_mala;
     return one.says;
+  }
+
+  // What is being tried out, laid on everyone who stands on the ground: the hero, the soldiers,
+  // the people, and whoever is being led.
+  private tryOut(): void {
+    const shadows = this.trial.has('sombras'), grass = this.trial.has('pasto');
+    if (!shadows && !grass) return;
+    if (shadows && !this.silhouettes) this.silhouettes = new Silhouettes(this);
+    const view = this.cameras.main.worldView, near = (p: Vec) => p.x > view.x - 80 && p.x < view.right + 80 && p.y > view.y - 40 && p.y < view.bottom + 120;
+    const indoors = !!this.indoors?.indoors;
+    const everyone: [Phaser.GameObjects.Sprite | Phaser.GameObjects.Image, Vec, Phaser.GameObjects.GameObject?][] = [[this.sprite, this.machi, this.shadow]];
+    for (const r of this.realistas) {
+      const parts = r as unknown as { sprite: Phaser.GameObjects.Sprite; shadow?: Phaser.GameObjects.Ellipse };
+      everyone.push([parts.sprite, r.ground, parts.shadow]);
+    }
+    for (const t of this.talkers) if (t.figure) everyone.push([t.figure[0] as Phaser.GameObjects.Sprite, t, t.figure[1]]);
+    for (const c of this.led) everyone.push([c.drawn, c.body]);
+    for (const [sprite, feet, oval] of everyone) {
+      const shown = sprite.visible && near(feet);
+      if (shadows) {
+        this.silhouettes!.cast(sprite, shown ? feet : null);
+        (oval as Phaser.GameObjects.Ellipse | undefined)?.setAlpha(0);
+      }
+      // Grass grows outside, and not where nobody walks.
+      if (grass) this.meadow?.over(sprite, shown && !indoors && this.map && zoneAt(this.map, feet.x, feet.y) ? feet : null);
+    }
   }
 
   /** What the hero carries and what they have been told, by the story's own words for them. */
