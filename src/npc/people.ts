@@ -25,6 +25,7 @@ export const BRAULIO: Npc = {
     cabral: 'Quien entra es un granadero patriota de uniforme, con sable y mosquete. Los uniformes te ponen en guardia: traen pleitos, y a veces no pagan. Pero es un soldado, y un soldado puede ir adonde vos no.',
   },
   trust: 2,
+  side: 'pueblo',
   favours: [
     {
       key: 'remedio',
@@ -156,6 +157,7 @@ export const ANSELMO: Npc = {
     cabral: 'Quien llega es un granadero patriota de uniforme, con sable y mosquete. Lo recibís como a cualquiera que llega cansado, pero le mirás el sable. Es el único soldado de verdad que hay en leguas, y lo necesitás.',
   },
   trust: 3,
+  side: 'frailes',
   favours: [
     {
       key: 'vendas',
@@ -314,6 +316,7 @@ export const TOBIAS: Npc = {
     cabral: 'Quien llega es un granadero patriota de uniforme, con sable y mosquete. Nunca viste uno tan de cerca y te parece lo más grande que hay.',
   },
   trust: 6,
+  side: 'pueblo',
   favours: [
     {
       key: 'mateo',

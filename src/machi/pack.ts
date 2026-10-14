@@ -58,18 +58,18 @@ export class Pack {
   readonly owned = new Set<string>();
 
   /** Whether one of something can be paid for, and makes sense to buy. */
-  canBuy(id: string, hero: Hero): boolean {
+  canBuy(id: string, hero: Hero, price = ITEMS[id]?.price ?? 0): boolean {
     const item = ITEMS[id];
-    if (!item || (item.only && item.only !== hero) || this.gold < item.price) return false;
+    if (!item || (item.only && item.only !== hero) || this.gold < price) return false;
     // Something worn is bought once.
     return !(item.wear && this.owned.has(id));
   }
 
   /** Buys one of something. Says whether it did. What is worn is put on at once. */
-  buy(id: string, hero: Hero): boolean {
-    if (!this.canBuy(id, hero)) return false;
+  buy(id: string, hero: Hero, price = ITEMS[id]?.price ?? 0): boolean {
+    if (!this.canBuy(id, hero, price)) return false;
     const item = ITEMS[id];
-    this.gold -= item.price;
+    this.gold -= price;
     if (item.wear) {
       this.owned.add(id);
       this.worn[item.wear.place] = id;

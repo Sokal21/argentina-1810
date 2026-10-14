@@ -118,7 +118,7 @@ export function mountShop(game: Phaser.Game): void {
         el('b', {}, item.name), el('i', {}, kind),
         el('p', {}, rest.length ? rest.join(': ').replace(/^./, c => c.toUpperCase()) : what),
         had ? el('span', { className: 'cost had' }, 'Ya lo tenés')
-          : el('span', { className: `cost${pack.gold < item.price ? ' dear' : ''}` }, String(item.price), coin(), pack.gold < item.price ? ' · no te alcanza' : ''));
+          : el('span', { className: `cost${pack.gold < s.priceOf(item.id) ? ' dear' : ''}` }, String(s.priceOf(item.id)), coin(), pack.gold < s.priceOf(item.id) ? ' · no te alcanza' : ''));
       // To the right of what is pointed at, or to its left when there is no room there.
       const room = cell.offsetLeft + cell.offsetWidth + 10 * k + board.offsetWidth < cell.parentElement!.offsetWidth + 60 * k;
       board.style.top = `${CASE.back.y * k + cell.offsetTop + 4 * k}px`;
@@ -130,7 +130,7 @@ export function mountShop(game: Phaser.Game): void {
       const item = stock[n];
       if (!item) return el('div', { className: 'cell' });
       const had = !!item.wear && pack.owned.has(item.id);
-      const cell = el('button', { className: `cell full${had ? ' had' : pack.gold < item.price ? ' dear' : ''}`, ariaLabel: item.name }, pic(item.icon, k));
+      const cell = el('button', { className: `cell full${had ? ' had' : pack.gold < s.priceOf(item.id) ? ' dear' : ''}`, ariaLabel: item.name }, pic(item.icon, k));
       if (pack.bag[item.id]) cell.append(el('span', { className: 'n' }, String(pack.bag[item.id])));
       cell.addEventListener('mousedown', e => e.preventDefault());
       if (!touch.on) {

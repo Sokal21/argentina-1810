@@ -809,3 +809,28 @@ cerrado, y se cuenta cuántos pasos hay desde cada celda hasta él
 un rato sin avanzar, sigue esa cuenta y rodea lo que estorba. Si no hay
 forma de llegar (el héroe adentro de una casa), se queda quieto en vez de
 empujar contra la pared.
+
+## Etapa 9 · Bandos y fama
+
+- **Tres cuentas, ninguna guardada.** El pueblo, los frailes y la fama de
+  Cabral (de −6 a 6) se calculan de lo que pasó en la historia
+  (`src/story/standing.ts`, tabla `MOVES`). Así nunca se desincronizan y
+  vuelven solas con una partida guardada.
+- **Qué las mueve:** las decisiones grandes (entregar o amparar a Mateo,
+  fundir la campana o armar las fogatas, rehenes o escolta), traer al hijo,
+  que alguien se harte de vos y los finales. Lo que dice cada misión está en
+  `misiones.md`.
+- **Qué cambia:**
+  - Cuánto te confía de entrada cada uno del bando (don Braulio y Tobías
+    son del pueblo, fray Anselmo de los frailes): hasta dos puntos más o
+    menos.
+  - Los precios de don Braulio: hasta un 25% más baratos si el pueblo te
+    quiere, hasta un 50% más caros si no.
+  - La puerta: con el pueblo en contra del todo, o después del rebato, la
+    posada está trancada; la capilla se cierra después de la emboscada.
+  - Lo que dicen los de una frase: el paisano y el chacarero según tu fama,
+    fray Benito si se fundió la campana, doña Remedios según el final.
+  - El cartel avisa cuando algo sube o baja, y la hoja del héroe, en el
+    cuaderno, dice cómo te ven.
+- **Lo que falta para que la fama se mueva más:** las secundarias (el
+  malherido, el telar de doña Remedios, las tumbas), que todavía no están.

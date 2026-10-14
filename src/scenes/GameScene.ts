@@ -48,6 +48,7 @@ import { showEnding } from '../story/ending';
 import { prompt, touch } from '../touch';
 import { Indoors, ROOMS, type Entering } from '../world/inside';
 import { Route } from '../world/route';
+import { leaning, markup, shut, standing, told as moved, type Standing } from '../story/standing';
 import { grownOf, keep, load, ownedOf, regrow, repack, type Saved } from '../save';
 import { keptTalks, restoreTalks } from '../npc/dialog';
 import { mountBoard } from '../story/board';
@@ -134,7 +135,7 @@ interface Orb extends Vec { t: number; glow: Phaser.GameObjects.Image; shadow: P
 // Those who only say their one thing are heard from a little further off.
 const TALK = { near: 52, heard: 84, trial: [-140, -80] as [number, number], standIn: 'pulpero/sprite.png' };
 /** Someone standing on the map: one to talk to (`npc`), or one who only says what the sign over them shows. */
-interface Talker { name: string; npc?: Npc; x: number; y: number; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image }; /** Somewhere something can be done, and the mark on the ground that says so. */ spot?: { at: Spot; mark: Phaser.GameObjects.Image }; /** Something waiting there to be led off. */ charge?: Led; /** Whoever stands there, to be hidden with them. */ figure?: Phaser.GameObjects.GameObject[]; /** Whether it is there to be dealt with at all just now; always, if unsaid. */ there?: () => boolean }
+interface Talker { name: string; npc?: Npc; x: number; y: number; /** For one who only says a thing: what they say as things stand now. */ says?: () => string; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image }; /** Somewhere something can be done, and the mark on the ground that says so. */ spot?: { at: Spot; mark: Phaser.GameObjects.Image }; /** Something waiting there to be led off. */ charge?: Led; /** Whoever stands there, to be hidden with them. */ figure?: Phaser.GameObjects.GameObject[]; /** Whether it is there to be dealt with at all just now; always, if unsaid. */ there?: () => boolean }
 /** Something being brought somewhere: what, where it is, its drawing and the bar of what it can still take, and whether it is on its way. */
 interface Led { at: Cargo; body: Escort; drawn: Phaser.GameObjects.Sprite; bar: Phaser.GameObjects.Rectangle; going: boolean }
 // How near a named place counts as having come to it, in plots; and how many blows of life a bandage gives back.
@@ -316,6 +317,12 @@ export class GameScene extends Phaser.Scene {
     const entering = new URLSearchParams(location.search).get('entrar') === 'directo' ? 'directo' : 'fundido';
     this.indoors = this.map ? new Indoors(this, this.map, entering as Entering) : undefined;
     if (this.indoors && this.map) this.indoors.bounds = extent(this.map);
+    // A side that will not see him shuts its door.
+    if (this.indoors) {
+      this.indoors.locked = b => !b.side || !shut(b.side, this.stands, h => !!this.story?.has(h)) ? undefined
+        : b.side === 'pueblo' ? 'La puerta está trancada. Don Braulio no quiere verte.' : 'La capilla está cerrada. Los frailes se fueron.';
+      this.indoors.refused = says => this.board?.say(says);
+    }
     this.route = this.map ? new Route(this.walkable) : undefined;
     // The plants first: the fences are drawn from their picture.
     this.country = this.map?.bare ? new Country(this, this.map, this.sight) : undefined;
@@ -494,7 +501,7 @@ export class GameScene extends Phaser.Scene {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
           stroke: '#14110f', strokeThickness: 3, wordWrap: { width: 150 },
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
-        this.talkers.push({ name: one.name, x, y, hint });
+        this.talkers.push({ name: one.name, x, y, hint, says: () => this.saying(one) });
       }
       // What lies about to be picked up: it is taken by coming to it and saying so.
       for (const { what, plot, given } of this.map?.things ?? []) {
@@ -628,6 +635,7 @@ export class GameScene extends Phaser.Scene {
         const npc = near.npc;
         if (!npc) return;
         openDialog(this.game, this.hero, npc, {
+          leaning: npc.side ? leaning(this.stands[npc.side]) : undefined,
           heal: () => this.vitals.heal(this.vitals.max),
           told: key => this.story?.tell(`sabe:${key}`),
           agreed: (key, happening) => this.story?.tell(happening ?? `acepto:${key}`),
@@ -652,6 +660,15 @@ export class GameScene extends Phaser.Scene {
       if (saved) this.resume(saved);
       this.board = mountBoard(this.story, FACTS);
       // A mission done is worth experience.
+      // What is said of him, and what those who say one thing say, move with the story.
+      let stood = this.stands;
+      for (const t of this.talkers) if (t.says) t.hint.setText(`«${t.says()}»`);
+      this.story.listen(() => {
+        const now = this.stands;
+        for (const line of moved(stood, now)) this.board?.say(line);
+        stood = now;
+        for (const t of this.talkers) if (t.says) t.hint.setText(`«${t.says()}»`);
+      });
       this.story.listen(news => {
         for (const n of news) {
           // Wherever he stands is told again: a mission just opened may be waiting on his being there.
@@ -1628,7 +1645,18 @@ export class GameScene extends Phaser.Scene {
 
   /** Buys one of something. Says whether it did. */
   buy(id: string): boolean {
-    return this.pack.buy(id, this.hero);
+    return this.pack.buy(id, this.hero, this.priceOf(id));
+  }
+
+  /** What something costs from whoever sells it here: dearer from a side that dislikes the hero. */
+  priceOf(id: string): number {
+    const item = ITEMS[id], side = this.beside?.npc?.side;
+    return item ? Math.round(item.price * (side ? markup(this.stands[side]) : 1)) : 0;
+  }
+
+  /** How the hero stands with the village and the friars, and his fame, by what has happened. */
+  get stands(): Standing {
+    return standing(this.story?.happened ?? []);
   }
 
   /** Whether using one of something now would do anything. */
@@ -1739,6 +1767,18 @@ export class GameScene extends Phaser.Scene {
       charge.body.y = to.y;
       charge.drawn.setPosition(to.x, to.y).setDepth(to.y);
     }
+  }
+
+  // What someone who says one thing says now: something else once the story has turned, or as
+  // his name has gone. The ending first, then what was done, then what is said of him.
+  private saying(one: { says: string; later?: Record<string, string> }): string {
+    const later = one.later ?? {}, has = (h: string) => !!this.story?.has(h), fama = this.stands.fama;
+    if (has('final:emboscada') && later.emboscada) return later.emboscada;
+    if (has('final:rebato') && later.rebato) return later.rebato;
+    if (has('hecha:campana') && later.campana_fundida) return later.campana_fundida;
+    if (fama >= 2 && later.fama_buena) return later.fama_buena;
+    if (fama <= -2 && later.fama_mala) return later.fama_mala;
+    return one.says;
   }
 
   /** What the hero carries and what they have been told, by the story's own words for them. */

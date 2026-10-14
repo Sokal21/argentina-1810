@@ -11,8 +11,9 @@ export interface Bystander {
   /** What they say, as things stand when the story begins. */
   says: string;
   /**
-   * What they say instead once the story has turned, by what has happened.
-   * Nothing reads these yet: the story's facts come with a later stage.
+   * What they say instead once the story has turned: after an ending (`emboscada`, `rebato`),
+   * once the bell is melted (`campana_fundida`), or as the hero's name stands (`fama_buena`,
+   * `fama_mala`). The scene picks, in that order.
    */
   later?: Record<string, string>;
   /** Their drawing on the ground, once they have one, and what they do while they stand there. */

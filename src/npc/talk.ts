@@ -40,7 +40,7 @@ const MEMORY = 12;   // lines of the conversation the character is shown
  * enough it is over for good: words do not open what words closed.
  */
 /** What a conversation has come to, as it is kept between one sitting and the next. */
-export interface KeptTalk { trust: number; lines: Line[]; granted: string[]; taken: string[]; over: boolean }
+export interface KeptTalk { trust: number; lines: Line[]; granted: string[]; taken: string[]; over: boolean; leaned?: number }
 
 export class Talk {
   trust: number;
@@ -55,6 +55,14 @@ export class Talk {
     return (this.npc.errands ?? []).filter(e => (!e.given || this.happened(e.given)) && !(e.until && this.happened(e.until)));
   }
   over = false;
+  /** How much of their trust is how their side stands with the hero, as last reckoned. */
+  leaned = 0;
+
+  /** Their side's standing with the hero has moved: their trust moves with it. */
+  lean(by: number): void {
+    this.trust = Math.max(0, Math.min(10, this.trust + by - this.leaned));
+    this.leaned = by;
+  }
 
   constructor(readonly npc: Npc, private hero: Hero, private voice: Voice) {
     this.trust = npc.trust;
@@ -63,7 +71,7 @@ export class Talk {
 
   /** What it has come to, to be kept. */
   kept(): KeptTalk {
-    return { trust: this.trust, lines: [...this.lines], granted: [...this.granted], taken: [...this.taken], over: this.over };
+    return { trust: this.trust, lines: [...this.lines], granted: [...this.granted], taken: [...this.taken], over: this.over, leaned: this.leaned };
   }
 
   /** Picks up where it was left, from what was kept. */
@@ -73,6 +81,7 @@ export class Talk {
     this.granted = new Set(kept.granted);
     this.taken = new Set(kept.taken);
     this.over = kept.over;
+    this.leaned = kept.leaned ?? 0;
   }
 
   /** Whether something they ask has been taken on. */

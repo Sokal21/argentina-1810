@@ -11,6 +11,8 @@ export interface Npc {
   sees: Record<Hero, string>;
   /** How far they trust a stranger to begin with, from 0 to 10. */
   trust: number;
+  /** Which side they belong to, if any: how that side stands with the hero moves how far they trust him. */
+  side?: 'pueblo' | 'frailes';
   /** What they can be brought to do, each once, and how much trust it takes. */
   favours: Favour[];
   /** What they ask of whoever they are talking to, each once. */

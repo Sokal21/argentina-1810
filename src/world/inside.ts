@@ -198,7 +198,11 @@ export class Indoors {
     if (!this.inside) {
       const at = this.drawn.find(d => d.room && Phaser.Math.Distance.Between(hero.x, hero.y, d.door.x, d.door.y) < NEAR);
       if (!this.armed) { this.armed = !this.drawn.some(d => Phaser.Math.Distance.Between(hero.x, hero.y, d.door.x, d.door.y) < NEAR * 2); return; }
-      if (at) this.go(at, hero, true);
+      if (!at) return;
+      const shut = this.locked(at.b);
+      // A shut door: he is turned back, and not again until he has stepped away from it.
+      if (shut) { this.refused(shut); this.armed = false; return; }
+      this.go(at, hero, true);
       return;
     }
     const room = this.inside.room!;
@@ -229,6 +233,11 @@ export class Indoors {
     this.scene.tweens.add({ targets: room.furniture.flatMap(f => f.pieces), alpha: inward ? 1 : 0, duration: FADE * 1.5 });
     this.scene.tweens.add({ targets: room.image, alpha: inward ? 1 : 0, duration: FADE * 1.5, onComplete: () => { this.busy = false; } });
   }
+
+  /** Whether a building's door is shut on the hero, and what is said if so. */
+  locked: (b: Building) => string | undefined = () => undefined;
+  /** Is told what a shut door says. */
+  refused: (says: string) => void = () => {};
 
   /** How big the map is, to give the camera back its bounds on coming out. */
   bounds = { width: 0, height: 0 };

@@ -160,7 +160,7 @@ export const vadoDeLasVizcachas: WorldMap = {
   ],
   trails: [{ from: [59, 37], to: 'S' }],
   buildings: [
-    { name: 'La posada', plot: [10, 45], wide: 150, deep: 46, tall: 44, colour: 0x8a7a5c, sprite: 'edificios/posada.png', base: [[20, 200], [140, 240], [330, 195], [210, 155]], door: [205, 229],
+    { name: 'La posada', side: 'pueblo', plot: [10, 45], wide: 150, deep: 46, tall: 44, colour: 0x8a7a5c, sprite: 'edificios/posada.png', base: [[20, 200], [140, 240], [330, 195], [210, 155]], door: [205, 229],
       inside: {
         sprite: 'edificios/posada_adentro.png', scale: 1.6, floor: [[14, 177], [160, 118], [305, 173], [153, 238]], door: [52, 168], arrive: [70, 178],
         // The counter, with whoever keeps it behind.
@@ -173,7 +173,7 @@ export const vadoDeLasVizcachas: WorldMap = {
       // The ashes at its foot, and inside through the hole in the wall.
       embers: [[18, 140, 64, 34], [122, 160, 56, 16], [118, 100, 22, 40]] },
     { name: 'La tapera', plot: [92, 32], wide: 70, deep: 32, tall: 20, colour: 0x6f6654, sprite: 'edificios/tapera.png', base: [[2, 143], [55, 187], [268, 115], [215, 71]] },
-    { name: 'La capilla', plot: [118, 19], wide: 110, deep: 50, tall: 62, colour: 0xd9d2bf, sprite: 'edificios/capilla.png', base: [[18, 207], [150, 250], [340, 170], [208, 127]], door: [80, 232],
+    { name: 'La capilla', side: 'frailes', plot: [118, 19], wide: 110, deep: 50, tall: 62, colour: 0xd9d2bf, sprite: 'edificios/capilla.png', base: [[18, 207], [150, 250], [340, 170], [208, 127]], door: [80, 232],
       inside: {
         sprite: 'edificios/capilla_adentro.png', scale: 1.6, floor: [[18, 178], [155, 132], [296, 178], [150, 236]], door: [52, 172], arrive: [72, 180],
         // The altar and its step, and the two cots.

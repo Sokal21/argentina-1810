@@ -112,6 +112,8 @@ export interface Building {
   deep: number;
   tall: number;
   colour: number;
+  /** Whose it is, for one that can be gone into: they may shut its door on the hero. */
+  side?: 'pueblo' | 'frailes';
   /** Its drawing, which stands on the plot by the middle of its foot; without one it is a block. */
   sprite?: string;
   /** In the drawing's own pixels: the corners of the ground it stands on, and where its door is. */

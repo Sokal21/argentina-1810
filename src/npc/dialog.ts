@@ -25,6 +25,8 @@ export interface Effects {
   agreed?: (key: string, happening?: string) => void;
   /** Whether something has happened in the story: some things are asked or told only once it has. */
   has?: (happening: string) => boolean;
+  /** How much more or less trust their side's standing with the hero gives them. */
+  leaning?: number;
   /** The talk is over, and something was said in it. */
   talked?: () => void;
   /** They have had enough, for good. */
@@ -120,6 +122,7 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
     if (before) { talk.restore(before); kept.delete(known); }
   }
   talks.set(known, talk);
+  if (effects.leaning !== undefined) talk.lean(effects.leaning);
   talk.happened = effects.has ?? (() => false);
 
   const root = el('dialog'), text = el('dialog-text'), note = el('dialog-note'), name = el('dialog-name');

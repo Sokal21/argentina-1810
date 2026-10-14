@@ -6,6 +6,7 @@ import { PEOPLE } from './npc/people';
 import type { GameScene } from './scenes/GameScene';
 import { NAMED, THINGS } from './story/things';
 import { FACTS } from './story/vado';
+import { feeling, renown } from './story/standing';
 import { key, touch } from './touch';
 
 // The hero's own page: how far they have grown and what their points have
@@ -231,6 +232,11 @@ export function mountSheet(game: Phaser.Game): void {
         ...(tab === 'bolsa' ? bag() : [
           ...list('Lleva', has.map(what => THINGS[what]?.name ?? NAMED[what] ?? what), 'Nada todavía.'),
           ...list('Sabe', knows.map(told), 'Nada todavía.'),
+          // How he is seen, once the story has anyone to see him.
+          ...(s.tale?.quests.length ? (() => {
+            const st = s.stands;
+            return list('Cómo te ven', [`Pueblo: ${feeling(st.pueblo)}.`, `Frailes: ${feeling(st.frailes)}.`, `Tu nombre: ${renown(st.fama)}.`], '');
+          })() : []),
         ])));
     book.append(tipBoard);
     // Below the book: what was last asked about, the way to its other page, and the way out.
