@@ -78,6 +78,112 @@ Each of these was asked for by the user and tuned by them running it:
 first variation in shade were each reported as too subtle to see. Set a new
 effect where it is plainly visible and let the user turn it down.
 
+## Buildings and interiors
+
+Learned making the buildings of El vado de las Vizcachas (stage 12). The
+code is `src/world/inside.ts`; each building's data is in its map
+(`buildings` in `src/world/maps/vado.ts`).
+
+### What was chosen with the user
+
+- **Real size.** A door is as tall as a man; the posada stands about 240
+  sprite pixels tall, five times the coloured block it replaced. The user
+  first said the blocks were too small; plan the map round buildings that
+  size.
+- **The manner of the scenery, not of the characters**: rough thatch,
+  stained whitewash, texture. `assets/edificios/posada.png` (SpriteCook
+  `c1faee78-…`) is the model every other building was generated from, as
+  `style_asset_ids`, and they came back matching at the first try.
+- **Only the posada and the chapel have an inside.** The rest (forge, burnt
+  hut, tapera, bell tower) are only outsides.
+- **Going in is a fade, to a room somewhere of its own.** Both ways were
+  recorded as videos and compared: a fade, and "open world" (the house
+  fades away and the room is under it). The user chose the fade. The open
+  way is still there (`?entrar=directo`) but asks for the room to be drawn
+  the same size as the house with its door in the same place, and lets
+  people of the map wander "inside"; do not offer it again without a reason.
+- The rooms are kept **as they came out**, shown 1.6 times their size. The
+  furniture is a little small beside the characters; the user saw it in the
+  game and liked it as it was. Do not regenerate a room for scale unasked.
+
+### Generating them
+
+- Outside: `gemini-3-pro-image`, two variations, the posada as style, a
+  size hint about 320–384. Describe it "seen from above and in front at
+  three quarters, its door facing down-right", "isolated on a transparent
+  background, no ground, no people".
+- Inside: the chosen room (`posada_adentro.png`, SpriteCook `892cffec-…`) as
+  style; describe it "as if the front wall and the roof were taken away:
+  only the back wall and the left wall stand", with its door in the left
+  wall.
+- **About one in four comes back tiny or broken** (82, 96, even 77×10
+  pixels). Two variations per building cover it; look at the sizes before
+  choosing.
+- Lay every concept beside Cabral at one scale before showing it
+  (`assets/edificios/concept/*_comparacion.png`); judge scale there, not in
+  words.
+
+### How a building stands
+
+- **In upright slices, each with its own depth.** A long house seen at a
+  slant is in front of someone at one end and behind them at the other: one
+  depth for the whole picture put Cabral under the house. It is cut into
+  slices 8 pixels wide (`slices()`), each as far forward as the lower edge
+  of its **base** where it stands.
+- **The base** is the ground it stands on, as a polygon in the drawing's own
+  pixels (`base`, four corners of the rhombus a house makes on the ground).
+  It is what blocks walking, for the hero and the soldiers, and what gives
+  the slices their depth. Measure it on the drawing: lay the guessed outline
+  in red over the picture and look (the bottom-most opaque pixel of each
+  column gives the front corners); the back corner follows.
+- `door` is a point in the drawing; coming within 15 pixels of it goes in.
+- A building with a drawing is skipped by `raiseBuildings`, which still
+  draws a coloured block for one without.
+
+### How a room works
+
+- `inside`: its picture, `scale`, the `floor` (polygon the hero is kept on),
+  the `door` and where one `arrive`s, all in the room picture's own pixels.
+- The rooms are laid out **below the bottom of the map** (`ROOMS` in
+  `inside.ts`), on black; the camera's bounds are lifted while inside.
+- **Furniture that hides and stops**: `furniture` outlines are cut out of the
+  room's picture and drawn again over the room in slices, so whoever is
+  behind a counter or an altar is hidden by it and cannot walk through it.
+  `screens` hide but do not stop, and `blocks` stop but do not hide: a row
+  of benches is walked round as one (`blocks`) while each bench still hides
+  (`screens`). Without that the hero threaded between benches where the
+  drawing has no aisle; the user called it strange.
+- **People inside** are placed with `people[].inside: { building, at }` in
+  the room's pixels. Put them on open floor: standing behind the counter
+  read as floating on it ("parece arriba"); the user asked for Braulio to
+  stand in the room instead.
+- A save remembers which building the hero was in (`inside`); without that
+  a reload left him in the dark under the map.
+- `side` makes a building one a faction can shut (stage 9): the posada is
+  barred after the rebato, the chapel after the ambush.
+
+### What lights them
+
+- **A hearth** (`fires` in the room, `src/fx/hearth.ts`): a flame shader on
+  the drawing's pixel grid and two soft warm lights laid on with ADD, that
+  flicker unevenly. A box of no size is light without flames (the chapel's
+  candles).
+- **Embers** (`embers` on a building, the burnt hut): a few dark pixels of
+  the ash brighten and fade, slowly, read from the drawing itself, plus a
+  faint breathing warmth laid on as light. Kept faint, as asked; a first
+  version could not be seen at all in the dark of the scene.
+- Never write a new shader into a file that exists: `fire.ts` (the
+  grenades' fire) was once overwritten by mistake. Check `ls src/fx` first.
+
+### Checking it
+
+- Drive it headless and **record a video** frame by frame (the game's loop
+  stopped and stepped by hand, 30 a second, `ffmpeg` to mp4): walking along
+  a house's front, in at the door, round the room, talking, out again. The
+  user judged going in from videos, not stills.
+- Stand soldiers on the far side of a house from the hero and check they go
+  round it (`src/world/route.ts`); stand the hero inside and check they wait.
+
 ## Keeping it fast
 
 The game ran slowly on Cabral's map once it was full of plants, and the user

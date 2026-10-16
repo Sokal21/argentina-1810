@@ -8,8 +8,8 @@ description: How art for 1810: Argentina is generated with SpriteCook and made r
 Everything here was learned the hard way on Inti, the chonchón and Cabral.
 Read it before spending credits.
 
-For scenery or a map (trees, ground, props, zones, what the game does to
-them), read [`SCENERY.md`](SCENERY.md) as well: what a map is, the look that
+For scenery or a map (trees, ground, props, zones, buildings and their
+interiors, what the game does to them), read [`SCENERY.md`](SCENERY.md) as well: what a map is, the look that
 was chosen, why the ground is not generated, and what keeps a full map
 running fast ("Keeping it fast": read it before standing anything on a map
 in numbers or putting a shader on a sprite).
