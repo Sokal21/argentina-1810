@@ -50,7 +50,7 @@ import { Escort } from '../world/escort';
 import { showEnding } from '../story/ending';
 import { prompt, touch } from '../touch';
 import { Indoors, ROOMS, type Entering } from '../world/inside';
-import { Route } from '../world/route';
+import { Road, Route } from '../world/route';
 import { leaning, markup, shut, standing, told as moved, type Standing } from '../story/standing';
 import { grownOf, keep, load, ownedOf, regrow, repack, type Saved } from '../save';
 import { keptTalks, restoreTalks } from '../npc/dialog';
@@ -145,7 +145,7 @@ const TALK = { near: 52, heard: 84, trial: [-140, -80] as [number, number], stan
 /** Someone standing on the map: one to talk to (`npc`), or one who only says what the sign over them shows. */
 interface Talker { name: string; npc?: Npc; x: number; y: number; /** For one who only says a thing: what they say as things stand now. */ says?: () => string; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image }; /** Somewhere something can be done, and the mark on the ground that says so. */ spot?: { at: Spot; mark: Phaser.GameObjects.Image }; /** Something waiting there to be led off. */ charge?: Led; /** Whoever stands there, to be hidden with them. */ figure?: Phaser.GameObjects.GameObject[]; /** Whether it is there to be dealt with at all just now; always, if unsaid. */ there?: () => boolean }
 /** Something being brought somewhere: what, where it is, its drawing and the bar of what it can still take, and whether it is on its way. */
-interface Led { at: Cargo; body: Escort; drawn: Phaser.GameObjects.Sprite; bar: Phaser.GameObjects.Rectangle; going: boolean; /** Told to wait where it is, while the hero clears the way. */ halted?: boolean; /** What F does to it, over it while the hero is near enough to say. */ order?: Phaser.GameObjects.Text; /** How far its ring is shown, and lit, each easing in and out. */ ring?: { seen: number; lit: number } }
+interface Led { at: Cargo; body: Escort; drawn: Phaser.GameObjects.Sprite; bar: Phaser.GameObjects.Rectangle; going: boolean; /** Told to wait where it is, while the hero clears the way. */ halted?: boolean; /** What F does to it, over it while the hero is near enough to say. */ order?: Phaser.GameObjects.Text; /** How far its ring is shown, and lit, each easing in and out. */ ring?: { seen: number; lit: number }; /** For one that drives on by itself: the road to where it is going. */ road?: Road }
 // How near a named place counts as having come to it, in plots; and how many blows of life a bandage gives back.
 const ARRIVED = 1, MENDS = 2;
 // The sign over them comes up and goes out over this long, in seconds.
@@ -605,7 +605,7 @@ export class GameScene extends Phaser.Scene {
         const led = this.led.find(c => c.going && ground(c.body, this.machi) <= ORDER);
         if (led) {
           led.halted = !led.halted;
-          this.board?.say(`${led.at.name}: ${led.halted ? 'espera acá.' : 'te sigue.'}`);
+          this.board?.say(`${led.at.name}: ${led.halted ? 'espera acá.' : led.at.drives ? 'sigue camino.' : 'te sigue.'}`);
           return;
         }
         const near = this.beside;
@@ -951,9 +951,14 @@ export class GameScene extends Phaser.Scene {
       drawn.setVisible(charge.going || waiting || arrived);
       bar.setVisible(charge.going && body.life < body.max);
       if (!charge.going) continue;
-      // Told to wait, it stands where it is, still to be looked after.
-      if (!charge.halted) body.follow(dt, this.machi);
-      else body.moving = false;
+      // Told to wait, it stands where it is, still to be looked after. One that drives goes on along
+      // the road by itself; anything else follows the hero.
+      if (charge.halted) body.moving = false;
+      else if (at.drives && this.map) {
+        const map = this.map;
+        charge.road ??= new Road(map.plots[0].length, map.plots.length, (c, r) => letterAt(map, c, r) !== undefined, { col: at.to[0], row: at.to[1] }, { w: PLOT_W, h: PLOT_H });
+        body.drive(dt, charge.road.next(body));
+      } else body.follow(dt, this.machi);
       this.showOrder(charge, drawn.height, dt);
       const hurt = body.harm(dt, this.realistas.filter(soldier => soldier.alive).map(soldier => soldier.ground));
       if (hurt) this.sparks.emitParticleAt(body.x, body.y - 20, 6);
@@ -1696,7 +1701,8 @@ export class GameScene extends Phaser.Scene {
       fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
       stroke: '#14110f', strokeThickness: 3,
     }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio);
-    const says = near ? prompt('F', charge.halted ? 'que te siga' : 'que espere') : charge.halted ? 'esperando' : '';
+    const onward = charge.at.drives ? 'que siga' : 'que te siga';
+    const says = near ? prompt('F', charge.halted ? onward : 'que espere') : charge.halted ? 'esperando' : '';
     // The words fade too: a new word comes in from nothing, the last fades out where it was.
     const word = charge.order;
     if (says && word.text !== says) word.setText(says).setAlpha(0);
@@ -1961,7 +1967,7 @@ export class GameScene extends Phaser.Scene {
   get offer(): string | undefined {
     if (!this.vitals.standing) return undefined;
     const led = this.led.find(c => c.going && ground(c.body, this.machi) <= ORDER);
-    if (led) return led.halted ? 'Que te siga' : 'Que espere';
+    if (led) return led.halted ? (led.at.drives ? 'Que siga' : 'Que te siga') : 'Que espere';
     const near = this.beside;
     if (!near) return undefined;
     if (near.npc) return 'Hablar';

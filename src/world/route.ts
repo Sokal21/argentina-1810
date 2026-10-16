@@ -104,3 +104,53 @@ export class Route {
     return { x: x / len, y: y / len };
   }
 }
+
+/**
+ * The way across a whole map to one place, plot by plot: for what goes somewhere on its own, like a
+ * cart on its way to the village. Worked out once, from the place outward over every plot that can
+ * be walked; from anywhere, the next plot is whichever neighbour is fewer steps from it.
+ */
+export class Road {
+  private steps: Uint16Array;
+  private cols: number;
+  private rows: number;
+
+  /** @param open whether a plot can be travelled; @param to the plot it leads to */
+  constructor(cols: number, rows: number, open: (col: number, row: number) => boolean, private to: { col: number; row: number }, private size: { w: number; h: number }) {
+    this.cols = cols;
+    this.rows = rows;
+    this.steps = new Uint16Array(cols * rows).fill(NONE);
+    const queue = new Int32Array(cols * rows);
+    let head = 0, tail = 0;
+    const start = to.row * cols + to.col;
+    this.steps[start] = 0;
+    queue[tail++] = start;
+    while (head < tail) {
+      const here = queue[head++], c = here % cols, r = (here / cols) | 0;
+      for (const [dc, dr] of NEIGHBOURS) {
+        const nc = c + dc, nr = r + dr;
+        if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
+        const n = nr * cols + nc;
+        if (this.steps[n] !== NONE || !open(nc, nr)) continue;
+        if (dc && dr && (!open(c + dc, r) || !open(c, r + dr))) continue;
+        this.steps[n] = this.steps[here] + 1;
+        queue[tail++] = n;
+      }
+    }
+  }
+
+  /** The point to head for next from a spot: the middle of the next plot on the way, or the end. */
+  next(at: Vec): Vec {
+    const c = Math.floor(at.x / this.size.w), r = Math.floor(at.y / this.size.h);
+    const centre = (col: number, row: number) => ({ x: (col + 0.5) * this.size.w, y: (row + 0.5) * this.size.h });
+    if (c < 0 || r < 0 || c >= this.cols || r >= this.rows) return centre(this.to.col, this.to.row);
+    let best = this.steps[r * this.cols + c], to: [number, number] | null = null;
+    for (const [dc, dr] of NEIGHBOURS) {
+      const nc = c + dc, nr = r + dr;
+      if (nc < 0 || nr < 0 || nc >= this.cols || nr >= this.rows) continue;
+      const s = this.steps[nr * this.cols + nc];
+      if (s < best) { best = s; to = [nc, nr]; }
+    }
+    return to ? centre(to[0], to[1]) : centre(this.to.col, this.to.row);
+  }
+}

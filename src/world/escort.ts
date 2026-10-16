@@ -65,6 +65,16 @@ export class Escort {
     if (Math.abs(this.x - was) > 0.01) this.facing = this.x > was ? 1 : -1;
   }
 
+  /** Goes on by itself toward a point, at its own pace: what drives on to somewhere without being led. */
+  drive(dt: number, to: Vec): void {
+    const dx = to.x - this.x, dy = to.y - this.y, far = Math.hypot(dx, dy), step = this.pace * dt;
+    const was = this.x;
+    if (far <= step) { this.x = to.x; this.y = to.y; }
+    else { this.x += dx / far * step; this.y += dy / far * step; }
+    this.moving = far > 0.5;
+    if (Math.abs(this.x - was) > 0.01) this.facing = this.x > was ? 1 : -1;
+  }
+
   /** A blow struck at it on purpose: one of its lives. */
   strike(): void {
     this.life = Math.max(0, this.life - 1);

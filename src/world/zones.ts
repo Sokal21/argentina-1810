@@ -95,6 +95,8 @@ export interface Charge {
   who?: string;
   /** Shown to the player when it arrives. */
   note?: string;
+  /** It goes to where it has to be brought by itself, along the road, once set off: the hero guards it, not leads it. */
+  drives?: boolean;
   /**
    * Someone who walks rather than slides: their walk, drawn heading right, as a row of square
    * frames: the side of one, how many, how many a second, and where the feet are in one.

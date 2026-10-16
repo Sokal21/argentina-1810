@@ -140,8 +140,8 @@ export const vadoDeLasVizcachas: WorldMap = {
   // What has to be brought across the country, with Cabral leading it and the king's soldiers in between.
   charges: [
     { id: 'mateo', name: 'Mateo', who: 'mateo', sprite: 'mateo/sprite.png', walk: { sheet: 'mateo/camina.png', size: 96, frames: 8, rate: 9, ax: 48, up: 1 }, from: [123, 18], to: [12, 47], does: 'llevarse a Mateo', given: 'acepto:entregar', happening: 'entregado:mateo', life: 4, pace: 56, note: 'Mateo llegó al pozo. Los paisanos ya lo rodean.' },
-    { id: 'campana', name: 'La carreta de la campana', sprite: 'cosas/carreta.png', from: [121, 21], to: [14, 44], does: 'llevar la carreta', given: 'bajada:campana', happening: 'llego:campana', life: 6, pace: 46, note: 'La campana está en la fragua. Para mañana va a ser balas.' },
-    { id: 'carretas', name: 'Las carretas de los heridos', sprite: 'cosas/carreta.png', from: [122, 20], to: [62, 20], does: 'sacar las carretas', given: 'acepto:escolta', happening: 'llego:carretas', life: 6, pace: 46, note: 'Las carretas llegaron a la loma. Los heridos están donde los van a ver.' },
+    { id: 'campana', name: 'La carreta de la campana', drives: true, sprite: 'cosas/carreta.png', from: [121, 21], to: [14, 44], does: 'llevar la carreta', given: 'bajada:campana', happening: 'llego:campana', life: 6, pace: 46, note: 'La campana está en la fragua. Para mañana va a ser balas.' },
+    { id: 'carretas', name: 'Las carretas de los heridos', drives: true, sprite: 'cosas/carreta.png', from: [122, 20], to: [62, 20], does: 'sacar las carretas', given: 'acepto:escolta', happening: 'llego:carretas', life: 6, pace: 46, note: 'Las carretas llegaron a la loma. Los heridos están donde los van a ver.' },
   ],
   spots: [
     // The same ford with the village behind him: more come, and their captain last; fewer if all the village asked was done.
