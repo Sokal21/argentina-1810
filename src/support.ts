@@ -1,24 +1,33 @@
 // A way for whoever likes the game to support it: a cup of coffee, never in the way. It is always
 // in the top left corner, small, and it is offered again once an ending has been read. Whoever reads
-// Spanish is sent to Cafecito, paid in pesos; anyone else to Ko-fi, once there is a page there.
+// Argentina is sent to Cafecito, paid in pesos; anyone else to Ko-fi.
 
 const LINKS = {
   cafecito: 'https://cafecito.app/tomasllopez',
   kofi: 'https://ko-fi.com/tomasllopez',
 };
 
-/** Where to send whoever wants to support the game, by the language of their browser. */
+// Whoever is in Argentina pays in pesos, through Cafecito; anyone else through Ko-fi. Where they are
+// is told by the browser's time zone, which comes from the machine's own settings, or else by a
+// language of theirs marked as Argentina's (es-AR). Nothing is asked of anyone, nor sent anywhere.
+function inArgentina(): boolean {
+  let zone = '';
+  try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? ''; } catch { /* none to be had */ }
+  const languages = navigator.languages?.length ? navigator.languages : [navigator.language ?? ''];
+  return zone.startsWith('America/Argentina') || zone === 'America/Buenos_Aires' || languages.some(l => /-ar$/i.test(l));
+}
+const spanish = () => (navigator.language ?? '').toLowerCase().startsWith('es');
+
+/** Where to send whoever wants to support the game. */
 export function supportLink(): string {
-  const spanish = (navigator.language ?? '').toLowerCase().startsWith('es');
-  return !spanish && LINKS.kofi ? LINKS.kofi : LINKS.cafecito;
+  return inArgentina() || !LINKS.kofi ? LINKS.cafecito : LINKS.kofi;
 }
 
-/** What it says, in their language. */
+/** What it says: a cafecito in Argentina, a coffee in Spanish elsewhere, and in English for the rest. */
 export function supportWords(): { short: string; long: string } {
-  const spanish = (navigator.language ?? '').toLowerCase().startsWith('es') || !LINKS.kofi;
-  return spanish
-    ? { short: 'Invitame un cafecito', long: 'Si te gustó 1810: Argentina, invitame un cafecito: ayuda a que siga creciendo.' }
-    : { short: 'Buy me a coffee', long: 'If you enjoyed 1810: Argentina, buy me a coffee: it helps the game keep growing.' };
+  if (inArgentina() || !LINKS.kofi) return { short: 'Invitame un cafecito', long: 'Si te gustó 1810: Argentina, invitame un cafecito: ayuda a que siga creciendo.' };
+  if (spanish()) return { short: 'Invitame un café', long: 'Si te gustó 1810: Argentina, invitame un café: ayuda a que siga creciendo.' };
+  return { short: 'Buy me a coffee', long: 'If you enjoyed 1810: Argentina, buy me a coffee: it helps the game keep growing.' };
 }
 
 /** A link styled as the game's own buttons, that opens the page in a new tab. */

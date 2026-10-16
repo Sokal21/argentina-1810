@@ -1362,9 +1362,10 @@ export class GameScene extends Phaser.Scene {
     this.breath ??= this.add.graphics().setDepth(1e6 - 1);
     const g = this.breath.clear(), share = this.stamina.share;
     if (share >= 1 || !this.vitals.standing) return;
-    const w = 26, x = Math.round(this.machi.x - w / 2), y = Math.round(this.machi.y + 6);
-    g.fillStyle(0x0a0807, 0.7).fillRect(x - 1, y - 1, w + 2, 4);
-    g.fillStyle(this.stamina.winded ? 0xc0442a : 0xe8d9a8, 0.95).fillRect(x, y, Math.max(1, Math.round(w * share)), 2);
+    const w = 34, x = Math.round(this.machi.x - w / 2), y = Math.round(this.machi.y + 7);
+    g.fillStyle(0x0a0807, 0.85).fillRect(x - 1, y - 1, w + 2, 5);
+    g.fillStyle(0x3a3027, 1).fillRect(x, y, w, 3);
+    g.fillStyle(this.stamina.winded ? 0xd8452a : 0x8fd18a, 1).fillRect(x, y, Math.max(1, Math.round(w * share)), 3);
   }
 
   private rise(): void {
