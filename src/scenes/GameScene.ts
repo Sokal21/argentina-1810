@@ -964,13 +964,15 @@ export class GameScene extends Phaser.Scene {
       this.showOrder(charge, drawn.height, dt);
       const hurt = body.harm(dt, this.realistas.filter(soldier => soldier.alive).map(soldier => soldier.ground));
       if (hurt) this.sparks.emitParticleAt(body.x, body.y - 20, 6);
-      drawn.setPosition(Math.round(body.x), Math.round(body.y)).setDepth(body.y).setFlipX(body.facing < 0);
+      // Turned to go the way it is going, whichever way it was drawn heading.
+      const mirrored = at.faces === 'left' ? body.facing > 0 : body.facing < 0;
+      drawn.setPosition(Math.round(body.x), Math.round(body.y)).setDepth(body.y).setFlipX(mirrored);
       // Whoever walks is seen walking while they go, and stands as drawn while they wait.
       const { walk } = at;
       if (walk && this.anims.exists(walk.sheet)) {
         if (body.moving && drawn.anims.currentAnim?.key !== walk.sheet) drawn.play(walk.sheet);
         else if (!body.moving && drawn.anims.isPlaying) drawn.stop().setTexture(at.sprite).setOrigin(0.5, 1);
-        if (body.moving) drawn.setDisplayOrigin(body.facing < 0 ? walk.size - walk.ax : walk.ax, walk.size - walk.up);
+        if (body.moving) drawn.setDisplayOrigin(mirrored ? walk.size - walk.ax : walk.ax, walk.size - walk.up);
       }
       bar.setPosition(Math.round(body.x), Math.round(body.y) - drawn.height - 4).setSize(24 * body.life / body.max, 3);
       const to = middle(at.to);

@@ -2135,6 +2135,11 @@
       "asset_id": "31ded621-1eb6-4131-906c-cd20a0b0df18",
       "label": "ox cart with carter concept, carreta_bueyes_2",
       "file": "assets/cosas/concept/carreta_bueyes_2.png"
+    },
+    {
+      "asset_id": "a7e3bcdb-aa05-4a67-a716-f96f93f48f94",
+      "label": "ox cart walking (8 frames, heading left) — untouched",
+      "file": "assets/cosas/carreta_bueyes_anda_original.png"
     }
   ]
 }
