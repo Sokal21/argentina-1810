@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { STAMINA, Stamina } from '../src/machi/stamina';
+import { DODGE, STAMINA, Stamina } from '../src/machi/stamina';
 
 const run = (s: Stamina, seconds: number, wants = true, moving = true) => {
   let ran = 0;
@@ -44,4 +44,13 @@ test('it comes back only after a moment of easing off', () => {
   expect(s.value).toBe(after);
   run(s, 2, false);
   expect(s.value).toBeGreaterThan(after);
+});
+
+test('a dodge takes a share at once, and needs only some breath left', () => {
+  const s = new Stamina();
+  expect(s.dodge()).toBe(true);
+  expect(s.value).toBe(STAMINA - DODGE);
+  while (s.value > 0) s.dodge();
+  expect(s.dodge()).toBe(false);
+  expect(s.winded).toBe(true);
 });

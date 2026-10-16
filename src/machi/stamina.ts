@@ -1,7 +1,7 @@
-// Running, and the breath it costs. Holding the run key (or the run button, by touch) the hero goes
-// quicker for as long as their breath lasts; it comes back once they ease off, after a moment.
-// Spent to nothing, they cannot run again until they have got back a fair part of it. The dodge
-// costs nothing: it stays as it was.
+// Breath, as in the soulslikes: running spends it while it lasts and a dodge takes a share of it at
+// once; it comes back once they ease off, after a moment. A dodge can be made with any breath left,
+// however little, and leaves them spent; spent to nothing, they cannot run again until they have
+// got back a fair part of it.
 
 export const STAMINA = 100;
 export const RUN = 1.6;        // how many times quicker running is than walking
@@ -9,6 +9,7 @@ const SPEND = 26;              // breath spent a second of running: about four s
 const BACK = 22;               // got back a second, once resting
 const PAUSE = 0.8;             // seconds before it starts coming back
 const WINDED = 0.3;            // share of it needed again before running, once spent
+export const DODGE = 24;       // what a dodge takes
 
 export class Stamina {
   value = STAMINA;
@@ -29,6 +30,15 @@ export class Stamina {
       if (this.winded && this.value >= STAMINA * WINDED) this.winded = false;
     }
     return running;
+  }
+
+  /** Takes what a dodge costs, if there is any breath at all. Says whether the dodge can be made. */
+  dodge(): boolean {
+    if (this.value <= 0) return false;
+    this.value = Math.max(0, this.value - DODGE);
+    this.rest = 0;
+    if (this.value === 0) this.winded = true;
+    return true;
   }
 
   /** How much is left, from 0 to 1. */

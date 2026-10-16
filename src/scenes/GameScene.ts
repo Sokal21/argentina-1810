@@ -229,9 +229,8 @@ export class GameScene extends Phaser.Scene {
   private meadow?: Meadow;
   /** Shadows cast from each one's own shape, and grass over their feet. */
   private silhouettes?: Silhouettes;
-  /** Their breath for running, and the thin bar under them that shows it while it is not whole. */
+  /** Their breath, for running and dodging. */
   private stamina = new Stamina();
-  private breath?: Phaser.GameObjects.Graphics;
   private water?: Water;
   /** What of the map's scenery is near enough the camera to be drawn. */
   private sight = new Sight();
@@ -772,7 +771,6 @@ export class GameScene extends Phaser.Scene {
     if (this.spentAttack) input.attack = false;
     const running = this.stamina.update(dt, standing && !this.machi.isDashing && (this.keys.running || touch.run), this.machi.isMoving);
     this.machi.pace = tune.speed * this.growth.gives('speed') * (this.wrath.active ? RAGE.pace : 1) * (running ? RUN : 1);
-    this.showBreath();
     this.machi.haste = this.wrath.active ? RAGE.haste : 1;
     const from = { x: this.machi.x, y: this.machi.y };
     this.machi.update(dt, input);
@@ -1356,16 +1354,9 @@ export class GameScene extends Phaser.Scene {
     this.readying = null;
   }
 
-  // The breath left, as a thin bar under their feet, only while it is not whole: pale while it
-  // lasts, red once it is spent and they must get it back before running again.
-  private showBreath(): void {
-    this.breath ??= this.add.graphics().setDepth(1e6 - 1);
-    const g = this.breath.clear(), share = this.stamina.share;
-    if (share >= 1 || !this.vitals.standing) return;
-    const w = 34, x = Math.round(this.machi.x - w / 2), y = Math.round(this.machi.y + 7);
-    g.fillStyle(0x0a0807, 0.85).fillRect(x - 1, y - 1, w + 2, 5);
-    g.fillStyle(0x3a3027, 1).fillRect(x, y, w, 3);
-    g.fillStyle(this.stamina.winded ? 0xd8452a : 0x8fd18a, 1).fillRect(x, y, Math.max(1, Math.round(w * share)), 3);
+  /** Their breath, for the HUD: how much is left, and whether it is spent. */
+  get breath(): { share: number; winded: boolean } {
+    return { share: this.stamina.share, winded: this.stamina.winded };
   }
 
   private rise(): void {
@@ -1388,6 +1379,8 @@ export class GameScene extends Phaser.Scene {
   // casts at the pointer and the right one walks toward it, both at any angle.
   private readInput(): MachiInput {
     const input: MachiInput = this.keys.read();
+    // A dodge takes breath, and cannot be made with none.
+    if (input.dash && !this.machi.isDashing && !this.stamina.dodge()) input.dash = false;
     this.marker.setVisible(controls.mouse && !touch.on);
     if (touch.on) return this.byTouch(input);
     if (!controls.mouse) return input;

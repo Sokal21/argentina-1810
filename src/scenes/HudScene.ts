@@ -13,6 +13,8 @@ const TALLEST = 0.3; // share of the screen's height the frame may take
 const HALO = { size: 96, r: 31, low: 0.1, high: 0.26 };
 const SETTLE = 6;    // how fast a level slides to its new value, per second
 const ICON = 30;     // side of a skill's icon
+// The breath bar: how far it overlaps the experience bar below it, and its greens, and its reds once spent.
+const BREATH = { overlap: 2, fill: [0x4f8a3a, 0x9fd46e] as [number, number], spent: [0x8a2e1e, 0xd8604a] as [number, number] };
 // The note that comes up over a slot when it is pointed at, in its own
 // pixels, each two of the screen's.
 const NOTE = { w: 184, pad: 7, gap: 5, ink: '#f0e3c4', dim: '#a89a80', back: 0x16120f, edge: 0x0a0807 };
@@ -113,6 +115,8 @@ interface Panel {
   flask: { icon: Phaser.GameObjects.Image; left: Phaser.GameObjects.Text };
   /** How far toward the next level: a thin bar over the slots, with the level beside it. */
   growth: { bar: Phaser.GameObjects.Rectangle; top: Phaser.GameObjects.Rectangle; level: Phaser.GameObjects.Text; points: Phaser.GameObjects.Text; gold: Phaser.GameObjects.Text };
+  /** Their breath: the green that fills the upper bar, and how far it was shown filled. */
+  breath: { bar: Phaser.GameObjects.Rectangle; top: Phaser.GameObjects.Rectangle; shown: number };
 }
 
 /**
@@ -214,13 +218,21 @@ export class HudScene extends Phaser.Scene {
     const bar = this.add.rectangle(gx, gy, 0, drawn.channel.h, drawn.fill[0]).setOrigin(0, 0);
     const top = this.add.rectangle(gx, gy, 0, 1, drawn.fill[1]).setOrigin(0, 0);
     const level = this.add.text(drawn.x + drawn.level.x, drawn.y + drawn.level.y, '', caps).setOrigin(0.5, 0.5);
-    const points = this.add.text(gx + drawn.channel.w / 2, drawn.y - 2, '', { ...caps, color: '#8fd18a' }).setOrigin(0.5, 1);
+    // Their breath, as in the soulslikes: the same bar again, just above, filling green, with a
+    // mark of running in its recess where the other has the level.
+    const source = this.textures.get(drawn.src).getSourceImage(), by = drawn.y - source.height + BREATH.overlap;
+    const breathBar = this.add.rectangle(gx, by + drawn.channel.y, drawn.channel.w, drawn.channel.h, BREATH.fill[0]).setOrigin(0, 0);
+    const breathTop = this.add.rectangle(gx, by + drawn.channel.y, drawn.channel.w, 1, BREATH.fill[1]).setOrigin(0, 0);
+    const breathMark = this.add.text(drawn.x + drawn.level.x, by + drawn.level.y, '»', caps).setOrigin(0.5, 0.5);
+    // What is written over the bars goes over the upper one.
+    const points = this.add.text(gx + drawn.channel.w / 2, by - 2, '', { ...caps, color: '#8fd18a' }).setOrigin(0.5, 1);
     // Their money, with a coin beside it, at the bar's far end.
-    const right = drawn.x + this.textures.get(drawn.src).getSourceImage().width;
-    const gold = this.add.text(right - 12, drawn.y - 2, '', caps).setOrigin(1, 1);
-    const coin = this.add.image(right, drawn.y - 3, 'cosas/moneda_chica.png').setOrigin(1, 1);
-    // The channel is drawn dark and solid, so what fills it is laid over it.
-    box.add([this.add.image(drawn.x, drawn.y, drawn.src).setOrigin(0, 0), bar, top, level, points, gold, coin]);
+    const right = drawn.x + source.width;
+    const gold = this.add.text(right - 12, by - 2, '', caps).setOrigin(1, 1);
+    const coin = this.add.image(right, by - 3, 'cosas/moneda_chica.png').setOrigin(1, 1);
+    // The channels are drawn dark and solid, so what fills them is laid over them.
+    box.add([this.add.image(drawn.x, by, drawn.src).setOrigin(0, 0), breathBar, breathTop, breathMark,
+      this.add.image(drawn.x, drawn.y, drawn.src).setOrigin(0, 0), bar, top, level, points, gold, coin]);
     // Pointing at a slot brings up a note on what it does.
     for (let i = 0; i <= layout.skills.length + 1; i++) {
       const zone = this.add.zone(layout.slot.x + layout.slot.step * i, layout.slot.y, ICON, ICON)
@@ -229,7 +241,7 @@ export class HudScene extends Phaser.Scene {
       zone.on('pointerout', () => this.hideNote(hero, i));
       box.add(zone);
     }
-    return { box, layout, glasses, slots, charge, power, flask: { icon: flaskIcon, left }, growth: { bar, top, level, points, gold } };
+    return { box, layout, glasses, slots, charge, power, flask: { icon: flaskIcon, left }, growth: { bar, top, level, points, gold }, breath: { bar: breathBar, top: breathTop, shown: 1 } };
   }
 
   update(time: number, delta: number): void {
@@ -240,7 +252,7 @@ export class HudScene extends Phaser.Scene {
       panel.box.setVisible(theirs);
       if (!theirs) { if (this.note?.hero === hero) this.hideNote(); continue; }
       // By touch the buttons sit over it: they are told how tall it stands, their bar and their money with it.
-      const stands = Math.round((this.scale.height - panel.box.y + (10 - Math.min(0, panel.layout.bar.y)) * panel.box.scaleY) * this.scale.zoom);
+      const stands = Math.round((this.scale.height - panel.box.y + (10 - Math.min(0, panel.layout.bar.y) + 30) * panel.box.scaleY) * this.scale.zoom);
       if (stands !== this.stands) clearOf(this.stands = stands);
       for (const slot of panel.slots) {
         const { ready, cooldown } = game.skill(slot.ability);
@@ -266,6 +278,13 @@ export class HudScene extends Phaser.Scene {
       panel.growth.level.setText(String(growth.level));
       panel.growth.points.setText(growth.points ? (touch.on ? `+${growth.points}` : `+${growth.points} · I`) : '');
       panel.growth.gold.setText(String(game.pack.gold));
+      // The breath slides to where it is, quickly, and turns red when it is spent.
+      const breath = game.breath, b = panel.breath;
+      b.shown += (breath.share - b.shown) * Math.min(1, dt * 14);
+      const full = Math.round(channel.w * Math.max(0, Math.min(1, b.shown)));
+      const [body, line] = breath.winded ? BREATH.spent : BREATH.fill;
+      b.bar.setSize(full, channel.h).setFillStyle(body);
+      b.top.setSize(full, 1).setFillStyle(line);
       // Empty, the flask is dull until somewhere safe is reached.
       const { left } = game.draughts;
       panel.flask.left.setText(String(left)).setColor(left ? '#f0e3c4' : '#8a4a3a');
