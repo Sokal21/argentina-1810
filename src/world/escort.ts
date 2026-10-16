@@ -21,6 +21,8 @@ export class Escort {
   private hurt = 0;
   /** Which way it last went across the screen: 1 right, -1 left. */
   facing: 1 | -1 = 1;
+  /** The way it last went, along the ground. */
+  heading: Vec = { x: -1, y: 0 };
   /** Whether it moved on the last step. */
   moving = false;
 
@@ -73,6 +75,7 @@ export class Escort {
     else { this.x += dx / far * step; this.y += dy / far * step; }
     this.moving = far > 0.5;
     if (Math.abs(this.x - was) > 0.01) this.facing = this.x > was ? 1 : -1;
+    if (far > 0.5) this.heading = { x: dx / far, y: dy / far };
   }
 
   /** A blow struck at it on purpose: one of its lives. */

@@ -152,7 +152,7 @@ const TALK = { near: 52, heard: 84, trial: [-140, -80] as [number, number], stan
 /** Someone standing on the map: one to talk to (`npc`), or one who only says what the sign over them shows. */
 interface Talker { name: string; npc?: Npc; x: number; y: number; /** For one who only says a thing: what they say as things stand now. */ says?: () => string; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image }; /** Somewhere something can be done, and the mark on the ground that says so. */ spot?: { at: Spot; mark: Phaser.GameObjects.Image }; /** Something waiting there to be led off. */ charge?: Led; /** Whoever stands there, to be hidden with them. */ figure?: Phaser.GameObjects.GameObject[]; /** Whether it is there to be dealt with at all just now; always, if unsaid. */ there?: () => boolean }
 /** Something being brought somewhere: what, where it is, its drawing and the bar of what it can still take, and whether it is on its way. */
-interface Led { at: Cargo; body: Escort; drawn: Phaser.GameObjects.Sprite; bar: Phaser.GameObjects.Rectangle; going: boolean; /** Told to wait where it is, while the hero clears the way. */ halted?: boolean; /** What F does to it, over it while the hero is near enough to say. */ order?: Phaser.GameObjects.Text; /** How far its ring is shown, and lit, each easing in and out. */ ring?: { seen: number; lit: number }; /** For one that drives on by itself: the road to where it is going. */ road?: Road }
+interface Led { /** Seen from the side just now, and for how long the other view has been wanted. */ sideways?: boolean; turning?: number; at: Cargo; body: Escort; drawn: Phaser.GameObjects.Sprite; bar: Phaser.GameObjects.Rectangle; going: boolean; /** Told to wait where it is, while the hero clears the way. */ halted?: boolean; /** What F does to it, over it while the hero is near enough to say. */ order?: Phaser.GameObjects.Text; /** How far its ring is shown, and lit, each easing in and out. */ ring?: { seen: number; lit: number }; /** For one that drives on by itself: the road to where it is going. */ road?: Road }
 // How near a named place counts as having come to it, in plots; and how many blows of life a bandage gives back.
 const ARRIVED = 1, MENDS = 2;
 // The sign over them comes up and goes out over this long, in seconds.
@@ -322,8 +322,9 @@ export class GameScene extends Phaser.Scene {
       if (b.sprite) this.load.image(b.sprite, b.sprite);
       if (b.inside) this.load.image(b.inside.sprite, b.inside.sprite);
     }
-    for (const { walk, idle } of Object.values(MAPS).flatMap(map => map?.charges ?? [])) {
-      for (const sheet of [walk, idle]) if (sheet) this.load.spritesheet(sheet.sheet, sheet.sheet, { frameWidth: sheet.size, frameHeight: sheet.size });
+    for (const { walk, idle, side } of Object.values(MAPS).flatMap(map => map?.charges ?? [])) {
+      for (const sheet of [walk, idle, side?.walk, side?.idle]) if (sheet) this.load.spritesheet(sheet.sheet, sheet.sheet, { frameWidth: sheet.size, frameHeight: sheet.size });
+      if (side) this.load.image(side.sprite, side.sprite);
     }
     for (const sprite of new Set(Object.values(MAPS).flatMap(map => map?.spots ?? []).flatMap(spot => spot.sprite ?? []))) this.load.image(sprite, sprite);
   }
@@ -549,7 +550,7 @@ export class GameScene extends Phaser.Scene {
         if (!this.textures.exists(at.sprite)) continue;
         const { x, y } = middle(at.from);
         const drawn = this.add.sprite(x, y, at.sprite).setOrigin(0.5, 1).setDepth(y).setVisible(false).setScale(at.scale ?? 1);
-        for (const sheet of [at.walk, at.idle]) {
+        for (const sheet of [at.walk, at.idle, at.side?.walk, at.side?.idle]) {
           if (sheet && this.textures.exists(sheet.sheet) && !this.anims.exists(sheet.sheet)) {
             this.anims.create({ key: sheet.sheet, frames: this.anims.generateFrameNumbers(sheet.sheet, { start: 0, end: sheet.frames - 1 }), frameRate: sheet.rate, repeat: -1 });
           }
@@ -979,6 +980,12 @@ export class GameScene extends Phaser.Scene {
       // Turned to go the way it is going, whichever way it was drawn heading.
       const mirrored = at.fixed ? false : at.faces === 'left' ? body.facing > 0 : body.facing < 0;
       drawn.setPosition(Math.round(body.x), Math.round(body.y)).setDepth(body.y).setFlipX(mirrored);
+      // From the side while it goes more across than down; a moment's other way is not a turn.
+      if (at.side && body.moving) {
+        const across = Math.abs(body.heading.x) > Math.abs(body.heading.y / ISO_Y) * 0.8 || body.heading.y < 0;
+        charge.turning = across === !!charge.sideways ? 0 : (charge.turning ?? 0) + dt;
+        if (charge.turning > 0.35) { charge.sideways = across; charge.turning = 0; }
+      }
       this.pose(charge, body.moving, mirrored);
       bar.setPosition(Math.round(body.x), Math.round(body.y) - drawn.displayHeight - 4).setSize(24 * body.life / body.max, 3);
       const to = middle(at.to);
@@ -1675,11 +1682,11 @@ export class GameScene extends Phaser.Scene {
   // Whoever is being brought along, seen as what it is doing: walking while it goes, its idle while
   // it stands if it has one, or else as drawn.
   private pose(charge: Led, moving: boolean, mirrored: boolean): void {
-    const { at, drawn } = charge, sheet = moving ? at.walk : at.idle;
+    const { at, drawn } = charge, view = charge.sideways && at.side ? at.side : at, sheet = moving ? view.walk : view.idle;
     if (sheet && this.anims.exists(sheet.sheet)) {
       if (drawn.anims.currentAnim?.key !== sheet.sheet || !drawn.anims.isPlaying) drawn.play({ key: sheet.sheet, startFrame: Math.floor(Math.random() * sheet.frames) });
       drawn.setDisplayOrigin(mirrored ? sheet.size - sheet.ax : sheet.ax, sheet.size - sheet.up);
-    } else if (drawn.anims.isPlaying) drawn.stop().setTexture(at.sprite).setOrigin(0.5, 1);
+    } else if (drawn.anims.isPlaying || drawn.texture.key !== view.sprite) drawn.stop().setTexture(view.sprite).setOrigin(0.5, 1);
   }
 
   // Whoever was walking stands as drawn.

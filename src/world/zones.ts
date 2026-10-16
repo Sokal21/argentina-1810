@@ -110,6 +110,8 @@ export interface Charge {
   walk?: { sheet: string; size: number; frames: number; rate: number; ax: number; up: number };
   /** What it does standing still, in the same kind of sheet as its walk: waiting to set off, told to wait, or arrived. */
   idle?: { sheet: string; size: number; frames: number; rate: number; ax: number; up: number };
+  /** The same seen from the side, for while it goes more across the screen than down it: drawn heading as the main one. */
+  side?: { sprite: string; walk?: { sheet: string; size: number; frames: number; rate: number; ax: number; up: number }; idle?: { sheet: string; size: number; frames: number; rate: number; ax: number; up: number } };
 }
 
 /** Something built, and the plot it stands in: for now a plain block of its size, until it is drawn. */

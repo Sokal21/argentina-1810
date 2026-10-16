@@ -2190,6 +2190,36 @@
       "asset_id": "e5f7dcea-8e00-4046-a94c-abbc1e6a6975",
       "label": "ox cart view concept, carreta_espalda_2",
       "file": "assets/cosas/concept/carreta_espalda_2.png"
+    },
+    {
+      "asset_id": "7225ffa8-d81c-4eff-83bf-1bf152e4a94c",
+      "label": "ox cart diagonal, no black lines (uploaded; animation source)",
+      "file": "assets/cosas/concept/carreta_simple_2_final.png"
+    },
+    {
+      "asset_id": "dd69ce36-3f23-4837-a0c5-4e74fc51c846",
+      "label": "ox cart side view, no black lines (uploaded; animation source)",
+      "file": "assets/cosas/concept/carreta_costado_2_final.png"
+    },
+    {
+      "asset_id": "de61b3e8-b21b-4f31-b6eb-21f6fd1606a8",
+      "label": "ox cart diagonal walking — untouched",
+      "file": "assets/cosas/carreta_anda_original.png"
+    },
+    {
+      "asset_id": "c8330d73-5389-409a-b605-52ef619f9071",
+      "label": "ox cart diagonal idle — untouched",
+      "file": "assets/cosas/carreta_quieta_original.png"
+    },
+    {
+      "asset_id": "b3b7036e-813f-4763-82f9-f364c99547eb",
+      "label": "ox cart side walking — untouched",
+      "file": "assets/cosas/carreta_lado_anda_original.png"
+    },
+    {
+      "asset_id": "a310e68b-d3f5-480a-9543-a94598a371f7",
+      "label": "ox cart side idle — untouched",
+      "file": "assets/cosas/carreta_lado_quieta_original.png"
     }
   ]
 }
