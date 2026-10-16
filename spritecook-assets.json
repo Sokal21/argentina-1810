@@ -2170,6 +2170,26 @@
       "asset_id": "254d7661-7d22-4c65-984f-2bbdeaddc3ab",
       "label": "ox cart idle (8 frames) — untouched",
       "file": "assets/cosas/carreta_quieta_original.png"
+    },
+    {
+      "asset_id": "ffcec127-9936-4271-96e7-2b58a37632c4",
+      "label": "ox cart view concept, carreta_costado_1",
+      "file": "assets/cosas/concept/carreta_costado_1.png"
+    },
+    {
+      "asset_id": "af187464-e8d8-41c6-8a1d-78b6bf7ffc76",
+      "label": "ox cart view concept, carreta_costado_2",
+      "file": "assets/cosas/concept/carreta_costado_2.png"
+    },
+    {
+      "asset_id": "f67aaa95-01d7-4320-8f67-abe3295b61ff",
+      "label": "ox cart view concept, carreta_espalda_1",
+      "file": "assets/cosas/concept/carreta_espalda_1.png"
+    },
+    {
+      "asset_id": "e5f7dcea-8e00-4046-a94c-abbc1e6a6975",
+      "label": "ox cart view concept, carreta_espalda_2",
+      "file": "assets/cosas/concept/carreta_espalda_2.png"
     }
   ]
 }
