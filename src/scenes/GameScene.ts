@@ -76,6 +76,11 @@ const KEEP = 4;
 const PROVOKED = 12, ALARM = 260;
 // How near whatever is being brought along the hero must be to tell it to wait, or to come on.
 const ORDER = 60;
+/** How near a hero must be to tell something brought along to wait or come on: past its edge, for a cart. */
+const reachOf = (c: { at: Cargo; drawn: Phaser.GameObjects.Sprite }) => (c.at.drives ? c.drawn.displayWidth * 0.42 + 26 : ORDER);
+/** The ground a cart and its oxen take up, which nobody walks through; nothing for someone led on foot. */
+const footOf = (c: { at: Cargo; drawn: Phaser.GameObjects.Sprite; body: Vec }): Footprint | null =>
+  c.at.drives ? { x: c.body.x - c.drawn.displayWidth * 0.06, y: c.body.y - 10 * (c.at.scale ?? 1), hw: c.drawn.displayWidth * 0.36, hh: 12 * (c.at.scale ?? 1) } : null;
 const RING_FADE = 6;       // how quickly the ring and its words ease in and out, a second            // seconds between one keeping of the game and the next
 const FIELD = { width: 1280, height: 800 }; // the bare field, in sprite pixels
 // The map each hero walks; one who has none fights on the bare field.
@@ -607,7 +612,7 @@ export class GameScene extends Phaser.Scene {
       const interact = () => {
         if (!this.vitals.standing) return;
         // Beside whatever is being brought along: it is told to wait, or to come on again.
-        const led = this.led.find(c => c.going && ground(c.body, this.machi) <= ORDER);
+        const led = this.led.find(c => c.going && ground(c.body, this.machi) <= reachOf(c));
         if (led) {
           led.halted = !led.halted;
           this.board?.say(`${led.at.name}: ${led.halted ? 'espera acá.' : led.at.drives ? 'sigue camino.' : 'te sigue.'}`);
@@ -817,7 +822,9 @@ export class GameScene extends Phaser.Scene {
       this.machi.y = clear.y;
     }
     // Nor through the trunk of a tree, nor into country too thick to cross.
-    for (const taken of [this.forest?.trunks, this.built]) {
+    // Carts are walked round, wherever they stand.
+    const carts = this.led.filter(c => c.drawn.visible).map(footOf).filter((f): f is Footprint => !!f);
+    for (const taken of [this.forest?.trunks, this.built, carts]) {
       for (const trunk of taken ?? []) {
         const clear = pushOut({ x: this.machi.x, y: this.machi.y, ...FEET }, trunk);
         this.machi.x = clear.x;
@@ -1696,19 +1703,19 @@ export class GameScene extends Phaser.Scene {
   // enough, with what F would do written over it. Waiting, it keeps a word over it either way.
   private showOrder(charge: Led, tall: number, dt: number): void {
     this.orders ??= this.add.graphics().setDepth(-1e6 + 3);
-    const { body } = charge, far = ground(body, this.machi), near = far <= ORDER;
+    const { body } = charge, far = ground(body, this.machi), R = reachOf(charge), near = far <= R;
     // Each eases toward where it should be: the ring fades in as the hero comes and out as they go,
     // and its light comes up and goes down rather than switching.
     const ring = (charge.ring ??= { seen: 0, lit: 0 });
     const ease = (from: number, to: number) => from + (to - from) * Math.min(1, dt * RING_FADE);
-    ring.seen = ease(ring.seen, Phaser.Math.Clamp((ORDER * 2.2 - far) / (ORDER * 1.2), 0, 1));
+    ring.seen = ease(ring.seen, Phaser.Math.Clamp((R * 1.8 - far) / (R * 0.8), 0, 1));
     ring.lit = ease(ring.lit, near ? 1 : 0);
     if (ring.seen > 0.01) {
       const colour = Phaser.Display.Color.Interpolate.ColorWithColor(
         Phaser.Display.Color.ValueToColor(0x8a8478), Phaser.Display.Color.ValueToColor(0xe2c478), 1, ring.lit);
       const tint = Phaser.Display.Color.GetColor(colour.r, colour.g, colour.b);
-      this.orders.lineStyle(1, tint, (0.45 + 0.45 * ring.lit) * ring.seen).strokeEllipse(body.x, body.y, ORDER * 2, ORDER * 2 * ISO_Y);
-      if (ring.lit > 0.01) this.orders.fillStyle(tint, 0.08 * ring.lit * ring.seen).fillEllipse(body.x, body.y, ORDER * 2, ORDER * 2 * ISO_Y);
+      this.orders.lineStyle(1, tint, (0.45 + 0.45 * ring.lit) * ring.seen).strokeEllipse(body.x, body.y, R * 2, R * 2 * ISO_Y);
+      if (ring.lit > 0.01) this.orders.fillStyle(tint, 0.08 * ring.lit * ring.seen).fillEllipse(body.x, body.y, R * 2, R * 2 * ISO_Y);
     }
     charge.order ??= this.add.text(0, 0, '', {
       fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
@@ -1979,7 +1986,7 @@ export class GameScene extends Phaser.Scene {
   /** What can be done with whatever is beside the hero, in a word; nothing if there is nothing to be done. */
   get offer(): string | undefined {
     if (!this.vitals.standing) return undefined;
-    const led = this.led.find(c => c.going && ground(c.body, this.machi) <= ORDER);
+    const led = this.led.find(c => c.going && ground(c.body, this.machi) <= reachOf(c));
     if (led) return led.halted ? (led.at.drives ? 'Que siga' : 'Que te siga') : 'Que espere';
     const near = this.beside;
     if (!near) return undefined;
