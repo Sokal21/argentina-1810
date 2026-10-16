@@ -58,6 +58,8 @@ interface Layout {
    * colours it fills with, the body and the line along its top.
    */
   bar: { src: string; x: number; y: number; channel: { x: number; y: number; w: number; h: number }; level: { x: number; y: number }; fill: [number, number] };
+  /** Their breath bar, drawn empty in the manner of their HUD and set just above the experience bar: its picture and the channel in it that fills. */
+  breath: { src: string; channel: { x: number; y: number; w: number; h: number } };
 }
 
 const LIFE = ['#571227', '#8a1730', '#c22f48', '#e0607a'] as Vessel['colours'];
@@ -76,6 +78,8 @@ const LAYOUTS: Record<Hero, Layout> = {
     flask: 'hud/iconos/calabaza.png',
     // A hollow branch bound in roots, lying along the top of the log.
     bar: { src: 'hud/barra_inti.png', x: 126, y: 18, channel: { x: 58, y: 6, w: 154, h: 5 }, level: { x: 27, y: 8.5 }, fill: [0x4fae6a, 0xa8e6a0] },
+    // A plaited cord on a twig, with two feathers tied at its end for breath and wind.
+    breath: { src: 'hud/aliento_inti.png', channel: { x: 23, y: 12, w: 115, h: 9 } },
     skills: [
       { ability: 'strike', icon: 'hud/iconos/rayo.png', key: 'Q' },
       { ability: 'heal', icon: 'hud/iconos/lawen.png', key: 'E' },
@@ -95,6 +99,8 @@ const LAYOUTS: Record<Hero, Layout> = {
     flask: 'hud/iconos/chifle.png',
     // An iron-bound plank, set above the kit.
     bar: { src: 'hud/barra_cabral.png', x: 106, y: -16, channel: { x: 27, y: 8, w: 198, h: 11 }, level: { x: 15, y: 13.5 }, fill: [0xc9962e, 0xf2d27a] },
+    // A cavalry strap, stitched and buckled, with a brass medallion.
+    breath: { src: 'hud/aliento_cabral.png', channel: { x: 32, y: 11, w: 127, h: 9 } },
     skills: [
       { ability: 'musket', icon: 'hud/iconos/mosquete.png', key: 'Q' },
       { ability: 'grenade', icon: 'hud/iconos/granada.png', key: 'E' },
@@ -136,8 +142,9 @@ export class HudScene extends Phaser.Scene {
   }
 
   preload(): void {
-    for (const { frame, skills, ultimate, flask, bar } of Object.values(LAYOUTS)) {
+    for (const { frame, skills, ultimate, flask, bar, breath } of Object.values(LAYOUTS)) {
       this.load.image(bar.src, bar.src);
+      this.load.image(breath.src, breath.src);
       this.load.image('cosas/moneda_chica.png', 'cosas/moneda_chica.png');
       if (ultimate) this.load.image(ultimate, ultimate);
       this.load.image(flask, flask);
@@ -218,12 +225,13 @@ export class HudScene extends Phaser.Scene {
     const bar = this.add.rectangle(gx, gy, 0, drawn.channel.h, drawn.fill[0]).setOrigin(0, 0);
     const top = this.add.rectangle(gx, gy, 0, 1, drawn.fill[1]).setOrigin(0, 0);
     const level = this.add.text(drawn.x + drawn.level.x, drawn.y + drawn.level.y, '', caps).setOrigin(0.5, 0.5);
-    // Their breath, as in the soulslikes: the same bar again, just above, filling green, with a
-    // mark of running in its recess where the other has the level.
-    const source = this.textures.get(drawn.src).getSourceImage(), by = drawn.y - source.height + BREATH.overlap;
-    const breathBar = this.add.rectangle(gx, by + drawn.channel.y, drawn.channel.w, drawn.channel.h, BREATH.fill[0]).setOrigin(0, 0);
-    const breathTop = this.add.rectangle(gx, by + drawn.channel.y, drawn.channel.w, 1, BREATH.fill[1]).setOrigin(0, 0);
-    const breathMark = this.add.text(drawn.x + drawn.level.x, by + drawn.level.y, '»', caps).setOrigin(0.5, 0.5);
+    // Their breath, as in the soulslikes: a bar of its own in their manner, set just above the
+    // experience bar and centred on it, filling green.
+    const source = this.textures.get(drawn.src).getSourceImage(), lung = layout.breath;
+    const lungPicture = this.textures.get(lung.src).getSourceImage();
+    const bx = drawn.x + Math.round((source.width - lungPicture.width) / 2), by = drawn.y - lungPicture.height + BREATH.overlap;
+    const breathBar = this.add.rectangle(bx + lung.channel.x, by + lung.channel.y, lung.channel.w, lung.channel.h, BREATH.fill[0]).setOrigin(0, 0);
+    const breathTop = this.add.rectangle(bx + lung.channel.x, by + lung.channel.y, lung.channel.w, 1, BREATH.fill[1]).setOrigin(0, 0);
     // What is written over the bars goes over the upper one.
     const points = this.add.text(gx + drawn.channel.w / 2, by - 2, '', { ...caps, color: '#8fd18a' }).setOrigin(0.5, 1);
     // Their money, with a coin beside it, at the bar's far end.
@@ -231,8 +239,8 @@ export class HudScene extends Phaser.Scene {
     const gold = this.add.text(right - 12, by - 2, '', caps).setOrigin(1, 1);
     const coin = this.add.image(right, by - 3, 'cosas/moneda_chica.png').setOrigin(1, 1);
     // The channels are drawn dark and solid, so what fills them is laid over them.
-    box.add([this.add.image(drawn.x, by, drawn.src).setOrigin(0, 0), breathBar, breathTop, breathMark,
-      this.add.image(drawn.x, drawn.y, drawn.src).setOrigin(0, 0), bar, top, level, points, gold, coin]);
+    box.add([this.add.image(drawn.x, drawn.y, drawn.src).setOrigin(0, 0), bar, top, level,
+      this.add.image(bx, by, lung.src).setOrigin(0, 0), breathBar, breathTop, points, gold, coin]);
     // Pointing at a slot brings up a note on what it does.
     for (let i = 0; i <= layout.skills.length + 1; i++) {
       const zone = this.add.zone(layout.slot.x + layout.slot.step * i, layout.slot.y, ICON, ICON)
@@ -281,9 +289,10 @@ export class HudScene extends Phaser.Scene {
       // The breath slides to where it is, quickly, and turns red when it is spent.
       const breath = game.breath, b = panel.breath;
       b.shown += (breath.share - b.shown) * Math.min(1, dt * 14);
-      const full = Math.round(channel.w * Math.max(0, Math.min(1, b.shown)));
+      const lung = panel.layout.breath.channel;
+      const full = Math.round(lung.w * Math.max(0, Math.min(1, b.shown)));
       const [body, line] = breath.winded ? BREATH.spent : BREATH.fill;
-      b.bar.setSize(full, channel.h).setFillStyle(body);
+      b.bar.setSize(full, lung.h).setFillStyle(body);
       b.top.setSize(full, 1).setFillStyle(line);
       // Empty, the flask is dull until somewhere safe is reached.
       const { left } = game.draughts;
