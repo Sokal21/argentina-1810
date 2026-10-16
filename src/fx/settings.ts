@@ -9,10 +9,12 @@ export const EFFECTS: [Effect, string][] = [
   ['leaves', 'Otoño'],
 ];
 
-const KEY = 'argentina-1810-fx';
+// A new name, so that everyone starts again from the defaults below: they were all on before.
+const KEY = 'argentina-1810-fx-2';
 
 function load(): Record<Effect, boolean> {
-  const defaults = { grain: true, light: true, crt: true, snow: false, leaves: false };
+  // Off until whoever plays turns them on in the pause menu.
+  const defaults = { grain: false, light: false, crt: false, snow: false, leaves: false };
   try {
     return { ...defaults, ...JSON.parse(localStorage.getItem(KEY) ?? '{}') };
   } catch {
