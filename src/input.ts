@@ -10,6 +10,9 @@ const KEYMAP: Record<string, Dir> = {
   ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
 };
 
+/** Milliseconds within which a second press of the same direction is a double press: run. */
+const DOUBLE = 280;
+
 export class Keys {
   private held = new Set<Dir>();
   private attack = false;
@@ -22,6 +25,9 @@ export class Keys {
   private healHeld = false;
   /** X is held: they run. */
   private run = false;
+  /** A direction pressed twice quickly: they run until they stop walking. */
+  private sprint = false;
+  private lastPress: { dir: Dir | null; at: number } = { dir: null, at: -Infinity };
 
   constructor(target: Window = window) {
     target.addEventListener('keydown', e => {
@@ -43,16 +49,28 @@ export class Keys {
       const dir = KEYMAP[e.code];
       if (!dir) return;
       e.preventDefault();
-      if (!e.repeat) { this.held.delete(dir); this.held.add(dir); }
+      if (!e.repeat) {
+        // The same way twice in quick succession: they mean to run.
+        const now = performance.now();
+        if (this.lastPress.dir === dir && now - this.lastPress.at < DOUBLE) this.sprint = true;
+        this.lastPress = { dir, at: now };
+        this.held.delete(dir);
+        this.held.add(dir);
+      }
     });
     target.addEventListener('keyup', e => {
       if (e.code === 'Space') this.attack = false;
       else if (e.code === 'KeyQ') this.strike = false;
       else if (e.code === 'KeyE') this.healHeld = false;
       else if (e.code === 'KeyX') this.run = false;
-      else if (KEYMAP[e.code]) this.held.delete(KEYMAP[e.code]);
+      else if (KEYMAP[e.code]) {
+        this.held.delete(KEYMAP[e.code]);
+        // Run by a double press lasts while they keep walking. A key let go and pressed again
+        // at once, as in the double press itself, is not stopping.
+        if (!this.held.size) setTimeout(() => { if (!this.held.size) this.sprint = false; }, DOUBLE);
+      }
     });
-    target.addEventListener('blur', () => { this.held.clear(); this.attack = false; this.strike = false; this.healHeld = false; this.run = false; });
+    target.addEventListener('blur', () => { this.held.clear(); this.attack = false; this.strike = false; this.healHeld = false; this.run = false; this.sprint = false; });
   }
 
   private axis(neg: Dir, pos: Dir): number {
@@ -63,7 +81,7 @@ export class Keys {
 
   /** Whether the run key is held. */
   get running(): boolean {
-    return this.run;
+    return this.run || this.sprint;
   }
 
   /** Whether a key that aims while it is held is down. */
