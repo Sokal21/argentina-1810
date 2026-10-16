@@ -30,7 +30,7 @@ export class Keys {
   private arrows = new Set<Dir>();
   /** X is held: they run. */
   private run = false;
-  /** A direction pressed twice quickly: they run until they stop walking. */
+  /** A direction pressed twice quickly: they run until any direction is let go. */
   private sprint = false;
   private lastPress: { dir: Dir | null; at: number } = { dir: null, at: -Infinity };
 
@@ -77,9 +77,8 @@ export class Keys {
       else if (ARROWS[e.code]) this.arrows.delete(ARROWS[e.code]);
       else if (KEYMAP[e.code]) {
         this.held.delete(KEYMAP[e.code]);
-        // Run by a double press lasts while they keep walking. A key let go and pressed again
-        // at once, as in the double press itself, is not stopping.
-        if (!this.held.size) setTimeout(() => { if (!this.held.size) this.sprint = false; }, DOUBLE);
+        // Run by a double press lasts until any way they are walking is let go.
+        this.sprint = false;
       }
     });
     target.addEventListener('blur', () => { this.held.clear(); this.attack = false; this.strike = false; this.healHeld = false; this.run = false; this.sprint = false; this.arrows.clear(); });
