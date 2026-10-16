@@ -13,8 +13,8 @@ const TALLEST = 0.3; // share of the screen's height the frame may take
 const HALO = { size: 96, r: 31, low: 0.1, high: 0.26 };
 const SETTLE = 6;    // how fast a level slides to its new value, per second
 const ICON = 30;     // side of a skill's icon
-// The breath bar: how far it overlaps the experience bar below it, and its greens, and its reds once spent.
-const BREATH = { overlap: 2, fill: [0x4f8a3a, 0x9fd46e] as [number, number], spent: [0x8a2e1e, 0xd8604a] as [number, number] };
+// The breath bar's greens, and its reds once spent.
+const BREATH = { fill: [0x4f8a3a, 0x9fd46e] as [number, number], spent: [0x8a2e1e, 0xd8604a] as [number, number] };
 // The note that comes up over a slot when it is pointed at, in its own
 // pixels, each two of the screen's.
 const NOTE = { w: 184, pad: 7, gap: 5, ink: '#f0e3c4', dim: '#a89a80', back: 0x16120f, edge: 0x0a0807 };
@@ -59,7 +59,7 @@ interface Layout {
    */
   bar: { src: string; x: number; y: number; channel: { x: number; y: number; w: number; h: number }; level: { x: number; y: number }; fill: [number, number] };
   /** Their breath bar, drawn empty in the manner of their HUD and set just above the experience bar: its picture and the channel in it that fills. */
-  breath: { src: string; channel: { x: number; y: number; w: number; h: number } };
+  breath: { src: string; channel: { x: number; y: number; w: number; h: number }; /** How far its foot comes down over the experience bar: Inti's feathers hang below the cord. */ overlap: number };
 }
 
 const LIFE = ['#571227', '#8a1730', '#c22f48', '#e0607a'] as Vessel['colours'];
@@ -79,7 +79,7 @@ const LAYOUTS: Record<Hero, Layout> = {
     // A hollow branch bound in roots, lying along the top of the log.
     bar: { src: 'hud/barra_inti.png', x: 126, y: 18, channel: { x: 58, y: 6, w: 154, h: 5 }, level: { x: 27, y: 8.5 }, fill: [0x4fae6a, 0xa8e6a0] },
     // A plaited cord on a twig, with two feathers tied at its end for breath and wind.
-    breath: { src: 'hud/aliento_inti.png', channel: { x: 23, y: 12, w: 115, h: 9 } },
+    breath: { src: 'hud/aliento_inti.png', channel: { x: 23, y: 12, w: 198, h: 9 }, overlap: 14 },
     skills: [
       { ability: 'strike', icon: 'hud/iconos/rayo.png', key: 'Q' },
       { ability: 'heal', icon: 'hud/iconos/lawen.png', key: 'E' },
@@ -100,7 +100,7 @@ const LAYOUTS: Record<Hero, Layout> = {
     // An iron-bound plank, set above the kit.
     bar: { src: 'hud/barra_cabral.png', x: 106, y: -16, channel: { x: 27, y: 8, w: 198, h: 11 }, level: { x: 15, y: 13.5 }, fill: [0xc9962e, 0xf2d27a] },
     // A cavalry strap, stitched and buckled, with a brass medallion.
-    breath: { src: 'hud/aliento_cabral.png', channel: { x: 32, y: 11, w: 127, h: 9 } },
+    breath: { src: 'hud/aliento_cabral.png', channel: { x: 32, y: 11, w: 167, h: 9 }, overlap: 2 },
     skills: [
       { ability: 'musket', icon: 'hud/iconos/mosquete.png', key: 'Q' },
       { ability: 'grenade', icon: 'hud/iconos/granada.png', key: 'E' },
@@ -225,11 +225,11 @@ export class HudScene extends Phaser.Scene {
     const bar = this.add.rectangle(gx, gy, 0, drawn.channel.h, drawn.fill[0]).setOrigin(0, 0);
     const top = this.add.rectangle(gx, gy, 0, 1, drawn.fill[1]).setOrigin(0, 0);
     const level = this.add.text(drawn.x + drawn.level.x, drawn.y + drawn.level.y, '', caps).setOrigin(0.5, 0.5);
-    // Their breath, as in the soulslikes: a bar of its own in their manner, set just above the
-    // experience bar and centred on it, filling green.
+    // Their breath, as in the soulslikes: a bar of its own in their manner, as wide as the
+    // experience bar and set just above it, edge to edge, filling green (tools/build_hud_breath.py).
     const source = this.textures.get(drawn.src).getSourceImage(), lung = layout.breath;
     const lungPicture = this.textures.get(lung.src).getSourceImage();
-    const bx = drawn.x + Math.round((source.width - lungPicture.width) / 2), by = drawn.y - lungPicture.height + BREATH.overlap;
+    const bx = drawn.x, by = drawn.y - lungPicture.height + lung.overlap;
     const breathBar = this.add.rectangle(bx + lung.channel.x, by + lung.channel.y, lung.channel.w, lung.channel.h, BREATH.fill[0]).setOrigin(0, 0);
     const breathTop = this.add.rectangle(bx + lung.channel.x, by + lung.channel.y, lung.channel.w, 1, BREATH.fill[1]).setOrigin(0, 0);
     // What is written over the bars goes over the upper one.
