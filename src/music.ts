@@ -49,13 +49,16 @@ function start(): void {
   const p = player(current);
   p.volume = level();
   if (!p.paused) return;
-  void p.play().catch(() => {
+  void p.play().catch((error: DOMException) => {
+    // Without the file there is nothing to wait for.
+    if (error?.name !== 'NotAllowedError') return;
     // Not allowed yet: at the first touch or key.
     if (waiting) return;
     waiting = true;
-    const once = () => { waiting = false; removeEventListener('pointerdown', once, true); removeEventListener('keydown', once, true); start(); };
-    addEventListener('pointerdown', once, true);
-    addEventListener('keydown', once, true);
+    // On a phone the page may only make sound once the finger is lifted, not as it lands.
+    const kinds = ['pointerup', 'touchend', 'click', 'keydown'] as const;
+    const once = () => { waiting = false; for (const k of kinds) removeEventListener(k, once, true); start(); };
+    for (const k of kinds) addEventListener(k, once, true);
   });
 }
 
@@ -73,6 +76,11 @@ export function setMusic(change: Partial<typeof music>): void {
   Object.assign(music, change);
   try { localStorage.setItem(KEPT, JSON.stringify(music)); } catch { /* this sitting only */ }
   if (current) player(current).volume = level();
+}
+
+/** Whether the music is held back until the page is first touched or a key pressed. */
+export function musicWaiting(): boolean {
+  return waiting;
 }
 
 /** What is playing, for whoever is trying things out. */

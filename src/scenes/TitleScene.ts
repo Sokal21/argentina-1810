@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { LookFX } from '../fx/LookFX';
 import { fx } from '../fx/settings';
-import { playMusic } from '../music';
+import { musicWaiting, playMusic } from '../music';
 
 const W = 960, H = 405;       // the background, which is the scene's whole world
 const BACK = 'titulo/cabildo.png';
@@ -47,6 +47,8 @@ export class TitleScene extends Phaser.Scene {
   private narrow = 1;
   private look?: LookFX;
   private leaving = false;
+  /** The music is waiting for the first touch, which is spent on it. */
+  private hushed = false;
 
   constructor() {
     super('title');
@@ -105,8 +107,15 @@ export class TitleScene extends Phaser.Scene {
 
     document.body.classList.add('title');
     playMusic('intro');
-    this.input.keyboard?.once('keydown', () => this.leave());
-    this.input.once('pointerdown', () => this.leave());
+    // Where the browser holds the music back until the page is touched, the first touch or key
+    // only lets it play, over the Cabildo; the next goes on.
+    this.time.delayedCall(250, () => { this.hushed = musicWaiting(); });
+    const onward = () => {
+      if (this.hushed) { this.hushed = false; return; }
+      this.leave();
+    };
+    this.input.keyboard?.on('keydown', onward);
+    this.input.on('pointerdown', onward);
   }
 
   update(time: number, delta: number): void {
