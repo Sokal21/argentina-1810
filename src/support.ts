@@ -4,7 +4,7 @@
 
 const LINKS = {
   cafecito: 'https://cafecito.app/tomasllopez',
-  kofi: '',
+  kofi: 'https://ko-fi.com/tomasllopez',
 };
 
 /** Where to send whoever wants to support the game, by the language of their browser. */
