@@ -32,7 +32,12 @@ export class Stamina {
     return running;
   }
 
-  /** Takes what a dodge costs, if there is any breath at all. Says whether the dodge can be made. */
+  /** Whether a dodge can be made: any breath at all. */
+  get canDodge(): boolean {
+    return this.value > 0;
+  }
+
+  /** Takes what a dodge costs, once it has begun. Says whether there was breath for it. */
   dodge(): boolean {
     if (this.value <= 0) return false;
     this.value = Math.max(0, this.value - DODGE);

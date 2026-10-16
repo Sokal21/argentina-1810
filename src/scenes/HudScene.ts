@@ -59,7 +59,7 @@ interface Layout {
    */
   bar: { src: string; x: number; y: number; channel: { x: number; y: number; w: number; h: number }; level: { x: number; y: number }; fill: [number, number] };
   /** Their breath bar, drawn empty in the manner of their HUD and set just above the experience bar: its picture and the channel in it that fills. */
-  breath: { src: string; channel: { x: number; y: number; w: number; h: number }; /** How far its foot comes down over the experience bar: Inti's feathers hang below the cord. */ overlap: number };
+  breath: { src: string; channel: { x: number; y: number; w: number; h: number }; /** How far below its foot (Inti's cord) the picture goes on: the feathers that hang from it. */ overlap: number };
 }
 
 const LIFE = ['#571227', '#8a1730', '#c22f48', '#e0607a'] as Vessel['colours'];
@@ -221,26 +221,29 @@ export class HudScene extends Phaser.Scene {
     box.add([flaskIcon, left, this.add.text(fx + ICON - 1, fy + ICON, touch.on ? '' : 'C', caps).setOrigin(1, 1)]);
     // Their growth: the bar drawn for them, its channel filled as far as they have come, the level
     // in its recess, and beside it a word when there are points to give out.
-    const { bar: drawn } = layout, gx = drawn.x + drawn.channel.x, gy = drawn.y + drawn.channel.y;
-    const bar = this.add.rectangle(gx, gy, 0, drawn.channel.h, drawn.fill[0]).setOrigin(0, 0);
-    const top = this.add.rectangle(gx, gy, 0, 1, drawn.fill[1]).setOrigin(0, 0);
-    const level = this.add.text(drawn.x + drawn.level.x, drawn.y + drawn.level.y, '', caps).setOrigin(0.5, 0.5);
     // Their breath, as in the soulslikes: a bar of its own in their manner, as wide as the
-    // experience bar and set just above it, edge to edge, filling green (tools/build_hud_breath.py).
-    const source = this.textures.get(drawn.src).getSourceImage(), lung = layout.breath;
-    const lungPicture = this.textures.get(lung.src).getSourceImage();
-    const bx = drawn.x, by = drawn.y - lungPicture.height + lung.overlap;
+    // experience bar (tools/build_hud_breath.py), in the place the experience bar was drawn for,
+    // just over the kit; the experience bar goes just above it. Their foot (Inti's cord, above the
+    // feathers that hang from it) comes down where the experience bar's did.
+    const { bar: drawn } = layout, lung = layout.breath;
+    const source = this.textures.get(drawn.src).getSourceImage(), lungPicture = this.textures.get(lung.src).getSourceImage();
+    const bx = drawn.x, by = drawn.y + source.height - lungPicture.height + lung.overlap;
+    const xy = by - source.height + 2;
     const breathBar = this.add.rectangle(bx + lung.channel.x, by + lung.channel.y, lung.channel.w, lung.channel.h, BREATH.fill[0]).setOrigin(0, 0);
     const breathTop = this.add.rectangle(bx + lung.channel.x, by + lung.channel.y, lung.channel.w, 1, BREATH.fill[1]).setOrigin(0, 0);
+    const gx = drawn.x + drawn.channel.x, gy = xy + drawn.channel.y;
+    const bar = this.add.rectangle(gx, gy, 0, drawn.channel.h, drawn.fill[0]).setOrigin(0, 0);
+    const top = this.add.rectangle(gx, gy, 0, 1, drawn.fill[1]).setOrigin(0, 0);
+    const level = this.add.text(drawn.x + drawn.level.x, xy + drawn.level.y, '', caps).setOrigin(0.5, 0.5);
     // What is written over the bars goes over the upper one.
-    const points = this.add.text(gx + drawn.channel.w / 2, by - 2, '', { ...caps, color: '#8fd18a' }).setOrigin(0.5, 1);
+    const points = this.add.text(gx + drawn.channel.w / 2, xy - 2, '', { ...caps, color: '#8fd18a' }).setOrigin(0.5, 1);
     // Their money, with a coin beside it, at the bar's far end.
     const right = drawn.x + source.width;
-    const gold = this.add.text(right - 12, by - 2, '', caps).setOrigin(1, 1);
-    const coin = this.add.image(right, by - 3, 'cosas/moneda_chica.png').setOrigin(1, 1);
+    const gold = this.add.text(right - 12, xy - 2, '', caps).setOrigin(1, 1);
+    const coin = this.add.image(right, xy - 3, 'cosas/moneda_chica.png').setOrigin(1, 1);
     // The channels are drawn dark and solid, so what fills them is laid over them.
-    box.add([this.add.image(drawn.x, drawn.y, drawn.src).setOrigin(0, 0), bar, top, level,
-      this.add.image(bx, by, lung.src).setOrigin(0, 0), breathBar, breathTop, points, gold, coin]);
+    box.add([this.add.image(bx, by, lung.src).setOrigin(0, 0), breathBar, breathTop,
+      this.add.image(drawn.x, xy, drawn.src).setOrigin(0, 0), bar, top, level, points, gold, coin]);
     // Pointing at a slot brings up a note on what it does.
     for (let i = 0; i <= layout.skills.length + 1; i++) {
       const zone = this.add.zone(layout.slot.x + layout.slot.step * i, layout.slot.y, ICON, ICON)

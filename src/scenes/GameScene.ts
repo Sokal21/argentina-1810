@@ -773,7 +773,10 @@ export class GameScene extends Phaser.Scene {
     this.machi.pace = tune.speed * this.growth.gives('speed') * (this.wrath.active ? RAGE.pace : 1) * (running ? RUN : 1);
     this.machi.haste = this.wrath.active ? RAGE.haste : 1;
     const from = { x: this.machi.x, y: this.machi.y };
+    // A dodge is paid for when it begins, once: a press the hero could not act on costs nothing.
+    const dodging = this.machi.isDashing;
     this.machi.update(dt, input);
+    if (!dodging && this.machi.isDashing) this.stamina.dodge();
     // Enemies throw at her chest while she is up.
     // She cannot walk through an enemy: each one she stands in pushes her
     // back out the short way. Done here rather than by the physics engine
@@ -1379,8 +1382,8 @@ export class GameScene extends Phaser.Scene {
   // casts at the pointer and the right one walks toward it, both at any angle.
   private readInput(): MachiInput {
     const input: MachiInput = this.keys.read();
-    // A dodge takes breath, and cannot be made with none.
-    if (input.dash && !this.machi.isDashing && !this.stamina.dodge()) input.dash = false;
+    // A dodge cannot be made with no breath; what it costs is taken once it has begun (below).
+    if (input.dash && !this.stamina.canDodge) input.dash = false;
     this.marker.setVisible(controls.mouse && !touch.on);
     if (touch.on) return this.byTouch(input);
     if (!controls.mouse) return input;
