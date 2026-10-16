@@ -73,7 +73,8 @@ const KEEP = 4;
 // A soldier struck comes after the hero for this many seconds, and so does any of his own this near.
 const PROVOKED = 12, ALARM = 260;
 // How near whatever is being brought along the hero must be to tell it to wait, or to come on.
-const ORDER = 60;            // seconds between one keeping of the game and the next
+const ORDER = 60;
+const RING_FADE = 6;       // how quickly the ring and its words ease in and out, a second            // seconds between one keeping of the game and the next
 const FIELD = { width: 1280, height: 800 }; // the bare field, in sprite pixels
 // The map each hero walks; one who has none fights on the bare field.
 const MAPS: Partial<Record<Hero, WorldMap>> = { inti: bosquePatagonico, cabral: vadoDeLasVizcachas };
@@ -144,7 +145,7 @@ const TALK = { near: 52, heard: 84, trial: [-140, -80] as [number, number], stan
 /** Someone standing on the map: one to talk to (`npc`), or one who only says what the sign over them shows. */
 interface Talker { name: string; npc?: Npc; x: number; y: number; /** For one who only says a thing: what they say as things stand now. */ says?: () => string; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image }; /** Somewhere something can be done, and the mark on the ground that says so. */ spot?: { at: Spot; mark: Phaser.GameObjects.Image }; /** Something waiting there to be led off. */ charge?: Led; /** Whoever stands there, to be hidden with them. */ figure?: Phaser.GameObjects.GameObject[]; /** Whether it is there to be dealt with at all just now; always, if unsaid. */ there?: () => boolean }
 /** Something being brought somewhere: what, where it is, its drawing and the bar of what it can still take, and whether it is on its way. */
-interface Led { at: Cargo; body: Escort; drawn: Phaser.GameObjects.Sprite; bar: Phaser.GameObjects.Rectangle; going: boolean; /** Told to wait where it is, while the hero clears the way. */ halted?: boolean; /** What F does to it, over it while the hero is near enough to say. */ order?: Phaser.GameObjects.Text }
+interface Led { at: Cargo; body: Escort; drawn: Phaser.GameObjects.Sprite; bar: Phaser.GameObjects.Rectangle; going: boolean; /** Told to wait where it is, while the hero clears the way. */ halted?: boolean; /** What F does to it, over it while the hero is near enough to say. */ order?: Phaser.GameObjects.Text; /** How far its ring is shown, and lit, each easing in and out. */ ring?: { seen: number; lit: number } }
 // How near a named place counts as having come to it, in plots; and how many blows of life a bandage gives back.
 const ARRIVED = 1, MENDS = 2;
 // The sign over them comes up and goes out over this long, in seconds.
@@ -953,7 +954,7 @@ export class GameScene extends Phaser.Scene {
       // Told to wait, it stands where it is, still to be looked after.
       if (!charge.halted) body.follow(dt, this.machi);
       else body.moving = false;
-      this.showOrder(charge, drawn.height);
+      this.showOrder(charge, drawn.height, dt);
       const hurt = body.harm(dt, this.realistas.filter(soldier => soldier.alive).map(soldier => soldier.ground));
       if (hurt) this.sparks.emitParticleAt(body.x, body.y - 20, 6);
       drawn.setPosition(Math.round(body.x), Math.round(body.y)).setDepth(body.y).setFlipX(body.facing < 0);
@@ -1675,22 +1676,31 @@ export class GameScene extends Phaser.Scene {
   // Round whatever is being brought along, a ring on the ground that shows how near the hero must be
   // to tell it to wait or to come on: it comes up as they draw near, and lights when they are near
   // enough, with what F would do written over it. Waiting, it keeps a word over it either way.
-  private showOrder(charge: Led, tall: number): void {
+  private showOrder(charge: Led, tall: number, dt: number): void {
     this.orders ??= this.add.graphics().setDepth(-1e6 + 3);
     const { body } = charge, far = ground(body, this.machi), near = far <= ORDER;
-    const seen = Phaser.Math.Clamp((ORDER * 2.2 - far) / (ORDER * 1.2), 0, 1);
-    if (seen > 0) {
-      const colour = near ? 0xe2c478 : 0x8a8478;
-      this.orders.lineStyle(1, colour, (near ? 0.9 : 0.45) * seen).strokeEllipse(body.x, body.y, ORDER * 2, ORDER * 2 * ISO_Y);
-      if (near) this.orders.fillStyle(colour, 0.08).fillEllipse(body.x, body.y, ORDER * 2, ORDER * 2 * ISO_Y);
+    // Each eases toward where it should be: the ring fades in as the hero comes and out as they go,
+    // and its light comes up and goes down rather than switching.
+    const ring = (charge.ring ??= { seen: 0, lit: 0 });
+    const ease = (from: number, to: number) => from + (to - from) * Math.min(1, dt * RING_FADE);
+    ring.seen = ease(ring.seen, Phaser.Math.Clamp((ORDER * 2.2 - far) / (ORDER * 1.2), 0, 1));
+    ring.lit = ease(ring.lit, near ? 1 : 0);
+    if (ring.seen > 0.01) {
+      const colour = Phaser.Display.Color.Interpolate.ColorWithColor(
+        Phaser.Display.Color.ValueToColor(0x8a8478), Phaser.Display.Color.ValueToColor(0xe2c478), 1, ring.lit);
+      const tint = Phaser.Display.Color.GetColor(colour.r, colour.g, colour.b);
+      this.orders.lineStyle(1, tint, (0.45 + 0.45 * ring.lit) * ring.seen).strokeEllipse(body.x, body.y, ORDER * 2, ORDER * 2 * ISO_Y);
+      if (ring.lit > 0.01) this.orders.fillStyle(tint, 0.08 * ring.lit * ring.seen).fillEllipse(body.x, body.y, ORDER * 2, ORDER * 2 * ISO_Y);
     }
     charge.order ??= this.add.text(0, 0, '', {
       fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
       stroke: '#14110f', strokeThickness: 3,
     }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio);
     const says = near ? prompt('F', charge.halted ? 'que te siga' : 'que espere') : charge.halted ? 'esperando' : '';
-    if (charge.order.text !== says) charge.order.setText(says);
-    charge.order.setVisible(!!says).setPosition(Math.round(body.x), Math.round(body.y - tall - 12));
+    // The words fade too: a new word comes in from nothing, the last fades out where it was.
+    const word = charge.order;
+    if (says && word.text !== says) word.setText(says).setAlpha(0);
+    word.setAlpha(ease(word.alpha, says ? 1 : 0)).setVisible(word.alpha > 0.01).setPosition(Math.round(body.x), Math.round(body.y - tall - 12));
   }
 
   // What a soldier goes for instead of the hero: whatever is being brought along, if he is one who
