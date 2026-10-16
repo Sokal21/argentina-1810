@@ -1,11 +1,14 @@
-"""Flatten a pixel-art sprite: fewer tones, fewer internal borders, no shadows.
+"""Flatten a pixel-art sprite: fewer tones, fewer internal borders, no shadows, and
+(with --no-outline) without the black line drawn round its outside: the game's look is flat
+shapes side by side, never traced. With --only-outline the colours are left as drawn and only
+that line goes, for a drawing already flat (scenery, which a hue-by-hue flattening ruins).
 
 Dark cloth (black/grey pixels) is reduced to one or two flat tones; with two,
 thin fold lines are absorbed by a majority filter. Greys snap to a silver ramp.
 Every other color is grouped by hue family and each family keeps at most
 `--tones` flat colors, so shading disappears but hues never bleed together.
 
-Usage: python3 tools/flatten_sprite.py IN.png OUT.png [--cloth-tones 1] [--tones 2]
+Usage: python3 tools/flatten_sprite.py IN.png OUT.png [--cloth-tones 1] [--tones 2] [--no-outline]
 """
 import argparse
 import colorsys
@@ -49,8 +52,40 @@ def split_tones(px, k, merge):
         k -= 1
 
 
-def flatten(src, dst, radius, tones, dark_max, split, passes, cloth_tones, merge):
+def strip_outlines(im, dark=60, passes=2):
+    """Takes away the black line drawn round the outside of the sprite. A very dark pixel on the
+    sprite's edge (beside transparency) with lighter colour next to it takes the colour most of its
+    lighter neighbours have, a ring at a time. Lines inside the drawing (the spokes of a wheel, the
+    seams of a roof) are left: taking those away melts thin parts into mush, as was tried. A dark
+    thing standing out on its own (a goad, a hat brim) has nothing lighter beside it and is kept."""
+    im = im.copy()
+    h, w = im.shape[:2]
+    for _ in range(passes):
+        opaque = im[..., 3] > 0
+        is_dark = opaque & (im[..., :3].astype(np.int32).max(axis=2) < dark)
+        n_open = box_sum((~opaque).astype(np.int32), 1)
+        recolour = []
+        for y, x in zip(*np.nonzero(is_dark & (n_open > 0))):
+            seen = {}
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    yy, xx = y + dy, x + dx
+                    if 0 <= yy < h and 0 <= xx < w and opaque[yy, xx] and not is_dark[yy, xx]:
+                        c = tuple(im[yy, xx, :3])
+                        seen[c] = seen.get(c, 0) + 1
+            if seen:
+                recolour.append((y, x, max(seen, key=seen.get)))
+        if not recolour:
+            break
+        for y, x, c in recolour:
+            im[y, x, :3] = c
+    return im
+
+
+def flatten(src, dst, radius, tones, dark_max, split, passes, cloth_tones, merge, no_outline=False):
     im = np.array(Image.open(src).convert("RGBA"))
+    if no_outline:
+        im = strip_outlines(im)
     rgb = im[..., :3].astype(np.int32)
     opaque = im[..., 3] > 0
 
@@ -112,5 +147,11 @@ if __name__ == "__main__":
     ap.add_argument("--dark-max", type=int, default=60, help="pixels darker than this count as cloth")
     ap.add_argument("--split", type=int, default=29, help="brightness that separates the two cloth tones")
     ap.add_argument("--merge", type=float, default=45, help="tones closer than this RGB distance become one")
+    ap.add_argument("--no-outline", action="store_true", help="take away the black line drawn round the outside")
+    ap.add_argument("--only-outline", action="store_true", help="only take away that line; leave the colours as they are")
     a = ap.parse_args()
-    flatten(a.src, a.dst, a.radius, a.tones, a.dark_max, a.split, a.passes, a.cloth_tones, a.merge)
+    if a.only_outline:
+        Image.fromarray(strip_outlines(np.array(Image.open(a.src).convert("RGBA")))).save(a.dst)
+        print(f"{a.dst}: outline taken away")
+    else:
+        flatten(a.src, a.dst, a.radius, a.tones, a.dark_max, a.split, a.passes, a.cloth_tones, a.merge, a.no_outline)
