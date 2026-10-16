@@ -69,7 +69,11 @@ const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
 // does not stand in one knot where a single swing takes them all. And the turn from one soldier's side
 // of the hero to the next, so that sides never repeat.
 const SPACE = 34, PARTING = 90, GOLDEN = Math.PI * (3 - Math.sqrt(5));
-const KEEP = 4;            // seconds between one keeping of the game and the next
+const KEEP = 4;
+// A soldier struck comes after the hero for this many seconds, and so does any of his own this near.
+const PROVOKED = 12, ALARM = 260;
+// How near whatever is being brought along the hero must be to tell it to wait, or to come on.
+const ORDER = 60;            // seconds between one keeping of the game and the next
 const FIELD = { width: 1280, height: 800 }; // the bare field, in sprite pixels
 // The map each hero walks; one who has none fights on the bare field.
 const MAPS: Partial<Record<Hero, WorldMap>> = { inti: bosquePatagonico, cabral: vadoDeLasVizcachas };
@@ -140,7 +144,7 @@ const TALK = { near: 52, heard: 84, trial: [-140, -80] as [number, number], stan
 /** Someone standing on the map: one to talk to (`npc`), or one who only says what the sign over them shows. */
 interface Talker { name: string; npc?: Npc; x: number; y: number; /** For one who only says a thing: what they say as things stand now. */ says?: () => string; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image }; /** Somewhere something can be done, and the mark on the ground that says so. */ spot?: { at: Spot; mark: Phaser.GameObjects.Image }; /** Something waiting there to be led off. */ charge?: Led; /** Whoever stands there, to be hidden with them. */ figure?: Phaser.GameObjects.GameObject[]; /** Whether it is there to be dealt with at all just now; always, if unsaid. */ there?: () => boolean }
 /** Something being brought somewhere: what, where it is, its drawing and the bar of what it can still take, and whether it is on its way. */
-interface Led { at: Cargo; body: Escort; drawn: Phaser.GameObjects.Sprite; bar: Phaser.GameObjects.Rectangle; going: boolean }
+interface Led { at: Cargo; body: Escort; drawn: Phaser.GameObjects.Sprite; bar: Phaser.GameObjects.Rectangle; going: boolean; /** Told to wait where it is, while the hero clears the way. */ halted?: boolean }
 // How near a named place counts as having come to it, in plots; and how many blows of life a bandage gives back.
 const ARRIVED = 1, MENDS = 2;
 // The sign over them comes up and goes out over this long, in seconds.
@@ -240,6 +244,8 @@ export class GameScene extends Phaser.Scene {
   private route?: Route;
   /** Where soldiers can walk: on the map's ground, and not where a house stands. */
   private walkable = (x: number, y: number): boolean => !!this.map && zoneAt(this.map, x, y) !== undefined && !this.indoors?.blocked({ x, y });
+  /** Those who go for whatever is being brought along rather than the hero. */
+  private raiders = new WeakSet<Soldier>();
   /** How many soldiers have been stood on the map, to give each a side of his own. */
   private enlisted = 0;
   /** The buildings that are drawn, and going into them. */
@@ -591,8 +597,16 @@ export class GameScene extends Phaser.Scene {
         this.mending?.begin(MEND[restores], this.machi);
       };
       const interact = () => {
+        if (!this.vitals.standing) return;
+        // Beside whatever is being brought along: it is told to wait, or to come on again.
+        const led = this.led.find(c => c.going && ground(c.body, this.machi) <= ORDER);
+        if (led) {
+          led.halted = !led.halted;
+          this.board?.say(`${led.at.name}: ${led.halted ? 'espera acá.' : 'te sigue.'}`);
+          return;
+        }
         const near = this.beside;
-        if (!near || !this.vitals.standing) return;
+        if (!near) return;
         if (near.take) {
           // Picked up: it is gone from the ground, and the story knows he has it.
           near.take.drawn.destroy();
@@ -843,10 +857,15 @@ export class GameScene extends Phaser.Scene {
         continue;
       }
       const drawn = feet && this.nahuel.lures(realista.ground, feet);
-      const deed = realista.update(dt * tune.foes, drawn ? this.nahuel.ground : feet);
+      // Whatever is being brought along is fair game: some go for it whatever, and anyone goes for
+      // it who is nearer it than the hero. Only the hero is found the way round to.
+      const prey = feet && !drawn ? this.prey(realista) : undefined;
+      realista.route = prey ? undefined : this.route;
+      const deed = realista.update(dt * tune.foes, drawn ? this.nahuel.ground : prey?.body ?? feet);
       if (realista.alive) awake.push(realista);
       if (deed.shot) this.shots.spawn(deed.shot);
-      if (deed.cut && !drawn) this.hurt();
+      if (deed.cut && prey) { prey.body.strike(); this.sparks.emitParticleAt(prey.body.x, prey.body.y - 20, 6); }
+      else if (deed.cut && !drawn) this.hurt();
       // A sergeant's shout quickens whoever of his own is within hearing.
       const rally = (deed as { rally?: { reach: number; lasts: number } }).rally;
       if (rally) {
@@ -928,7 +947,9 @@ export class GameScene extends Phaser.Scene {
       drawn.setVisible(charge.going || waiting || arrived);
       bar.setVisible(charge.going && body.life < body.max);
       if (!charge.going) continue;
-      body.follow(dt, this.machi);
+      // Told to wait, it stands where it is, still to be looked after.
+      if (!charge.halted) body.follow(dt, this.machi);
+      else body.moving = false;
       const hurt = body.harm(dt, this.realistas.filter(soldier => soldier.alive).map(soldier => soldier.ground));
       if (hurt) this.sparks.emitParticleAt(body.x, body.y - 20, 6);
       drawn.setPosition(Math.round(body.x), Math.round(body.y)).setDepth(body.y).setFlipX(body.facing < 0);
@@ -1638,10 +1659,23 @@ export class GameScene extends Phaser.Scene {
   // What was being brought is lost: it is back where it waited, whole, to be led off again.
   private lose(charge: Led, says: string): void {
     charge.going = false;
+    charge.halted = false;
     charge.body.reset();
     this.halt(charge);
     charge.drawn.setPosition(charge.body.x, charge.body.y).setDepth(charge.body.y);
     this.board?.say(says);
+  }
+
+  // What a soldier goes for instead of the hero: whatever is being brought along, if he is one who
+  // goes for it whatever, or if it is nearer him than the hero is.
+  private prey(soldier: Soldier): Led | undefined {
+    let found: Led | undefined, least = ground(soldier.ground, this.machi) * (this.raiders.has(soldier) ? 3 : 1);
+    for (const c of this.led) {
+      if (!c.going || c.body.lost) continue;
+      const far = ground(soldier.ground, c.body);
+      if (far < least) { least = far; found = c; }
+    }
+    return found;
   }
 
   // One of the king's men of a kind, by its name: a fusilier, unless it is one of the others.
@@ -1651,6 +1685,8 @@ export class GameScene extends Phaser.Scene {
     const angle = this.enlisted++ * GOLDEN;
     soldier.flank = { x: Math.cos(angle), y: Math.sin(angle) };
     if (this.route) soldier.route = this.route;
+    // One in three goes for whatever is being brought along before the hero.
+    if (this.enlisted % 3 === 0) this.raiders.add(soldier);
     return soldier;
   }
 
@@ -1714,6 +1750,10 @@ export class GameScene extends Phaser.Scene {
    */
   private wound(foe: Foe, dx: number, dy: number, amount: number, stat?: Stat): void {
     if (!foe.alive) return;
+    // A soldier struck comes after the hero wherever they are, and so does any of his own nearby.
+    if (foe instanceof Realista || foe instanceof Trooper) {
+      for (const other of this.realistas) if (other === foe || ground(other.ground, foe.ground) <= ALARM) other.provoke(PROVOKED);
+    }
     foe.hit(dx, dy, amount * (stat ? this.growth.gives(stat) * this.pack.gives(stat) : 1));
     if (foe.alive) return;
     // Bringing it down is worth experience, and it leaves what it had on it.
@@ -1882,8 +1922,11 @@ export class GameScene extends Phaser.Scene {
 
   /** What can be done with whatever is beside the hero, in a word; nothing if there is nothing to be done. */
   get offer(): string | undefined {
+    if (!this.vitals.standing) return undefined;
+    const led = this.led.find(c => c.going && ground(c.body, this.machi) <= ORDER);
+    if (led) return led.halted ? 'Que te siga' : 'Que espere';
     const near = this.beside;
-    if (!near || !this.vitals.standing) return undefined;
+    if (!near) return undefined;
     if (near.npc) return 'Hablar';
     if (near.take) return 'Levantar';
     const does = near.charge?.at.does ?? (near.spot && !(near.spot.at.guarded && this.held(near.spot.at)) ? near.spot.at.does : undefined);

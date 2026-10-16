@@ -76,6 +76,13 @@ export class TroopBrain {
   /** As in the fusilier: back by himself after a while, or only when called; after whoever he seeks however far; kept to ground he can walk. */
   returns = true;
   relentless = false;
+  /** Seconds he is still after whoever struck him, however far off they are. */
+  provoked = 0;
+
+  /** Struck, or one of his own struck nearby: he goes after them for a while, wherever they are. */
+  provoke(seconds: number): void {
+    if (this.alive) this.provoked = Math.max(this.provoked, seconds);
+  }
   ground?: (x: number, y: number) => boolean;
 
   private reload: number;
@@ -115,6 +122,7 @@ export class TroopBrain {
       this.reload = Math.max(0, this.reload - dt * haste);
       this.rest = Math.max(0, this.rest - dt);
       this.shout = Math.max(0, this.shout - dt);
+      this.provoked = Math.max(0, this.provoked - dt);
     }
     const to = her ? { x: her.x - this.x, y: (her.y - this.y) / ISO_Y } : null;
     const far = to ? Math.hypot(to.x, to.y) : Infinity;
@@ -122,7 +130,7 @@ export class TroopBrain {
     switch (this.mode) {
       case 'stand':
       case 'walk': {
-        if (!to || (far > k.sight && !this.relentless)) { this.enter('stand'); return NOTHING; }
+        if (!to || (far > k.sight && !this.relentless && this.provoked <= 0)) { this.enter('stand'); return NOTHING; }
         this.look(to);
         if (k.blow && far < k.blow.near) {
           if (this.rest <= 0) { this.enter('blow'); this.done = false; } else this.enter('stand');

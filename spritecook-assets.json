@@ -2125,6 +2125,16 @@
       "asset_id": "d6948cd2-648d-4d4b-93b1-1debeed84338",
       "label": "hud: breath bar, aliento_inti_2",
       "file": "assets/hud/concept/aliento_inti_2.png"
+    },
+    {
+      "asset_id": "92de08aa-70b1-4cb8-9bd2-5e047e3984d8",
+      "label": "ox cart with carter concept, carreta_bueyes_1",
+      "file": "assets/cosas/concept/carreta_bueyes_1.png"
+    },
+    {
+      "asset_id": "31ded621-1eb6-4131-906c-cd20a0b0df18",
+      "label": "ox cart with carter concept, carreta_bueyes_2",
+      "file": "assets/cosas/concept/carreta_bueyes_2.png"
     }
   ]
 }

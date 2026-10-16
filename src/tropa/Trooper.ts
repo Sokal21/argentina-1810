@@ -87,6 +87,9 @@ export class Trooper {
     if (!this.sprite.visible && !this.shadow.visible) return;
     for (const part of [this.sprite, this.shadow, this.barBack, this.bar]) part.setVisible(false);
   }
+  /** Struck, or one of his own nearby: he comes after the hero wherever they are, for a while. */
+  provoke(seconds: number): void { this.brain.provoke(seconds); }
+
   /** How he finds his way round what is in the way; see the brain. */
   set route(route: TroopBrain['route']) { this.brain.route = route; }
 

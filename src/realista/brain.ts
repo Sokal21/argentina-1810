@@ -69,6 +69,13 @@ export class RealistaBrain {
   quick = 0;
   /** He goes for whoever he is after however far off they are: he was sent, and does not have to catch sight of them. */
   relentless = false;
+  /** Seconds he is still after whoever struck him, however far off they are. */
+  provoked = 0;
+
+  /** Struck, or one of his own struck nearby: he goes after them for a while, wherever they are. */
+  provoke(seconds: number): void {
+    if (this.alive) this.provoked = Math.max(this.provoked, seconds);
+  }
   /** The ground he can walk on, if not all of it. */
   ground?: (x: number, y: number) => boolean;
 
@@ -92,6 +99,7 @@ export class RealistaBrain {
       this.quick = Math.max(0, this.quick - dt);
       this.reload = Math.max(0, this.reload - dt * (this.quick > 0 ? 1.5 : 1));
       this.rest = Math.max(0, this.rest - dt);
+      this.provoked = Math.max(0, this.provoked - dt);
     }
     // Offset to her on the ground, and how far that is.
     const to = her ? { x: her.x - this.x, y: (her.y - this.y) / ISO_Y } : null;
@@ -100,7 +108,7 @@ export class RealistaBrain {
     switch (this.mode) {
       case 'stand':
       case 'walk': {
-        if (!to || (far > SIGHT && !this.relentless)) { this.enter('stand'); return NOTHING; }
+        if (!to || (far > SIGHT && !this.relentless && this.provoked <= 0)) { this.enter('stand'); return NOTHING; }
         this.look(to);
         if (far < NEAR) {
           if (this.rest <= 0) { this.enter('slash'); this.landed = false; } else this.enter('stand');

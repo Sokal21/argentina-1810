@@ -65,6 +65,11 @@ export class Escort {
     if (Math.abs(this.x - was) > 0.01) this.facing = this.x > was ? 1 : -1;
   }
 
+  /** A blow struck at it on purpose: one of its lives. */
+  strike(): void {
+    this.life = Math.max(0, this.life - 1);
+  }
+
   /** Is worn down by whatever of the enemy is near. Says whether it was hurt on this step. */
   harm(dt: number, threats: Vec[]): boolean {
     const near = threats.filter(t => Math.hypot(t.x - this.x, t.y - this.y) <= REACH).length;
