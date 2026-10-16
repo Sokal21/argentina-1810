@@ -82,6 +82,40 @@ def strip_outlines(im, dark=60, passes=2):
     return im
 
 
+def strip_black(im, level=20, passes=12):
+    """Takes away every line drawn in black, inside the drawing as well as round it. The game's
+    own darkest colours (a poncho, dark wood) are well above black, so whatever is near black is a
+    traced line. Each such pixel takes the colour most of its other neighbours have, working in
+    from the edges of each line a ring at a time, so a line between two shapes is shared between
+    them. One with nothing else beside it, out on its own, goes."""
+    im = im.copy()
+    h, w = im.shape[:2]
+    for _ in range(passes):
+        opaque = im[..., 3] > 0
+        black = opaque & (im[..., :3].astype(np.int32).max(axis=2) <= level)
+        if not black.any():
+            break
+        fill = []
+        for y, x in zip(*np.nonzero(black)):
+            seen = {}
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    yy, xx = y + dy, x + dx
+                    if 0 <= yy < h and 0 <= xx < w and opaque[yy, xx] and not black[yy, xx]:
+                        c = tuple(im[yy, xx, :3])
+                        seen[c] = seen.get(c, 0) + 1
+            if seen:
+                fill.append((y, x, max(seen, key=seen.get)))
+        if not fill:
+            break
+        for y, x, c in fill:
+            im[y, x, :3] = c
+    # Whatever black is left had nothing but black round it: a line standing out on its own.
+    left = (im[..., 3] > 0) & (im[..., :3].astype(np.int32).max(axis=2) <= level)
+    im[left, 3] = 0
+    return im
+
+
 def flatten(src, dst, radius, tones, dark_max, split, passes, cloth_tones, merge, no_outline=False):
     im = np.array(Image.open(src).convert("RGBA"))
     if no_outline:
@@ -149,8 +183,12 @@ if __name__ == "__main__":
     ap.add_argument("--merge", type=float, default=45, help="tones closer than this RGB distance become one")
     ap.add_argument("--no-outline", action="store_true", help="take away the black line drawn round the outside")
     ap.add_argument("--only-outline", action="store_true", help="only take away that line; leave the colours as they are")
+    ap.add_argument("--no-black", action="store_true", help="take away every black line, inside and out, leaving the colours as they are")
     a = ap.parse_args()
-    if a.only_outline:
+    if a.no_black:
+        Image.fromarray(strip_black(np.array(Image.open(a.src).convert("RGBA")))).save(a.dst)
+        print(f"{a.dst}: black lines taken away")
+    elif a.only_outline:
         Image.fromarray(strip_outlines(np.array(Image.open(a.src).convert("RGBA")))).save(a.dst)
         print(f"{a.dst}: outline taken away")
     else:
