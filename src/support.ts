@@ -1,5 +1,5 @@
-// A way for whoever likes the game to support it: a cup of coffee, never in the way. It shows on
-// the title, in the pause menu and once an ending has been read, never while playing. Whoever reads
+// A way for whoever likes the game to support it: a cup of coffee, never in the way. It is always
+// in the top left corner, small, and it is offered again once an ending has been read. Whoever reads
 // Spanish is sent to Cafecito, paid in pesos; anyone else to Ko-fi, once there is a page there.
 
 const LINKS = {
@@ -38,25 +38,19 @@ const STYLE = `
     box-shadow: 0 0 0 2px #e2c478, 0 0 0 4px #0a0807; font: 21px/1 'Jacquard 12', Georgia, serif; letter-spacing: .02em; cursor: pointer;
   }
   .support:hover, .support:focus-visible { background: #3a2c20; }
-  /* On the title, small, in the top corner, out of the way of the Cabildo and of what is said below it. */
-  #support-title { position: fixed; left: 14px; top: 14px; z-index: 12; display: none; opacity: .85; font-size: 21px; }
-  body.title #support-title { display: inline-block; }
+  /* Always in the top left corner, small, over the title and over the game alike: what there is to
+     do is written just under it. */
+  #support-title { position: fixed; left: 14px; top: 12px; z-index: 16; display: inline-block; opacity: .85; padding: 5px 11px 6px; }
+  body:not(.title) #quests { top: 58px; }
+  body.talking #support-title { display: none; }
 `;
 
-/** Puts the button on the title screen. */
+/** Puts the button in its corner. */
 export function mountSupport(): void {
   document.head.appendChild(Object.assign(document.createElement('style'), { textContent: STYLE }));
   const onTitle = supportButton('support');
   onTitle.id = 'support-title';
-  // Touching it on the title is not a touch that starts the game.
+  // Touching it is not a touch that starts the game, nor one that attacks.
   for (const kind of ['pointerup', 'click', 'touchend'] as const) onTitle.addEventListener(kind, e => e.stopPropagation());
   document.body.appendChild(onTitle);
-  // And in the pause menu, under its way out.
-  const pause = document.querySelector('#pause .panel');
-  if (pause) {
-    const row = Object.assign(document.createElement('div'), { className: 'support-row' });
-    row.style.cssText = 'margin-top: 16px; text-align: center;';
-    row.append(supportButton());
-    pause.appendChild(row);
-  }
 }
