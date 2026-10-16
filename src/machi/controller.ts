@@ -449,6 +449,11 @@ export class MachiController {
     if (!this.swing) {
       if (!input.attack) return false;
       let dir = this.facing();
+      // Aimed a way (the arrows, or by touch), the swing goes that way.
+      if (input.aim && Math.hypot(input.aim.x, input.aim.y) > 0) {
+        const len = Math.hypot(input.aim.x, input.aim.y);
+        dir = { x: input.aim.x / len, y: input.aim.y / len };
+      }
       if (input.target) {
         const x = input.target.x - this.x, y = (input.target.y - this.y) / ISO_Y;
         const far = Math.hypot(x, y);

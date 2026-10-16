@@ -1382,11 +1382,18 @@ export class GameScene extends Phaser.Scene {
   // casts at the pointer and the right one walks toward it, both at any angle.
   private readInput(): MachiInput {
     const input: MachiInput = this.keys.read();
+    // The arrows attack the way they point, wherever the hero is walking.
+    const arrows = this.keys.attacking;
+    if (arrows) {
+      const len = Math.hypot(arrows.dx, arrows.dy);
+      input.attack = true;
+      input.aim = { x: arrows.dx / len, y: arrows.dy / len };
+    }
     // A dodge cannot be made with no breath; what it costs is taken once it has begun (below).
     if (input.dash && !this.stamina.canDodge) input.dash = false;
     this.marker.setVisible(controls.mouse && !touch.on);
     if (touch.on) return this.byTouch(input);
-    if (!controls.mouse) return input;
+    if (!controls.mouse || arrows) return input;
 
     const pointer = this.input.activePointer;
     pointer.updateWorldPoint(this.cameras.main);
