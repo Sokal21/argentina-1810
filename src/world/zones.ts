@@ -99,6 +99,10 @@ export interface Charge {
   drives?: boolean;
   /** Which way its drawing heads across the screen: right unless said. */
   faces?: 'left' | 'right';
+  /** It is never turned round: always shown heading the way it was drawn (a cart whose road runs one way). */
+  fixed?: boolean;
+  /** How many times its drawing's size it is shown. */
+  scale?: number;
   /**
    * Someone who walks rather than slides: their walk, drawn heading right, as a row of square
    * frames: the side of one, how many, how many a second, and where the feet are in one.

@@ -541,13 +541,13 @@ export class GameScene extends Phaser.Scene {
       for (const at of this.map?.charges ?? []) {
         if (!this.textures.exists(at.sprite)) continue;
         const { x, y } = middle(at.from);
-        const drawn = this.add.sprite(x, y, at.sprite).setOrigin(0.5, 1).setDepth(y).setVisible(false);
+        const drawn = this.add.sprite(x, y, at.sprite).setOrigin(0.5, 1).setDepth(y).setVisible(false).setScale(at.scale ?? 1);
         const { walk } = at;
         if (walk && this.textures.exists(walk.sheet) && !this.anims.exists(walk.sheet)) {
           this.anims.create({ key: walk.sheet, frames: this.anims.generateFrameNumbers(walk.sheet, { start: 0, end: walk.frames - 1 }), frameRate: walk.rate, repeat: -1 });
         }
-        const bar = this.add.rectangle(x, y - drawn.height - 4, 24, 3, 0xd23c2a).setDepth(1e6).setVisible(false);
-        const hint = this.add.text(x, y - drawn.height - 10, prompt('F', at.does), {
+        const bar = this.add.rectangle(x, y - drawn.displayHeight - 4, 24, 3, 0xd23c2a).setDepth(1e6).setVisible(false);
+        const hint = this.add.text(x, y - drawn.displayHeight - 10, prompt('F', at.does), {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
           stroke: '#14110f', strokeThickness: 3,
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
@@ -961,11 +961,11 @@ export class GameScene extends Phaser.Scene {
         charge.road ??= new Road(map.plots[0].length, map.plots.length, (c, r) => letterAt(map, c, r) !== undefined, { col: at.to[0], row: at.to[1] }, { w: PLOT_W, h: PLOT_H });
         body.drive(dt, charge.road.next(body));
       } else body.follow(dt, this.machi);
-      this.showOrder(charge, drawn.height, dt);
+      this.showOrder(charge, drawn.displayHeight, dt);
       const hurt = body.harm(dt, this.realistas.filter(soldier => soldier.alive).map(soldier => soldier.ground));
       if (hurt) this.sparks.emitParticleAt(body.x, body.y - 20, 6);
       // Turned to go the way it is going, whichever way it was drawn heading.
-      const mirrored = at.faces === 'left' ? body.facing > 0 : body.facing < 0;
+      const mirrored = at.fixed ? false : at.faces === 'left' ? body.facing > 0 : body.facing < 0;
       drawn.setPosition(Math.round(body.x), Math.round(body.y)).setDepth(body.y).setFlipX(mirrored);
       // Whoever walks is seen walking while they go, and stands as drawn while they wait.
       const { walk } = at;
@@ -974,7 +974,7 @@ export class GameScene extends Phaser.Scene {
         else if (!body.moving && drawn.anims.isPlaying) drawn.stop().setTexture(at.sprite).setOrigin(0.5, 1);
         if (body.moving) drawn.setDisplayOrigin(mirrored ? walk.size - walk.ax : walk.ax, walk.size - walk.up);
       }
-      bar.setPosition(Math.round(body.x), Math.round(body.y) - drawn.height - 4).setSize(24 * body.life / body.max, 3);
+      bar.setPosition(Math.round(body.x), Math.round(body.y) - drawn.displayHeight - 4).setSize(24 * body.life / body.max, 3);
       const to = middle(at.to);
       if (body.lost) this.lose(charge, `${at.name}: se perdió por el camino. Hay que volver a buscarla.`);
       else if (body.at(to, PLOT_W * 1.2)) {
