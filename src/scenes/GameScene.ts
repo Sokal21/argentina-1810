@@ -32,6 +32,7 @@ import { drawGround as layGround } from '../world/ground';
 import { Meadow } from '../fx/meadow';
 import { Silhouettes } from '../fx/silhouette';
 import { playMusic } from '../music';
+import { RUN, Stamina } from '../machi/stamina';
 import { Water } from '../fx/water';
 import { Country, loadCountry, loadFences, raiseBuildings, raiseFences } from '../world/country';
 import { bosquePatagonico } from '../world/maps/bosque';
@@ -228,6 +229,9 @@ export class GameScene extends Phaser.Scene {
   private meadow?: Meadow;
   /** Shadows cast from each one's own shape, and grass over their feet. */
   private silhouettes?: Silhouettes;
+  /** Their breath for running, and the thin bar under them that shows it while it is not whole. */
+  private stamina = new Stamina();
+  private breath?: Phaser.GameObjects.Graphics;
   private water?: Water;
   /** What of the map's scenery is near enough the camera to be drawn. */
   private sight = new Sight();
@@ -766,7 +770,9 @@ export class GameScene extends Phaser.Scene {
     if (this.readying) this.spentAttack = true;
     if (!input.attack) this.spentAttack = false;
     if (this.spentAttack) input.attack = false;
-    this.machi.pace = tune.speed * this.growth.gives('speed') * (this.wrath.active ? RAGE.pace : 1);
+    const running = this.stamina.update(dt, standing && !this.machi.isDashing && (this.keys.running || touch.run), this.machi.isMoving);
+    this.machi.pace = tune.speed * this.growth.gives('speed') * (this.wrath.active ? RAGE.pace : 1) * (running ? RUN : 1);
+    this.showBreath();
     this.machi.haste = this.wrath.active ? RAGE.haste : 1;
     const from = { x: this.machi.x, y: this.machi.y };
     this.machi.update(dt, input);
@@ -1350,7 +1356,19 @@ export class GameScene extends Phaser.Scene {
     this.readying = null;
   }
 
+  // The breath left, as a thin bar under their feet, only while it is not whole: pale while it
+  // lasts, red once it is spent and they must get it back before running again.
+  private showBreath(): void {
+    this.breath ??= this.add.graphics().setDepth(1e6 - 1);
+    const g = this.breath.clear(), share = this.stamina.share;
+    if (share >= 1 || !this.vitals.standing) return;
+    const w = 26, x = Math.round(this.machi.x - w / 2), y = Math.round(this.machi.y + 6);
+    g.fillStyle(0x0a0807, 0.7).fillRect(x - 1, y - 1, w + 2, 4);
+    g.fillStyle(this.stamina.winded ? 0xc0442a : 0xe8d9a8, 0.95).fillRect(x, y, Math.max(1, Math.round(w * share)), 2);
+  }
+
   private rise(): void {
+    this.stamina.reset();
     // Whatever he was bringing is left without him: it goes back to where it waited.
     for (const charge of this.led) if (charge.going) this.lose(charge, `${charge.at.name}: quedó sin quien la lleve. Hay que volver a buscarla.`);
     // A stand that was lost is over: those who came go back, and it can be made again.

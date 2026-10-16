@@ -21,6 +21,8 @@ export const touch = {
   stick: null as Vec | null,
   /** A button being dragged to aim, and how far from where it was pressed: up to 1 long. */
   drag: null as { by: Aimed; x: number; y: number } | null,
+  /** Running, by touch: the run button is a switch, touched once to run and again to walk. */
+  run: false,
 };
 
 /** What a prompt over something says: with the key that does it, or by touch the deed alone. */
@@ -69,6 +71,11 @@ const STYLE = `
   /* What a button without a picture does, written on it. */
   #pad .dash { flex-direction: column; gap: 3px; }
   #pad .dash small { font: 8px/1 'Silkscreen', ui-monospace, monospace; letter-spacing: .02em; color: #2a1d12; pointer-events: none; }
+  /* The run switch, over the stick, where the left thumb is. */
+  #pad .run { left: 16px; bottom: calc(var(--hud) + 168px); }
+  #pad .run.on { background-position: 100% 0; filter: drop-shadow(0 0 6px var(--accent)); }
+  #pad .run small { font: 8px/1 'Silkscreen', ui-monospace, monospace; color: #2a1d12; pointer-events: none; }
+  #pad .run { flex-direction: column; gap: 3px; }
   #pad .attack { right: 10px; bottom: calc(var(--hud) + 14px); --u: 4; }
   #pad .attack img { width: 48px; }
   #pad .dash { right: 106px; bottom: calc(var(--hud) + 14px); }
@@ -228,6 +235,8 @@ export function mountTouch(game: Phaser.Game): void {
     dash: button('dash', () => key('ShiftLeft'), undefined, undefined, Object.assign(el('span', 'glyph'), { textContent: '»' }), Object.assign(el('small', ''), { textContent: 'ESQUIVAR' })),
     first: button('first', ...held2('KeyQ'), 'first', icons.first, cool.first),
     second: button('second', ...held2('KeyE'), 'second', icons.second, cool.second),
+    run: button('run', () => { touch.run = !touch.run; buttons.run.classList.toggle('on', touch.run); }, undefined, undefined,
+      Object.assign(el('span', 'glyph'), { textContent: '»»' }), Object.assign(el('small', ''), { textContent: 'CORRER' })),
     power: button('power', () => key('KeyR'), undefined, undefined, icons.power),
     flask: button('flask', act('drink'), undefined, undefined, icons.flask, left),
   };

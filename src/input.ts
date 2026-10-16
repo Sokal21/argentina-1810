@@ -20,6 +20,8 @@ export class Keys {
   private strike = false;
   private heal = false;
   private healHeld = false;
+  /** X is held: they run. */
+  private run = false;
 
   constructor(target: Window = window) {
     target.addEventListener('keydown', e => {
@@ -35,6 +37,7 @@ export class Keys {
         return;
       }
       if (e.code === 'KeyQ') { this.strike = true; return; }
+      if (e.code === 'KeyX') { this.run = true; return; }
       if (e.code === 'KeyR') { if (!e.repeat) this.ultimate = true; return; }
       if (e.code === 'KeyE') { if (!e.repeat) this.heal = true; this.healHeld = true; return; }
       const dir = KEYMAP[e.code];
@@ -46,15 +49,21 @@ export class Keys {
       if (e.code === 'Space') this.attack = false;
       else if (e.code === 'KeyQ') this.strike = false;
       else if (e.code === 'KeyE') this.healHeld = false;
+      else if (e.code === 'KeyX') this.run = false;
       else if (KEYMAP[e.code]) this.held.delete(KEYMAP[e.code]);
     });
-    target.addEventListener('blur', () => { this.held.clear(); this.attack = false; this.strike = false; this.healHeld = false; });
+    target.addEventListener('blur', () => { this.held.clear(); this.attack = false; this.strike = false; this.healHeld = false; this.run = false; });
   }
 
   private axis(neg: Dir, pos: Dir): number {
     let v = 0;
     for (const dir of this.held) if (dir === neg) v = -1; else if (dir === pos) v = 1;
     return v;
+  }
+
+  /** Whether the run key is held. */
+  get running(): boolean {
+    return this.run;
   }
 
   /** Whether a key that aims while it is held is down. */

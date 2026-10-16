@@ -320,7 +320,8 @@ export class MachiController {
     const wasMoving = this.moving;
     this.moving = dx !== 0 || dy !== 0;
     if (this.moving !== wasMoving) this.t = 0;
-    this.t += dt;
+    // Quicker, the legs go quicker too: the steps keep up with the ground.
+    this.t += this.moving ? dt * this.pace : dt;
     if (!this.moving) {
       this.idle += dt;
       // Standing, she still turns on the spot to follow the aim.
