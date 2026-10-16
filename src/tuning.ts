@@ -14,7 +14,7 @@ export const DIALS = {
   dark:  { label: 'Oscuridad lejos de la luz', min: 0, max: 1, step: 0.01, value: 0.51 },
   reach: { label: 'Alcance de la luz', min: 0.15, max: 1, step: 0.01, value: 0.52 },
   glow:  { label: 'Brillo cálido', min: 0, max: 1.5, step: 0.01, value: 0.68 },
-  speed: { label: 'Velocidad del personaje', min: 0.5, max: 2.5, step: 0.05, value: 1 },
+  speed: { label: 'Velocidad del personaje', min: 0.5, max: 2.5, step: 0.05, value: 1.15 },
   foes:  { label: 'Ritmo de los enemigos', min: 0.25, max: 2.5, step: 0.05, value: 1 },
   orbs:    { label: 'Orbes para cargar (Inti)', min: 1, max: 40, step: 1, value: 14 },
   orbLife: { label: 'Segundos que dura un orbe', min: 1, max: 15, step: 0.5, value: 3.5 },

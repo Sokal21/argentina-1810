@@ -5,7 +5,7 @@
 
 export const STAMINA = 100;
 export const RUN = 1.6;        // how many times quicker running is than walking
-const SPEND = 26;              // breath spent a second of running: about four seconds of it
+const SPEND = 15;              // breath spent a second of running: about seven seconds of it
 const BACK = 22;               // got back a second, once resting
 const PAUSE = 0.8;             // seconds before it starts coming back
 const WINDED = 0.3;            // share of it needed again before running, once spent

@@ -61,7 +61,9 @@ import { FACTS, RULES, VADO } from '../story/vado';
 import { Vitals } from '../world/vitals';
 import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Charge as Cargo, type Spot, type WorldMap } from '../world/zones';
 
-const ZOOM = 2;            // screen pixels per sprite pixel
+// Screen pixels per sprite pixel: drawn a little smaller than twice, so more of the country is seen
+// round the hero, as in Diablo.
+const ZOOM = 1.5;
 // By touch: how near an enemy the sabre goes for by itself, how far off a musket dragged all
 // the way points, and how long an arm let go is kept up waiting to go off.
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;

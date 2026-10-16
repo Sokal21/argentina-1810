@@ -16,8 +16,8 @@ const untilWinded = (s: Stamina) => {
 test('running spends it, and it runs out after a few seconds', () => {
   const s = new Stamina();
   const ran = untilWinded(s);
-  expect(ran).toBeGreaterThan(3);
-  expect(ran).toBeLessThan(5);
+  expect(ran).toBeGreaterThan(6);
+  expect(ran).toBeLessThan(8);
   expect(s.winded).toBe(true);
 });
 
