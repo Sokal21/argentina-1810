@@ -2140,6 +2140,21 @@
       "asset_id": "a7e3bcdb-aa05-4a67-a716-f96f93f48f94",
       "label": "ox cart walking (8 frames, heading left) — untouched",
       "file": "assets/cosas/carreta_bueyes_anda_original.png"
+    },
+    {
+      "asset_id": "3dd51e39-7601-4c87-9c5a-73a99aeb03bf",
+      "label": "ox cart simplified, side view heading left, carreta_simple_1",
+      "file": "assets/cosas/concept/carreta_simple_1.png"
+    },
+    {
+      "asset_id": "e351f8c9-da69-4195-9b7a-f8dec7236f20",
+      "label": "ox cart simplified, side view heading left, carreta_simple_2",
+      "file": "assets/cosas/concept/carreta_simple_2.png"
+    },
+    {
+      "asset_id": "2a45a002-f21c-4b26-86c7-22f2ccad081f",
+      "label": "ox cart simplified, side view heading left, carreta_simple_3",
+      "file": "assets/cosas/concept/carreta_simple_3.png"
     }
   ]
 }
