@@ -317,7 +317,9 @@ export class GameScene extends Phaser.Scene {
       if (b.sprite) this.load.image(b.sprite, b.sprite);
       if (b.inside) this.load.image(b.inside.sprite, b.inside.sprite);
     }
-    for (const { walk } of Object.values(MAPS).flatMap(map => map?.charges ?? [])) if (walk) this.load.spritesheet(walk.sheet, walk.sheet, { frameWidth: walk.size, frameHeight: walk.size });
+    for (const { walk, idle } of Object.values(MAPS).flatMap(map => map?.charges ?? [])) {
+      for (const sheet of [walk, idle]) if (sheet) this.load.spritesheet(sheet.sheet, sheet.sheet, { frameWidth: sheet.size, frameHeight: sheet.size });
+    }
     for (const sprite of new Set(Object.values(MAPS).flatMap(map => map?.spots ?? []).flatMap(spot => spot.sprite ?? []))) this.load.image(sprite, sprite);
   }
 
@@ -542,9 +544,10 @@ export class GameScene extends Phaser.Scene {
         if (!this.textures.exists(at.sprite)) continue;
         const { x, y } = middle(at.from);
         const drawn = this.add.sprite(x, y, at.sprite).setOrigin(0.5, 1).setDepth(y).setVisible(false).setScale(at.scale ?? 1);
-        const { walk } = at;
-        if (walk && this.textures.exists(walk.sheet) && !this.anims.exists(walk.sheet)) {
-          this.anims.create({ key: walk.sheet, frames: this.anims.generateFrameNumbers(walk.sheet, { start: 0, end: walk.frames - 1 }), frameRate: walk.rate, repeat: -1 });
+        for (const sheet of [at.walk, at.idle]) {
+          if (sheet && this.textures.exists(sheet.sheet) && !this.anims.exists(sheet.sheet)) {
+            this.anims.create({ key: sheet.sheet, frames: this.anims.generateFrameNumbers(sheet.sheet, { start: 0, end: sheet.frames - 1 }), frameRate: sheet.rate, repeat: -1 });
+          }
         }
         const bar = this.add.rectangle(x, y - drawn.displayHeight - 4, 24, 3, 0xd23c2a).setDepth(1e6).setVisible(false);
         const hint = this.add.text(x, y - drawn.displayHeight - 10, prompt('F', at.does), {
@@ -951,6 +954,8 @@ export class GameScene extends Phaser.Scene {
       const waiting = !charge.going && !arrived && (!at.given || !!this.story?.has(at.given));
       // Once it has arrived it stays where it was brought.
       drawn.setVisible(charge.going || waiting || arrived);
+      // Standing where it waits or where it was brought, it stands as it stands still.
+      if (!charge.going && (waiting || arrived)) this.pose(charge, false, false);
       bar.setVisible(charge.going && body.life < body.max);
       if (!charge.going) continue;
       // Told to wait, it stands where it is, still to be looked after. One that drives goes on along
@@ -967,13 +972,7 @@ export class GameScene extends Phaser.Scene {
       // Turned to go the way it is going, whichever way it was drawn heading.
       const mirrored = at.fixed ? false : at.faces === 'left' ? body.facing > 0 : body.facing < 0;
       drawn.setPosition(Math.round(body.x), Math.round(body.y)).setDepth(body.y).setFlipX(mirrored);
-      // Whoever walks is seen walking while they go, and stands as drawn while they wait.
-      const { walk } = at;
-      if (walk && this.anims.exists(walk.sheet)) {
-        if (body.moving && drawn.anims.currentAnim?.key !== walk.sheet) drawn.play(walk.sheet);
-        else if (!body.moving && drawn.anims.isPlaying) drawn.stop().setTexture(at.sprite).setOrigin(0.5, 1);
-        if (body.moving) drawn.setDisplayOrigin(mirrored ? walk.size - walk.ax : walk.ax, walk.size - walk.up);
-      }
+      this.pose(charge, body.moving, mirrored);
       bar.setPosition(Math.round(body.x), Math.round(body.y) - drawn.displayHeight - 4).setSize(24 * body.life / body.max, 3);
       const to = middle(at.to);
       if (body.lost) this.lose(charge, `${at.name}: se perdió por el camino. Hay que volver a buscarla.`);
@@ -1664,6 +1663,16 @@ export class GameScene extends Phaser.Scene {
     this.machi.x = at.x;
     this.machi.y = at.y;
     return true;
+  }
+
+  // Whoever is being brought along, seen as what it is doing: walking while it goes, its idle while
+  // it stands if it has one, or else as drawn.
+  private pose(charge: Led, moving: boolean, mirrored: boolean): void {
+    const { at, drawn } = charge, sheet = moving ? at.walk : at.idle;
+    if (sheet && this.anims.exists(sheet.sheet)) {
+      if (drawn.anims.currentAnim?.key !== sheet.sheet || !drawn.anims.isPlaying) drawn.play({ key: sheet.sheet, startFrame: Math.floor(Math.random() * sheet.frames) });
+      drawn.setDisplayOrigin(mirrored ? sheet.size - sheet.ax : sheet.ax, sheet.size - sheet.up);
+    } else if (drawn.anims.isPlaying) drawn.stop().setTexture(at.sprite).setOrigin(0.5, 1);
   }
 
   // Whoever was walking stands as drawn.

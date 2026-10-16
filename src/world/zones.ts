@@ -108,6 +108,8 @@ export interface Charge {
    * frames: the side of one, how many, how many a second, and where the feet are in one.
    */
   walk?: { sheet: string; size: number; frames: number; rate: number; ax: number; up: number };
+  /** What it does standing still, in the same kind of sheet as its walk: waiting to set off, told to wait, or arrived. */
+  idle?: { sheet: string; size: number; frames: number; rate: number; ax: number; up: number };
 }
 
 /** Something built, and the plot it stands in: for now a plain block of its size, until it is drawn. */

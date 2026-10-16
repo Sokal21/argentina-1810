@@ -2155,6 +2155,21 @@
       "asset_id": "2a45a002-f21c-4b26-86c7-22f2ccad081f",
       "label": "ox cart simplified, side view heading left, carreta_simple_3",
       "file": "assets/cosas/concept/carreta_simple_3.png"
+    },
+    {
+      "asset_id": "e80f6439-d867-4fe9-a587-e770209f726a",
+      "label": "ox cart chosen: simplified 2 without outline (uploaded; animation source)",
+      "file": "assets/cosas/concept/carreta_simple_2_sinborde.png"
+    },
+    {
+      "asset_id": "3bfaf58f-9ede-4118-95ef-56ed5b97a9f7",
+      "label": "ox cart walking (8 frames, heading left) — untouched",
+      "file": "assets/cosas/carreta_anda_original.png"
+    },
+    {
+      "asset_id": "254d7661-7d22-4c65-984f-2bbdeaddc3ab",
+      "label": "ox cart idle (8 frames) — untouched",
+      "file": "assets/cosas/carreta_quieta_original.png"
     }
   ]
 }
