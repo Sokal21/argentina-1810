@@ -9,6 +9,7 @@ import { TitleScene } from './scenes/TitleScene';
 import { key, mountTouch, touch } from './touch';
 import { forget } from './save';
 import { music, nowPlaying, setMusic } from './music';
+import { mountSupport } from './support';
 
 // The pixel type is fetched now, so it is there by the time anything is written in it.
 void document.fonts.load("8px 'Silkscreen'");
@@ -107,6 +108,7 @@ setInterval(() => {
 }, 1000);
 
 mountTouch(game);
+mountSupport();
 mountSheet(game);
 mountShop(game);
 

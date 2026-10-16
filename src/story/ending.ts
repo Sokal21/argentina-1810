@@ -1,4 +1,5 @@
 import { touch } from '../touch';
+import { supportButton, supportWords } from '../support';
 
 // How a story ends: the game stops, darkens, and what came of it is told in
 // a few lines. Enter goes back to the game, which is left as it was.
@@ -13,6 +14,7 @@ const STYLE = `
   #ending h1 { margin: 0; font: 63px/1 'Jacquard 12', Georgia, serif; font-weight: normal; color: #e2c478; text-shadow: 0 3px 0 #0a0807; }
   #ending p { margin: 0; max-width: 34em; }
   #ending small { font-size: 21px; color: #8f8168; }
+  #ending .thanks { color: #cdbf9d; margin-top: 10px; }
   @media (max-width: 560px) { #ending { gap: 14px; line-height: 1.15; justify-content: safe center; } #ending h1 { font-size: 42px; } }
 `;
 
@@ -52,10 +54,15 @@ export function showEnding(happening: string, then: () => void): void {
   const root = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'ending' }));
   root.append(Object.assign(document.createElement('h1'), { textContent: ending.title }),
     ...ending.says.map(line => Object.assign(document.createElement('p'), { textContent: line })),
+    // Once the story is told, and only then, a word for whoever liked it.
+    Object.assign(document.createElement('p'), { className: 'thanks', textContent: supportWords().long }),
+    supportButton(),
     Object.assign(document.createElement('small'), { textContent: touch.on ? 'Tocá para seguir' : 'Enter para seguir' }));
   requestAnimationFrame(() => root.classList.add('shown'));
   const close = (e: KeyboardEvent | MouseEvent) => {
     if (e instanceof KeyboardEvent && e.code !== 'Enter') return;
+    // Following the link to support the game does not close the ending behind it.
+    if (!(e instanceof KeyboardEvent) && (e.target as HTMLElement | null)?.closest?.('.support')) return;
     e.stopImmediatePropagation();
     removeEventListener('keydown', close, true);
     root.remove();
