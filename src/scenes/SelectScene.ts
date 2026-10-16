@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { touch } from '../touch';
-import { startIntroMusic, stopIntroMusic } from '../music';
+import { playMusic } from '../music';
 import type { Hero } from '../machi/data';
 
 // The screen is laid out on a canvas of this size, shown as large as fits.
@@ -82,7 +82,7 @@ export class SelectScene extends Phaser.Scene {
     this.leaving = false;
     this.cameras.main.setBackgroundColor(0x0d0b12);
     // The music from the title goes on here, or begins if this was come to directly.
-    startIntroMusic();
+    playMusic('intro');
 
     // Laid out about its own centre, so it can be sized to cover the screen.
     if (!this.anims.exists(CAMP.src)) {
@@ -202,7 +202,6 @@ export class SelectScene extends Phaser.Scene {
     this.cameras.main.fadeOut(FADE, 6, 10, 20);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
       document.body.classList.add('playing');
-      stopIntroMusic();
       this.scene.launch('hud');
       this.scene.start('game', { hero: CARDS[this.chosen].hero });
     });

@@ -31,6 +31,7 @@ import { overlaps, pushOut, type Footprint } from '../world/footprint';
 import { drawGround as layGround } from '../world/ground';
 import { Meadow } from '../fx/meadow';
 import { Silhouettes } from '../fx/silhouette';
+import { playMusic } from '../music';
 import { Water } from '../fx/water';
 import { Country, loadCountry, loadFences, raiseBuildings, raiseFences } from '../world/country';
 import { bosquePatagonico } from '../world/maps/bosque';
@@ -307,6 +308,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Whoever has a tune of their own plays to it; anyone else, to silence.
+    playMusic(this.hero === 'cabral' ? 'cabral' : null);
     this.map = MAPS[this.hero];
     this.size = this.map ? extent(this.map) : FIELD;
     this.start = this.map ? middle(this.map.start) : { x: FIELD.width / 2, y: FIELD.height / 2 };

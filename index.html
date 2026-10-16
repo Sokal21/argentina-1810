@@ -52,6 +52,10 @@
   #keys dd, #taps dd { margin: 0; color: #cdbf9d; }
   #keys[hidden], #taps[hidden] { display: none; }
   #pause .saved { margin: 0 0 8px; color: #cdbf9d; }
+  #pause .music { display: flex; align-items: center; gap: 14px; }
+  #pause .music input { flex: 1; accent-color: #e2c478; height: 28px; }
+  #pause .music span { min-width: 3em; text-align: right; color: #cdbf9d; }
+  #pause .music .again { margin: 0; }
   #pause .again { all: unset; cursor: pointer; display: block; width: max-content; padding: 8px 18px 9px; color: #e0604a; box-shadow: 0 0 0 2px #7a2416, 0 0 0 4px #0a0807; }
   #pause .again:hover, #pause .again:focus-visible { background: #2a1610; }
   #pause .again.sure { background: #7a2416; color: #f0e3c4; }
@@ -166,6 +170,8 @@
     <button id="resume" class="leave">Seguir</button>
     <h2>Efectos</h2>
     <div id="fx"></div>
+    <h2>Música</h2>
+    <div class="music"><button id="mute" class="again">Silenciar</button><input id="volume" type="range" min="0" max="100" step="5" aria-label="Volumen de la música"><span id="volume-shown"></span></div>
     <h2>Controles</h2>
     <dl id="keys">
       <dt>W A S D · clic derecho</dt><dd>Moverse</dd>

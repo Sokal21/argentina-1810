@@ -8,6 +8,7 @@ import { SelectScene } from './scenes/SelectScene';
 import { TitleScene } from './scenes/TitleScene';
 import { key, mountTouch, touch } from './touch';
 import { forget } from './save';
+import { music, nowPlaying, setMusic } from './music';
 
 // The pixel type is fetched now, so it is there by the time anything is written in it.
 void document.fonts.load("8px 'Silkscreen'");
@@ -39,6 +40,7 @@ const game = new Phaser.Game({
 // Handy from the browser console while developing.
 if (import.meta.env.DEV) {
   (globalThis as { game?: Phaser.Game }).game = game;
+  (globalThis as { musica?: typeof nowPlaying }).musica = nowPlaying;
   // The panel and its sliders exist only here; the published build drops them.
 }
 // The panel for trying things out: always while developing. In the published game it is turned on
@@ -139,6 +141,20 @@ let paused = false;
 // What the game asked less of the phone is shown in the pause menu, and touched it goes back to the best.
 const qualityButton = document.getElementById('quality')!;
 qualityButton.addEventListener('click', () => { setQuality(0); });
+
+// The music: how loud, and silenced or not, kept for next time.
+const mute = document.getElementById('mute')!, volume = document.getElementById('volume') as HTMLInputElement, volumeShown = document.getElementById('volume-shown')!;
+const showMusic = () => {
+  mute.textContent = music.muted ? 'Activar' : 'Silenciar';
+  volume.value = String(Math.round(music.volume * 100));
+  volume.disabled = music.muted;
+  volumeShown.textContent = music.muted ? 'sin' : `${volume.value}%`;
+};
+mute.addEventListener('click', () => { setMusic({ muted: !music.muted }); showMusic(); });
+volume.addEventListener('input', () => { setMusic({ volume: Number(volume.value) / 100 }); showMusic(); });
+// Once let go it gives the keyboard back to the game.
+volume.addEventListener('change', () => volume.blur());
+showMusic();
 
 // Beginning again throws away the game kept for whoever is being played. It asks once more first.
 const again = document.getElementById('again')!;

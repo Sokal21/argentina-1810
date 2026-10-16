@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { LookFX } from '../fx/LookFX';
 import { fx } from '../fx/settings';
-import { startIntroMusic, stopIntroMusic } from '../music';
+import { playMusic } from '../music';
 
 const W = 960, H = 405;       // the background, which is the scene's whole world
 const BACK = 'titulo/cabildo.png';
@@ -104,7 +104,7 @@ export class TitleScene extends Phaser.Scene {
     this.cameras.main.fadeIn(900, 6, 10, 20);
 
     document.body.classList.add('title');
-    startIntroMusic();
+    playMusic('intro');
     this.input.keyboard?.once('keydown', () => this.leave());
     this.input.once('pointerdown', () => this.leave());
   }
@@ -165,7 +165,6 @@ export class TitleScene extends Phaser.Scene {
     const straight = new URLSearchParams(location.search).get('jugar');
     if (straight === null) { this.scene.start('select'); return; }
     document.body.classList.add('playing');
-    stopIntroMusic();
     this.scene.launch('hud');
     this.scene.start('game', { hero: straight === 'cabral' ? 'cabral' : 'inti' });
   }
