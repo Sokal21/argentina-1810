@@ -28,5 +28,5 @@ tall stands `h * UPRIGHT` tall. One unit is one pixel of the drawing.
 |---|---|---|
 | 1. The look: camera, light, shadows, pixels, a map stood up in flat shapes | approved | [`LOOK.md`](LOOK.md) |
 | 2. A character's HD turnaround sheet, cut into views | approved | [`TURNAROUND.md`](TURNAROUND.md) |
-| 3. Its model | next | |
-| 4. Its rig and animations | | |
+| 3. Its model: Tripo, then Blender | approved | [`MODEL.md`](MODEL.md) |
+| 4. Its rig and animations | next | |
