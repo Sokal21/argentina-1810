@@ -947,7 +947,9 @@ export class GameScene extends Phaser.Scene {
       talker.spot?.mark.setVisible(there);
       for (const part of talker.figure ?? []) (part as Phaser.GameObjects.Image).setVisible(there);
       if (!there) continue;
-      if (ground(talker, this.machi) <= (talker.npc ? TALK.near : TALK.heard) && (!nearest || ground(talker, this.machi) < ground(nearest, this.machi))) nearest = talker;
+      // A cart is told to start from anywhere past its edge, since nobody can walk in to its middle.
+      const within = talker.npc ? TALK.near : talker.charge?.at.drives ? reachOf(talker.charge) : TALK.heard;
+      if (ground(talker, this.machi) <= within && (!nearest || ground(talker, this.machi) < ground(nearest, this.machi))) nearest = talker;
     }
     // A place still held says so instead of offering what is done there.
     if (nearest?.spot) {
