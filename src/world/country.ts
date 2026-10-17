@@ -24,11 +24,11 @@ const PLANTS: Record<string, string[]> = {
 };
 // Trees are shown larger than they are drawn, as in the forest: they stand
 // well over a man, about twice his height.
-const GROWN: Record<string, number> = { tala: 1.6, ombu: 2.1, ombu_chico: 1.1 };
+export const GROWN: Record<string, number> = { tala: 1.6, ombu: 2.1, ombu_chico: 1.1 };
 // The ground a plant in the way takes up, for one shown at its drawn size.
-const FOOT = { hw: 9, hh: 4 };
+export const FOOT = { hw: 9, hh: 4 };
 // The ombú's trunk and the thick of its roots are far wider than a stem.
-const FEET: Record<string, typeof FOOT> = { ombu: { hw: 26, hh: 7 }, ombu_chico: { hw: 26, hh: 7 } };
+export const FEET: Record<string, typeof FOOT> = { ombu: { hw: 26, hh: 7 }, ombu_chico: { hw: 26, hh: 7 } };
 const SHADOW_ALPHA = 0.32;
 // A clump of grass touches the ground all along its foot, not at a trunk: a shadow laid toward the
 // viewer shows under its whole width and it seems to float. So here the light falls from in front,
