@@ -243,5 +243,5 @@ El resto está en `spritecook-assets.json`.
 
 Hoja de giro para el modelo 3D: la variación C (`assets/cabral/3d/giro_c.png`, asset
 `b7bd1d9a-adad-474e-8b51-cf9ded28d012`), elegida por el usuario. Colores planos, pose A, frente,
-perfil izquierdo, espalda y 3/4, sin mosquete. Tiene dos bandoleras cruzadas; el diseño lleva una
+perfil derecho, espalda y 3/4, sin mosquete. Tiene dos bandoleras cruzadas; el diseño lleva una
 sola, y se deja para la textura. Las vistas cortadas están en `assets/cabral/3d/vista_*.png`.

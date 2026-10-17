@@ -9,7 +9,7 @@ so a sabre that came loose from its owner still goes with him. Each view is save
 OUT_PREFIX_NAME.png, centred on a square of the same background.
 
     python3 tools/cut_turnaround.py assets/cabral/3d/giro_c.png assets/cabral/3d/vista \
-        frente izquierda espalda tres_cuartos
+        frente derecha espalda tres_cuartos
 """
 import sys
 from collections import deque

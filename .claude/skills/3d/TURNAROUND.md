@@ -13,7 +13,7 @@ Approved for Cabral on 17 October 2026 (sheet C, `assets/cabral/3d/giro_c.png`).
   pixel art with arms hanging down, which the generator and the rig both handle worse.
 - The prompt, in this order: "Professional character turnaround model sheet for 3D modeling,
   smooth high-resolution digital painting, NOT pixel art"; the four views left to right
-  (straight front, left side profile, straight back, three-quarter front); an **A-pose** spelled
+  (straight front, side profile, straight back, three-quarter front); an **A-pose** spelled
   out (arms straight, clearly away from the body, about 45° down, a gap between arms and torso,
   hands open, nothing held); same height and baseline, no overlap; the costume item by item;
   "flat even studio lighting, no cast shadows, minimal shading, clean flat colour areas, plain
@@ -28,9 +28,15 @@ light is the engine's job. Small departures from the design (Cabral's two crossb
 one) can be left for the texture.
 
 ## Cutting it into views
-`python3 tools/cut_turnaround.py SHEET PREFIX frente izquierda espalda tres_cuartos` writes one
+`python3 tools/cut_turnaround.py SHEET PREFIX frente derecha espalda tres_cuartos` writes one
 square per view on the sheet's background. It cuts by connected parts, so a hand and a
 neighbour's sabre sharing columns are kept apart. Check the strip of four by eye before sending
 them on: a figure must be whole and alone in its square.
+
+**Name the profile by the side it shows, not by the word in the prompt.** A figure looking
+toward the right of the picture shows its *right* side (Cabral's sabre, at his left hip, is
+behind his legs). Sent to the generator as the wrong side, the model comes back with its torso
+turned round against its head and feet. Check by what hangs on one side only: a sabre, a
+crossbelt's end.
 
 Record every variation, chosen or not, in `spritecook-assets.json`.
