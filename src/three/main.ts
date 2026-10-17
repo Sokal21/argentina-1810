@@ -63,7 +63,15 @@ let body: THREE.Object3D = blocks;
 view.scene.add(body);
 const wear = (next: THREE.Object3D) => { view.scene.remove(body); body = next; view.scene.add(body); };
 let motion: Motion | null = null;
-void model('cabral/3d/cabral_animado.glb', CABRAL_DRESS.drawn).then(loaded => { shaped = loaded; motion = new Motion(loaded); wear(loaded); });
+/** How far his trot carries him in a second at its own speed, in world units. */
+let trot = 0;
+void model('cabral/3d/cabral_animado.glb', CABRAL_DRESS.drawn).then(loaded => {
+  shaped = loaded;
+  motion = new Motion(loaded);
+  // Measured in his own units, which are grown to his height.
+  trot = motion.reach('run', 'L_Foot') * loaded.scale.x;
+  wear(loaded);
+});
 
 const keys = new Keys();
 const stamina = new Stamina();
@@ -73,8 +81,11 @@ let fallen = false;
 let arming: 'musket' | 'grenade' | null = null;
 /** How long his blows and his dive take, for their clips to last as long. */
 const SWING = KITS.cabral.melee?.time ?? 0.5, DIVE = KITS.cabral.dash?.time ?? 0.5;
-/** How much quicker his trot is played when he runs. */
-const RUN_PACE = 1.4;
+/** How quickly what he is taken to be going at follows how fast he really goes, per second. */
+const SETTLE = 10;
+/** The slowest his trot is played, as a share of its own speed: turning on the spot, he still steps. */
+const LEAST_PACE = 0.35;
+let going = 0;
 
 const readings: Readings = {
   playing: 'cabral', life: 1, mana: 1, rage: 0, ultimate: 0,
@@ -131,6 +142,9 @@ const step = (now: number) => {
   Object.assign(cabral, walk(map, from, cabral));
 
   const moved = { x: cabral.x - from.x, y: cabral.y - from.y };
+  // How fast he goes over the 3D ground, smoothed: a step held against a plant is still a step.
+  const over = ground(moved.x, moved.y).length() / Math.max(dt, 1e-3);
+  going += (over - going) * Math.min(1, dt * SETTLE);
   if (Math.hypot(moved.x, moved.y) > 0.01) {
     const want = heading(moved.x, moved.y);
     const turn = Math.atan2(Math.sin(want - facing), Math.cos(want - facing));
@@ -142,7 +156,8 @@ const step = (now: number) => {
     else if (cabral.isDashing) motion.play('dive', { once: true, lasts: DIVE });
     else if (cabral.isSwinging) motion.play('slash', { once: true, lasts: SWING, afresh: !wasSwinging });
     else if (cabral.isShouldering) motion.play(cabral.pose().sheet.startsWith('grenade') ? 'pitch_baseball' : 'shoot', { once: true });
-    else if (cabral.isMoving) motion.play('run', { pace: running ? RUN_PACE : 1 });
+    // His trot keeps step with the ground: played as fast as he goes, however fast that is.
+    else if (cabral.isMoving) motion.play('run', { pace: trot ? Math.max(LEAST_PACE, going / trot) : 1 });
     else motion.play('idle');
     motion.update(dt);
   }
