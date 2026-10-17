@@ -2220,6 +2220,30 @@
       "asset_id": "a310e68b-d3f5-480a-9543-a94598a371f7",
       "label": "ox cart side idle — untouched",
       "file": "assets/cosas/carreta_lado_quieta_original.png"
+    },
+    {
+      "asset_id": "6f7df60d-d200-4c60-a39e-3ebdb6c4647b",
+      "sha12": "3ab8fee726ff",
+      "label": "cabral 3D turnaround A — discarded: pixel style dragged in by the sprite style refs, arms down",
+      "file": "assets/cabral/3d/giro_a.png"
+    },
+    {
+      "asset_id": "3b1c207b-b2f8-4b85-9075-6a469283829b",
+      "sha12": "8ad2409ca140",
+      "label": "cabral 3D turnaround B — discarded: pixel style, sabre in hand",
+      "file": "assets/cabral/3d/giro_b.png"
+    },
+    {
+      "asset_id": "b7bd1d9a-adad-474e-8b51-cf9ded28d012",
+      "sha12": "2ff62181ea36",
+      "label": "cabral 3D turnaround C — CHOSEN: flat colours, A-pose, front/left/back/3-4 (two crossbelts, the design has one)",
+      "file": "assets/cabral/3d/giro_c.png"
+    },
+    {
+      "asset_id": "3eb33b25-c667-4401-8688-07fff2d63b7f",
+      "sha12": "e3dbfa2a426d",
+      "label": "cabral 3D turnaround D — not chosen: painted grime and shading, ground line",
+      "file": "assets/cabral/3d/giro_d.png"
     }
   ]
 }

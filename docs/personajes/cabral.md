@@ -238,3 +238,10 @@ Son las corregidas, las que hay que usar para animar.
 
 El diseño detallado del que salió es `ac5ce9ba-98c6-4581-92a8-6b305129f42c`.
 El resto está en `spritecook-assets.json`.
+
+## En 3D
+
+Hoja de giro para el modelo 3D: la variación C (`assets/cabral/3d/giro_c.png`, asset
+`b7bd1d9a-adad-474e-8b51-cf9ded28d012`), elegida por el usuario. Colores planos, pose A, frente,
+perfil izquierdo, espalda y 3/4, sin mosquete. Tiene dos bandoleras cruzadas; el diseño lleva una
+sola, y se deja para la textura. Las vistas cortadas están en `assets/cabral/3d/vista_*.png`.
