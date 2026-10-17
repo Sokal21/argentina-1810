@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { flat, joined, part, placed } from './paint';
 import { UPRIGHT } from './space';
 
@@ -57,4 +58,26 @@ export function figure(dress: Dress): THREE.Mesh {
   body.scale.setScalar(dress.drawn * UPRIGHT);
   body.castShadow = body.receiveShadow = true;
   return body;
+}
+
+/**
+ * Someone's model, made ready by tools/blender/prepare_model.py: one unit tall, feet at the
+ * origin, front along +Z, its texture in a few flat colours. It is given the game's flat,
+ * stepped light and grown to their drawn height.
+ */
+export async function model(url: string, drawn: number): Promise<THREE.Group> {
+  const { scene } = await new GLTFLoader().loadAsync(url);
+  scene.traverse(node => {
+    if (!(node instanceof THREE.Mesh)) return;
+    const was = node.material as THREE.MeshStandardMaterial;
+    const material = flat('#ffffff');
+    if (was.map) {
+      was.map.minFilter = was.map.magFilter = THREE.NearestFilter;
+      material.map = was.map;
+    } else material.color.copy(was.color);
+    node.material = material;
+    node.castShadow = node.receiveShadow = true;
+  });
+  scene.scale.setScalar(drawn * UPRIGHT);
+  return scene;
 }

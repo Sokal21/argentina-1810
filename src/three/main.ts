@@ -6,7 +6,7 @@ import { RUN, Stamina } from '../machi/stamina';
 import { pushOut, type Footprint } from '../world/footprint';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { extent, middle, walk } from '../world/zones';
-import { CABRAL_DRESS, figure, type Dress } from './figure';
+import { CABRAL_DRESS, figure, model, type Dress } from './figure';
 import { mountHud, type Readings } from './hud';
 import { ground, heading } from './space';
 import { View } from './view';
@@ -55,8 +55,13 @@ for (const { who, plot, faces } of map.people ?? []) {
 const { width, height } = extent(map);
 const cabral = new MachiController({ minX: 12, maxX: width - 12, minY: 0, maxY: height }, KITS.cabral);
 Object.assign(cabral, middle(map.start));
-const body = figure(CABRAL_DRESS);
+// His model, once it has loaded; the figure of blocks until then, and on M to compare.
+const blocks = figure(CABRAL_DRESS);
+let shaped: THREE.Object3D | null = null;
+let body: THREE.Object3D = blocks;
 view.scene.add(body);
+const wear = (next: THREE.Object3D) => { view.scene.remove(body); body = next; view.scene.add(body); };
+void model('cabral/3d/cabral.glb', CABRAL_DRESS.drawn).then(loaded => { shaped = loaded; wear(loaded); });
 
 const keys = new Keys();
 const stamina = new Stamina();
@@ -73,9 +78,9 @@ const readings: Readings = {
 const hud = mountHud(document.getElementById('hud')!, readings);
 
 // While trying it out: 1 the pixels or a plain scene, 2 the edge lines, [ and ] the size of a
-// pixel, H the HUD.
+// pixel, H the HUD, M his model or his figure of blocks.
 const told = document.getElementById('told')!;
-const tell = () => { told.textContent = `${view.pixelated ? `pixel ${view.pixel}` : 'sin pixel'} · bordes ${view.edges ? 'sí' : 'no'} · 1 pixel · 2 bordes · [ ] tamaño · H HUD`; };
+const tell = () => { told.textContent = `${view.pixelated ? `pixel ${view.pixel}` : 'sin pixel'} · bordes ${view.edges ? 'sí' : 'no'} · 1 pixel · 2 bordes · [ ] tamaño · H HUD · M modelo o muñeco`; };
 addEventListener('keydown', e => {
   if (e.repeat) return;
   if (e.code === 'Digit1') view.pixelated = !view.pixelated;
@@ -83,7 +88,8 @@ addEventListener('keydown', e => {
   else if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
     view.pixel = Math.max(1, Math.min(8, view.pixel + (e.code === 'BracketLeft' ? -1 : 1)));
     view.fit();
-  } else if (e.code === 'KeyH') hud.canvas.style.visibility = hud.canvas.style.visibility === 'hidden' ? '' : 'hidden';
+  } else if (e.code === 'KeyM' && shaped) wear(body === shaped ? blocks : shaped);
+  else if (e.code === 'KeyH') hud.canvas.style.visibility = hud.canvas.style.visibility === 'hidden' ? '' : 'hidden';
   else return;
   tell();
 });
