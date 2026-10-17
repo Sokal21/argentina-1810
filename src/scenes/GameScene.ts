@@ -76,11 +76,22 @@ const KEEP = 4;
 const PROVOKED = 12, ALARM = 260;
 // How near whatever is being brought along the hero must be to tell it to wait, or to come on.
 const ORDER = 60;
-/** How near a hero must be to tell something brought along to wait or come on: past its edge, for a cart. */
-const reachOf = (c: { at: Cargo; drawn: Phaser.GameObjects.Sprite }) => (c.at.drives ? c.drawn.displayWidth * 0.42 + 26 : ORDER);
-/** The ground a cart and its oxen take up, which nobody walks through; nothing for someone led on foot. */
-const footOf = (c: { at: Cargo; drawn: Phaser.GameObjects.Sprite; body: Vec }): Footprint | null =>
-  c.at.drives ? { x: c.body.x - c.drawn.displayWidth * 0.06, y: c.body.y - 10 * (c.at.scale ?? 1), hw: c.drawn.displayWidth * 0.36, hh: 12 * (c.at.scale ?? 1) } : null;
+// How far past a cart's edge the hero can tell it what to do.
+const PAST = 34;
+type Carried = { at: Cargo; body: Vec; wide: number };
+/** The ground a cart and its oxen take up, which nobody walks through; nothing for someone led on foot.
+ *  It is reckoned from the cart's own drawing (its width as shown), never from the frame it is drawn in. */
+const footOf = (c: Carried): Footprint | null =>
+  c.at.drives ? { x: c.body.x, y: c.body.y - 9 * (c.at.scale ?? 1), hw: c.wide * 0.42, hh: 11 * (c.at.scale ?? 1) } : null;
+/** Where the hero can tell it to wait or come on (or set it off): a ring on the ground round it, the very
+ *  ring that is drawn. For a cart, round its footprint and a little past it, so wherever the cart stops
+ *  the hero, they are inside; for someone led on foot, round where they stand. */
+const zoneOf = (c: Carried) => {
+  const f = footOf(c);
+  return f ? { x: f.x, y: f.y, rx: f.hw + PAST, ry: f.hh + PAST * ISO_Y } : { x: c.body.x, y: c.body.y, rx: ORDER, ry: ORDER * ISO_Y };
+};
+/** How far inside the ring a spot is: under 1 inside, 1 on the line. */
+const inZone = (c: Carried, p: Vec) => { const z = zoneOf(c); return Math.hypot((p.x - z.x) / z.rx, (p.y - z.y) / z.ry); };
 const RING_FADE = 6;       // how quickly the ring and its words ease in and out, a second            // seconds between one keeping of the game and the next
 const FIELD = { width: 1280, height: 800 }; // the bare field, in sprite pixels
 // The map each hero walks; one who has none fights on the bare field.
@@ -152,7 +163,7 @@ const TALK = { near: 52, heard: 84, trial: [-140, -80] as [number, number], stan
 /** Someone standing on the map: one to talk to (`npc`), or one who only says what the sign over them shows. */
 interface Talker { name: string; npc?: Npc; x: number; y: number; /** For one who only says a thing: what they say as things stand now. */ says?: () => string; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image }; /** Somewhere something can be done, and the mark on the ground that says so. */ spot?: { at: Spot; mark: Phaser.GameObjects.Image }; /** Something waiting there to be led off. */ charge?: Led; /** Whoever stands there, to be hidden with them. */ figure?: Phaser.GameObjects.GameObject[]; /** Whether it is there to be dealt with at all just now; always, if unsaid. */ there?: () => boolean }
 /** Something being brought somewhere: what, where it is, its drawing and the bar of what it can still take, and whether it is on its way. */
-interface Led { /** Seen from the side just now, and for how long the other view has been wanted. */ sideways?: boolean; turning?: number; at: Cargo; body: Escort; drawn: Phaser.GameObjects.Sprite; bar: Phaser.GameObjects.Rectangle; going: boolean; /** Told to wait where it is, while the hero clears the way. */ halted?: boolean; /** What F does to it, over it while the hero is near enough to say. */ order?: Phaser.GameObjects.Text; /** How far its ring is shown, and lit, each easing in and out. */ ring?: { seen: number; lit: number }; /** For one that drives on by itself: the road to where it is going. */ road?: Road }
+interface Led { /** How wide its drawing is as shown, which its footprint and its ring are reckoned from. */ wide: number; /** Seen from the side just now, and for how long the other view has been wanted. */ sideways?: boolean; turning?: number; at: Cargo; body: Escort; drawn: Phaser.GameObjects.Sprite; bar: Phaser.GameObjects.Rectangle; going: boolean; /** Told to wait where it is, while the hero clears the way. */ halted?: boolean; /** What F does to it, over it while the hero is near enough to say. */ order?: Phaser.GameObjects.Text; /** How far its ring is shown, and lit, each easing in and out. */ ring?: { seen: number; lit: number }; /** For one that drives on by itself: the road to where it is going. */ road?: Road }
 // How near a named place counts as having come to it, in plots; and how many blows of life a bandage gives back.
 const ARRIVED = 1, MENDS = 2;
 // The sign over them comes up and goes out over this long, in seconds.
@@ -560,7 +571,8 @@ export class GameScene extends Phaser.Scene {
           fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
           stroke: '#14110f', strokeThickness: 3,
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
-        const charge: Led = { at, body: new Escort({ x, y }, at.life, at.pace), drawn, bar, going: false };
+        const still = this.textures.get(at.sprite).getSourceImage() as HTMLImageElement;
+        const charge: Led = { at, body: new Escort({ x, y }, at.life, at.pace), drawn, bar, going: false, wide: still.width * (at.scale ?? 1) };
         this.led.push(charge);
         // It waits to be led off whenever it is not on its way and has not arrived.
         this.talkers.push({ name: at.name, x, y, hint, charge, there: () => !charge.going && !this.story?.has(at.happening) && (!at.given || !!this.story?.has(at.given)) });
@@ -613,7 +625,7 @@ export class GameScene extends Phaser.Scene {
       const interact = () => {
         if (!this.vitals.standing) return;
         // Beside whatever is being brought along: it is told to wait, or to come on again.
-        const led = this.led.find(c => c.going && ground(c.body, this.machi) <= reachOf(c));
+        const led = this.led.find(c => c.going && inZone(c, this.machi) <= 1);
         if (led) {
           led.halted = !led.halted;
           this.board?.say(`${led.at.name}: ${led.halted ? 'espera acá.' : led.at.drives ? 'sigue camino.' : 'te sigue.'}`);
@@ -947,9 +959,10 @@ export class GameScene extends Phaser.Scene {
       talker.spot?.mark.setVisible(there);
       for (const part of talker.figure ?? []) (part as Phaser.GameObjects.Image).setVisible(there);
       if (!there) continue;
-      // A cart is told to start from anywhere past its edge, since nobody can walk in to its middle.
-      const within = talker.npc ? TALK.near : talker.charge?.at.drives ? reachOf(talker.charge) : TALK.heard;
-      if (ground(talker, this.machi) <= within && (!nearest || ground(talker, this.machi) < ground(nearest, this.machi))) nearest = talker;
+      // Something to be brought along is set off from inside its own ring, the one drawn round it; the
+      // rest are as near as they are.
+      const reached = talker.charge ? inZone(talker.charge, this.machi) <= 1 : ground(talker, this.machi) <= (talker.npc ? TALK.near : TALK.heard);
+      if (reached && (!nearest || ground(talker, this.machi) < ground(nearest, this.machi))) nearest = talker;
     }
     // A place still held says so instead of offering what is done there.
     if (nearest?.spot) {
@@ -967,6 +980,8 @@ export class GameScene extends Phaser.Scene {
       // Standing where it waits or where it was brought, it stands as it stands still.
       if (!charge.going && (waiting || arrived)) this.pose(charge, false, false);
       bar.setVisible(charge.going && body.life < body.max);
+      // Waiting to be set off, its ring shows how near one has to come to do it.
+      if (!charge.going && waiting && at.drives) this.showOrder(charge, drawn.displayHeight, dt);
       if (!charge.going) continue;
       // Told to wait, it stands where it is, still to be looked after. One that drives goes on along
       // the road by itself; anything else follows the hero.
@@ -1712,26 +1727,27 @@ export class GameScene extends Phaser.Scene {
   // enough, with what F would do written over it. Waiting, it keeps a word over it either way.
   private showOrder(charge: Led, tall: number, dt: number): void {
     this.orders ??= this.add.graphics().setDepth(-1e6 + 3);
-    const { body } = charge, far = ground(body, this.machi), R = reachOf(charge), near = far <= R;
+    const { body } = charge, z = zoneOf(charge), inside = inZone(charge, this.machi), near = inside <= 1;
     // Each eases toward where it should be: the ring fades in as the hero comes and out as they go,
     // and its light comes up and goes down rather than switching.
     const ring = (charge.ring ??= { seen: 0, lit: 0 });
     const ease = (from: number, to: number) => from + (to - from) * Math.min(1, dt * RING_FADE);
-    ring.seen = ease(ring.seen, Phaser.Math.Clamp((R * 1.8 - far) / (R * 0.8), 0, 1));
+    ring.seen = ease(ring.seen, Phaser.Math.Clamp((1.9 - inside) / 0.8, 0, 1));
     ring.lit = ease(ring.lit, near ? 1 : 0);
     if (ring.seen > 0.01) {
       const colour = Phaser.Display.Color.Interpolate.ColorWithColor(
         Phaser.Display.Color.ValueToColor(0x8a8478), Phaser.Display.Color.ValueToColor(0xe2c478), 1, ring.lit);
       const tint = Phaser.Display.Color.GetColor(colour.r, colour.g, colour.b);
-      this.orders.lineStyle(1, tint, (0.45 + 0.45 * ring.lit) * ring.seen).strokeEllipse(body.x, body.y, R * 2, R * 2 * ISO_Y);
-      if (ring.lit > 0.01) this.orders.fillStyle(tint, 0.08 * ring.lit * ring.seen).fillEllipse(body.x, body.y, R * 2, R * 2 * ISO_Y);
+      this.orders.lineStyle(1, tint, (0.45 + 0.45 * ring.lit) * ring.seen).strokeEllipse(z.x, z.y, z.rx * 2, z.ry * 2);
+      if (ring.lit > 0.01) this.orders.fillStyle(tint, 0.08 * ring.lit * ring.seen).fillEllipse(z.x, z.y, z.rx * 2, z.ry * 2);
     }
     charge.order ??= this.add.text(0, 0, '', {
       fontFamily: "'Silkscreen', ui-monospace, monospace", fontSize: '8px', color: '#f0e3c4', align: 'center',
       stroke: '#14110f', strokeThickness: 3,
     }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio);
     const onward = charge.at.drives ? 'que siga' : 'que te siga';
-    const says = near ? prompt('F', charge.halted ? onward : 'que espere') : charge.halted ? 'esperando' : '';
+    // Waiting to be set off, what F does is said over it by its own sign; the ring is all that is drawn here.
+    const says = !charge.going ? '' : near ? prompt('F', charge.halted ? onward : 'que espere') : charge.halted ? 'esperando' : '';
     // The words fade too: a new word comes in from nothing, the last fades out where it was.
     const word = charge.order;
     if (says && word.text !== says) word.setText(says).setAlpha(0);
@@ -1995,7 +2011,7 @@ export class GameScene extends Phaser.Scene {
   /** What can be done with whatever is beside the hero, in a word; nothing if there is nothing to be done. */
   get offer(): string | undefined {
     if (!this.vitals.standing) return undefined;
-    const led = this.led.find(c => c.going && ground(c.body, this.machi) <= reachOf(c));
+    const led = this.led.find(c => c.going && inZone(c, this.machi) <= 1);
     if (led) return led.halted ? (led.at.drives ? 'Que siga' : 'Que te siga') : 'Que espere';
     const near = this.beside;
     if (!near) return undefined;
