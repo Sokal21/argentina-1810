@@ -9,11 +9,15 @@
   to be shown nearest-filtered: flat colour areas, which the engine's light then shades.
 - Exports a single GLB, the texture inside it.
 """
+import os
 import sys
 
 import bpy
 import numpy as np
 from mathutils import Matrix
+
+sys.path.append(os.path.dirname(__file__))
+from flatten import flatten  # noqa: E402
 
 args = sys.argv[sys.argv.index('--') + 1:]
 src, dst = args[0], args[1]
@@ -44,36 +48,7 @@ grow = Matrix.Scale(1 / tall, 4)
 for o in meshes:
     o.data.transform(grow @ move)
 
-# The texture, in a few flat colours.
-for image in list(bpy.data.images):
-    if image.size[0] == 0:
-        continue
-    image.scale(SIZE, SIZE)
-    px = np.array(image.pixels[:], dtype=np.float32).reshape(-1, 4)
-    rgb = px[:, :3]
-    rng = np.random.default_rng(1)
-    centres = rgb[rng.choice(len(rgb), COLOURS, replace=False)]
-    for _ in range(20):
-        nearest = ((rgb[:, None, :] - centres[None]) ** 2).sum(2).argmin(1)
-        for k in range(COLOURS):
-            mine = rgb[nearest == k]
-            if len(mine):
-                centres[k] = mine.mean(0)
-    px[:, :3] = centres[nearest]
-    image.pixels[:] = px.ravel()
-    image.pack()
-    print('PALETTE', image.name, [tuple(int(c * 255) for c in centre) for centre in centres])
-
-# Nearest-filtered in the game; and nothing shiny: the material is a flat colour.
-for material in bpy.data.materials:
-    if not material.node_tree:
-        continue
-    for node in material.node_tree.nodes:
-        if node.type == 'TEX_IMAGE':
-            node.interpolation = 'Closest'
-        if node.type == 'BSDF_PRINCIPLED':
-            node.inputs['Metallic'].default_value = 0
-            node.inputs['Roughness'].default_value = 1
+flatten(COLOURS, SIZE)
 
 bpy.ops.export_scene.gltf(filepath=dst, export_format='GLB', export_yup=True)
 faces = sum(len(o.data.polygons) for o in meshes)

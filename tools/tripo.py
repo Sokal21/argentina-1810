@@ -37,7 +37,7 @@ def call(method: str, path: str, body: bytes | None = None, kind: str = 'applica
 
 
 def balance() -> None:
-    req = urllib.request.Request('https://api.tripo3d.ai/v2/openapi/user/balance', headers={'Authorization': f'Bearer {KEY}'})
+    req = urllib.request.Request('https://api.tripo3d.ai/v2/openapi/user/balance', headers={'Authorization': f'Bearer {KEY}', 'User-Agent': 'curl/8'})
     with urllib.request.urlopen(req) as r:
         print(json.load(r)['data'])
 

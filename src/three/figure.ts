@@ -66,7 +66,9 @@ export function figure(dress: Dress): THREE.Mesh {
  * stepped light and grown to their drawn height.
  */
 export async function model(url: string, drawn: number): Promise<THREE.Group> {
-  const { scene } = await new GLTFLoader().loadAsync(url);
+  const { scene, animations } = await new GLTFLoader().loadAsync(url);
+  // Its clips go with it, for whoever animates it.
+  scene.animations = animations;
   scene.traverse(node => {
     if (!(node instanceof THREE.Mesh)) return;
     const was = node.material as THREE.MeshStandardMaterial;
@@ -77,6 +79,8 @@ export async function model(url: string, drawn: number): Promise<THREE.Group> {
     } else material.color.copy(was.color);
     node.material = material;
     node.castShadow = node.receiveShadow = true;
+    // A body that moves can leave the box it was measured in at rest.
+    node.frustumCulled = false;
   });
   scene.scale.setScalar(drawn * UPRIGHT);
   return scene;

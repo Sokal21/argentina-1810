@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Keys } from '../input';
 import { MachiController } from '../machi/controller';
-import { KITS } from '../machi/data';
+import { ISO_Y, KITS } from '../machi/data';
 import { RUN, Stamina } from '../machi/stamina';
 import { pushOut, type Footprint } from '../world/footprint';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
@@ -9,6 +9,7 @@ import { extent, middle, walk } from '../world/zones';
 import { CABRAL_DRESS, figure, model, type Dress } from './figure';
 import { mountHud, type Readings } from './hud';
 import { ground, heading } from './space';
+import { Motion } from './motion';
 import { View } from './view';
 import { raiseCountry } from './world';
 
@@ -61,11 +62,19 @@ let shaped: THREE.Object3D | null = null;
 let body: THREE.Object3D = blocks;
 view.scene.add(body);
 const wear = (next: THREE.Object3D) => { view.scene.remove(body); body = next; view.scene.add(body); };
-void model('cabral/3d/cabral.glb', CABRAL_DRESS.drawn).then(loaded => { shaped = loaded; wear(loaded); });
+let motion: Motion | null = null;
+void model('cabral/3d/cabral_animado.glb', CABRAL_DRESS.drawn).then(loaded => { shaped = loaded; motion = new Motion(loaded); wear(loaded); });
 
 const keys = new Keys();
 const stamina = new Stamina();
 let facing = 0;
+let fallen = false;
+/** The arm he had up last step: let go, it goes off. */
+let arming: 'musket' | 'grenade' | null = null;
+/** How long his blows and his dive take, for their clips to last as long. */
+const SWING = KITS.cabral.melee?.time ?? 0.5, DIVE = KITS.cabral.dash?.time ?? 0.5;
+/** How much quicker his trot is played when he runs. */
+const RUN_PACE = 1.4;
 
 const readings: Readings = {
   playing: 'cabral', life: 1, mana: 1, rage: 0, ultimate: 0,
@@ -78,9 +87,9 @@ const readings: Readings = {
 const hud = mountHud(document.getElementById('hud')!, readings);
 
 // While trying it out: 1 the pixels or a plain scene, 2 the edge lines, [ and ] the size of a
-// pixel, H the HUD, M his model or his figure of blocks.
+// pixel, H the HUD, M his model or his figure of blocks, K he falls or gets up.
 const told = document.getElementById('told')!;
-const tell = () => { told.textContent = `${view.pixelated ? `pixel ${view.pixel}` : 'sin pixel'} · bordes ${view.edges ? 'sí' : 'no'} · 1 pixel · 2 bordes · [ ] tamaño · H HUD · M modelo o muñeco`; };
+const tell = () => { told.textContent = `${view.pixelated ? `pixel ${view.pixel}` : 'sin pixel'} · bordes ${view.edges ? 'sí' : 'no'} · 1 pixel · 2 bordes · [ ] tamaño · H HUD · M modelo o muñeco · Q mosquete · E granada · K morir`; };
 addEventListener('keydown', e => {
   if (e.repeat) return;
   if (e.code === 'Digit1') view.pixelated = !view.pixelated;
@@ -88,6 +97,9 @@ addEventListener('keydown', e => {
   else if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
     view.pixel = Math.max(1, Math.min(8, view.pixel + (e.code === 'BracketLeft' ? -1 : 1)));
     view.fit();
+  } else if (e.code === 'KeyK') {
+    if (fallen) cabral.rise(); else cabral.fall();
+    fallen = !fallen;
   } else if (e.code === 'KeyM' && shaped) wear(body === shaped ? blocks : shaped);
   else if (e.code === 'KeyH') hud.canvas.style.visibility = hud.canvas.style.visibility === 'hidden' ? '' : 'hidden';
   else return;
@@ -96,6 +108,7 @@ addEventListener('keydown', e => {
 tell();
 
 let last = performance.now();
+let wasSwinging = false;
 const step = (now: number) => {
   // A long frame (the tab in the background) must not carry him off.
   const dt = Math.min(0.05, (now - last) / 1000);
@@ -104,6 +117,14 @@ const step = (now: number) => {
   const running = stamina.update(dt, !cabral.isDashing && keys.running, cabral.isMoving);
   cabral.pace = running ? RUN : 1;
   const from = { x: cabral.x, y: cabral.y };
+  // Q held brings the musket up, E held a grenade back, as in the 2D game; let go, they go off.
+  const { strike, second } = keys.abilities();
+  const arm = strike ? 'musket' : second ? 'grenade' : null;
+  if (arm) {
+    // Aimed straight ahead of him, until the pointer is wired in.
+    cabral.shoulder({ x: cabral.x + Math.sin(facing) * 100, y: cabral.y + Math.cos(facing) * 100 * ISO_Y }, arm);
+  } else if (arming) cabral.fire();
+  arming = arm;
   cabral.update(dt, input);
   // Held, as in the 2D game, by what stands in the way and by country too thick to cross.
   for (const taken of country.feet) Object.assign(cabral, pushOut({ x: cabral.x, y: cabral.y, ...FEET }, taken));
@@ -115,6 +136,17 @@ const step = (now: number) => {
     const turn = Math.atan2(Math.sin(want - facing), Math.cos(want - facing));
     facing += turn * Math.min(1, dt * TURN);
   }
+  // What he is doing, in the clip that shows it.
+  if (motion) {
+    if (fallen) motion.play('defeat_02', { once: true });
+    else if (cabral.isDashing) motion.play('dive', { once: true, lasts: DIVE });
+    else if (cabral.isSwinging) motion.play('slash', { once: true, lasts: SWING, afresh: !wasSwinging });
+    else if (cabral.isShouldering) motion.play(cabral.pose().sheet.startsWith('grenade') ? 'pitch_baseball' : 'shoot', { once: true });
+    else if (cabral.isMoving) motion.play('run', { pace: running ? RUN_PACE : 1 });
+    else motion.play('idle');
+    motion.update(dt);
+  }
+  wasSwinging = cabral.isSwinging;
   body.position.copy(ground(cabral.x, cabral.y));
   body.rotation.y = facing;
   view.follow(body.position);

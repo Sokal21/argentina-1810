@@ -1,0 +1,21 @@
+{
+  "type": "animate_retarget",
+  "status": "failed",
+  "progress": 100,
+  "input": {
+    "animations": [
+      "preset:shoot",
+      "preset:hurt",
+      "preset:fall"
+    ],
+    "out_format": "glb",
+    "animate_in_place": true,
+    "original_model_id": "165b31b8-2808-43af-b599-d21173a63c42"
+  },
+  "output": {},
+  "task_id": "a9fbc3a0-81e4-4c4e-bb73-516cb1271aee",
+  "created_at": "2026-10-17T23:33:48.827645Z",
+  "completed_at": "2026-10-17T23:33:59.967961Z",
+  "error_code": 1004,
+  "error_message": "Invalid input parameter"
+}
