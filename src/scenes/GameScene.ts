@@ -252,8 +252,6 @@ export class GameScene extends Phaser.Scene {
   private meadow?: Meadow;
   /** Shadows cast from each one's own shape, and grass over their feet. */
   private silhouettes?: Silhouettes;
-  /** The shadows under carts, drawn afresh each step. */
-  private cartShadows?: Phaser.GameObjects.Graphics;
   /** Their breath, for running and dodging. */
   private stamina = new Stamina();
   private water?: Water;
@@ -1952,19 +1950,11 @@ export class GameScene extends Phaser.Scene {
       everyone.push([parts.sprite, r.ground, parts.shadow]);
     }
     for (const t of this.talkers) if (t.figure) everyone.push([t.figure[0] as Phaser.GameObjects.Sprite, t, t.figure[1]]);
-    // A cart stands on the ground at many points (hooves, wheels, the drover's feet) at different heights
-    // of its picture: laid from one foot line, the shape of it hangs off the ground. It gets a shadow
-    // of its own instead, flat under where it stands.
-    this.cartShadows ??= this.add.graphics().setDepth(-1e6 + 2.5);
-    this.cartShadows.clear();
+    // A cart stands on the ground at many points (hooves, wheels, the drover's feet): its shadow is laid
+    // column by column from where each stands, so none of it hangs in the air.
     for (const c of this.led) {
-      const foot = footOf(c);
-      if (!foot) { everyone.push([c.drawn, c.body]); continue; }
-      if (!c.drawn.visible || !near(c.body)) continue;
-      // A wide, soft pool under the cart and the oxen, darker toward its middle, cast a little back.
-      for (const [k, a] of [[1.25, 0.12], [1, 0.14], [0.72, 0.12]] as const) {
-        this.cartShadows.fillStyle(0x06080a, a).fillEllipse(foot.x + foot.hw * 0.06, foot.y + foot.hh * 0.2, foot.hw * 2 * k, foot.hh * 2.6 * k);
-      }
+      if (footOf(c)) this.silhouettes.cast(c.drawn, c.drawn.visible && near(c.body) ? c.body : null, true);
+      else everyone.push([c.drawn, c.body]);
     }
     for (const [sprite, feet, oval] of everyone) {
       const shown = sprite.visible && near(feet);
