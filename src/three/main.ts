@@ -65,11 +65,14 @@ const wear = (next: THREE.Object3D) => { view.scene.remove(body); body = next; v
 let motion: Motion | null = null;
 /** How far his trot carries him in a second at its own speed, in world units. */
 let trot = 0;
+let stepping = 'run';
 void model('cabral/3d/cabral_animado.glb', CABRAL_DRESS.drawn).then(loaded => {
   shaped = loaded;
   motion = new Motion(loaded);
   // Measured in his own units, which are grown to his height.
-  trot = motion.reach('run', 'L_Foot') * loaded.scale.x;
+  // His own trot, made in Blender; the library's run if it is missing.
+  stepping = motion.has('trote') ? 'trote' : 'run';
+  trot = motion.reach(stepping, 'L_Foot') * loaded.scale.x;
   wear(loaded);
 });
 
@@ -157,7 +160,7 @@ const step = (now: number) => {
     else if (cabral.isSwinging) motion.play('slash', { once: true, lasts: SWING, afresh: !wasSwinging });
     else if (cabral.isShouldering) motion.play(cabral.pose().sheet.startsWith('grenade') ? 'pitch_baseball' : 'shoot', { once: true });
     // His trot keeps step with the ground: played as fast as he goes, however fast that is.
-    else if (cabral.isMoving) motion.play('run', { pace: trot ? Math.max(LEAST_PACE, going / trot) : 1 });
+    else if (cabral.isMoving) motion.play(stepping, { pace: trot ? Math.max(LEAST_PACE, going / trot) : 1 });
     // Standing: his own at-ease, made in Blender; the library's if it is missing.
     else motion.play(motion.has('reposo') ? 'reposo' : 'idle');
     motion.update(dt);
