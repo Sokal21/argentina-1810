@@ -158,7 +158,8 @@ const step = (now: number) => {
     else if (cabral.isShouldering) motion.play(cabral.pose().sheet.startsWith('grenade') ? 'pitch_baseball' : 'shoot', { once: true });
     // His trot keeps step with the ground: played as fast as he goes, however fast that is.
     else if (cabral.isMoving) motion.play('run', { pace: trot ? Math.max(LEAST_PACE, going / trot) : 1 });
-    else motion.play('idle');
+    // Standing: his own at-ease, made in Blender; the library's if it is missing.
+    else motion.play(motion.has('reposo') ? 'reposo' : 'idle');
     motion.update(dt);
   }
   wasSwinging = cabral.isSwinging;
