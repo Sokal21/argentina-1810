@@ -66,6 +66,9 @@ export function mountPanel(view: View): GUI {
   lens.add(look, 'bulge', 0, 0.5, 0.005).name('curvatura (CRT)');
   lens.add(look, 'scanlines', 0, 1, 0.01).name('líneas de barrido');
 
+  const effects = gui.addFolder('Efectos');
+  effects.add(look, 'trail').name('estela del sable');
+
   const actions = {
     copiar: async () => {
       const text = JSON.stringify(look, null, 2);

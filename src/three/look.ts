@@ -53,6 +53,9 @@ export interface Look {
   bulge: number;
   /** Every other row of the world's pixels darkened by this much. */
   scanlines: number;
+
+  /** The pale arc a sabre leaves as it cuts. */
+  trail: boolean;
 }
 
 /** The look the user tuned in the panel and chose (17 October 2026). */
@@ -65,6 +68,7 @@ export const LOOK: Look = {
   shadeColour: '#2a3a6a', shade: 0, lightColour: '#ffd9a0', light: 0,
   levels: 0, dither: 0,
   grain: 0, grainMoves: true, vignette: 0, aberration: 0.9, bulge: 0, scanlines: 0.05,
+  trail: true,
 };
 
 const hex = (colour: string) => new THREE.Color(colour);

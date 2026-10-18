@@ -203,7 +203,7 @@ function advance(dt: number): void {
   // The cut's arc, from where his blade is now: only while it sweeps (frames 3 to 9 of 12), not as
   // he winds up or comes back to guard.
   body.updateMatrixWorld(true);
-  trail?.update(swung > SWING * 3 / 12 && swung < SWING * 9 / 12);
+  trail?.update(view.look.trail && swung > SWING * 3 / 12 && swung < SWING * 9 / 12);
   view.draw();
 }
 
