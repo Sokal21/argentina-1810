@@ -25,6 +25,18 @@ export function mountPanel(view: View): GUI {
     try { localStorage.setItem(KEPT, JSON.stringify(look)); } catch { /* kept for this sitting only */ }
   };
   gui.onChange(changed);
+  // The keys go back to the game as soon as a control has been set: held by a slider or a
+  // checkbox, they never reached it, and the canvas had to be clicked to play on. A number being
+  // typed keeps them until Enter, or until it is left.
+  const release = () => {
+    const held = document.activeElement as HTMLElement | null;
+    if (held && gui.domElement.contains(held)) held.blur();
+  };
+  gui.onFinishChange(release);
+  gui.domElement.addEventListener('pointerup', e => {
+    const target = e.target as HTMLInputElement;
+    if (!(target.tagName === 'INPUT' && target.type === 'text')) setTimeout(release, 0);
+  });
 
   const pixels = gui.addFolder('Píxel y bordes');
   pixels.add(look, 'pixel', 1, 8, 1).name('tamaño del píxel');
