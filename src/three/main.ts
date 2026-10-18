@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { Keys } from '../input';
-import { MachiController } from '../machi/controller';
+import { lands, MachiController } from '../machi/controller';
 import { ISO_Y, KITS } from '../machi/data';
 import { RUN, Stamina } from '../machi/stamina';
 import { pushOut, type Footprint } from '../world/footprint';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
-import { extent, middle, walk } from '../world/zones';
+import { extent, middle, PLOT_H, PLOT_W, walk } from '../world/zones';
+import { Dummy, GIRTH } from './dummy';
 import { CABRAL_DRESS, figure, model, type Dress } from './figure';
 import { mountHud, type Readings } from './hud';
 import { ground, heading } from './space';
@@ -55,6 +56,11 @@ for (const { who, plot, faces } of map.people ?? []) {
   body.rotation.y = (faces === 'left' ? -1 : 1) * Math.PI * 0.35;
   view.scene.add(body);
 }
+
+// A practice dummy a few steps from where he arrives, to try his blows on.
+const dummy = new Dummy(middle(map.start).x + PLOT_W * 1.6, middle(map.start).y - PLOT_H * 0.3);
+view.scene.add(dummy.group, dummy.debris);
+country.feet.push(dummy.footprint);
 
 const { width, height } = extent(map);
 const cabral = new MachiController({ minX: 12, maxX: width - 12, minY: 0, maxY: height }, KITS.cabral);
@@ -167,6 +173,14 @@ function advance(dt: number): void {
   } else if (arming) cabral.fire();
   arming = arm;
   cabral.update(dt, input);
+  // A blow that lands on the dummy, as the 2D game lands one on a foe; and it is felt.
+  const blow = cabral.takeStrike();
+  if (blow && lands(blow, dummy.spot, GIRTH)) {
+    const x = dummy.x - blow.x, y = (dummy.y - blow.y) / ISO_Y;
+    dummy.hit(x || blow.dx, y * ISO_Y);
+    view.jolt(0.07, 1);
+  }
+  dummy.update(dt);
   // Held, as in the 2D game, by what stands in the way and by country too thick to cross.
   for (const taken of country.feet) Object.assign(cabral, pushOut({ x: cabral.x, y: cabral.y, ...FEET }, taken));
   Object.assign(cabral, walk(map, from, cabral));
@@ -199,7 +213,7 @@ function advance(dt: number): void {
   wasSwinging = cabral.isSwinging;
   body.position.copy(ground(cabral.x, cabral.y));
   body.rotation.y = facing;
-  view.follow(body.position);
+  view.follow(body.position, dt);
   // The cut's arc, from where his blade is now: only while it sweeps (frames 3 to 9 of 12), not as
   // he winds up or comes back to guard.
   body.updateMatrixWorld(true);
@@ -208,4 +222,4 @@ function advance(dt: number): void {
 }
 
 // Handy from the browser console while developing.
-if (import.meta.env.DEV) Object.assign(globalThis, { view, cabral, THREE, trail: () => trail });
+if (import.meta.env.DEV) Object.assign(globalThis, { view, cabral, THREE, dummy, trail: () => trail });

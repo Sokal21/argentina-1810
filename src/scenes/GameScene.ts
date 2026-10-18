@@ -21,7 +21,7 @@ import { LookFX } from '../fx/LookFX';
 import { controls, fx } from '../fx/settings';
 import { Keys } from '../input';
 import { Abilities, ground, HEAL, MANA, REGEN, STRIKE, type Ability } from '../machi/abilities';
-import { MachiController, type Arm, type MachiInput, type Strike, type Vec } from '../machi/controller';
+import { lands, MachiController, type Arm, type MachiInput, type Strike, type Vec } from '../machi/controller';
 import { BOLT_RANGE, FRAME, ISO_Y, KITS, type Hero } from '../machi/data';
 import { BLOW, FURY, Fury, WOUND } from '../machi/fury';
 import { Burning } from '../machi/burning';
@@ -1245,12 +1245,8 @@ export class GameScene extends Phaser.Scene {
     for (const enemy of this.foes) {
       if (!enemy.alive) continue;
       const spot = enemy.ground;
+      if (!lands(blow, spot, enemy.girth)) continue;
       const x = spot.x - blow.x, y = (spot.y - blow.y) / ISO_Y;
-      const far = Math.hypot(x, y);
-      if (far > blow.reach + enemy.girth) continue;
-      // Something he is standing on top of is hit whichever way he swings.
-      const off = far < enemy.girth ? 0 : Math.acos((x * blow.dx + y * blow.dy) / far);
-      if (off > blow.arc) continue;
       this.wound(enemy, x || blow.dx, y * ISO_Y, blow.damage, 'basic');
       // Sparks fly off what the blade bites, the way it was swung.
       const { x: bx, y: by } = enemy.body;

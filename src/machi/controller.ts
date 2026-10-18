@@ -51,6 +51,19 @@ export interface Cast {
 }
 
 /** A blow landing: where it was struck from, which way, and what it covers. */
+/**
+ * Whether a blow catches something standing at `spot` (on the 2D ground), `girth` across: within
+ * its reach, and within its arc of the way it was swung. Something it is struck from on top of is
+ * caught whichever way it is swung.
+ */
+export function lands(blow: Strike, spot: Vec, girth: number): boolean {
+  const x = spot.x - blow.x, y = (spot.y - blow.y) / ISO_Y;
+  const far = Math.hypot(x, y);
+  if (far > blow.reach + girth) return false;
+  const off = far < girth ? 0 : Math.acos((x * blow.dx + y * blow.dy) / far);
+  return off <= blow.arc;
+}
+
 export interface Strike extends Pick<Melee, 'reach' | 'arc' | 'damage'> {
   x: number;
   y: number;

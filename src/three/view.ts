@@ -119,9 +119,26 @@ export class View {
     s.updateProjectionMatrix();
   }
 
+  /** Seconds the camera still shakes for, and how far, in the world's pixels. */
+  private shaking = 0;
+  private shake = 0;
+
+  /** Shakes the camera, as a blow that connects is felt. */
+  jolt(seconds: number, pixels: number): void {
+    this.shaking = Math.max(this.shaking, seconds);
+    this.shake = pixels;
+  }
+
   /** Keeps a spot on the ground in the middle of the screen. */
-  follow(at: THREE.Vector3): void {
+  follow(at: THREE.Vector3, dt = 0): void {
     const eye = at.clone().addScaledVector(this.back, OFF);
+    // A shake moves it whole pixels at a time, like everything else.
+    if (this.shaking > 0) {
+      this.shaking -= dt;
+      const k = this.look.far;
+      eye.addScaledVector(this.right, Math.round((Math.random() * 2 - 1) * this.shake) * k);
+      eye.addScaledVector(this.up, Math.round((Math.random() * 2 - 1) * this.shake) * k);
+    }
     // On whole pixels along the screen's two ways; along the third it makes no difference.
     const unit = this.look.far, r = eye.dot(this.right), u = eye.dot(this.up);
     eye.addScaledVector(this.right, Math.round(r / unit) * unit - r);
