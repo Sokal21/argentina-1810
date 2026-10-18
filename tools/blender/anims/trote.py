@@ -30,7 +30,7 @@ ARM = [32.9, 35.8, 32.3, 24.2, 13.6, -5.3, -14.2, -18.8, -19.6, -16.0, -9.6, -0.
 ELBOW = [102.4, 105.1, 106.3, 106.8, 108.8, 109.5, 112.6, 118.1, 122.6, 120.0, 118.7, 113.0, 103.7, 99.0, 97.5, 99.8]
 HEIGHT = [18.17, 18.48, 18.40, 18.01, 17.58, 17.37, 17.60, 18.22, 18.68, 18.64, 18.65, 18.37, 17.76, 17.32, 17.32, 17.70]
 # A run eased to a trot: how much of each swing is kept round its middle.
-STRIDE, KNEES, ARMS, ELBOWS = 0.7, 0.75, 0.85, 0.8
+STRIDE, KNEES, ARMS, ELBOWS = 0.7, 0.75, 0.85, 0.55
 # The body's rise and fall, in the rig's units (he is ~0.75 tall; the run's is ~0.028).
 BOB = 0.018
 
@@ -73,11 +73,13 @@ for frame in range(LENGTH + 1):
         # Leaning into it; the chest turns against the hips.
         'Spine01': [turn('y', 7), turn('z', -9 * math.sin(a)), turn('x', -2 * lifted)],
         'Head': [turn('z', 5 * math.sin(a)), turn('y', -4)],
-        # The arms hang from the shoulder and swing as measured; the forearm folds up from them.
-        'L_Upperarm': [ahead(0.0, 0.12, -1), turn('y', la)],
-        'L_Forearm': [ahead(0.0, 0.12, -1), turn('y', la - le)],
-        'R_Upperarm': [ahead(0.0, -0.12, -1), turn('y', ra)],
-        'R_Forearm': [ahead(0.0, -0.12, -1), turn('y', ra - re)],
+        # The arms hang from the shoulder and swing as measured; the forearm folds up from them,
+        # less than a runner's and kept out to the side, so the hands go by his hips and never
+        # cross in front of him (a runner's full bend read as dancing).
+        'L_Upperarm': [ahead(0.0, 0.16, -1), turn('y', la)],
+        'L_Forearm': [ahead(0.0, 0.4, -1), turn('y', la - le)],
+        'R_Upperarm': [ahead(0.0, -0.16, -1), turn('y', ra)],
+        'R_Forearm': [ahead(0.0, -0.4, -1), turn('y', ra - re)],
         'L_Hand': turn('y', -10), 'R_Hand': turn('y', -10),
     })
 
