@@ -141,6 +141,7 @@ tell();
 
 let last = performance.now();
 let wasSwinging = false;
+let wasDashing = false;
 /** How long into the cut he is. */
 let swung = 0;
 const step = (now: number) => {
@@ -206,7 +207,7 @@ function advance(dt: number): void {
   if (motion) {
     if (fallen) motion.play('defeat_02', { once: true });
     // His own roll, keyed in Blender; the library's dive if it is missing.
-    else if (cabral.isDashing) motion.play(motion.has('rodada') ? 'rodada' : 'dive', { once: true, lasts: DIVE, afresh: true, blend: 0.05 });
+    else if (cabral.isDashing) motion.play(motion.has('rodada') ? 'rodada' : 'dive', { once: true, lasts: DIVE, afresh: !wasDashing, blend: 0.05 });
     // His own cut, keyed in Blender to land when the game's blow does; the library's if it is missing.
     else if (cabral.isSwinging) motion.play(motion.has('tajo') ? 'tajo' : 'slash', { once: true, lasts: SWING, afresh: !wasSwinging, blend: 0.05 });
     else if (cabral.isShouldering) motion.play(cabral.pose().sheet.startsWith('grenade') ? 'pitch_baseball' : 'shoot', { once: true });
@@ -218,6 +219,7 @@ function advance(dt: number): void {
   }
   swung = cabral.isSwinging ? (wasSwinging ? swung + dt : 0) : 0;
   wasSwinging = cabral.isSwinging;
+  wasDashing = cabral.isDashing;
   body.position.copy(ground(cabral.x, cabral.y));
   body.rotation.y = facing;
   view.follow(body.position, dt);
