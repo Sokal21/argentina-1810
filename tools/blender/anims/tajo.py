@@ -1,5 +1,7 @@
 """Cabral's sabre cut: rising, from low on his left, by the scabbard, across before him and up to
-his right, as he lunges onto his right foot, and back to guard. Half a second, as the game's
+his right, as he lunges onto his right foot, and back to guard. The blade turns as the hand goes,
+as the user drew it: point down by the hip at the start, point forward at the enemy all through
+the sweep, and laid back over the right shoulder toward his back at the end. Half a second, as the game's
 swing lasts, the blow landing at 0.26 s: frame 6 of 12.
 
     Blender -b --python tools/blender/anims/tajo.py -- RIG.glb OUT.glb
@@ -58,7 +60,8 @@ WIND = {
     'Head': turn('z', -18),
     'R_Upperarm': ahead(0.35, 0.5, -0.6),
     'R_Forearm': ahead(0.1, 0.7, -0.6),
-    'sabre': ahead(-0.5, 0.45, -0.55),
+    # The blade hangs point down by his left hip.
+    'sabre': ahead(0.1, 0.25, -1),
     # The left arm forward, the elbow bent, the hand before his belly, to swing back from.
     'L_Upperarm': ahead(0.5, 0.15, -0.8), 'L_Forearm': ahead(0.6, -0.45, -0.15),
 }
@@ -71,7 +74,8 @@ CUT = {
     'Head': [turn('z', 6), turn('y', -6)],
     'R_Upperarm': ahead(0.8, -0.4, 0.25),
     'R_Forearm': ahead(0.6, -0.6, 0.45),
-    'sabre': ahead(0.4, -0.6, 0.7),
+    # The point still forward, at the enemy, as the hand rises across.
+    'sabre': ahead(0.85, -0.25, 0.35),
     # The left arm swung back and out against the cut, the elbow bent, the hand by the hip:
     # held straight out and far back, it read as stiff and behind him.
     'L_Clavicle': turn('z', 5),
@@ -84,24 +88,27 @@ FOLLOW = {
     'Spine01': [turn('z', -28), turn('y', 2)],
     'R_Upperarm': ahead(0.3, -0.6, 0.7),
     'R_Forearm': ahead(0.0, -0.4, 0.9),
-    'sabre': ahead(-0.3, -0.4, 0.85),
+    # Ended high on his right, the blade laid back over his shoulder toward his back.
+    'sabre': ahead(-0.85, -0.3, 0.4),
     'L_Upperarm': ahead(-0.4, 0.6, -0.7), 'L_Forearm': ahead(-0.05, 0.6, -0.3),
 }
 # The right foot off the ground on its way forward, the body already going.
 STEP = {**WIND, 'Hip': [('move', (0.025, 0, -0.03)), turn('z', 4)], **feet(RIGHT_LIFTED),
         'Spine01': [turn('z', 8), turn('y', 12)],
-        'R_Upperarm': ahead(0.9, 0.1, -0.35), 'R_Forearm': ahead(0.9, 0.0, -0.3), 'sabre': ahead(0.8, -0.1, -0.5)}
+        # The forearm across before him toward his left, so the point can be forward: a blade held in
+        # the fist cannot lie along the forearm.
+        'R_Upperarm': ahead(0.7, 0.2, -0.5), 'R_Forearm': ahead(0.45, 0.65, -0.35), 'sabre': ahead(1, 0.05, -0.1)}
 # Pulling the right foot back to guard.
 BACK = {**GUARD, 'Hip': [('move', (0.02, 0, -0.02))], **feet(RIGHT_LIFTED)}
 
-# The right arm and blade go only this share of the way from guard to each pose: the full swing
-# read as too violent.
+# The right arm goes only this share of the way from guard to each pose: the full swing read as
+# too violent. The blade is aimed as written: its point draws the cut (see the docstring).
 SWING = 0.8
 
 
 def calmer(pose: dict) -> dict:
     out = dict(pose)
-    for bone in ('R_Upperarm', 'R_Forearm', 'sabre'):
+    for bone in ('R_Upperarm', 'R_Forearm'):
         if bone in pose and bone in GUARD:
             g, p = GUARD[bone][1], pose[bone][1]
             out[bone] = ('ahead', (g + (p - g) * SWING).normalized())
