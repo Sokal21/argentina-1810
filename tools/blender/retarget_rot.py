@@ -143,6 +143,10 @@ ONTO4 = ONTO.to_4x4()
 # wringing round.
 TWIST = float(opts.get('--twist', '0.4'))
 SPINE = ('Waist', 'Spine01', 'Spine02', 'NeckTwist01')
+# How much a roll is straightened (--straight, 0 to 1): the whole body turned, each frame, so the
+# line from hip to hip lies level and square across his way. Rolling over the shoulder, that line slews round
+# and legs, body and head all lay askew of the way he went.
+STRAIGHT = float(opts.get('--straight', '0'))
 
 act = rig.action(NAME)
 length = max(2, round((last - first) / SOURCE_FPS * FPS))
@@ -197,6 +201,16 @@ for frame in range(length + 1):
     turn_square = square(at)
     scene.frame_set(int(at), subframe=at - int(at))
     world = {pb.name: src.matrix_world @ pb.matrix for pb in src.pose.bones}
+    squared = Matrix.Rotation(turn_square, 3, 'Z')
+    across = squared @ ALONG @ (world[named('LeftUpLeg')].to_translation() - world[named('RightUpLeg')].to_translation())
+    across.normalize()
+    # Straight across his way and level: square to it but tipped onto his side, he still rolled
+    # over the shoulder, lying askew.
+    square_across = Vector((0, 1 if across.y >= 0 else -1, 0))
+    if STRAIGHT > 0:
+        straighten = Quaternion((1, 0, 0, 0)).slerp(across.rotation_difference(square_across.normalized()), STRAIGHT).to_matrix()
+    else:
+        straighten = Matrix.Identity(3)
     # The hips' height over the ground (the capture's ground is z = 0), as the rig's legs make it.
     hip_height = world[named('Hips')].to_translation().z * scale - REST_HIP
 
@@ -213,7 +227,7 @@ for frame in range(length + 1):
             # bone's reference turn.
             # Posed as the capture is, seen along the way he travels; from its rest, seen as it faces.
             turned = ALONG @ world[theirs].to_3x3().normalized() @ src_rest_turn[theirs].inverted() @ ONTO.inverted()
-            turned = Matrix.Rotation(turn_square, 3, 'Z') @ turned
+            turned = straighten @ squared @ turned
             head = pb.matrix.to_translation()
             if name == 'Hip':
                 head = head + Vector((0, 0, lift))
