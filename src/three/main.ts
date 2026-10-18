@@ -9,6 +9,7 @@ import { extent, middle, PLOT_H, PLOT_W, walk } from '../world/zones';
 import { Dummy, GIRTH } from './dummy';
 import { Impacts } from './impact';
 import { AimMarks } from './aim';
+import { Shots } from './shot';
 import { MUSKET } from '../machi/musket';
 import { CABRAL_DRESS, figure, model, type Dress } from './figure';
 import { mountHud, type Readings } from './hud';
@@ -67,6 +68,23 @@ view.scene.add(dummy.group, dummy.debris);
 const impacts = new Impacts(view.camera, () => view.look);
 const marks = new AimMarks();
 view.scene.add(marks.group);
+// The musket's shot: its ball strikes the dummy as the 2D game's strikes a foe (within the ball's
+// girth and the dummy's of its line), and the blast hurts whatever is within its radius.
+const shots = new Shots(view.camera, (from, to) => {
+  const t = (p: { x: number; y: number }) => ({ x: p.x, y: p.y / ISO_Y });
+  const a = t(from), b = t(to), d = t(dummy.spot);
+  const ab = { x: b.x - a.x, y: b.y - a.y }, len = ab.x * ab.x + ab.y * ab.y || 1;
+  const k = Math.max(0, Math.min(1, ((d.x - a.x) * ab.x + (d.y - a.y) * ab.y) / len));
+  const near = { x: a.x + ab.x * k, y: a.y + ab.y * k };
+  return Math.hypot(d.x - near.x, d.y - near.y) <= GIRTH + MUSKET.girth ? { x: near.x, y: near.y * ISO_Y } : null;
+}, at => {
+  view.jolt(0.11, 2);
+  const x = dummy.x - at.x, y = (dummy.y - at.y) / ISO_Y;
+  if (Math.hypot(x, y) > MUSKET.radius + GIRTH) return;
+  dummy.hit(x || 1, y * ISO_Y);
+  impacts.spawn(dummy.struckAt(x || 1, y * ISO_Y), ground(cabral.x, cabral.y, CABRAL_DRESS.drawn * 0.6 * UPRIGHT));
+});
+view.scene.add(shots.group);
 view.scene.add(impacts.group);
 country.feet.push(dummy.footprint);
 
@@ -190,6 +208,8 @@ let wasSwinging = false;
 let wasDashing = false;
 /** How long the musket has been coming up or held, and how long since it was fired (null: not yet). */
 let shouldered = 0, fired: number | null = null;
+/** What he last let go: the musket or a grenade. */
+let loosed: 'musket' | 'grenade' | null = null;
 /** How long the musket is, butt to muzzle, in its own units (tools/blender/props.py). */
 const MUSKET_LENGTH = 0.62;
 /** The spot of the 2D ground he is aiming at, while he aims at the pointer. */
@@ -252,6 +272,7 @@ function advance(dt: number): void {
   }
   if (!arm && arming) {
     cabral.fire();
+    loosed = arming;
     if (arming === 'musket') fired = 0;
   }
   if (arm === 'musket' && arming !== 'musket') { shouldered = 0; fired = null; }
@@ -280,6 +301,17 @@ function advance(dt: number): void {
     impacts.spawn(dummy.struckAt(x || blow.dx, y * ISO_Y), ground(cabral.x, cabral.y, CABRAL_DRESS.drawn * 0.6 * UPRIGHT));
     view.jolt(0.07, 1);
   }
+  // The musket goes off: from its muzzle, along its barrel.
+  if (cabral.takeShot() && loosed === 'musket') {
+    const gun = shaped?.getObjectByName('mosquete_mano');
+    if (gun) {
+      shaped!.updateMatrixWorld(true);
+      const { tip, way } = barrel(gun);
+      shots.fire(tip, way);
+      view.jolt(0.06, 1);
+    }
+  }
+  shots.update(dt);
   dummy.update(dt);
   impacts.update(dt);
   // Held, as in the 2D game, by what stands in the way and by country too thick to cross.
