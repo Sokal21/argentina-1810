@@ -16,6 +16,8 @@ export interface Play {
   pace?: number;
   /** Started again from the beginning even if it is the one playing: a new blow, a new dive. */
   afresh?: boolean;
+  /** Seconds to blend into it from what was playing: short for a blow, whose start is its point. */
+  blend?: number;
 }
 
 export class Motion {
@@ -67,7 +69,7 @@ export class Motion {
     action.setLoop(how.once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity);
     action.clampWhenFinished = !!how.once;
     action.play();
-    if (this.playing && this.playing !== action) action.crossFadeFrom(this.playing, BLEND, false);
+    if (this.playing && this.playing !== action) action.crossFadeFrom(this.playing, how.blend ?? BLEND, false);
     this.playing = action;
     this.name = name;
   }

@@ -168,7 +168,7 @@ const step = (now: number) => {
     if (fallen) motion.play('defeat_02', { once: true });
     else if (cabral.isDashing) motion.play('dive', { once: true, lasts: DIVE });
     // His own cut, keyed in Blender to land when the game's blow does; the library's if it is missing.
-    else if (cabral.isSwinging) motion.play(motion.has('tajo') ? 'tajo' : 'slash', { once: true, lasts: SWING, afresh: !wasSwinging });
+    else if (cabral.isSwinging) motion.play(motion.has('tajo') ? 'tajo' : 'slash', { once: true, lasts: SWING, afresh: !wasSwinging, blend: 0.05 });
     else if (cabral.isShouldering) motion.play(cabral.pose().sheet.startsWith('grenade') ? 'pitch_baseball' : 'shoot', { once: true });
     // His trot keeps step with the ground: played as fast as he goes, however fast that is.
     else if (cabral.isMoving) motion.play(gait.name, { pace: gait.reach ? Math.max(LEAST_PACE, going / gait.reach) : 1 });

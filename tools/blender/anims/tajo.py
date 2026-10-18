@@ -8,6 +8,7 @@ swing lasts, the blow landing at 0.26 s: frame 6 of 12.
 
 A limb hanging down swings forward on a negative turn about 'y'; 'z' turns toward his left.
 """
+import math
 import os
 import sys
 
@@ -149,8 +150,19 @@ def blend(a: dict, b: dict, k: float) -> dict:
 # blade turning steadily from point down, through point forward, to laid back over his shoulder.
 from mathutils import Quaternion, Vector  # noqa: E402
 
-HAND = [Vector((0.13, 0.05, 0.43)), Vector((0.32, -0.02, 0.47)), Vector((0.12, -0.21, 0.76))]  # start, pull, end
-BLADE = [Vector((0.1, 0.25, -1)).normalized(), Vector((1, 0.05, -0.05)).normalized(), Vector((-0.85, -0.3, 0.4)).normalized()]
+# Seen from the front the hand goes along the diagonal at an even pace, from low on his left to
+# high on his right; it reaches forward only in depth, most at the middle. (With the forward reach
+# as a curve's pull, seen from the front the hand hung low and then leapt up.)
+HAND = [Vector((0.15, 0.13, 0.47)), Vector((0.12, -0.21, 0.76))]  # start, end
+# At the start the elbow is low and the forearm lies across his belly, as drawing from the left
+# hip: only so can the blade hang point down by his left leg (a blade cannot lie along the
+# forearm, and with the forearm pointing down it was pushed across to his right). At the end the
+# elbow is out to his right.
+ELBOWS = [Vector((0.35, -0.3, -1)).normalized(), Vector((0.0, -1.0, -0.6)).normalized()]
+REACH = 0.16
+# Point forward in the middle, but tipped a little up and to his right: pointing straight at the
+# camera, a blade is a dot and seems to jump.
+BLADE = [Vector((0.1, 0.25, -1)).normalized(), Vector((1, -0.25, 0.2)).normalized(), Vector((-0.85, -0.3, 0.4)).normalized()]
 ELBOW = (0.0, -1.0, -0.6)
 KEYS = [(0, GUARD), (2, LIFT), (4, WIND), (5, STEP), (6, CUT), (8, FOLLOW), (10, BACK), (12, GUARD)]
 
@@ -169,13 +181,13 @@ def hips_forward(pose: dict) -> float:
 def sweep(frame: int) -> dict:
     t = (frame - 4) / 4                      # 0 at the start of the sweep, 1 at its end
     pose = body(frame)
-    a, c, b = HAND
-    hand = a * (1 - t) ** 2 + c * 2 * t * (1 - t) + b * t * t
+    a, b = HAND
+    hand = a.lerp(b, t) + Vector((REACH * math.sin(math.pi * t), 0, 0))
     hand.x += hips_forward(pose)             # the arc goes with the body as it lunges
     half = min(1.0, t * 2)
     way = BLADE[0].slerp(BLADE[1], half) if t < 0.5 else BLADE[1].slerp(BLADE[2], (t - 0.5) * 2)
     pose.pop('R_Forearm', None)
-    pose['R_Upperarm'] = plant(*hand, knee=ELBOW)
+    pose['R_Upperarm'] = plant(*hand, knee=tuple(ELBOWS[0].slerp(ELBOWS[1], t)))
     pose['sabre'] = ('ahead', way)
     return pose
 

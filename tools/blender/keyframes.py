@@ -169,8 +169,9 @@ class Rig:
             bpy.context.view_layer.update()
 
     # How far a blade held in the fist can lie from the forearm's line: past these the wrist would
-    # have to bend sideways further than a wrist does, and looked bent out.
-    GRIP = (math.radians(80), math.radians(130))
+    # have to bend further than a wrist does, and looked bent out. A wrist brings a sabre to 35° of
+    # the forearm's line in a thrust; held to 80°, the blade could neither hang nor point ahead.
+    GRIP = (math.radians(35), math.radians(130))
 
     def gripped(self, way: Vector, forearm: Vector) -> Vector:
         """The nearest way to `way` a blade held in the fist can point, given the forearm's."""
