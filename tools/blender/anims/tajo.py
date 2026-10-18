@@ -93,7 +93,22 @@ STEP = {**WIND, 'Hip': [('move', (0.025, 0, -0.03)), turn('z', 4)], **feet(RIGHT
 # Pulling the right foot back to guard.
 BACK = {**GUARD, 'Hip': [('move', (0.02, 0, -0.02))], **feet(RIGHT_LIFTED)}
 
+# The right arm and blade go only this share of the way from guard to each pose: the full swing
+# read as too violent.
+SWING = 0.8
+
+
+def calmer(pose: dict) -> dict:
+    out = dict(pose)
+    for bone in ('R_Upperarm', 'R_Forearm', 'sabre'):
+        if bone in pose and bone in GUARD:
+            g, p = GUARD[bone][1], pose[bone][1]
+            out[bone] = ('ahead', (g + (p - g) * SWING).normalized())
+    return out
+
+
 for frame, pose in [(0, GUARD), (2, LIFT), (4, WIND), (5, STEP), (6, CUT), (8, FOLLOW), (10, BACK), (12, GUARD)]:
+    pose = calmer(pose)
     rig.key(act, frame, pose)
 
 rig.export(args[1])

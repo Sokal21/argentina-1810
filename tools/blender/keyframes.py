@@ -153,9 +153,9 @@ class Rig:
                 continue
             pb = self.arm.pose.bones[thing.parent_bone]
             now = (thing.matrix_world.to_3x3() @ Vector((1, 0, 0))).normalized()
-            q = now.rotation_difference(move[1])
             forearm = pb.parent
             axis = self.pointing(forearm)
+            q = now.rotation_difference(self.gripped(move[1], axis))
             twist = Quaternion((q.w, *(axis * Vector(q[1:4]).dot(axis)))).normalized()
             angle = twist.angle if Vector(twist[1:4]).dot(axis) >= 0 else -twist.angle
             for child in forearm.children:
@@ -167,6 +167,24 @@ class Rig:
             head = pb.matrix.to_translation()
             pb.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ pb.matrix
             bpy.context.view_layer.update()
+
+    # How far a blade held in the fist can lie from the forearm's line: past these the wrist would
+    # have to bend sideways further than a wrist does, and looked bent out.
+    GRIP = (math.radians(80), math.radians(130))
+
+    def gripped(self, way: Vector, forearm: Vector) -> Vector:
+        """The nearest way to `way` a blade held in the fist can point, given the forearm's."""
+        way = way.normalized()
+        angle = forearm.angle(way)
+        least, most = self.GRIP
+        if least <= angle <= most:
+            return way
+        # Turned about the axis square to both, to the nearest limit.
+        side = forearm.cross(way)
+        if side.length < 1e-6:
+            side = forearm.orthogonal()
+        target = least if angle < least else most
+        return (Quaternion(side.normalized(), target) @ forearm).normalized()
 
     def spin(self, pb: bpy.types.PoseBone, axis: Vector, angle: float) -> None:
         """Turns a bone about an axis through its joint."""
