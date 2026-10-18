@@ -2,7 +2,7 @@
 blow, where copying only which way each bone points (tools/blender/retarget_bvh.py) loses the
 twisting that makes it look alive.
 
-    Blender -b --python tools/blender/retarget_rot.py -- RIG.glb CLIP.(fbx|bvh) OUT.glb --name rodada [--frames 10:40] [--ground]
+    Blender -b --python tools/blender/retarget_rot.py -- RIG.glb CLIP.(fbx|bvh) OUT.glb --name rodada [--frames 10:40] [--ground] [--gait]
 
 Reads Mixamo's FBX (mixamorig:Hips...) or CMU's BVH (Hips, LeftUpLeg...).
 
@@ -194,6 +194,13 @@ SQUARES = {}
 def square(frame: float) -> float:
     if STILL:
         return SQUARES.setdefault('still', -heading(first))
+    if '--gait' in opts:
+        # A walk or run cycle is squared once, by how it faces on average round the cycle: squared
+        # frame by frame, the hips' own turn with each step would be taken out.
+        if 'cycle' not in SQUARES:
+            hs = [heading(f) for f in range(first, last + 1)]
+            SQUARES['cycle'] = -math.atan2(sum(math.sin(h) for h in hs), sum(math.cos(h) for h in hs))
+        return SQUARES['cycle']
     f = round(frame)
     if f not in SQUARES:
         if f <= DOWN or f >= UP:

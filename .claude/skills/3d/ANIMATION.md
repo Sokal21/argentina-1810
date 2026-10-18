@@ -8,9 +8,10 @@ October 2026, with the user judging every clip in the game. Read it all before a
 1. **Mixamo**, whenever it has the action. Clean, made for games, every bone's twist. The user
    downloads it (mixamo.com, free Adobe account, **FBX, "Without Skin"**) into `tools/mocap/`.
    Its files stay out of git (`.gitignore`, licence: usable in the game, not redistributable);
-   only the GLB made from them is kept. Chosen so far: Stand To Roll (his roll), Breathing Idle.
+   only the GLB made from them is kept. Chosen so far: Stand To Roll (his roll), Breathing Idle,
+   Walking (his gait, replacing CMU's).
 2. **CMU motion capture** (free, `tools/mocap/*.bvh`, index: the cgspeed `cmu-mocap-index-text.txt`
-   in the una-dinosauria/cmu-mocap mirror). Good for walks (his gait is CMU 07_01); crude for
+   in the una-dinosauria/cmu-mocap mirror). Good enough for walks (his gait was CMU 07_01); crude for
    acrobatics (2008, actors leaping obstacles, rolls over a second long).
 3. **Keyed by hand** (`tools/blender/keyframes.py`), for what no capture has: the sabre cut, the
    musket's draw, aim and shot. Hand-keyed body motion reads as robotic; the user said so of every
@@ -38,8 +39,10 @@ and all. What it does and why, each learned from a clip that came out wrong:
 
 - **Ahead is the way the actor travels** over the stretch, not the way his rest pose faces
   (rolls came out sideways). A clip that hardly moves (an idle) is squared once by its first
-  pose; otherwise he is squared **only while standing**, eased through the roll (squared by the
-  start pose, an actor standing askew dived askew).
+  pose, and a walk or run cycle (`--gait`) once by how it faces on average, keeping the hips'
+  turn with each step; otherwise he is squared **only while standing**, eased through the roll
+  (squared by the start pose, an actor standing askew dived askew). Blender takes any option that
+  starts like one of its own (`--cycle` → `--cycles-...`) even after `--`: name options with care.
 - **Up is straight up**, not the rest spine.
 - **Hands are not given turns**: no joint beyond them to know their rest by; they came out flat
   and turned a right angle. They follow the forearms.

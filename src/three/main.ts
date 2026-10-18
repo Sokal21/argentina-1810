@@ -88,10 +88,10 @@ let motion: Motion | null = null;
 let trail: Trail | null = null;
 /** How far his trot carries him in a second at its own speed, in world units. */
 /**
- * How he goes: a walk from CMU's motion capture (07_01), chosen by the user out of the others in
- * the model; the library's run if it is missing.
+ * How he goes: Mixamo's Walking, the user's pick (it replaced CMU's 07_01, still in the model);
+ * the library's run if it is missing.
  */
-const GAIT = 'cmu_07_01';
+const GAIT = 'caminata_mixamo';
 /**
  * His rolls, to be chosen between on C: Mixamo's "Stand To Roll", the user's pick; four from CMU's
  * motion capture (subjects 127 and 128, "run, dive over, roll, run"); his own keyed in Blender;

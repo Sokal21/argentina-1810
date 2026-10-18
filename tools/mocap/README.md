@@ -23,3 +23,4 @@ with `tools/blender/retarget_rot.py`.
 |---|---|
 | stand_to_roll.fbx | "Stand To Roll": his roll, frames 7 to 60 |
 | breathing_idle.fbx | "Breathing Idle": his standing, all 299 frames |
+| walking.fbx | "Walking": his gait, one cycle, frames 1 to 32, `--gait` |
