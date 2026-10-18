@@ -306,7 +306,7 @@ export class GameScene extends Phaser.Scene {
    * The map drawn wholly in 3D, under this scene's canvas, where it has been made in 3D (the vado):
    * its country and buildings, those standing about, Cabral, the royalists. This scene still runs
    * the game but draws none of the world; its camera is turned off, and only the HUD is drawn over.
-   * Nobody is talked to and every soldier is a fusilier. Off with ?2d.
+   * Nobody is talked to and every soldier is a fusilier.
    */
   private three?: World3D;
 
@@ -316,7 +316,7 @@ export class GameScene extends Phaser.Scene {
 
   /** Who is played is chosen before the game starts. */
   init(data: { hero?: Hero }): void {
-    this.hero = data.hero ?? 'inti';
+    this.hero = data.hero ?? 'cabral';
   }
 
   preload(): void {
@@ -357,8 +357,7 @@ export class GameScene extends Phaser.Scene {
     this.start = this.map ? middle(this.map.start) : { x: FIELD.width / 2, y: FIELD.height / 2 };
     // Open country has no forest: what cannot be crossed is shaded, and what is built stands as blocks.
     this.sight = new Sight();
-    const deep = this.map === vadoDeLasVizcachas && new URLSearchParams(location.search).get('2d') === null;
-    this.three = deep ? World3D.of(this.map!, document.getElementById('world')!) : undefined;
+    this.three = this.map === vadoDeLasVizcachas ? World3D.of(this.map!, document.getElementById('world')!) : undefined;
     // In 3D all this is still laid out, for the ground it takes up, though none of it is drawn.
     this.forest = this.map && !this.map.bare ? new Forest(this, this.map, this.sight) : undefined;
     if (this.map) layGround(this, this.map);
@@ -1237,6 +1236,8 @@ export class GameScene extends Phaser.Scene {
   // A grenade leaves his hand for a spot on the ground. The further it has
   // to go the longer it is in the air and the higher it climbs.
   private lob(from: Vec, to: Vec): void {
+    // In 3D it is thrown there, out of his hand; the blast and the fire are still reckoned here.
+    if (this.shownIn3d) this.three!.lob(from, to, this.machi.arming?.shot ?? SLING);
     const share = ground(from, to) / GRENADE.range;
     this.grenades.push({
       from, to, t: 0,

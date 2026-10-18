@@ -24,11 +24,14 @@ interface Card {
   /** Size of one frame of its animated picture. */
   w: number;
   h: number;
+  /** Not to be played yet, and what is said over it instead. */
+  soon?: string;
 }
 
 const CARDS: Card[] = [
+  // Not in 3D yet: she has neither her map nor her model.
   { hero: 'inti', name: 'Inti', calling: 'Machi · maná', accent: 0x46e6fa, w: 183, h: 320,
-    icons: ['hud/iconos/rayo.png', 'hud/iconos/lawen.png'] },
+    icons: ['hud/iconos/rayo.png', 'hud/iconos/lawen.png'], soon: 'Próximamente' },
   { hero: 'cabral', name: 'Cabral', calling: 'Granadero · furia', accent: 0xff7a00, w: 178, h: 314,
     icons: ['hud/iconos/mosquete.png', 'hud/iconos/granada.png'] },
 ];
@@ -60,7 +63,7 @@ export class SelectScene extends Phaser.Scene {
   private shown: Shown[] = [];
   private texts: Phaser.GameObjects.Text[] = [];
   private back!: Phaser.GameObjects.Container;
-  private chosen = 0;
+  private chosen = Math.max(0, CARDS.findIndex(card => !card.soon));
   private leaving = false;
 
   constructor() {
@@ -122,9 +125,15 @@ export class SelectScene extends Phaser.Scene {
       this.texts.push(name, calling);
       this.shown.push({ card, picture, border, name, calling, icons, lit: i === this.chosen ? 1 : 0 });
 
+      // One not to be played yet stays in shadow, saying so.
+      if (card.soon) {
+        this.texts.push(this.add.text(x, CARD_Y, card.soon, {
+          fontFamily: GOTHIC, fontSize: BIG, color: '#f0e3c4', stroke: '#0d0b12', strokeThickness: 4,
+        }).setOrigin(0.5).setLetterSpacing(1));
+      }
       // Pointing at a card chooses it; clicking it plays it.
       picture.on('pointerover', () => this.choose(i));
-      picture.on('pointerdown', () => { this.choose(i); this.leave(); });
+      picture.on('pointerdown', () => { if (card.soon) return; this.choose(i); this.leave(); });
     });
 
     const keys = this.input.keyboard;
@@ -145,7 +154,7 @@ export class SelectScene extends Phaser.Scene {
 
   // The chosen card comes to life; the other stops where it began.
   private choose(index: number): void {
-    if (this.leaving) return;
+    if (this.leaving || CARDS[index].soon) return;
     this.chosen = index;
     this.shown.forEach(({ picture }, i) => {
       if (i !== index) picture.stop().setFrame(0);

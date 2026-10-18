@@ -167,15 +167,15 @@ export class TitleScene extends Phaser.Scene {
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.play());
   }
 
-  // On to choosing who to play. With ?jugar the choice is skipped too:
-  // ?jugar=cabral plays him, anything else plays Inti.
+  // On to choosing who to play. With ?jugar the choice is skipped too, and Cabral is played: he
+  // is the only one in 3D so far.
   private play(): void {
     document.body.classList.remove('title');
     const straight = new URLSearchParams(location.search).get('jugar');
     if (straight === null) { this.scene.start('select'); return; }
     document.body.classList.add('playing');
     this.scene.launch('hud');
-    this.scene.start('game', { hero: straight === 'cabral' ? 'cabral' : 'inti' });
+    this.scene.start('game', { hero: 'cabral' });
   }
 
   // Only the lit parts of the background, to add over it at a strength that

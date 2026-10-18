@@ -26,7 +26,7 @@ const SLUNG = 0.63;
 /** The share of the grenade's coming up at which he has it in hand from his hip (granada.py: frame 4 of 11). */
 const TAKEN = 0.36;
 /** The share of the throw at which it leaves his hand (granada.py: frame 3 of 19). */
-const THROWN = 0.16;
+export const THROWN = 0.16;
 /** How fast he turns to face the way he goes, per second. */
 const TURN = 14;
 /** How quickly what he is taken to be going at follows how fast he really goes, per second. */
@@ -268,6 +268,12 @@ export class CabralFigure {
     // he winds up or comes back to guard.
     this.body.updateMatrixWorld(true);
     this.trail?.update(doing.trail && this.swung > SWING * 3 / 12 && this.swung < SWING * 9 / 12);
+  }
+
+  /** Where the grenade in his hand is, as long as he has his model on. */
+  grenade(): THREE.Vector3 | null {
+    const bomb = this.shaped && this.body === this.shaped ? this.shaped.getObjectByName('granada') : null;
+    return bomb ? bomb.getWorldPosition(new THREE.Vector3()) : null;
   }
 
   /** Where the musket in his hands is, while it is: its butt end, the way it points along the ground, and its muzzle. */

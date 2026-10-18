@@ -8,7 +8,7 @@ import { ground } from './space';
 // circle on the ground (the 2D game's ellipse is that circle foreshortened). Amber when it can be
 // fired, dull when it cannot.
 
-const READY = new THREE.Color('#ffb45a'), SPENT = new THREE.Color('#8a8478');
+export const READY = new THREE.Color('#ffb45a'), SPENT = new THREE.Color('#8a8478');
 /** How far above the ground the ring is drawn, so it lies over the ground's own pixels. */
 const LIFT = 0.6;
 const SEGMENTS = 48;

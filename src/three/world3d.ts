@@ -3,7 +3,8 @@ import type { MachiController, Vec } from '../machi/controller';
 import { ISO_Y } from '../machi/data';
 import type { WorldMap } from '../world/zones';
 import { AimMarks } from './aim';
-import { CabralFigure, type Doing } from './cabral';
+import { CabralFigure, THROWN, type Doing } from './cabral';
+import { GrenadeMarks, Grenades } from './grenade';
 import { Impacts } from './impact';
 import { mountPanel } from './panel';
 import { raisePeople } from './people';
@@ -29,6 +30,8 @@ export class World3D {
   /** The royalists' balls: they stop on whoever they reach, and burst on nothing. */
   private readonly volleys: Shots;
   private readonly marks = new AimMarks();
+  private readonly throwing = new GrenadeMarks();
+  private readonly grenades: Grenades;
   private readonly impacts: Impacts;
   /** What his ball is tested against: set by whoever plays on this map. */
   strikes: Strikes = () => null;
@@ -55,6 +58,9 @@ export class World3D {
     this.volleys = new Shots(this.view.camera, (from, to) => this.struck(from, to), () => {}, false);
     this.impacts = new Impacts(this.view.camera, () => this.view.look);
     this.view.scene.add(this.shots.group, this.volleys.group, this.impacts.group);
+    // What its blast hurts, and the shake, are the 2D game's; here it is seen.
+    this.grenades = new Grenades(this.view.camera);
+    this.view.scene.add(this.grenades.group, this.throwing.group);
   }
 
   /** Shown, or hidden (out of the game). */
@@ -69,6 +75,10 @@ export class World3D {
     // The line of the shot and the ring of its blast, as the 2D game draws them while the musket is up.
     const aiming = doing.aimed && c.arming?.kind === 'musket' && c.arming.phase !== 'fire';
     this.marks.show(aiming ? this.cabral.aimFrom(c) : null, aiming ? doing.aimed : null);
+    // How far he can throw and the patch it would land on, as the 2D game draws them while a grenade is drawn back.
+    const drawing = doing.aimed && c.arming?.kind === 'grenade' && c.arming.phase !== 'fire';
+    this.throwing.show(drawing ? c : null, drawing ? doing.aimed : null);
+    this.grenades.update(dt);
     this.shots.update(dt);
     this.volleys.update(dt);
     this.impacts.update(dt);
@@ -78,6 +88,11 @@ export class World3D {
   fire(): void {
     const barrel = this.cabral.barrel();
     if (barrel) this.shots.fire(barrel.tip, barrel.way);
+  }
+
+  /** His grenade is thrown, as the 2D game lobs it: it leaves his hand as the throw does. */
+  lob(from: Vec, to: Vec, throwing: number): void {
+    this.grenades.lob(from, to, throwing * THROWN, () => this.cabral.grenade());
   }
 
   /** A royalist's goes off. */

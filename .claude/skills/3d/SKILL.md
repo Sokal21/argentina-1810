@@ -16,7 +16,8 @@ tasks: beads epic `arg-ttn`.
 `GameScene` keeps running the game (controller, soldiers' brains, fury, experience, saving) and
 draws none of the world: its camera is turned off and `World3D` (`src/three/world3d.ts`), a
 Three.js canvas under Phaser's transparent one, draws the map. Phaser draws only the menus, the HUD
-and the DOM screens (the character sheet). Off with `?2d`, which plays the 2D game as it was.
+and the DOM screens (the character sheet). The 2D game is not playable here: Inti, who is not in
+3D yet, is shown locked on the choosing screen.
 
 - On a 3D map, by the user's choice: nobody is talked to, nothing is picked up or brought along,
   nobody goes indoors, and every soldier is a fusilier (`Realista`), the one modelled so far.
