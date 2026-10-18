@@ -186,6 +186,19 @@ let wasSwinging = false;
 let wasDashing = false;
 /** How long the musket has been coming up or held, and how long since it was fired (null: not yet). */
 let shouldered = 0, fired: number | null = null;
+/** The spot of the 2D ground he is aiming at, while he aims at the pointer. */
+let aimed: { x: number; y: number } | null = null;
+/** Where the pointer is on the screen, once it has moved. */
+let pointer: { x: number; y: number } | null = null;
+addEventListener('pointermove', e => { pointer = { x: e.clientX, y: e.clientY }; });
+const caster = new THREE.Raycaster(), floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit = new THREE.Vector3();
+/** The spot of the 2D game's ground under the pointer, if it has moved. */
+function underPointer(): { x: number; y: number } | null {
+  if (!pointer) return null;
+  caster.setFromCamera(new THREE.Vector2((pointer.x / innerWidth) * 2 - 1, -(pointer.y / innerHeight) * 2 + 1), view.camera);
+  if (!caster.ray.intersectPlane(floor, hit)) return null;
+  return { x: hit.x, y: hit.z * ISO_Y };
+}
 /** How long into the cut he is. */
 let swung = 0;
 const step = (now: number) => {
@@ -219,15 +232,19 @@ function advance(dt: number): void {
   const { strike, second } = keys.abilities();
   const arm = strike ? 'musket' : second ? 'grenade' : null;
   if (arm) {
-    // Aimed straight ahead of him, until the pointer is wired in.
-    cabral.shoulder({ x: cabral.x + Math.sin(facing) * 100, y: cabral.y + Math.cos(facing) * 100 * ISO_Y }, arm);
-  } else if (arming) {
+    // Aimed at the spot of ground under the pointer; straight ahead of him if it has not moved yet.
+    aimed = underPointer();
+    cabral.shoulder(aimed ?? { x: cabral.x + Math.sin(facing) * 100, y: cabral.y + Math.cos(facing) * 100 * ISO_Y }, arm);
+  }
+  if (!arm && arming) {
     cabral.fire();
     if (arming === 'musket') fired = 0;
   }
   if (arm === 'musket' && arming !== 'musket') { shouldered = 0; fired = null; }
   arming = arm;
   cabral.update(dt, input);
+  // The last spot aimed at holds while the shot goes off and the musket is slung, then lets go.
+  if (!cabral.isShouldering) aimed = null;
   intoDash = () => (cabral.isDashing ? (wasDashing ? dashing + dt : dt) : 0);
   // A roll from motion capture moves him as its actor moved, not by the controller's own curve.
   if (cabral.isDashing && TRAVEL[ROLLS[roll]]) {
@@ -262,7 +279,9 @@ function advance(dt: number): void {
   const over = ground(moved.x, moved.y).length() / Math.max(dt, 1e-3);
   going += (over - going) * Math.min(1, dt * SETTLE);
   if (fighting || Math.hypot(moved.x, moved.y) > 0.01) {
-    const want = fighting ? Math.atan2(cabral.faces.x, cabral.faces.y) : heading(moved.x, moved.y);
+    // Aiming at the pointer he turns to it at any angle, not only the eight ways.
+    const want = aimed && cabral.isShouldering ? heading(aimed.x - cabral.x, aimed.y - cabral.y)
+      : fighting ? Math.atan2(cabral.faces.x, cabral.faces.y) : heading(moved.x, moved.y);
     const turn = Math.atan2(Math.sin(want - facing), Math.cos(want - facing));
     facing += turn * Math.min(1, dt * TURN);
   }
