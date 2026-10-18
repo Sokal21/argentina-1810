@@ -90,6 +90,16 @@ export class Realista {
     return this.brain.alive;
   }
 
+  /** What his brain is doing, for whoever draws him otherwise (the 3D game). */
+  get mind(): Readonly<RealistaBrain> {
+    return this.brain;
+  }
+
+  /** How red he is flashing, struck: 0 to 1. */
+  get hurt(): number {
+    return this.flash;
+  }
+
   /** How strongly he smoulders, from 0 to 1, while he is on fire. */
   set burning(amount: number) {
     if (this.fx) this.fx.burn = amount;

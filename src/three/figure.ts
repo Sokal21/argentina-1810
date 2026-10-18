@@ -87,3 +87,29 @@ export async function model(url: string, drawn: number): Promise<THREE.Group> {
   scene.scale.setScalar(drawn * UPRIGHT);
   return scene;
 }
+
+/** The red a body flashes when struck, as the 2D game's HitFX. */
+const HURT = new THREE.Color('#ff2a1f');
+
+/**
+ * Gives a body materials of its own (a copy of a model shares them with every other copy) and
+ * returns how to flash it red when struck: 0 none, 1 full.
+ */
+export function flashes(body: THREE.Object3D): (amount: number) => void {
+  const own: THREE.MeshToonMaterial[] = [];
+  body.traverse(node => {
+    if (!(node instanceof THREE.Mesh)) return;
+    const was = node.material as THREE.MeshToonMaterial;
+    const material = was.vertexColors ? flat() : flat(was.color);
+    material.map = was.map;
+    material.side = was.side;
+    node.material = material;
+    own.push(material);
+  });
+  let shown = -1;
+  return amount => {
+    if (amount === shown) return;
+    shown = amount;
+    for (const material of own) material.emissive.copy(HURT).multiplyScalar(amount);
+  };
+}

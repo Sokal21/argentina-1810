@@ -19,9 +19,9 @@
   * { touch-action: manipulation; }
   #game, #game canvas { touch-action: none; }
   #game { position: relative; width: 100vw; height: 100vh; height: 100dvh; overflow: hidden; }
-  /* The world drawn in 3D, where a map has been made in 3D: under the game's canvas (both positioned,
-     so drawn in the order they come, and what comes after them over both), which draws on
-     top of it whatever is still 2D. */
+  /* The world drawn in 3D, where a map has been made in 3D: under the game's canvas, which then
+     draws only the HUD (both positioned, so drawn in the order they come, and what comes after
+     them over both). */
   #world { position: fixed; inset: 0; }
   #world[hidden] { display: none; }
   #world canvas { display: block; }

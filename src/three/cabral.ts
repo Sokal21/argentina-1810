@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { MachiController, Vec } from '../machi/controller';
 import { ISO_Y, KITS } from '../machi/data';
 import { MUSKET } from '../machi/musket';
-import { CABRAL_DRESS, figure, model } from './figure';
+import { CABRAL_DRESS, figure, flashes, model } from './figure';
 import { Motion } from './motion';
 import mixamoTravel from './rolls/rodada_mixamo.json';
 import { ground, heading, UPRIGHT } from './space';
@@ -35,6 +35,16 @@ const SETTLE = 10;
 const LEAST_PACE = 0.35;
 /** How long the musket is, butt to muzzle, in its own units (tools/blender/props.py). */
 const MUSKET_LENGTH = 0.62;
+/** The musket in someone's hands, while it is: its butt end, the way it points along the ground, and its muzzle. */
+export function barrelOf(body: THREE.Object3D): { from: THREE.Vector3; way: THREE.Vector3; tip: THREE.Vector3 } | null {
+  const gun = body.getObjectByName('mosquete_mano');
+  if (!gun?.visible) return null;
+  gun.updateWorldMatrix(true, false);
+  const from = new THREE.Vector3().setFromMatrixPosition(gun.matrixWorld);
+  const along = new THREE.Vector3(1, 0, 0).transformDirection(gun.matrixWorld);
+  const tip = new THREE.Vector3(MUSKET_LENGTH, 0.02, 0).applyMatrix4(gun.matrixWorld);
+  return { from, way: new THREE.Vector3(along.x, 0, along.z).normalize(), tip };
+}
 /** How long his blows take, for their clips to last as long. */
 const SWING = KITS.cabral.melee?.time ?? 0.5;
 /**
@@ -81,6 +91,8 @@ export interface Doing {
   dashTime: number;
   /** Whether the sabre leaves its trail. */
   trail: boolean;
+  /** How red he flashes, struck: 0 to 1. */
+  hurt?: number;
 }
 
 export class CabralFigure {
@@ -93,6 +105,7 @@ export class CabralFigure {
   private body: THREE.Object3D = this.blocks;
   private motion: Motion | null = null;
   private trail: Trail | null = null;
+  private flash: (amount: number) => void = () => {};
   private gait = { name: 'run', reach: 0 };
   private facing = 0;
   private going = 0;
@@ -111,6 +124,7 @@ export class CabralFigure {
     void model(url, CABRAL_DRESS.drawn).then(loaded => {
       this.shaped = loaded;
       this.motion = new Motion(loaded);
+      this.flash = flashes(loaded);
       // The arc his sabre leaves as he cuts, from just past the guard to the point.
       const blade = loaded.getObjectByName('sable');
       if (blade) {
@@ -237,6 +251,7 @@ export class CabralFigure {
       if (bomb) bomb.visible = arming?.kind === 'grenade' && (arming.phase === 'raise' ? arming.t >= arming.shoulder * TAKEN
         : arming.phase === 'fire' ? arming.t < arming.shot * THROWN : true);
     }
+    this.flash(doing.hurt ?? 0);
     this.body.position.copy(ground(c.x, c.y));
     this.body.rotation.y = this.facing;
     // Aiming at the pointer, he is turned so the line of the barrel, not the middle of him, runs
@@ -257,13 +272,7 @@ export class CabralFigure {
 
   /** Where the musket in his hands is, while it is: its butt end, the way it points along the ground, and its muzzle. */
   barrel(): { from: THREE.Vector3; way: THREE.Vector3; tip: THREE.Vector3 } | null {
-    const gun = this.shaped?.getObjectByName('mosquete_mano');
-    if (!gun?.visible || this.body !== this.shaped) return null;
-    gun.updateWorldMatrix(true, false);
-    const from = new THREE.Vector3().setFromMatrixPosition(gun.matrixWorld);
-    const along = new THREE.Vector3(1, 0, 0).transformDirection(gun.matrixWorld);
-    const tip = new THREE.Vector3(MUSKET_LENGTH, 0.02, 0).applyMatrix4(gun.matrixWorld);
-    return { from, way: new THREE.Vector3(along.x, 0, along.z).normalize(), tip };
+    return this.shaped && this.body === this.shaped ? barrelOf(this.shaped) : null;
   }
 
   /** Where the line of his shot starts: the muzzle once the musket is in his hands, his shoulder while he draws it. */

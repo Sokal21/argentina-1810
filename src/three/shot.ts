@@ -32,7 +32,8 @@ export class Shots {
   private blasts: { ring: THREE.LineLoop; t: number }[] = [];
   private readonly puffShape = new THREE.IcosahedronGeometry(1, 0);
 
-  constructor(private readonly camera: THREE.Camera, private readonly strikes: Strikes, private readonly blasted: (at: { x: number; y: number }) => void) {
+  /** `bursts`: whether a ball bursts where it strikes, as his does; a royalist's only stops there. */
+  constructor(private readonly camera: THREE.Camera, private readonly strikes: Strikes, private readonly blasted: (at: { x: number; y: number }) => void, private readonly bursts = true) {
     this.light.castShadow = false;
     this.flash = new THREE.Mesh(new THREE.CircleGeometry(1, 6), new THREE.MeshBasicMaterial({
       color: FLASH.colour, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -81,7 +82,7 @@ export class Shots {
       if (struck) {
         ball.flown = BALL.range;
         to.set(struck.x, from.y, struck.y / ISO_Y);
-        this.blast(struck);
+        if (this.bursts) this.blast(struck);
       }
       ball.at.copy(to);
       const tail = to.clone().addScaledVector(ball.way, -Math.min(STREAK.length, ball.flown));

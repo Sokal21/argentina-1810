@@ -11,24 +11,23 @@ the real game** (title, choosing, story, dialogues, HUD), with the map drawn in 
 clips. The 3D code is in `src/three/`. Why it is built the way it is: `docs/3d/decisiones.md`. Its
 tasks: beads epic `arg-ttn`.
 
-## The real game, drawn in 3D underneath
+## The real game, its map wholly 3D
 
-`GameScene` keeps everything it did (controller, enemies and their brains, story, saving) and
-leaves the drawing of what has been made in 3D to `World3D` (`src/three/world3d.ts`), a Three.js
-canvas under Phaser's, which is transparent. Off with `?2d`.
+`GameScene` keeps running the game (controller, soldiers' brains, fury, experience, saving) and
+draws none of the world: its camera is turned off and `World3D` (`src/three/world3d.ts`), a
+Three.js canvas under Phaser's transparent one, draws the map. Phaser draws only the menus, the HUD
+and the DOM screens (the character sheet). Off with `?2d`, which plays the 2D game as it was.
 
-- What 3D draws is still laid out by the 2D code, for its footprints, and left undrawn there
-  (`leftTo3d`, `cam.ignore`); what is only looks (grass, water) is not made at all.
-- **The two pictures line up by construction**: the 3D camera is set so the ground lies where the 2D
-  game draws it, Phaser's camera is zoomed to the 3D scale and follows a spot on the 3D world's
-  pixel grid, and the 3D world is drawn round Phaser's own middle (shake included) on its
-  `FOLLOW_UPDATE`. Whatever is still 2D (people, effects, rooms) is drawn on top, where it belongs.
-- A figure reads its controller and is moved by nothing else (`cabral.ts`); the demo and the game
-  use the same one. To bring something into 3D: its figure, then hide its sprite in 3D.
-- Indoors the rooms are 2D, and so is the hero.
-
-This manual grows one stage at a time, as each is approved by the user. A stage written here
-worked and was liked; follow it as written, and change it only when the user approves the change.
+- On a 3D map, by the user's choice: nobody is talked to, nothing is picked up or brought along,
+  nobody goes indoors, and every soldier is a fusilier (`Realista`), the one modelled so far.
+  Buildings and those standing about are simple block figures (`world.ts`, `people.ts`).
+- What 3D draws is still laid out by the 2D code, for the ground it takes up.
+- A figure reads its owner's state and is moved by nothing else: Cabral's controller
+  (`cabral.ts`, shared with the demo), each royalist's brain (`realista.ts`, one model loaded
+  and copied per soldier). The game tells `World3D` what happens (a shot, a blow landing); the
+  hit tests and the damage stay the 2D game's.
+- The mouse is read on the 3D ground (`World3D.underPointer`), and the 2D camera's shakes become
+  the 3D camera's jolts.
 
 ## The rule of the move
 
