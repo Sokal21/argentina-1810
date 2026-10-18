@@ -66,7 +66,10 @@ view.scene.add(impacts.group);
 country.feet.push(dummy.footprint);
 
 const { width, height } = extent(map);
-const cabral = new MachiController({ minX: 12, maxX: width - 12, minY: 0, maxY: height }, KITS.cabral);
+// His kit, but with a dash of his own here: its length and reach are the look's (the panel's
+// "Rodada"), read every frame.
+const kit = { ...KITS.cabral, dash: { time: 0.8, distance: 170 } };
+const cabral = new MachiController({ minX: 12, maxX: width - 12, minY: 0, maxY: height }, kit);
 Object.assign(cabral, middle(map.start));
 // His model, once it has loaded; the figure of blocks until then, and on M to compare.
 const blocks = figure(CABRAL_DRESS);
@@ -111,7 +114,7 @@ let fallen = false;
 /** The arm he had up last step: let go, it goes off. */
 let arming: 'musket' | 'grenade' | null = null;
 /** How long his blows and his dive take, for their clips to last as long. */
-const SWING = KITS.cabral.melee?.time ?? 0.5, DIVE = KITS.cabral.dash?.time ?? 0.5;
+const SWING = KITS.cabral.melee?.time ?? 0.5;
 /** How quickly what he is taken to be going at follows how fast he really goes, per second. */
 const SETTLE = 10;
 /** The slowest his trot is played, as a share of its own speed: turning on the spot, he still steps. */
@@ -163,6 +166,8 @@ requestAnimationFrame(step);
 if (import.meta.env.DEV) Object.assign(globalThis, { tick: (seconds: number) => advance(seconds) });
 
 function advance(dt: number): void {
+  kit.dash.time = view.look.rollTime;
+  kit.dash.distance = view.look.rollDistance;
   const input = keys.read();
   // The arrows cut the way they point, wherever he is walking, as in the 2D game.
   const arrows = keys.attacking;
@@ -213,7 +218,7 @@ function advance(dt: number): void {
   if (motion) {
     if (fallen) motion.play('defeat_02', { once: true });
     // His own roll, keyed in Blender; the library's dive if it is missing.
-    else if (cabral.isDashing) motion.play(ROLLS[roll], { once: true, lasts: DIVE, afresh: !wasDashing, blend: 0.05 });
+    else if (cabral.isDashing) motion.play(ROLLS[roll], { once: true, lasts: kit.dash.time, afresh: !wasDashing, blend: 0.05 });
     // His own cut, keyed in Blender to land when the game's blow does; the library's if it is missing.
     else if (cabral.isSwinging) motion.play(motion.has('tajo') ? 'tajo' : 'slash', { once: true, lasts: SWING, afresh: !wasSwinging, blend: 0.05 });
     else if (cabral.isShouldering) motion.play(cabral.pose().sheet.startsWith('grenade') ? 'pitch_baseball' : 'shoot', { once: true });

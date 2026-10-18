@@ -70,6 +70,10 @@ export interface Look {
   impactGlowBand: number;
   /** Turned to face whoever struck (seen in perspective), or to the camera. */
   impactFacesStriker: boolean;
+
+  /** His roll (the dash), in the 3D game only: seconds it lasts and ground it covers (sprite pixels). */
+  rollTime: number;
+  rollDistance: number;
 }
 
 /** The look the user tuned in the panel and chose (17 October 2026). */
@@ -86,6 +90,8 @@ export const LOOK: Look = {
   impactFrom: 2, impactTo: 14, impactBand: 0.14, impactLife: 0.24, impactColour: '#ff2a1a',
   impactGlowColour: '#ff5a30', impactGlow: 0.45, impactGlowWider: 1.15, impactGlowBand: 0.5,
   impactFacesStriker: true,
+  // The 2D game's dash is 0.5 s and 96: under two metres, and a whole roll in it turned on the spot.
+  rollTime: 0.8, rollDistance: 170,
 };
 
 const hex = (colour: string) => new THREE.Color(colour);
