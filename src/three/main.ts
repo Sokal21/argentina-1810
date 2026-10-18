@@ -129,6 +129,13 @@ const step = (now: number) => {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   const input = keys.read();
+  // The arrows cut the way they point, wherever he is walking, as in the 2D game.
+  const arrows = keys.attacking;
+  if (arrows) {
+    const len = Math.hypot(arrows.dx, arrows.dy);
+    input.attack = true;
+    input.aim = { x: arrows.dx / len, y: arrows.dy / len };
+  }
   const running = stamina.update(dt, !cabral.isDashing && keys.running, cabral.isMoving);
   cabral.pace = running ? RUN : 1;
   const from = { x: cabral.x, y: cabral.y };
@@ -146,11 +153,13 @@ const step = (now: number) => {
   Object.assign(cabral, walk(map, from, cabral));
 
   const moved = { x: cabral.x - from.x, y: cabral.y - from.y };
+  // Cutting or aiming he faces where the controller turned him; walking, the way he goes.
+  const fighting = cabral.isSwinging || cabral.isShouldering;
   // How fast he goes over the 3D ground, smoothed: a step held against a plant is still a step.
   const over = ground(moved.x, moved.y).length() / Math.max(dt, 1e-3);
   going += (over - going) * Math.min(1, dt * SETTLE);
-  if (Math.hypot(moved.x, moved.y) > 0.01) {
-    const want = heading(moved.x, moved.y);
+  if (fighting || Math.hypot(moved.x, moved.y) > 0.01) {
+    const want = fighting ? Math.atan2(cabral.faces.x, cabral.faces.y) : heading(moved.x, moved.y);
     const turn = Math.atan2(Math.sin(want - facing), Math.cos(want - facing));
     facing += turn * Math.min(1, dt * TURN);
   }

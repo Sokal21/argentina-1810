@@ -184,6 +184,8 @@ export class MachiController {
   get isSwinging(): boolean { return this.swing !== null; }
 
   get isShouldering(): boolean { return this.gun !== null; }
+  /** The way she faces, one of eight, along the ground seen from above (y toward the camera, not foreshortened). */
+  get faces(): Vec { return this.facing(); }
 
   /**
    * Brings the musket up, or a grenade back, and keeps it there, aimed at a
