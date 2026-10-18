@@ -67,6 +67,8 @@ export class Bolts {
   readonly bodies: Phaser.Physics.Arcade.Group;
   private sparks: Phaser.GameObjects.Particles.ParticleEmitter;
   private burst: Phaser.GameObjects.Particles.ParticleEmitter;
+  /** Whether they are drawn: in the 3D game the musket's ball is drawn there, and only flies here. */
+  seen = true;
 
   constructor(
     private scene: Phaser.Scene, private width: number, private height: number,
@@ -91,8 +93,8 @@ export class Bolts {
     const len = Math.hypot(cast.dx, cast.dy) || 1;
     const spot = this.scene.add.zone(cast.x, cast.y - cast.height, 7, 7);
     const bolt: Bolt = {
-      orb: this.scene.add.image(0, 0, this.kind.key),
-      shadow: this.scene.add.ellipse(cast.x, cast.y, 8, 4, 0x000000, 0.22),
+      orb: this.scene.add.image(0, 0, this.kind.key).setVisible(this.seen),
+      shadow: this.scene.add.ellipse(cast.x, cast.y, 8, 4, 0x000000, 0.22).setVisible(this.seen),
       spot,
       x: cast.x, y: cast.y,
       from: { x: cast.x, y: cast.y - cast.height },
@@ -127,13 +129,13 @@ export class Bolts {
       bolt.orb.setPosition(x, y - bolt.z).setDepth(bolt.y);
       bolt.shadow.setPosition(x, y).setDepth(bolt.y - 0.5);
       bolt.spot.setPosition(x, y - bolt.z);
-      this.sparks.emitParticleAt(x, y - bolt.z, 1);
+      if (this.seen) this.sparks.emitParticleAt(x, y - bolt.z, 1);
     }
 
     const spent = (b: Bolt) => b.spent || b.age * this.kind.speed >= this.kind.range
       || b.x < 0 || b.x > this.width || b.y < 0 || b.y > this.height;
     for (const bolt of this.live.filter(spent)) {
-      this.burst.emitParticleAt(bolt.orb.x, bolt.orb.y, 10);
+      if (this.seen) this.burst.emitParticleAt(bolt.orb.x, bolt.orb.y, 10);
       bolt.orb.destroy();
       bolt.shadow.destroy();
       bolt.spot.destroy();

@@ -5,8 +5,27 @@ description: The manual for moving 1810: Argentina to 3D (Three.js, pixelated). 
 
 # Moving 1810: Argentina to 3D
 
-The 3D game lives on the `1810-3D` branch, at `3d.html` with its code in `src/three/`. Why it is
-built the way it is: `docs/3d/decisiones.md`. Its tasks: beads epic `arg-ttn`.
+The 3D game lives on the `1810-3D` branch, a fork that never goes back to main. **`index.html` is
+the real game** (title, choosing, story, dialogues, HUD), with the map drawn in 3D under it;
+`3d.html` is the bench where the look and clips are tried, and `modelos.html` shows every model's
+clips. The 3D code is in `src/three/`. Why it is built the way it is: `docs/3d/decisiones.md`. Its
+tasks: beads epic `arg-ttn`.
+
+## The real game, drawn in 3D underneath
+
+`GameScene` keeps everything it did (controller, enemies and their brains, story, saving) and
+leaves the drawing of what has been made in 3D to `World3D` (`src/three/world3d.ts`), a Three.js
+canvas under Phaser's, which is transparent. Off with `?2d`.
+
+- What 3D draws is still laid out by the 2D code, for its footprints, and left undrawn there
+  (`leftTo3d`, `cam.ignore`); what is only looks (grass, water) is not made at all.
+- **The two pictures line up by construction**: the 3D camera is set so the ground lies where the 2D
+  game draws it, Phaser's camera is zoomed to the 3D scale and follows a spot on the 3D world's
+  pixel grid, and the 3D world is drawn round Phaser's own middle (shake included) on its
+  `FOLLOW_UPDATE`. Whatever is still 2D (people, effects, rooms) is drawn on top, where it belongs.
+- A figure reads its controller and is moved by nothing else (`cabral.ts`); the demo and the game
+  use the same one. To bring something into 3D: its figure, then hide its sprite in 3D.
+- Indoors the rooms are 2D, and so is the hero.
 
 This manual grows one stage at a time, as each is approved by the user. A stage written here
 worked and was liked; follow it as written, and change it only when the user approves the change.

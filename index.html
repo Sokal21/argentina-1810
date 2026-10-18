@@ -18,7 +18,13 @@
   /* Touching twice is not asking for a closer look: nothing here is zoomed into. What scrolls still scrolls. */
   * { touch-action: manipulation; }
   #game, #game canvas { touch-action: none; }
-  #game { width: 100vw; height: 100vh; height: 100dvh; overflow: hidden; }
+  #game { position: relative; width: 100vw; height: 100vh; height: 100dvh; overflow: hidden; }
+  /* The world drawn in 3D, where a map has been made in 3D: under the game's canvas (both positioned,
+     so drawn in the order they come, and what comes after them over both), which draws on
+     top of it whatever is still 2D. */
+  #world { position: fixed; inset: 0; }
+  #world[hidden] { display: none; }
+  #world canvas { display: block; }
   #game canvas { display: block; }
   /* While developing: which animation is on screen, small, in a corner. */
   #state {
@@ -151,6 +157,7 @@
 </style>
 </head>
 <body>
+<div id="world" hidden></div>
 <div id="game"></div>
 <div id="start"><span class="keys">Presioná cualquier tecla</span><span class="taps">Tocá para empezar</span></div>
 <div id="dialog" hidden>

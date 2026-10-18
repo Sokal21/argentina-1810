@@ -52,3 +52,12 @@ Lo acordado antes de empezar (17 de octubre de 2026). Las tareas viven en beads,
 Al principio **el usuario valida cada paso**. Cuando el flujo esté afianzado, Claude chequea
 solo (giros de cada modelo en Blender, capturas con Playwright) y dice cómo lo ve. Cada paso
 aprobado se escribe en el momento como skill del manual de migración.
+
+## El juego real, con el mundo en 3D (18 de octubre de 2026)
+La rama es un fork aparte, pero el 3D se monta sobre el juego que ya tiene (menú, selección,
+historia, diálogos), no sobre una demo: `index.html` sirve el juego real. `GameScene` sigue con
+toda la lógica y un canvas de Three.js debajo dibuja lo que ya existe en 3D (el vado y Cabral). Lo
+que todavía no tiene modelo se ve como sprite 2D encima, en su lugar; mientras convivan, un sprite
+2D queda siempre por delante del 3D. Se va reemplazando de a uno: después de Cabral, los
+realistas con su IA.
+

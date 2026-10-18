@@ -29,6 +29,8 @@ const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
   backgroundColor: '#14110f',
+  // Clear, so that the world drawn in 3D under it shows through (see GameScene); the page is this colour.
+  transparent: true,
   pixelArt: true,
   roundPixels: true,
   scale: { mode: Phaser.Scale.NONE, width: sized(shown())[0], height: sized(shown())[1], zoom: shown() },

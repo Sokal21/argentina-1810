@@ -4,7 +4,8 @@ import type { View } from './view';
 
 // A panel for tuning the look by hand: every number in it, grouped, put into effect as it is
 // moved. What is tuned is kept in this browser, and "Copiar config" copies it as JSON, to be
-// pasted to Claude and made the game's own. P shows and hides it.
+// pasted to Claude and made the game's own. P shows and hides it (L in the game, where P shows
+// the collision boxes).
 
 // A new name whenever the game's own look changes, so what was kept from before does not hide it.
 const KEPT = '1810.3d.look.2';
@@ -24,9 +25,10 @@ function kept(): Partial<Look> {
   }
 }
 
-export function mountPanel(view: View): GUI {
+export function mountPanel(view: View, { key = 'KeyP', hidden = false } = {}): GUI {
   const look: Look = { ...LOOK, ...kept() };
-  const gui = new GUI({ title: 'Look (P)', width: 300 });
+  const gui = new GUI({ title: `Look (${key.slice(3)})`, width: 300 });
+  if (hidden) gui.hide();
   const changed = () => {
     view.apply(look);
     try { localStorage.setItem(KEPT, JSON.stringify(look)); } catch { /* kept for this sitting only */ }
@@ -130,7 +132,7 @@ export function mountPanel(view: View): GUI {
 
   changed();
   addEventListener('keydown', e => {
-    if (e.code === 'KeyP' && !e.repeat && (e.target as { tagName?: string } | null)?.tagName !== 'INPUT') gui.show(gui._hidden);
+    if (e.code === key && !e.repeat && (e.target as { tagName?: string } | null)?.tagName !== 'INPUT') gui.show(gui._hidden);
   });
   return gui;
 }

@@ -59,6 +59,8 @@ import { Story } from '../story/story';
 import { THINGS } from '../story/things';
 import { FACTS, RULES, VADO } from '../story/vado';
 import { Vitals } from '../world/vitals';
+import { DRAW, SHOT as SLING } from '../three/cabral';
+import { World3D } from '../three/world3d';
 import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Charge as Cargo, type Spot, type WorldMap } from '../world/zones';
 
 // Screen pixels per sprite pixel: drawn a little smaller than twice, so more of the country is seen
@@ -300,6 +302,17 @@ export class GameScene extends Phaser.Scene {
   private marker!: Phaser.GameObjects.Ellipse;
   private look?: LookFX;
   private label = '';
+  /**
+   * The map drawn in 3D under this scene's canvas, where it has been made in 3D (the vado): its
+   * country and Cabral. What is still 2D (everyone else, the effects, the rooms) is drawn on top,
+   * where it falls on the same ground, the 3D camera being set so that the ground lies where the
+   * 2D game draws it. Off with ?2d.
+   */
+  private three?: World3D;
+  /** What this canvas leaves to the 3D world: drawn there instead. */
+  private drawnIn3d: Phaser.GameObjects.GameObject[] = [];
+  /** The spot the camera keeps in the middle, in the 3D world: on its grid, so both pictures move together. */
+  private focus = { x: 0, y: 0 };
 
   constructor() {
     super('game');
@@ -348,10 +361,21 @@ export class GameScene extends Phaser.Scene {
     this.start = this.map ? middle(this.map.start) : { x: FIELD.width / 2, y: FIELD.height / 2 };
     // Open country has no forest: what cannot be crossed is shaded, and what is built stands as blocks.
     this.sight = new Sight();
+    const deep = this.map === vadoDeLasVizcachas && new URLSearchParams(location.search).get('2d') === null;
+    this.three = deep ? World3D.of(this.map!, document.getElementById('world')!) : undefined;
+    this.drawnIn3d = [];
+    // What the 3D world raises itself is still laid out here, for the ground it takes up, but not drawn.
+    const leftTo3d = (lay: () => void) => {
+      const was = new Set(this.children.list);
+      lay();
+      if (this.three) this.drawnIn3d.push(...this.children.list.filter(o => !was.has(o)));
+    };
     this.forest = this.map && !this.map.bare ? new Forest(this, this.map, this.sight) : undefined;
-    if (this.map) layGround(this, this.map);
-    else this.drawGround();
-    this.built = this.map ? raiseBuildings(this, this.map) : [];
+    leftTo3d(() => {
+      if (this.map) layGround(this, this.map);
+      else this.drawGround();
+      this.built = this.map ? raiseBuildings(this, this.map) : [];
+    });
     // How one goes into a building is still being tried: ?entrar=directo, or by default through a fade.
     const entering = new URLSearchParams(location.search).get('entrar') === 'directo' ? 'directo' : 'fundido';
     this.indoors = this.map ? new Indoors(this, this.map, entering as Entering) : undefined;
@@ -364,10 +388,13 @@ export class GameScene extends Phaser.Scene {
     }
     this.route = this.map ? new Route(this.walkable) : undefined;
     // The plants first: the fences are drawn from their picture.
-    this.country = this.map?.bare ? new Country(this, this.map, this.sight) : undefined;
-    if (this.map?.bare) raiseFences(this, this.map, this.sight);
-    this.meadow = this.map?.bare ? new Meadow(this, this.map.ground) : undefined;
-    this.water = this.map?.bare ? new Water(this, this.map) : undefined;
+    leftTo3d(() => {
+      this.country = this.map?.bare ? new Country(this, this.map, this.sight) : undefined;
+      if (this.map?.bare) raiseFences(this, this.map, this.sight);
+    });
+    // The grass and the water are only seen: the 3D world has its own.
+    this.meadow = this.map?.bare && !this.three ? new Meadow(this, this.map.ground) : undefined;
+    this.water = this.map?.bare && !this.three ? new Water(this, this.map) : undefined;
     this.built.push(...(this.country?.feet ?? []));
 
     this.machi = this.enter(this.hero, this.start);
@@ -405,6 +432,24 @@ export class GameScene extends Phaser.Scene {
       : at(REALISTAS, (x, y) => new Realista(this, x, y, bounds));
     for (const foe of this.foes) this.physics.add.overlap(this.bolts.bodies, foe.zone, this.struck);
     this.balls = new Bolts(this, this.size.width, this.size.height, BALL);
+    this.balls.seen = !this.three;
+    if (this.three) {
+      // The 3D ball stops at whoever it is seen to reach along the ground, as the 2D ball bursts on them.
+      this.three.strikes = (from, to) => {
+        const t = (p: Vec) => ({ x: p.x, y: p.y / ISO_Y });
+        const a = t(from), b = t(to), ab = { x: b.x - a.x, y: b.y - a.y }, len = ab.x * ab.x + ab.y * ab.y || 1;
+        let first: { k: number; at: Vec } | null = null;
+        for (const foe of this.foes) {
+          if (!foe.alive) continue;
+          const d = t(foe.ground), k = Math.max(0, Math.min(1, ((d.x - a.x) * ab.x + (d.y - a.y) * ab.y) / len));
+          const near = { x: a.x + ab.x * k, y: a.y + ab.y * k };
+          if (Math.hypot(d.x - near.x, d.y - near.y) <= foe.girth + MUSKET.girth && (!first || k < first.k)) first = { k, at: { x: near.x, y: near.y * ISO_Y } };
+        }
+        return first?.at ?? null;
+      };
+      this.three.shown = true;
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { if (this.three) this.three.shown = false; });
+    }
     // What the enemies throw, and the part of her it can hit.
     this.embers = new Bolts(this, this.size.width, this.size.height, EMBER);
     this.hurtbox = this.add.zone(this.machi.x, this.machi.y - TORSO.up, TORSO.w, TORSO.h);
@@ -782,8 +827,21 @@ export class GameScene extends Phaser.Scene {
     // The camera says where it has settled just before each frame is drawn:
     // the scenery it cannot see is left out of that same frame.
     cam.on(Phaser.Cameras.Scene2D.Events.FOLLOW_UPDATE, () => this.sight.look(cam.worldView));
+    if (this.three) {
+      // At the 3D world's scale, keeping in the middle a spot on its grid; and the 3D world drawn
+      // round the same spot, as soon as the camera has settled on it (shaken as this one is).
+      const three = this.three;
+      cam.setRoundPixels(false);
+      cam.ignore(this.drawnIn3d);
+      this.focus = { x: this.machi.x, y: this.machi.y - CHEST };
+      cam.startFollow(this.focus, false, 1, 1, 0, 0);
+      cam.on(Phaser.Cameras.Scene2D.Events.FOLLOW_UPDATE, () => {
+        const shake = cam.shakeEffect as unknown as { _offsetX: number; _offsetY: number };
+        three.draw({ x: cam.midPoint.x - shake._offsetX, y: cam.midPoint.y - shake._offsetY }, this.game.loop.delta / 1000);
+      });
+    }
 
-    if (this.renderer.type === Phaser.WEBGL) {
+    if (this.renderer.type === Phaser.WEBGL && !this.three) {
       const renderer = this.renderer as Phaser.Renderer.WebGL.WebGLRenderer;
       renderer.pipelines.addPostPipeline('LookFX', LookFX);
       cam.setPostPipeline(LookFX);
@@ -815,7 +873,15 @@ export class GameScene extends Phaser.Scene {
     const from = { x: this.machi.x, y: this.machi.y };
     // A dodge is paid for when it begins, once: a press the hero could not act on costs nothing.
     const dodging = this.machi.isDashing;
+    // In 3D his speed and his roll are the look's, which the panel may be changing.
+    const in3d = this.shownIn3d;
+    if (in3d) {
+      const { kit } = this.machi, look = this.three!.view.look;
+      kit.speed = look.speed;
+      if (kit.dash) { kit.dash.time = look.rollTime; kit.dash.distance = look.rollDistance; }
+    }
     this.machi.update(dt, input);
+    if (in3d && this.machi.kit.dash) this.three!.cabral.carry(this.machi, from, this.machi.kit.dash, dt);
     if (!dodging && this.machi.isDashing) this.stamina.dodge();
     // Enemies throw at her chest while she is up.
     // She cannot walk through an enemy: each one she stands in pushes her
@@ -1066,6 +1132,24 @@ export class GameScene extends Phaser.Scene {
     this.flash = Math.max(0, this.flash - dt / FLASH);
     this.draw();
     this.trail(dt);
+    if (this.three) {
+      // Indoors the rooms are 2D, and so is he.
+      this.three.shown = !this.indoors?.indoors;
+      this.three.update(dt, this.machi, {
+        shown: in3d, from, aimed: this.machi.isShouldering ? this.shotAt : null,
+        fallen: !this.vitals.standing, dashTime: this.machi.kit.dash?.time ?? 0.5, trail: true,
+      });
+      // Kept on the 3D world's grid, which this camera then keeps in the middle.
+      const grain = this.three.grain, cam = this.cameras.main;
+      this.focus.x = Math.round(this.machi.x / grain) * grain;
+      this.focus.y = Math.round((this.machi.y - CHEST) / grain) * grain;
+      cam.setZoom(this.three.scale / this.scale.zoom);
+    }
+  }
+
+  /** Whether the hero is drawn in 3D just now: Cabral, outdoors, where the map is 3D. */
+  private get shownIn3d(): boolean {
+    return !!this.three && this.hero === 'cabral' && !this.indoors?.indoors;
   }
 
   // While she dashes she leaves copies of herself where she just was, each
@@ -1073,7 +1157,7 @@ export class GameScene extends Phaser.Scene {
   // them as speed.
   private trail(dt: number): void {
     // In his rage he trails them wherever he goes.
-    if (!this.machi.isDashing && !this.wrath.active) { this.echoIn = 0; return; }
+    if (this.shownIn3d || (!this.machi.isDashing && !this.wrath.active)) { this.echoIn = 0; return; }
     this.echoIn -= dt;
     if (this.echoIn > 0) return;
     this.echoIn = ECHO.every;
@@ -1128,11 +1212,14 @@ export class GameScene extends Phaser.Scene {
       this.lob({ x, y }, this.within({ x, y }, this.shotAt, GRENADE.range));
       return;
     }
-    // Aimed from where the barrel is seen to be, through the pointer.
+    // Aimed from where the barrel is seen to be, through the pointer. In 3D, along the ground to the
+    // spot under the pointer, which is where he aims there; and the shot is seen there.
+    const level = this.shownIn3d;
     this.balls.spawn({
       x, y, height: MUSKET.height,
-      dx: this.shotAt.x - x, dy: (this.shotAt.y - (y - MUSKET.height)) / ISO_Y,
+      dx: this.shotAt.x - x, dy: (this.shotAt.y - (level ? y : y - MUSKET.height)) / ISO_Y,
     });
+    if (level) this.three?.fire();
     this.cameras.main.shake(60, 0.004);
   }
 
@@ -1271,7 +1358,8 @@ export class GameScene extends Phaser.Scene {
   private drawCuts(dt: number): void {
     this.slashes.clear();
     this.cuts = this.cuts.filter(cut => (cut.t += dt) < CUT.time);
-    for (const cut of this.cuts) {
+    // In 3D his sabre leaves a trail of its own.
+    for (const cut of this.shownIn3d ? [] : this.cuts) {
       const p = cut.t / CUT.time;
       const head = Math.min(1, p / 0.4), tail = Math.max(0, (p - 0.3) / 0.7);
       const aim = Math.atan2(cut.dy, cut.dx);
@@ -1306,7 +1394,11 @@ export class GameScene extends Phaser.Scene {
   // Puts a character on the field at a spot, with their own art.
   private enter(hero: Hero, at: Vec): MachiController {
     // Below the map is room for the rooms that are somewhere of their own: the map's ground keeps them off it otherwise.
-    const body = new MachiController({ minX: 12, maxX: this.size.width - 12, minY: FRAME, maxY: this.size.height + ROOMS }, KITS[hero]);
+    // In 3D he goes at the look's speed and rolls its roll, and takes longer over the musket, as its clips do.
+    const look = this.three?.view.look;
+    const kit = look && hero === 'cabral'
+      ? { ...KITS.cabral, speed: look.speed, dash: { time: look.rollTime, distance: look.rollDistance }, shoulder: DRAW, shot: SLING } : KITS[hero];
+    const body = new MachiController({ minX: 12, maxX: this.size.width - 12, minY: FRAME, maxY: this.size.height + ROOMS }, kit);
     body.x = at.x;
     body.y = at.y;
     return body;
@@ -1354,7 +1446,8 @@ export class GameScene extends Phaser.Scene {
     // Everything is an ellipse: a circle on the ground, seen from above at an angle.
     const ring = (x: number, y: number, r: number) => [x, y, r * 2, r * 2 * ISO_Y] as const;
     this.marks.clear();
-    if (this.readying === 'musket') {
+    // In 3D they are drawn there, from the muzzle.
+    if (this.readying === 'musket' && !this.shownIn3d) {
       // The line of the shot, from the barrel out as far as a ball carries, and
       // the size of the blast where the pointer is; dull when it cannot be paid for.
       const colour = this.skill('musket').ready ? 0xffb45a : 0x8a8478;
@@ -1953,7 +2046,8 @@ export class GameScene extends Phaser.Scene {
       else everyone.push([c.drawn, c.body]);
     }
     for (const [sprite, feet, oval] of everyone) {
-      const shown = sprite.visible && near(feet);
+      // Drawn in 3D, he casts his own shadow there.
+      const shown = sprite.visible && near(feet) && !(sprite === this.sprite && this.shownIn3d);
       this.silhouettes.cast(sprite, shown ? feet : null);
       (oval as Phaser.GameObjects.Ellipse | undefined)?.setAlpha(0);
       // Grass grows outside, and not where nobody walks.
@@ -2074,9 +2168,14 @@ export class GameScene extends Phaser.Scene {
     }
     this.hurtbox.setPosition(x, y - TORSO.up);
     (this.hurtbox.body as Phaser.Physics.Arcade.Body).enable = standing;
+    // Drawn in 3D, his sprite and its shadow are not drawn here; they are, wherever he is not.
+    const cam = this.cameras.main, in3d = this.shownIn3d;
+    for (const part of [this.sprite, this.shadow]) {
+      if (in3d) part.cameraFilter |= cam.id;
+      else part.cameraFilter &= ~cam.id;
+    }
 
     if (this.look) {
-      const cam = this.cameras.main;
       this.look.grain = fx.grain ? 1 : 0;
       this.look.light = fx.light ? 1 : 0;
       this.look.dark = tune.dark;

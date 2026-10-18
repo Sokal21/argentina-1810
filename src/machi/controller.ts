@@ -201,6 +201,10 @@ export class MachiController {
   get isSwinging(): boolean { return this.swing !== null; }
 
   get isShouldering(): boolean { return this.gun !== null; }
+  /** What is readied and how far into its phase (coming up, held ready, just loosed), or null. */
+  get arming(): { kind: Arm; phase: 'raise' | 'aim' | 'fire'; t: number; shoulder: number; shot: number } | null {
+    return this.gun && { kind: this.gun.kind, phase: this.gun.phase, t: this.gun.t, shoulder: this.shoulderTime, shot: this.shotTime };
+  }
   /** The way she faces, one of eight, along the ground seen from above (y toward the camera, not foreshortened). */
   get faces(): Vec { return this.facing(); }
 
