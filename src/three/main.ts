@@ -8,6 +8,8 @@ import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { extent, middle, PLOT_H, PLOT_W, walk } from '../world/zones';
 import { Dummy, GIRTH } from './dummy';
 import { Impacts } from './impact';
+import { AimMarks } from './aim';
+import { MUSKET } from '../machi/musket';
 import { CABRAL_DRESS, figure, model, type Dress } from './figure';
 import { mountHud, type Readings } from './hud';
 import { ground, heading, UPRIGHT } from './space';
@@ -63,6 +65,8 @@ for (const { who, plot, faces } of map.people ?? []) {
 const dummy = new Dummy(middle(map.start).x + PLOT_W * 1.6, middle(map.start).y - PLOT_H * 0.3);
 view.scene.add(dummy.group, dummy.debris);
 const impacts = new Impacts(view.camera, () => view.look);
+const marks = new AimMarks();
+view.scene.add(marks.group);
 view.scene.add(impacts.group);
 country.feet.push(dummy.footprint);
 
@@ -186,12 +190,22 @@ let wasSwinging = false;
 let wasDashing = false;
 /** How long the musket has been coming up or held, and how long since it was fired (null: not yet). */
 let shouldered = 0, fired: number | null = null;
+/** How long the musket is, butt to muzzle, in its own units (tools/blender/props.py). */
+const MUSKET_LENGTH = 0.62;
 /** The spot of the 2D ground he is aiming at, while he aims at the pointer. */
 let aimed: { x: number; y: number } | null = null;
 /** Where the pointer is on the screen, once it has moved. */
 let pointer: { x: number; y: number } | null = null;
 addEventListener('pointermove', e => { pointer = { x: e.clientX, y: e.clientY }; });
 const caster = new THREE.Raycaster(), floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit = new THREE.Vector3();
+/** Where the held musket's barrel is: its butt end, the way it points along the ground, and its muzzle. */
+function barrel(gun: THREE.Object3D): { from: THREE.Vector3; way: THREE.Vector3; tip: THREE.Vector3 } {
+  gun.updateWorldMatrix(true, false);
+  const from = new THREE.Vector3().setFromMatrixPosition(gun.matrixWorld);
+  const along = new THREE.Vector3(1, 0, 0).transformDirection(gun.matrixWorld);
+  const tip = new THREE.Vector3(MUSKET_LENGTH, 0.02, 0).applyMatrix4(gun.matrixWorld);
+  return { from, way: new THREE.Vector3(along.x, 0, along.z).normalize(), tip };
+}
 /** The spot of the 2D game's ground under the pointer, if it has moved. */
 function underPointer(): { x: number; y: number } | null {
   if (!pointer) return null;
@@ -333,6 +347,21 @@ function advance(dt: number): void {
   wasDashing = cabral.isDashing;
   body.position.copy(ground(cabral.x, cabral.y));
   body.rotation.y = facing;
+  // Aiming at the pointer, he is turned so the line of the barrel, not the middle of him, runs
+  // through the spot: the musket lies against his right shoulder, beside his middle, and turned
+  // only by his middle it ran alongside the pointer and missed it.
+  const gun = shaped?.getObjectByName('mosquete_mano');
+  const muzzle = gun?.visible && aimed ? barrel(gun) : null;
+  if (muzzle && aimed) {
+    const spot = ground(aimed.x, aimed.y);
+    const want = Math.atan2(spot.x - muzzle.from.x, spot.z - muzzle.from.z), has = Math.atan2(muzzle.way.x, muzzle.way.z);
+    facing += Math.atan2(Math.sin(want - has), Math.cos(want - has));
+    body.rotation.y = facing;
+  }
+  // The line of the shot and the ring of its blast, as the 2D game draws them while the musket is
+  // up: from the muzzle once it is in his hands, from his shoulder while he draws it.
+  const aiming = aimed && cabral.isShouldering && fired === null && !cabral.pose().sheet.startsWith('grenade');
+  marks.show(aiming ? (muzzle ? barrel(gun!).tip : ground(cabral.x, cabral.y, MUSKET.height * UPRIGHT)) : null, aiming ? aimed : null);
   view.follow(body.position, dt);
   // The cut's arc, from where his blade is now: only while it sweeps (frames 3 to 9 of 12), not as
   // he winds up or comes back to guard.
