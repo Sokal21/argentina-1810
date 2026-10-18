@@ -323,7 +323,7 @@ function advance(dt: number): void {
       shaped!.updateMatrixWorld(true);
       const { tip, way } = barrel(gun);
       shots.fire(tip, way);
-      view.jolt(0.06, 1);
+      view.jolt(0.1, 2);
     }
   }
   shots.update(dt);

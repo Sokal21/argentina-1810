@@ -63,14 +63,15 @@ ROUND = {
     'L_Upperarm': plant(0.22, 0.0, 0.63, knee=(0.2, 0.5, -1)),
 }
 # The kick: shoulder driven back, the muzzle thrown well up, the body rocked back on its heels and
-# the head off the stock. (A small kick read as nothing at all.)
+# the head off the stock. (A small kick read as nothing at all; the user asked for it more violent
+# twice.)
 KICK = {
     **AIM,
-    'Hip': [('move', (-0.014, 0, -0.01)), turn('z', -30)],
-    'Spine01': [turn('z', -26), turn('y', -12)],
-    'Head': [turn('z', 34), turn('y', -6)],
-    'R_Upperarm': plant(0.085, -0.075, 0.72, knee=(-0.2, -1, -0.4)),
-    'L_Upperarm': plant(0.2, -0.06, 0.815, knee=(0.2, 0.4, -1)),
+    'Hip': [('move', (-0.026, 0, -0.012)), turn('z', -32)],
+    'Spine01': [turn('z', -28), turn('y', -20)],
+    'Head': [turn('z', 32), turn('y', -12)],
+    'R_Upperarm': plant(0.065, -0.075, 0.735, knee=(-0.2, -1, -0.4)),
+    'L_Upperarm': plant(0.15, -0.06, 0.86, knee=(0.2, 0.4, -1)),
 }
 # Settling from it, the muzzle coming down again.
 SETTLE = {
