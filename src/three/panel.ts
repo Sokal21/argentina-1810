@@ -6,7 +6,8 @@ import type { View } from './view';
 // moved. What is tuned is kept in this browser, and "Copiar config" copies it as JSON, to be
 // pasted to Claude and made the game's own. P shows and hides it.
 
-const KEPT = '1810.3d.look';
+// A new name whenever the game's own look changes, so what was kept from before does not hide it.
+const KEPT = '1810.3d.look.2';
 
 function kept(): Partial<Look> {
   try {

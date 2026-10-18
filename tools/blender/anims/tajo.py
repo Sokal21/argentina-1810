@@ -23,7 +23,7 @@ act = rig.action('tajo')
 # cut; the right is a little back on guard and steps well forward into the lunge.
 LEFT = (0.05, 0.085, 0.008)
 RIGHT_BACK = (0.0, -0.08, 0.008)
-RIGHT_STEP = (0.18, -0.07, 0.008)
+RIGHT_STEP = (0.11, -0.08, 0.008)
 RIGHT_LIFTED = (0.1, -0.075, 0.045)
 FLAT_L, FLAT_R = ahead(1, 0.25, -0.03), ahead(1, -0.15, -0.03)
 OUT_L, OUT_R = (1, 0.25, 0), (1, -0.25, 0)
@@ -69,7 +69,7 @@ WIND = {
 # The cut lands: lunged onto the right foot, the blade rising across before him, at his chest
 # and going up to his right as he turns through.
 CUT = {
-    'Hip': [('move', (0.06, 0, -0.035)), turn('z', -8)],
+    'Hip': [('move', (0.03, 0, -0.03)), turn('z', -12)],
     **feet(RIGHT_STEP),
     'Spine01': [turn('z', -14), turn('y', 10)],
     'Head': [turn('z', 6), turn('y', -6)],
@@ -85,7 +85,7 @@ CUT = {
 # Following through: up past his right shoulder, the body rising and turned round after it.
 FOLLOW = {
     **CUT,
-    'Hip': [('move', (0.05, 0, -0.025)), turn('z', -16)],
+    'Hip': [('move', (0.028, 0, -0.024)), turn('z', -18)],
     'Spine01': [turn('z', -28), turn('y', 2)],
     'R_Upperarm': ahead(0.3, -0.6, 0.7),
     'R_Forearm': ahead(0.0, -0.4, 0.9),
@@ -150,20 +150,21 @@ def blend(a: dict, b: dict, k: float) -> dict:
 # blade turning steadily from point down, through point forward, to laid back over his shoulder.
 from mathutils import Quaternion, Vector  # noqa: E402
 
-# Seen from the front the hand goes along the diagonal at an even pace, from low on his left to
-# high on his right; it reaches forward only in depth, most at the middle. (With the forward reach
-# as a curve's pull, seen from the front the hand hung low and then leapt up.)
-HAND = [Vector((0.15, 0.13, 0.47)), Vector((0.12, -0.21, 0.76))]  # start, end
-# At the start the elbow is low and the forearm lies across his belly, as drawing from the left
-# hip: only so can the blade hang point down by his left leg (a blade cannot lie along the
-# forearm, and with the forearm pointing down it was pushed across to his right). At the end the
-# elbow is out to his right.
-ELBOWS = [Vector((0.35, -0.3, -1)).normalized(), Vector((0.0, -1.0, -0.6)).normalized()]
-REACH = 0.16
-# Point forward in the middle, but tipped a little up and to his right: pointing straight at the
-# camera, a blade is a dot and seems to jump.
-BLADE = [Vector((0.1, 0.25, -1)).normalized(), Vector((1, -0.25, 0.2)).normalized(), Vector((-0.85, -0.3, 0.4)).normalized()]
-ELBOW = (0.0, -1.0, -0.6)
+# A slash, not a thrust: arm and blade are one lever turning from the shoulder through a wide arc
+# before him, low on his left, out level to his right where it strikes, and on up to his right.
+# The hand keeps an arm's length from the shoulder and the blade carries on the arm's line, so
+# the edge cuts sideways. (With the hand reaching forward and the point at the enemy, it read as
+# a thrust.)
+LEVER = [Vector((0.2, 0.55, -0.8)).normalized(), Vector((0.3, -0.95, -0.05)).normalized(), Vector((0.1, -0.55, 0.83)).normalized()]
+SHOULDER = Vector((0.05, -0.09, 0.66))
+ARM = 0.2
+
+
+def lever(t: float) -> Vector:
+    return LEVER[0].slerp(LEVER[1], t * 2) if t < 0.5 else LEVER[1].slerp(LEVER[2], (t - 0.5) * 2)
+
+
+ELBOW = (0.0, -0.5, -1.0)
 # The sweep takes frames 3 to 9, half the cut, the blow landing in its middle at frame 6 as the
 # game's does (0.26 s of 0.5): swept in four frames, the blade turned 90° a frame and seemed to
 # jump from place to place.
@@ -185,13 +186,11 @@ def hips_forward(pose: dict) -> float:
 def sweep(frame: int) -> dict:
     t = (frame - SWEEP[0]) / (SWEEP[1] - SWEEP[0])   # 0 at the start of the sweep, 1 at its end
     pose = body(frame)
-    a, b = HAND
-    hand = a.lerp(b, t) + Vector((REACH * math.sin(math.pi * t), 0, 0))
-    hand.x += hips_forward(pose)             # the arc goes with the body as it lunges
-    half = min(1.0, t * 2)
-    way = BLADE[0].slerp(BLADE[1], half) if t < 0.5 else BLADE[1].slerp(BLADE[2], (t - 0.5) * 2)
+    way = lever(t)
+    hand = SHOULDER + way * ARM
+    hand.x += hips_forward(pose)             # the arc goes with the body as it steps
     pose.pop('R_Forearm', None)
-    pose['R_Upperarm'] = plant(*hand, knee=tuple(ELBOWS[0].slerp(ELBOWS[1], t)))
+    pose['R_Upperarm'] = plant(*hand, knee=ELBOW)
     pose['sabre'] = ('ahead', way)
     return pose
 

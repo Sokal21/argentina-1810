@@ -57,7 +57,7 @@ export interface Look {
 
 /** The look the user tuned in the panel and chose (17 October 2026). */
 export const LOOK: Look = {
-  pixel: 3, far: 1.5, creases: 0.3, outlines: 0.89,
+  pixel: 3, far: 1.8, creases: 0.3, outlines: 0.89,
   sunStrength: 2.4, sunColour: '#fff1d6', sunRound: -50, sunHigh: 55,
   skyStrength: 1.6, skyColour: '#cfd8dc', groundColour: '#8a7a50', shadows: true,
   steps: 3, darkest: 0.45,
