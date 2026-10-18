@@ -82,6 +82,12 @@ let trail: Trail | null = null;
  * the model; the library's run if it is missing.
  */
 const GAIT = 'cmu_07_01';
+/**
+ * His rolls, to be chosen between on C: four from CMU's motion capture (subjects 127 and 128,
+ * "run, dive over, roll, run"), his own keyed in Blender, and the library's dive.
+ */
+const ROLLS = ['rodada_127_23', 'rodada_127_24', 'rodada_128_10', 'rodada_128_11', 'rodada', 'dive'];
+let roll = 0;
 let gait = { name: 'run', reach: 0 };
 void model('cabral/3d/cabral_animado.glb', CABRAL_DRESS.drawn).then(loaded => {
   shaped = loaded;
@@ -123,9 +129,9 @@ const readings: Readings = {
 const hud = mountHud(document.getElementById('hud')!, readings);
 
 // While trying it out: 1 the pixels or a plain scene, P the look's panel, H the HUD, M his model or
-// his figure of blocks, K he falls or gets up.
+// his figure of blocks, K he falls or gets up, C his next roll.
 const told = document.getElementById('told')!;
-const tell = () => { told.textContent = `${view.pixelated ? 'pixel' : 'sin pixel'} · 1 pixel · P panel del look · H HUD · M modelo o muñeco · Q mosquete · E granada · K morir`; };
+const tell = () => { told.textContent = `${view.pixelated ? 'pixel' : 'sin pixel'} · 1 pixel · P panel del look · H HUD · M modelo o muñeco · Q mosquete · E granada · K morir · C rodada: ${ROLLS[roll]}`; };
 addEventListener('keydown', e => {
   if (e.repeat) return;
   if (e.code === 'Digit1') view.pixelated = !view.pixelated;
@@ -207,7 +213,7 @@ function advance(dt: number): void {
   if (motion) {
     if (fallen) motion.play('defeat_02', { once: true });
     // His own roll, keyed in Blender; the library's dive if it is missing.
-    else if (cabral.isDashing) motion.play(motion.has('rodada') ? 'rodada' : 'dive', { once: true, lasts: DIVE, afresh: !wasDashing, blend: 0.05 });
+    else if (cabral.isDashing) motion.play(ROLLS[roll], { once: true, lasts: DIVE, afresh: !wasDashing, blend: 0.05 });
     // His own cut, keyed in Blender to land when the game's blow does; the library's if it is missing.
     else if (cabral.isSwinging) motion.play(motion.has('tajo') ? 'tajo' : 'slash', { once: true, lasts: SWING, afresh: !wasSwinging, blend: 0.05 });
     else if (cabral.isShouldering) motion.play(cabral.pose().sheet.startsWith('grenade') ? 'pitch_baseball' : 'shoot', { once: true });
