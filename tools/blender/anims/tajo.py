@@ -59,8 +59,8 @@ WIND = {
     'R_Upperarm': ahead(0.35, 0.5, -0.6),
     'R_Forearm': ahead(0.1, 0.7, -0.6),
     'sabre': ahead(-0.5, 0.45, -0.55),
-    # The left arm forward and across, to be flung back.
-    'L_Upperarm': ahead(0.65, 0.05, -0.45), 'L_Forearm': ahead(0.75, -0.3, -0.2),
+    # The left arm forward, the elbow bent, the hand before his belly, to swing back from.
+    'L_Upperarm': ahead(0.5, 0.15, -0.8), 'L_Forearm': ahead(0.6, -0.45, -0.15),
 }
 # The cut lands: lunged onto the right foot, the blade rising across before him, at his chest
 # and going up to his right as he turns through.
@@ -72,9 +72,10 @@ CUT = {
     'R_Upperarm': ahead(0.8, -0.4, 0.25),
     'R_Forearm': ahead(0.6, -0.6, 0.45),
     'sabre': ahead(0.4, -0.6, 0.7),
-    # The left arm flung back and out, nearly level, against the cut.
-    'L_Clavicle': turn('z', 10),
-    'L_Upperarm': ahead(-0.85, 0.5, -0.05), 'L_Forearm': ahead(-0.85, 0.35, 0.15),
+    # The left arm swung back and out against the cut, the elbow bent, the hand by the hip:
+    # held straight out and far back, it read as stiff and behind him.
+    'L_Clavicle': turn('z', 5),
+    'L_Upperarm': ahead(-0.45, 0.6, -0.65), 'L_Forearm': ahead(-0.15, 0.6, -0.15),
 }
 # Following through: up past his right shoulder, the body rising and turned round after it.
 FOLLOW = {
@@ -84,7 +85,7 @@ FOLLOW = {
     'R_Upperarm': ahead(0.3, -0.6, 0.7),
     'R_Forearm': ahead(0.0, -0.4, 0.9),
     'sabre': ahead(-0.3, -0.4, 0.85),
-    'L_Upperarm': ahead(-0.8, 0.55, 0.0), 'L_Forearm': ahead(-0.75, 0.4, 0.25),
+    'L_Upperarm': ahead(-0.4, 0.6, -0.7), 'L_Forearm': ahead(-0.05, 0.6, -0.3),
 }
 # The right foot off the ground on its way forward, the body already going.
 STEP = {**WIND, 'Hip': [('move', (0.025, 0, -0.03)), turn('z', 4)], **feet(RIGHT_LIFTED),
