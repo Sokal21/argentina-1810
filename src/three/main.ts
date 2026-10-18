@@ -210,6 +210,10 @@ let wasDashing = false;
 let shouldered = 0, fired: number | null = null;
 /** What he last let go: the musket or a grenade. */
 let loosed: 'musket' | 'grenade' | null = null;
+/** Whether what is up has been let fly (once a readying); whether the attack was held last step; the mouse's button. */
+let let_go = false, pullWas = false, mouseHeld = false;
+addEventListener('pointerdown', e => { if (e.button === 0 && !(e.target as HTMLElement).closest?.('.lil-gui')) mouseHeld = true; });
+addEventListener('pointerup', e => { if (e.button === 0) mouseHeld = false; });
 /** How long the musket is, butt to muzzle, in its own units (tools/blender/props.py). */
 const MUSKET_LENGTH = 0.62;
 /** The spot of the 2D ground he is aiming at, while he aims at the pointer. */
@@ -265,17 +269,24 @@ function advance(dt: number): void {
   // Q held brings the musket up, E held a grenade back, as in the 2D game; let go, they go off.
   const { strike, second } = keys.abilities();
   const arm = strike ? 'musket' : second ? 'grenade' : null;
+  // As in the 2D game: Q held readies the musket (E a grenade) and turns him to the pointer; the
+  // attack, a click or Space, then lets it fly; letting the key go first puts it away unfired.
+  // While it is up the attack is its trigger, not a cut.
+  const pulling = input.attack || mouseHeld, trigger = pulling && !pullWas;
+  pullWas = pulling;
   if (arm) {
+    input.attack = false;
     // Aimed at the spot of ground under the pointer; straight ahead of him if it has not moved yet.
     aimed = underPointer();
     cabral.shoulder(aimed ?? { x: cabral.x + Math.sin(facing) * 100, y: cabral.y + Math.cos(facing) * 100 * ISO_Y }, arm);
-  }
-  if (!arm && arming) {
-    cabral.fire();
-    loosed = arming;
-    if (arming === 'musket') fired = 0;
-  }
-  if (arm === 'musket' && arming !== 'musket') { shouldered = 0; fired = null; }
+    if (arm !== arming) { shouldered = 0; fired = null; let_go = false; }
+    if (trigger && !let_go) {
+      cabral.fire();
+      loosed = arm;
+      let_go = true;
+      if (arm === 'musket') fired = 0;
+    }
+  } else if (arming && !let_go) cabral.lower();
   arming = arm;
   cabral.update(dt, input);
   // The last spot aimed at holds while the shot goes off and the musket is slung, then lets go.
