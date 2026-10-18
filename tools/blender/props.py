@@ -243,3 +243,35 @@ def musket_in_hand(armature: bpy.types.Object, action: str = 'mosquete_apuntar',
         pb.matrix_basis = Matrix.Identity(4)
     bpy.context.view_layer.update()
     return gun
+
+
+# A black iron ball and a fuse of tow: dark grey against his coat, a pale fuse to catch the eye.
+BALL, FUSE = (0.035, 0.035, 0.04, 1), (0.8, 0.62, 0.35, 1)
+
+
+def grenade(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object:
+    """A grenade held in the right fist, its fuse up out of it: a ball 0.05 across (about 12 cm,
+    a little big, to be seen at 80 pixels). The game shows it from when he takes it until it
+    leaves his hand."""
+    radius = 0.025
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=10, ring_count=6, radius=radius)
+    ball = bpy.context.active_object
+    ball.data.materials.append(material('hierro_granada', BALL))
+    bpy.ops.mesh.primitive_cylinder_add(vertices=6, radius=0.005, depth=0.02, location=(0, 0, radius + 0.008))
+    fuse = bpy.context.active_object
+    fuse.data.materials.append(material('mecha', FUSE))
+    for p in (ball, fuse):
+        p.select_set(True)
+    bpy.context.view_layer.objects.active = ball
+    bpy.ops.object.join()
+    bomb = bpy.context.active_object
+    bomb.name = 'granada'
+    # In the palm of the closed fist, a little out of it toward the fingers' side, fuse up.
+    wrist, way, length, palm, _, _ = hand(armature, bone)
+    bomb.matrix_world = Matrix.Translation(wrist + way * length * 0.55 + palm * (length * 0.2 + radius * 0.6))
+    world = bomb.matrix_world.copy()
+    bomb.parent = armature
+    bomb.parent_type = 'BONE'
+    bomb.parent_bone = bone
+    bomb.matrix_world = world
+    return bomb

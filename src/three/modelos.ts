@@ -30,6 +30,10 @@ const ROUND: Step[] = [
   { clip: 'reposo_mixamo', seconds: 0.8 },
   { clip: 'tajo', seconds: SWING + 0.4, lasts: SWING },
   { clip: 'reposo_mixamo', seconds: 1 },
+  { clip: 'granada_sacar', seconds: DRAW, lasts: DRAW },
+  { clip: 'granada_apuntar', seconds: 1.2 },
+  { clip: 'granada_lanzar', seconds: SHOT + 0.3, lasts: SHOT },
+  { clip: 'reposo_mixamo', seconds: 0.8 },
   { clip: 'muerte', seconds: 4, once: true },
 ];
 
@@ -71,7 +75,11 @@ function carried(body: THREE.Object3D, s: Step): void {
   const back = body.getObjectByName('mosquete'), hand = body.getObjectByName('mosquete_mano'), sabre = body.getObjectByName('sable');
   if (back) back.visible = !inHand;
   if (hand) hand.visible = inHand;
-  if (sabre) sabre.visible = !musket;
+  const grenade = s.clip.startsWith('granada'), bomb = body.getObjectByName('granada');
+  if (sabre) sabre.visible = !musket && !grenade;
+  // In his hand from when he takes it (granada.py: frame 4 of 11) until it leaves it (frame 3 of 19).
+  if (bomb) bomb.visible = s.clip === 'granada_apuntar' || (s.clip === 'granada_sacar' && into >= DRAW * 0.36)
+    || (s.clip === 'granada_lanzar' && into < SHOT * 0.16);
 }
 
 const told = document.getElementById('told')!;

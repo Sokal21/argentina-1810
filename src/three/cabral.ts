@@ -23,6 +23,10 @@ export const SHOT = 0.8;
 const DRAWN = 0.67;
 /** The share of the shot's clip at which the musket goes back to his back (frame 12 of 19). */
 const SLUNG = 0.63;
+/** The share of the grenade's coming up at which he has it in hand from his hip (granada.py: frame 4 of 11). */
+const TAKEN = 0.36;
+/** The share of the throw at which it leaves his hand (granada.py: frame 3 of 19). */
+const THROWN = 0.16;
 /** How fast he turns to face the way he goes, per second. */
 const TURN = 14;
 /** How quickly what he is taken to be going at follows how fast he really goes, per second. */
@@ -195,7 +199,13 @@ export class CabralFigure {
       }
       // His own cut, keyed in Blender to land when the game's blow does; the library's if it is missing.
       else if (c.isSwinging) motion.play(motion.has('tajo') ? 'tajo' : 'slash', { once: true, lasts: SWING, afresh: !this.wasSwinging, blend: 0.05 });
-      else if (arming?.kind === 'grenade') motion.play('pitch_baseball', { once: true });
+      else if (arming?.kind === 'grenade' && motion.has('granada_apuntar')) {
+        // The grenade: taken from his hip and drawn back while it comes up, held back until the
+        // click, then thrown; his feet stay where they are.
+        if (arming.phase === 'fire') motion.play('granada_lanzar', { once: true, lasts: arming.shot, afresh: this.phaseWas !== 'fire', blend: 0.03 });
+        else if (arming.phase === 'raise') motion.play('granada_sacar', { once: true, lasts: arming.shoulder, afresh: this.phaseWas !== 'raise', blend: 0.06 });
+        else motion.play('granada_apuntar', { blend: 0.05 });
+      } else if (arming?.kind === 'grenade') motion.play('pitch_baseball', { once: true });
       else if (arming && motion.has('mosquete_apuntar')) {
         // The musket: drawn from his back while it comes up, held aiming, then the shot and slinging it again.
         if (arming.phase === 'fire') motion.play('mosquete_disparo', { once: true, lasts: arming.shot, afresh: this.phaseWas !== 'fire', blend: 0.03 });
@@ -214,14 +224,18 @@ export class CabralFigure {
     this.wasDashing = c.isDashing;
     this.phaseWas = arming?.phase ?? null;
     // Which musket is seen, the one on his back or the one in his hands, and the sabre put away
-    // while he has the musket up.
+    // while he has the musket or a grenade up.
     if (this.shaped) {
       const inHand = musket && (arming.phase === 'raise' ? arming.t >= arming.shoulder * DRAWN
         : arming.phase === 'fire' ? arming.t < arming.shot * SLUNG : true);
       const back = this.shaped.getObjectByName('mosquete'), hand = this.shaped.getObjectByName('mosquete_mano'), sabre = this.shaped.getObjectByName('sable');
       if (back) back.visible = !inHand;
       if (hand) hand.visible = inHand;
-      if (sabre) sabre.visible = !musket;
+      if (sabre) sabre.visible = !arming;
+      // The grenade in his hand from when he takes it until it leaves it.
+      const bomb = this.shaped.getObjectByName('granada');
+      if (bomb) bomb.visible = arming?.kind === 'grenade' && (arming.phase === 'raise' ? arming.t >= arming.shoulder * TAKEN
+        : arming.phase === 'fire' ? arming.t < arming.shot * THROWN : true);
     }
     this.body.position.copy(ground(c.x, c.y));
     this.body.rotation.y = this.facing;
