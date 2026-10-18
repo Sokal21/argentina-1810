@@ -322,8 +322,8 @@ function advance(dt: number): void {
     } else if (cabral.isShouldering) motion.play('shoot', { once: true });
     // His trot keeps step with the ground: played as fast as he goes, however fast that is.
     else if (cabral.isMoving) motion.play(gait.name, { pace: gait.reach ? Math.max(LEAST_PACE, going / gait.reach) : 1 });
-    // Standing: his own at-ease, made in Blender; the library's if it is missing.
-    else motion.play(motion.has('reposo') ? 'reposo' : 'idle');
+    // Standing: Mixamo's Breathing Idle, the user's pick; his own keyed in Blender, or the library's, if missing.
+    else motion.play(['reposo_mixamo', 'reposo', 'idle'].find(name => motion!.has(name))!);
     motion.update(dt);
   }
   swung = cabral.isSwinging ? (wasSwinging ? swung + dt : 0) : 0;

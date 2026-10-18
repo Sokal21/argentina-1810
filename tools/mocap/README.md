@@ -22,3 +22,4 @@ with `tools/blender/retarget_rot.py`.
 | File (not in git) | What |
 |---|---|
 | stand_to_roll.fbx | "Stand To Roll": his roll, frames 7 to 60 |
+| breathing_idle.fbx | "Breathing Idle": his standing, all 299 frames |

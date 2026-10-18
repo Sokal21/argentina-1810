@@ -81,9 +81,12 @@ SRC_NEXT = {named(a): named(b) for a, b in NEXT.items() if any(x.name.split(':')
 rest = {b.name: src.matrix_world @ b.matrix_local for b in src.data.bones}
 hips_l, hips_r = rest[named('LeftUpLeg')].to_translation(), rest[named('RightUpLeg')].to_translation()
 spine_up = rest[named('Spine')].to_translation() - rest[named('Hips')].to_translation()
-left = (hips_l - hips_r).normalized()
-forward = left.cross(spine_up).normalized()
-up = forward.cross(left).normalized()
+# Up is straight up: the capture's rest stands upright, but its spine leans a little, and taken
+# for up it tipped every pose of the clip forward.
+up = Vector((0, 0, 1))
+left = (hips_l - hips_r)
+left = (left - up * left.dot(up)).normalized()
+forward = left.cross(up).normalized()
 ONTO = Matrix((forward, left, up)).to_3x3()   # rows: captured axes; takes captured into the rig's
 
 # Ahead, while he moves, is the way he travels over the stretch taken, not the way the capture's
@@ -136,6 +139,7 @@ reference_from_parent = {n: arm.pose.bones[n].parent.matrix.to_3x3().normalized(
 leg_src = (rest[named('LeftUpLeg')].to_translation() - rest[named('LeftFoot')].to_translation()).length
 leg_rig = (arm.data.bones['L_Thigh'].head_local - arm.data.bones['L_Foot'].head_local).length
 scale = leg_rig / leg_src
+STILL = travel.length < leg_src * 0.3
 REST_HIP = arm.data.bones['Hip'].head_local.z
 ONTO4 = ONTO.to_4x4()
 # How much of each spine bone's twist about its own length is kept (--twist, 0 to 1): its bending,
@@ -183,7 +187,13 @@ UP = min([f for f in range(BOTTOM, last + 1) if tilt(f) < UPRIGHT_LEAN] or [last
 SQUARES = {}
 
 
+# A clip that hardly goes anywhere (an idle) is turned square once, by how he stands at its start:
+# squared frame by frame, its hips' own small sway round would be taken out.
+
+
 def square(frame: float) -> float:
+    if STILL:
+        return SQUARES.setdefault('still', -heading(first))
     f = round(frame)
     if f not in SQUARES:
         if f <= DOWN or f >= UP:
