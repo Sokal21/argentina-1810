@@ -12,16 +12,24 @@ Keep these values unless the user asks otherwise. Code: `src/three/view.ts`, `pa
   (`View.follow`), so standing things do not shimmer as it moves. The sun's shadow camera is
   snapped to whole texels of its map for the same reason.
 
-## Pixels and edges
-- `RenderPixelatedPass` then `OutputPass`. `PIXEL = 3` screen pixels per render pixel (`?px=` overrides).
-- Edges on: `normalEdgeStrength 0.35`, `depthEdgeStrength 0.45`. They lighten creases and darken
-  outlines in the object's own colour, which is why they suit art that has no black lines.
+## Pixels, edges and the finishing pass
+- Every number of the look lives in `LOOK` in `src/three/look.ts`, as the user tuned it in the
+  panel (`src/three/panel.ts`, P in the game) and pasted back with its "Copiar config" button.
+  To change the look, have the user tune it there and paste the JSON; write it into `LOOK`.
+- `RenderPixelatedPass`, `OutputPass`, then the finishing pass (`finishing()` in `look.ts`),
+  which works a world pixel at a time: colour, palette levels and Bayer dithering, grain,
+  vignette, chromatic aberration, CRT bulge, scanlines.
+- Chosen: 3 screen pixels per world pixel; edges `creases 0.3` (lighter, along folds) and
+  `outlines 0.89` (darker, along silhouettes), in the object's own colour, which is why they suit
+  art that has no black lines; chromatic aberration 0.9; scanlines 0.05; nothing else.
 - Renderer at pixel ratio 1, canvas `image-rendering: pixelated`, no antialias.
 
 ## Light and colour
 - A hemisphere light (sky `#cfd8dc`, ground `#8a7a50`, 1.6) and one sun (`#fff1d6`, 2.4) high
-  behind the left shoulder, hard shadows (`BasicShadowMap`, 2048, ±900 units round the hero).
-- Materials are `MeshToonMaterial` in **three hard steps** (0.45, 0.75, 1) through `flat()`.
+  behind the left shoulder (50° left, 55° up), hard shadows (`BasicShadowMap`, 2048, ±900 units
+  round the hero).
+- Materials are `MeshToonMaterial` in **three hard steps** (0.45 to 1) through `flat()`;
+  `shadeIn()` changes the steps of every one.
 - Flat colours: a shape of several colours is built from `part()` pieces, each painted one
   colour per vertex, `joined()` into one geometry. Faces are kept apart so each lights flat.
 

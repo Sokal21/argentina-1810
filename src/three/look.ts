@@ -53,15 +53,16 @@ export interface Look {
   scanlines: number;
 }
 
+/** The look the user tuned in the panel and chose (17 October 2026). */
 export const LOOK: Look = {
-  pixel: 3, creases: 0.35, outlines: 0.45,
+  pixel: 3, creases: 0.3, outlines: 0.89,
   sunStrength: 2.4, sunColour: '#fff1d6', sunRound: -50, sunHigh: 55,
   skyStrength: 1.6, skyColour: '#cfd8dc', groundColour: '#8a7a50', shadows: true,
   steps: 3, darkest: 0.45,
   brightness: 0, contrast: 1, saturation: 1, gamma: 1,
   shadeColour: '#2a3a6a', shade: 0, lightColour: '#ffd9a0', light: 0,
   levels: 0, dither: 0,
-  grain: 0, grainMoves: false, vignette: 0, aberration: 0, bulge: 0, scanlines: 0,
+  grain: 0, grainMoves: true, vignette: 0, aberration: 0.9, bulge: 0, scanlines: 0.05,
 };
 
 const hex = (colour: string) => new THREE.Color(colour);
