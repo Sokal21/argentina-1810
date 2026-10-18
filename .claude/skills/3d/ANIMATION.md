@@ -9,7 +9,8 @@ October 2026, with the user judging every clip in the game. Read it all before a
    downloads it (mixamo.com, free Adobe account, **FBX, "Without Skin"**) into `tools/mocap/`.
    Its files stay out of git (`.gitignore`, licence: usable in the game, not redistributable);
    only the GLB made from them is kept. Chosen so far: Stand To Roll (his roll), Breathing Idle,
-   Walking (his gait, replacing CMU's).
+   Walking (his gait, replacing CMU's), Falling Back Death (the royalist's death). Each one's
+   flags are in `tools/mocap/README.md`.
 2. **CMU motion capture** (free, `tools/mocap/*.bvh`, index: the cgspeed `cmu-mocap-index-text.txt`
    in the una-dinosauria/cmu-mocap mirror). Good enough for walks (his gait was CMU 07_01); crude for
    acrobatics (2008, actors leaping obstacles, rolls over a second long).
@@ -57,6 +58,11 @@ and all. What it does and why, each learned from a clip that came out wrong:
 - **Pose with no action attached**, and attach it only to key: otherwise each update lays back
   the frames already keyed and the hips crept up frame by frame.
 - `--travel` writes how far the actor had come at each frame, for the game to sync to (below).
+- `--backward` for a fall back: ahead is whence he goes, never squared by the hips (the actor
+  stood side on, on guard, and squared by them he fell to his side).
+- **An actor who starts in a pose of his own** (on guard): `tools/blender/ease_from.py CLIP FROM
+  OUT --frames 8` eases the clip's first frames from a frame of another clip (his idle). Approved
+  on the royalist's death: "quedó increíble".
 
 `retarget_bvh.py` is the older, direction-only one: fine for walk cycles (`--stride`), it loses
 twist. `measure_bvh.py` prints a clip's joint angles, to key by real numbers.
@@ -88,6 +94,16 @@ Plain shapes, flat colours (Blender's linear colour: darker than it looks), held
 **bind the action's slot** before measuring a pose: an action from another file is not played
 otherwise). The game shows one musket or the other and hides the sabre while aiming.
 
+## A second character: everything is reused
+
+The royalist got all of Cabral's clips at once, approved: the same Tripo v1.0 rig (the same 41
+bones), the Mixamo clips re-run by `tools/mocap/README.md`, the hand-keyed ones
+(`tools/blender/anims/tajo.py`, `mosquete.py`) re-run on his rig as they are. Their planted points
+are measured on Cabral (`Rig(..., written_for=CABRAL)`): on another body each hand's point moves
+as far as his shoulder stands from Cabral's, each foot's as far as his ankle (the royalist's
+shoulders stand higher, and he held the musket at his chest otherwise). Cabral's own clips come
+out byte for byte the same. Re-run a character's hand-keyed clips whenever Cabral's script changes.
+
 ## The game's model
 
 `prepare_rigged.py OUT MAIN.glb CLIPS... --front +x --carries sabre,musket,musket_in_hand` joins
@@ -107,6 +123,11 @@ whole list (the last command in git history has it).
   angle, and is turned so **the barrel's line**, not his middle, meets the pointer.
 
 ## Checking
+
+- **`modelos.html`** (`src/three/modelos.ts`): every model side by side in the game's look, each
+  clip played as the game times it, muskets and sabre shown as the game shows them; one clip
+  alone, turned, slowed, paused. Show the user this rather than strips: strips draw both muskets
+  and the sabre at once, which the user took for a fault. A new character goes in `WHO`.
 
 - `tools/blender/strip.py MODEL.glb ACTION DIR --turn DEG --frames N`, `tools/strip_sheet.py`:
   frames from the game's camera. Measure what can be measured (angles, heights, lowest point)

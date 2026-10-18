@@ -29,5 +29,5 @@ tall stands `h * UPRIGHT` tall. One unit is one pixel of the drawing.
 | 1. The look: camera, light, shadows, pixels, a map stood up in flat shapes | approved | [`LOOK.md`](LOOK.md) |
 | 2. A character's HD turnaround sheet, cut into views | approved | [`TURNAROUND.md`](TURNAROUND.md) |
 | 3. Its model: Tripo, then Blender | approved | [`MODEL.md`](MODEL.md) |
-| 4. Its rig and animations: capture first, keyed by hand for weapons | in progress (idle, gait, cut, roll, musket approved) | [`ANIMATION.md`](ANIMATION.md) |
+| 4. Its rig and animations: capture first, keyed by hand for weapons | in progress (idle, gait, cut, roll, musket approved; the royalist's set and death approved) | [`ANIMATION.md`](ANIMATION.md) |
 | Combat's feedback: dummy, hit flash, impact ring, trail, aim marks, the tuning panel | approved | [`COMBAT.md`](COMBAT.md) |
