@@ -51,7 +51,9 @@ and all. What it does and why, each learned from a clip that came out wrong:
 - `--twist` keeps that share of each spine bone's twist about its length (0.4 for the roll: the
   back wrung round). `--straight` turns the whole body each frame so the hip line lies level and
   square across his way (0.85 for the roll: rolling over the shoulder he lay askew).
-- `--ground` rests his lowest point on the ground every frame (measured on the posed mesh).
+- `--ground` rests his lowest point on the ground every frame (measured on the posed mesh): for
+  a roll. **Anything on its feet takes `--feet`** (lowest heel or toe at its rest height): the
+  scabbard hangs nearly to the ground, took it from `--ground`, and the idle and walk floated.
 - **Pose with no action attached**, and attach it only to key: otherwise each update lays back
   the frames already keyed and the hips crept up frame by frame.
 - `--travel` writes how far the actor had come at each frame, for the game to sync to (below).

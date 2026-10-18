@@ -11,7 +11,9 @@ for both Mixamo and CMU), the rig's by turning each of its bones to point the wa
 one's does at rest (its arms go up from Tripo's A). Then for every frame each captured bone's turn
 from its rest is given to the matching bone of the rig, from its reference; the hips also rise and
 fall, scaled to the rig's legs. Played in place: what the capture travels, the game does. With
---ground the body is rested on the ground every frame, its lowest point touching it.
+--ground the body is rested on the ground every frame, its lowest point touching it (a roll);
+with --feet the lowest heel or toe is (anything on its feet: the scabbard hangs low enough to
+take the ground from --ground).
 """
 import math
 import os
@@ -141,6 +143,7 @@ leg_rig = (arm.data.bones['L_Thigh'].head_local - arm.data.bones['L_Foot'].head_
 scale = leg_rig / leg_src
 STILL = travel.length < leg_src * 0.3
 REST_HIP = arm.data.bones['Hip'].head_local.z
+FOOT_REST = min(arm.data.bones[b].head_local.z for b in ('L_Foot', 'R_Foot', 'L_ToeBase', 'R_ToeBase'))
 ONTO4 = ONTO.to_4x4()
 # How much of each spine bone's twist about its own length is kept (--twist, 0 to 1): its bending,
 # forward and to the side, is all kept, but the capture's twisting of the back read as the spine
@@ -267,7 +270,19 @@ for frame in range(length + 1):
     arm.animation_data.action = None
     lift = hip_height
     posed(lift)
-    if '--ground' in opts:
+    if '--feet' in opts:
+        # On his feet: the lowest of heels and toes set where they stand at rest. (Rested by the
+        # lowest point of the mesh, the scabbard's tip, hanging nearly to the ground, took the
+        # ground and he floated over it.)
+        def feet() -> float:
+            return min((arm.matrix_world @ arm.pose.bones[b].head).z for b in ('L_Foot', 'R_Foot', 'L_ToeBase', 'R_ToeBase'))
+        for _ in range(3):
+            off = feet() - FOOT_REST
+            if abs(off) < 0.001:
+                break
+            lift -= off
+            posed(lift)
+    elif '--ground' in opts:
         for _ in range(3):
             low = rig.lowest()
             if abs(low) < 0.002:
