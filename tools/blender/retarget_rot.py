@@ -104,7 +104,9 @@ def hips_at(frame: float) -> Vector:
 travel = hips_at(last) - hips_at(first)
 travel.z = 0
 if travel.length > 1e-3:
-    t_forward = travel.normalized()
+    # Falling back (--backward), ahead is whence he goes: the actor stood side on, on guard, and
+    # squared by his hips he fell to his side.
+    t_forward = -travel.normalized() if '--backward' in opts else travel.normalized()
     t_left = Vector((0, 0, 1)).cross(t_forward)
     ALONG = Matrix((t_forward, t_left, Vector((0, 0, 1)))).to_3x3()
 else:
@@ -195,6 +197,8 @@ SQUARES = {}
 
 
 def square(frame: float) -> float:
+    if '--backward' in opts:
+        return 0.0
     if STILL:
         return SQUARES.setdefault('still', -heading(first))
     if '--gait' in opts:

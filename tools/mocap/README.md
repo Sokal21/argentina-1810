@@ -24,3 +24,4 @@ with `tools/blender/retarget_rot.py`.
 | stand_to_roll.fbx | "Stand To Roll": his roll, frames 7 to 60 |
 | breathing_idle.fbx | "Breathing Idle": his standing, all 299 frames, `--feet` |
 | walking.fbx | "Walking": his gait, one cycle, frames 1 to 32, `--gait --feet` |
+| Falling Back Death.fbx | "Falling Back Death": the royalist's death, `--ground --backward`, its start eased from his standing by `tools/blender/ease_from.py` (the actor starts on guard) |

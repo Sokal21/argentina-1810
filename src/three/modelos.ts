@@ -16,6 +16,8 @@ interface Step {
   seconds: number;
   /** Played once in this long, rather than looped at its own pace. */
   lasts?: number;
+  /** Played once at its own pace and held on its last frame. */
+  once?: boolean;
 }
 
 /** The round: standing, walking, the musket drawn, aimed and fired, then the cut. */
@@ -28,7 +30,11 @@ const ROUND: Step[] = [
   { clip: 'reposo_mixamo', seconds: 0.8 },
   { clip: 'tajo', seconds: SWING + 0.4, lasts: SWING },
   { clip: 'reposo_mixamo', seconds: 1 },
+  { clip: 'muerte', seconds: 4, once: true },
 ];
+
+/** What is played for a clip a model lacks: Cabral dies by the library's fall. */
+const INSTEAD: Record<string, string> = { muerte: 'defeat_02' };
 
 const WHO = [
   { name: 'Cabral', url: 'cabral/3d/cabral_animado.glb' },
@@ -51,7 +57,10 @@ let step = 0, into = 0, only: Step | null = null, paused = false, turn = 0, pace
 const playing = () => only ?? ROUND[step];
 function start(s: Step): void {
   into = 0;
-  for (const { motion } of bodies) motion.play(s.clip, { once: !!s.lasts, lasts: s.lasts, afresh: true, blend: s.lasts ? 0.05 : 0.15 });
+  for (const { motion } of bodies) {
+    const clip = motion.has(s.clip) ? s.clip : INSTEAD[s.clip] ?? s.clip;
+    motion.play(clip, { once: !!s.lasts || s.once, lasts: s.lasts, afresh: true, blend: s.lasts ? 0.05 : 0.15 });
+  }
 }
 
 /** Which musket is seen, on his back or in his hands, and the sabre put away, as the game does. */
