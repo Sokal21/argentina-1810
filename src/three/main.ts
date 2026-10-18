@@ -97,6 +97,10 @@ let roll = 0;
 const TRAVEL: Record<string, number[]> = { rodada_mixamo: mixamoTravel };
 /** How long into the dash he is; and the share of its distance he has covered, as the controller moves him. */
 let dashing = 0;
+/** How far through his roll's clip he is shown, and whether he is still getting up after the dash. */
+let rolled = 0, rising = false;
+/** Past this share of the roll it may not run faster than this many times its even pace over the dash. */
+const RUSHED = 0.55, ROLL_PACE = 1.3;
 const dashed = () => { const p = Math.min(1, dashing / kit.dash.time); return p * (2 - p); };
 /** The share of a clip at which its actor had come `share` of his way. */
 function reached(travel: number[], share: number): number {
@@ -234,15 +238,26 @@ function advance(dt: number): void {
   }
   // What he is doing, in the clip that shows it.
   if (motion) {
+    // Getting up after a roll gives way to anything he is told to do.
+    if (cabral.isMoving || cabral.isSwinging || cabral.isShouldering || fallen) rising = false;
     if (fallen) motion.play('defeat_02', { once: true });
     // His own roll, keyed in Blender; the library's dive if it is missing.
-    else if (cabral.isDashing) {
+    else if (cabral.isDashing || rising) {
       // A roll whose travel is known is shown at the moment its actor had come as far as he has:
       // the dash goes fast at first and slows, the roll the other way, and played by the clock he
-      // slid before he rolled. Any other is played by the clock.
+      // slid before he rolled. Past its middle, where the actor gets up nearly on the spot, it is
+      // kept from running faster than its own pace, and finishes after the dash if need be
+      // (followed to the end, the getting up was crammed into the dash's last inch). Any other
+      // roll is played by the clock.
       const name = ROLLS[roll], travel = TRAVEL[name];
-      if (travel) motion.hold(name, reached(travel, dashed()), { afresh: !wasDashing, blend: 0.05 });
-      else motion.play(name, { once: true, lasts: kit.dash.time, afresh: !wasDashing, blend: 0.05 });
+      if (travel) {
+        if (!wasDashing && cabral.isDashing) rolled = 0;
+        const pace = dt / kit.dash.time * ROLL_PACE;
+        const want = cabral.isDashing ? reached(travel, dashed()) : 1;
+        rolled = want < RUSHED ? want : Math.min(want, rolled + pace);
+        rising = !cabral.isDashing && rolled < 1;
+        motion.hold(name, rolled, { afresh: !wasDashing && cabral.isDashing, blend: 0.05 });
+      } else motion.play(name, { once: true, lasts: kit.dash.time, afresh: !wasDashing, blend: 0.05 });
     }
     // His own cut, keyed in Blender to land when the game's blow does; the library's if it is missing.
     else if (cabral.isSwinging) motion.play(motion.has('tajo') ? 'tajo' : 'slash', { once: true, lasts: SWING, afresh: !wasSwinging, blend: 0.05 });
