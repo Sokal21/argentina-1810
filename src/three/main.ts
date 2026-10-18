@@ -12,6 +12,7 @@ import { CABRAL_DRESS, figure, model, type Dress } from './figure';
 import { mountHud, type Readings } from './hud';
 import { ground, heading, UPRIGHT } from './space';
 import { Motion } from './motion';
+import mixamoTravel from './rolls/rodada_mixamo.json';
 import { Trail } from './trail';
 import { mountPanel } from './panel';
 import { View } from './view';
@@ -92,6 +93,21 @@ const GAIT = 'cmu_07_01';
  */
 const ROLLS = ['rodada_mixamo', 'rodada_127_23', 'rodada_127_24', 'rodada_128_10', 'rodada_128_11', 'rodada', 'dive'];
 let roll = 0;
+/** For each roll put on from motion capture, how far its actor had come at each of its frames. */
+const TRAVEL: Record<string, number[]> = { rodada_mixamo: mixamoTravel };
+/** How long into the dash he is; and the share of its distance he has covered, as the controller moves him. */
+let dashing = 0;
+const dashed = () => { const p = Math.min(1, dashing / kit.dash.time); return p * (2 - p); };
+/** The share of a clip at which its actor had come `share` of his way. */
+function reached(travel: number[], share: number): number {
+  for (let k = 1; k < travel.length; k++) {
+    if (travel[k] >= share) {
+      const span = travel[k] - travel[k - 1];
+      return (k - 1 + (span > 0 ? (share - travel[k - 1]) / span : 0)) / (travel.length - 1);
+    }
+  }
+  return 1;
+}
 let gait = { name: 'run', reach: 0 };
 void model('cabral/3d/cabral_animado.glb', CABRAL_DRESS.drawn).then(loaded => {
   shaped = loaded;
@@ -220,7 +236,14 @@ function advance(dt: number): void {
   if (motion) {
     if (fallen) motion.play('defeat_02', { once: true });
     // His own roll, keyed in Blender; the library's dive if it is missing.
-    else if (cabral.isDashing) motion.play(ROLLS[roll], { once: true, lasts: kit.dash.time, afresh: !wasDashing, blend: 0.05 });
+    else if (cabral.isDashing) {
+      // A roll whose travel is known is shown at the moment its actor had come as far as he has:
+      // the dash goes fast at first and slows, the roll the other way, and played by the clock he
+      // slid before he rolled. Any other is played by the clock.
+      const name = ROLLS[roll], travel = TRAVEL[name];
+      if (travel) motion.hold(name, reached(travel, dashed()), { afresh: !wasDashing, blend: 0.05 });
+      else motion.play(name, { once: true, lasts: kit.dash.time, afresh: !wasDashing, blend: 0.05 });
+    }
     // His own cut, keyed in Blender to land when the game's blow does; the library's if it is missing.
     else if (cabral.isSwinging) motion.play(motion.has('tajo') ? 'tajo' : 'slash', { once: true, lasts: SWING, afresh: !wasSwinging, blend: 0.05 });
     else if (cabral.isShouldering) motion.play(cabral.pose().sheet.startsWith('grenade') ? 'pitch_baseball' : 'shoot', { once: true });
@@ -232,6 +255,7 @@ function advance(dt: number): void {
   }
   swung = cabral.isSwinging ? (wasSwinging ? swung + dt : 0) : 0;
   wasSwinging = cabral.isSwinging;
+  dashing = cabral.isDashing ? (wasDashing ? dashing + dt : dt) : 0;
   wasDashing = cabral.isDashing;
   body.position.copy(ground(cabral.x, cabral.y));
   body.rotation.y = facing;

@@ -74,6 +74,17 @@ export class Motion {
     this.name = name;
   }
 
+  /**
+   * Shows a clip at a share of the way through it (0 to 1), held there rather than played on:
+   * for a clip whose moment follows something else than time, as a roll follows how far he has
+   * come.
+   */
+  hold(name: string, share: number, how: Play = {}): void {
+    this.play(name, { ...how, once: true, pace: 0 });
+    const clip = this.clips.get(name);
+    if (this.name === name && this.playing && clip) this.playing.time = Math.max(0, Math.min(1, share)) * clip.duration;
+  }
+
   update(dt: number): void {
     this.mixer.update(dt);
   }

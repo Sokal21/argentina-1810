@@ -142,15 +142,45 @@ def heading(frame: float) -> float:
     return math.atan2(-left_.x, left_.y)
 
 
-# He ends facing the way he started: whatever the actor turned through by the end is taken back
-# a little each frame. (He came out of a roll turned a quarter round, and snapped back when he
-# walked on.)
-UNTURN = heading(first) - heading(last)
-UNTURN = (UNTURN + math.pi) % (2 * math.pi) - math.pi
-# And he starts facing the way he goes: an actor standing a little askew is set square to it.
-SQUARE = -heading(first)
+def tilt(frame: float) -> float:
+    """How far from upright the captured spine leans, in degrees."""
+    scene.frame_set(int(frame), subframe=frame - int(frame))
+    w = {pb.name: src.matrix_world @ pb.matrix for pb in src.pose.bones}
+    spine = (w[named('Neck')].to_translation() - w[named('Hips')].to_translation()).normalized()
+    return math.degrees(math.acos(max(-1.0, min(1.0, spine.z))))
+
+
+def lowest_hips() -> int:
+    return min(range(first, last + 1), key=lambda f: hips_at(f).z)
+
+
+# Standing he faces the way he goes: wherever the actor stands askew, before he goes down and
+# after he is up again, he is turned square to it, frame by frame; in between, while he rolls,
+# the turn is eased from the one to the other and the roll keeps its own. (Squared to how he
+# stood at the start, an actor who stood askew and lined up as he dived dived askew.)
+BOTTOM = lowest_hips()
+UPRIGHT_LEAN = 55
+DOWN = max([f for f in range(first, BOTTOM + 1) if tilt(f) < UPRIGHT_LEAN] or [first])
+UP = min([f for f in range(BOTTOM, last + 1) if tilt(f) < UPRIGHT_LEAN] or [last])
+SQUARES = {}
+
+
+def square(frame: float) -> float:
+    f = round(frame)
+    if f not in SQUARES:
+        if f <= DOWN or f >= UP:
+            SQUARES[f] = -heading(f)
+        else:
+            a, b = -heading(DOWN), -heading(UP)
+            b = a + (b - a + math.pi) % (2 * math.pi) - math.pi
+            SQUARES[f] = a + (b - a) * (f - DOWN) / (UP - DOWN)
+    return SQUARES[f]
+
+
+print(f'STANDING until {DOWN}, down at {BOTTOM}, up again from {UP}')
 for frame in range(length + 1):
     at = first + (last - first) * frame / length
+    turn_square = square(at)
     scene.frame_set(int(at), subframe=at - int(at))
     world = {pb.name: src.matrix_world @ pb.matrix for pb in src.pose.bones}
     # The hips' height over the ground (the capture's ground is z = 0), as the rig's legs make it.
@@ -169,7 +199,7 @@ for frame in range(length + 1):
             # bone's reference turn.
             # Posed as the capture is, seen along the way he travels; from its rest, seen as it faces.
             turned = ALONG @ world[theirs].to_3x3().normalized() @ src_rest_turn[theirs].inverted() @ ONTO.inverted()
-            turned = Matrix.Rotation(SQUARE + UNTURN * frame / length, 3, 'Z') @ turned
+            turned = Matrix.Rotation(turn_square, 3, 'Z') @ turned
             head = pb.matrix.to_translation()
             if name == 'Hip':
                 head = head + Vector((0, 0, lift))
@@ -192,6 +222,18 @@ for frame in range(length + 1):
     for pb in arm.pose.bones:
         pb.keyframe_insert('rotation_quaternion', frame=frame)
         pb.keyframe_insert('location', frame=frame)
+
+# How far along his way he has come at each frame, as a share of the whole: the game shows the
+# frame he had reached when he has come as far (--travel FILE.json), so he never slides.
+if '--travel' in opts:
+    import json
+    start = hips_at(first)
+    gone = [max(0.0, (ALONG @ (hips_at(first + (last - first) * k / length) - start)).x) for k in range(length + 1)]
+    for k in range(1, len(gone)):
+        gone[k] = max(gone[k], gone[k - 1])
+    whole = gone[-1] or 1
+    json.dump([round(g / whole, 4) for g in gone], open(opts['--travel'], 'w'))
+    print('TRAVEL', opts['--travel'])
 
 bpy.data.objects.remove(src)
 for a in [a for a in bpy.data.actions if a is not act]:
