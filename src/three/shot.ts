@@ -10,7 +10,9 @@ import { ground } from './space';
 // the blast: a ring opening over the ground as wide as the blast hurts, and dust.
 
 const FLASH = { colour: '#ffd27a', light: 9, reach: 160, life: 0.08, size: 9 };
-const SMOKE = { puffs: 9, life: 1.3, from: 3, to: 13, rise: 22, drift: 70, colour: '#b9b2a3' };
+// The smoke leaves the muzzle in a jet along the barrel, slows, swells and rises: born ahead of it
+// and spread wide, it did not seem to come from the muzzle.
+const SMOKE = { puffs: 10, life: 1.4, from: 1.5, to: 12, rise: 14, jet: 170, spread: 10, colour: '#b9b2a3' };
 const STREAK = { length: 46, colour: '#fff1c4' };
 const BLAST = { life: 0.45, colour: '#ffb45a', dust: 10, dustColour: '#a0906a', dustLife: 0.9 };
 
@@ -46,10 +48,10 @@ export class Shots {
     this.light.position.copy(muzzle);
     this.flash.position.copy(muzzle).addScaledVector(flat, 4);
     for (let i = 0; i < SMOKE.puffs; i++) {
-      const v = flat.clone().multiplyScalar(SMOKE.drift * (0.3 + Math.random() * 0.7))
-        .add(new THREE.Vector3((Math.random() - 0.5) * 30, SMOKE.rise * (0.5 + Math.random()), (Math.random() - 0.5) * 30));
+      const v = flat.clone().multiplyScalar(SMOKE.jet * (0.25 + Math.random() * 0.75))
+        .add(new THREE.Vector3((Math.random() - 0.5) * SMOKE.spread, SMOKE.rise * Math.random(), (Math.random() - 0.5) * SMOKE.spread));
       const mesh = new THREE.Mesh(this.puffShape, new THREE.MeshLambertMaterial({ color: SMOKE.colour, transparent: true, depthWrite: false }));
-      mesh.position.copy(muzzle).addScaledVector(flat, 6 + Math.random() * 6);
+      mesh.position.copy(muzzle).addScaledVector(flat, Math.random() * 2);
       mesh.rotation.set(Math.random() * 3, Math.random() * 3, 0);
       this.group.add(mesh);
       this.puffs.push({ mesh, t: 0, life: SMOKE.life * (0.7 + Math.random() * 0.5), v, from: SMOKE.from, to: SMOKE.to * (0.7 + Math.random() * 0.6) });
@@ -99,8 +101,9 @@ export class Shots {
       puff.t += dt;
       const s = puff.t / puff.life;
       puff.mesh.position.addScaledVector(puff.v, dt);
-      puff.v.multiplyScalar(Math.max(0, 1 - dt * 2.2));
-      puff.v.y += 6 * dt;
+      // The jet dies quickly; then it drifts up.
+      puff.v.multiplyScalar(Math.max(0, 1 - dt * 4));
+      puff.v.y += 9 * dt;
       puff.mesh.scale.setScalar(puff.from + (puff.to - puff.from) * (1 - (1 - s) * (1 - s)));
       (puff.mesh.material as THREE.MeshLambertMaterial).opacity = 0.85 * (1 - s);
     }

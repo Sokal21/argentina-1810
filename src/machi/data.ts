@@ -255,6 +255,8 @@ export interface Kit {
   dash?: { time: number; distance: number };
   /** Set for a character who brings a musket up slower or quicker than the usual: seconds it takes. */
   shoulder?: number;
+  /** And for one whose shot takes longer to come back from: seconds from the shot till it is slung. */
+  shot?: number;
 }
 
 /** A blow struck standing still, which lands on everything in a cone in front. */

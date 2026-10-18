@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Keys } from '../input';
 import { lands, MachiController } from '../machi/controller';
-import { ISO_Y, KITS, SHOT_TIME } from '../machi/data';
+import { ISO_Y, KITS } from '../machi/data';
 import { RUN, Stamina } from '../machi/stamina';
 import { pushOut, type Footprint } from '../world/footprint';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
@@ -91,9 +91,13 @@ country.feet.push(dummy.footprint);
 const { width, height } = extent(map);
 /** Seconds to draw the musket from his back to the shoulder: longer than the 2D game's 0.25, chosen by the user. */
 const DRAW = 0.45;
+/** Seconds from the shot until the musket is slung again: a big kick and a slow return, chosen by the user. */
+const SHOT = 0.8;
+/** The share of the shot's clip at which the musket goes back to his back (mosquete.py: frame 15 of 19). */
+const SLUNG = 0.72;
 // His kit, but with a speed and a dash of his own here: they are the look's (the panel's
 // "Movimiento" and "Rodada"), read every frame.
-const kit = { ...KITS.cabral, speed: 126, dash: { time: 0.8, distance: 170 }, shoulder: DRAW };
+const kit = { ...KITS.cabral, speed: 126, dash: { time: 0.8, distance: 170 }, shoulder: DRAW, shot: SHOT };
 const cabral = new MachiController({ minX: 12, maxX: width - 12, minY: 0, maxY: height }, kit);
 Object.assign(cabral, middle(map.start));
 // His model, once it has loaded; the figure of blocks until then, and on M to compare.
@@ -359,7 +363,7 @@ function advance(dt: number): void {
     else if (cabral.isShouldering && cabral.pose().sheet.startsWith('grenade')) motion.play('pitch_baseball', { once: true });
     else if (cabral.isShouldering && motion.has('mosquete_apuntar')) {
       // The musket: drawn from his back while it comes up, held aiming, then the shot and slinging it again.
-      if (fired !== null) motion.play('mosquete_disparo', { once: true, lasts: SHOT_TIME, afresh: fired === 0, blend: 0.03 });
+      if (fired !== null) motion.play('mosquete_disparo', { once: true, lasts: SHOT, afresh: fired === 0, blend: 0.03 });
       else if (shouldered < DRAW) motion.play('mosquete_sacar', { once: true, lasts: DRAW, afresh: shouldered === 0, blend: 0.06 });
       else motion.play('mosquete_apuntar', { blend: 0.05 });
     } else if (cabral.isShouldering) motion.play('shoot', { once: true });
@@ -381,7 +385,7 @@ function advance(dt: number): void {
   // halfway through slinging it.
   if (shaped) {
     const musket = cabral.isShouldering && !cabral.pose().sheet.startsWith('grenade');
-    const inHand = musket && (fired === null ? shouldered >= DRAW * 0.5 : fired < SHOT_TIME * 0.55);
+    const inHand = musket && (fired === null ? shouldered >= DRAW * 0.5 : fired < SHOT * SLUNG);
     const back = shaped.getObjectByName('mosquete'), hand = shaped.getObjectByName('mosquete_mano'), sabre = shaped.getObjectByName('sable');
     if (back) back.visible = !inHand;
     if (hand) hand.visible = inHand;

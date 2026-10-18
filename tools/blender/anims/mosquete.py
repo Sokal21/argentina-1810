@@ -1,10 +1,10 @@
 """Cabral's musket: drawn from his back to the shoulder, held aiming, and fired, then slung again.
-Three clips, timed as the game times them (src/machi/data.ts: SHOULDER_TIME, SHOT_TIME):
+Three clips, timed as the 3D game times them (src/three/main.ts: DRAW, SHOT):
 
     mosquete_sacar     0.25 s  his right hand goes up behind his shoulder, takes it, brings it round
     mosquete_apuntar   held    a marksman's stance: left foot forward, body side on, left hand
                                under the barrel, right at the wrist of the stock, cheek to it
-    mosquete_disparo   0.45 s  the kick, then the musket lowered and slung on his back again
+    mosquete_disparo   0.8 s   a big kick held a moment, a slow return to aim, then slung again
 
     Blender -b --python tools/blender/anims/mosquete.py -- RIG.glb OUT.glb
 
@@ -62,13 +62,22 @@ ROUND = {
     'R_Upperarm': plant(0.1, -0.12, 0.68, knee=(0, -1, -0.5)),
     'L_Upperarm': plant(0.22, 0.0, 0.63, knee=(0.2, 0.5, -1)),
 }
-# The kick: shoulder and muzzle thrown back and up, the head off the stock.
+# The kick: shoulder driven back, the muzzle thrown well up, the body rocked back on its heels and
+# the head off the stock. (A small kick read as nothing at all.)
 KICK = {
     **AIM,
-    'Spine01': [turn('z', -24), turn('y', -4)],
-    'Head': [turn('z', 36), turn('y', 2)],
-    'R_Upperarm': plant(0.12, -0.075, 0.7, knee=(-0.2, -1, -0.4)),
-    'L_Upperarm': plant(0.27, -0.06, 0.72, knee=(0.2, 0.4, -1)),
+    'Hip': [('move', (-0.014, 0, -0.01)), turn('z', -30)],
+    'Spine01': [turn('z', -26), turn('y', -12)],
+    'Head': [turn('z', 34), turn('y', -6)],
+    'R_Upperarm': plant(0.085, -0.075, 0.72, knee=(-0.2, -1, -0.4)),
+    'L_Upperarm': plant(0.2, -0.06, 0.815, knee=(0.2, 0.4, -1)),
+}
+# Settling from it, the muzzle coming down again.
+SETTLE = {
+    **AIM,
+    'Spine01': [turn('z', -23), turn('y', 1)],
+    'R_Upperarm': plant(0.13, -0.072, 0.69, knee=(-0.2, -1, -0.4)),
+    'L_Upperarm': plant(0.28, -0.057, 0.71, knee=(0.2, 0.4, -1)),
 }
 
 draw = rig.action('mosquete_sacar')
@@ -82,7 +91,8 @@ for frame in range(0, 49, 6):
     rig.key(hold, frame, {**AIM, 'Spine01': [turn('z', -22), turn('y', 6 + 0.8 * breath)]})
 
 fire = rig.action('mosquete_disparo')
-for frame, pose in [(0, AIM), (1, KICK), (3, AIM), (5, ROUND), (8, REACH), (11, EASE)]:
+# 19 frames, 0.8 s: kicked at once, held, brought slowly back down to aim, then slung.
+for frame, pose in [(0, AIM), (1, KICK), (3, KICK), (6, SETTLE), (9, AIM), (12, ROUND), (15, REACH), (19, EASE)]:
     rig.key(fire, frame, pose)
 
 rig.export(args[1])
