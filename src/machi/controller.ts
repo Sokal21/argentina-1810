@@ -183,6 +183,8 @@ export class MachiController {
 
   private get dashTime(): number { return this.kit.dash?.time ?? DASH_TIME; }
   private get dashDistance(): number { return this.kit.dash?.distance ?? DASH_DISTANCE; }
+  // How long this character takes to bring a musket up.
+  private get shoulderTime(): number { return this.kit.shoulder ?? SHOULDER_TIME; }
 
   get view(): View {
     if (this.straight) return this.faceY < 0 ? 'north' : 'south';
@@ -442,7 +444,7 @@ export class MachiController {
   // the shot is slung again.
   private updateGun(dt: number, gun: NonNullable<MachiController['gun']>): void {
     gun.t += dt;
-    if (gun.phase === 'raise' && gun.t >= SHOULDER_TIME) {
+    if (gun.phase === 'raise' && gun.t >= this.shoulderTime) {
       gun.phase = 'aim';
       gun.t = 0;
     }
@@ -613,7 +615,7 @@ export class MachiController {
       const name = drawn ? `${kind}_${view}` : `idle_${view}`;
       const s = this.kit.sheets[name];
       const step = !drawn ? 0
-        : phase === 'raise' ? Math.min(2, Math.floor(t / SHOULDER_TIME * 3))
+        : phase === 'raise' ? Math.min(2, Math.floor(t / this.shoulderTime * 3))
         : phase === 'aim' ? 3
         : Math.min(7, 4 + Math.floor(t / SHOT_TIME * 4));
       const frame = s.order && drawn ? s.order[step] : step;

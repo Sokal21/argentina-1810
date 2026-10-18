@@ -212,10 +212,17 @@ def musket_in_hand(armature: bpy.types.Object, action: str = 'mosquete_apuntar',
     The game shows it, and hides the one on his back, while he has it up."""
     before = armature.animation_data.action if armature.animation_data else None
     armature.animation_data_create()
-    armature.animation_data.action = bpy.data.actions[action]
+    act = bpy.data.actions[action]
+    armature.animation_data.action = act
+    # An action brought in from another file is bound to its own skeleton's slot; without binding
+    # it to this one it is not played, and the musket was set by the rest pose, arms down.
+    slots = getattr(act, 'slots', None)
+    if slots:
+        armature.animation_data.action_slot = slots[0]
     bpy.context.scene.frame_set(frame)
     bpy.context.view_layer.update()
     right = armature.matrix_world @ armature.pose.bones['R_Hand'].head
+    print('HAND MUSKET from', action, 'right hand at', tuple(round(v, 3) for v in right))
     left = armature.matrix_world @ armature.pose.bones['L_Hand'].head
     along = (left - right).normalized()
     gun = musket(armature)

@@ -253,6 +253,8 @@ export interface Kit {
   speed?: number;
   /** Set for a character whose dash is not the usual length: seconds it lasts and ground it covers. */
   dash?: { time: number; distance: number };
+  /** Set for a character who brings a musket up slower or quicker than the usual: seconds it takes. */
+  shoulder?: number;
 }
 
 /** A blow struck standing still, which lands on everything in a cone in front. */
