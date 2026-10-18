@@ -93,6 +93,10 @@ Plain shapes, flat colours (Blender's linear colour: darker than it looks), held
 (slung on Spine02), `musket_in_hand` (a second musket set along the shot in the aiming pose;
 **bind the action's slot** before measuring a pose: an action from another file is not played
 otherwise). The game shows one musket or the other and hides the sabre while aiming.
+**A gun in both hands is held by the right**: in every frame both hold it, turn the right wrist
+so the barrel runs to the left hand (`held` in `anims/mosquete.py`; keyed only at the poses, the
+eased frames between let the left hand off by 14 cm), and swap the back gun for the hand's where
+both hands are on it.
 
 ## A second character: everything is reused
 

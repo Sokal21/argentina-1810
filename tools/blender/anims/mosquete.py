@@ -15,6 +15,9 @@ import math
 import os
 import sys
 
+import bpy
+from mathutils import Matrix
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from keyframes import CABRAL, Rig, ahead, plant, turn  # noqa: E402
 
@@ -81,19 +84,60 @@ SETTLE = {
     'L_Upperarm': plant(0.28, -0.057, 0.71, knee=(0.2, 0.4, -1)),
 }
 
+# Both hands on the musket: it is held by the right hand, so the right wrist is turned, in every
+# pose where both are on it, so that the barrel runs to the left hand as it does in the aim (the
+# pose it was set by), and on the way there and back (ROUND), where the game puts it in his hands.
+# Left alone, the kick and the lowering turned the right hand otherwise and the barrel left the
+# left hand in the air.
+def hands(pose: dict) -> tuple:
+    rig.pose(pose)
+    bones = rig.arm.pose.bones
+    return (bones['R_Hand'].matrix.to_quaternion(),
+            (bones['L_Hand'].matrix.to_translation() - bones['R_Hand'].matrix.to_translation()).normalized())
+
+
+AIM_TURN, AIM_ALONG = hands(AIM)
+
+
+def gripped(pose: dict) -> dict:
+    _, along = hands(pose)
+    return {**pose, 'R_Hand': ('set', AIM_ALONG.rotation_difference(along) @ AIM_TURN)}
+
+
 draw = rig.action('mosquete_sacar')
 for frame, pose in [(0, EASE), (2, REACH), (4, ROUND), (6, AIM)]:
-    rig.key(draw, frame, pose)
+    rig.key(draw, frame, gripped(pose) if pose in (ROUND, AIM) else pose)
 
 hold = rig.action('mosquete_apuntar')
 for frame in range(0, 49, 6):
     # Steady, breathing a little.
     breath = math.sin(frame / 48 * 2 * math.pi)
-    rig.key(hold, frame, {**AIM, 'Spine01': [turn('z', -22), turn('y', 6 + 0.8 * breath)]})
+    rig.key(hold, frame, gripped({**AIM, 'Spine01': [turn('z', -22), turn('y', 6 + 0.8 * breath)]}))
 
 fire = rig.action('mosquete_disparo')
 # 19 frames, 0.8 s: kicked at once, held, brought slowly back down to aim, then slung.
 for frame, pose in [(0, AIM), (1, KICK), (3, KICK), (6, SETTLE), (9, AIM), (12, ROUND), (15, REACH), (19, EASE)]:
-    rig.key(fire, frame, pose)
+    rig.key(fire, frame, gripped(pose) if pose in (AIM, KICK, SETTLE, ROUND) else pose)
+
+
+def held(act, first: int, last: int) -> None:
+    # Between those keys Blender eases each bone on its own and the barrel drifted up to 14 cm off
+    # the left hand: the right wrist is keyed again on every frame both hands hold it.
+    rig.arm.animation_data.action = act
+    hand, was = rig.arm.pose.bones['R_Hand'], None
+    for frame in range(first, last + 1):
+        bpy.context.scene.frame_set(frame)
+        bones = rig.arm.pose.bones
+        along = (bones['L_Hand'].matrix.to_translation() - hand.matrix.to_translation()).normalized()
+        hand.matrix = Matrix.Translation(hand.matrix.to_translation()) @ (AIM_ALONG.rotation_difference(along) @ AIM_TURN).to_matrix().to_4x4()
+        bpy.context.view_layer.update()
+        if was is not None and hand.rotation_quaternion.dot(was) < 0:
+            hand.rotation_quaternion = -hand.rotation_quaternion
+        was = hand.rotation_quaternion.copy()
+        hand.keyframe_insert('rotation_quaternion', frame=frame)
+
+
+held(draw, 4, 6)
+held(fire, 0, 12)
 
 rig.export(args[1])

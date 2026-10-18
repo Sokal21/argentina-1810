@@ -14,6 +14,8 @@ spine carries the head and arms with it.
 - `ahead(x, y, z)`: point the bone along that direction (it is normalised).
 - `turn(axis, degrees)`: turn it about one of the rig's axes ('x' forward: he leans to his
   right; 'y' left: he leans forward; 'z' up: he looks to his left), on top of its parent.
+- `('set', quaternion)` turns a bone to exactly that, in the rig's axes (a hand holding a gun
+  between both hands: see anims/mosquete.py).
 - `Hip` may also be given a `'move'`: how far the whole body is shifted, in the rig's units.
 - A thigh may be given `plant(x, y, z)` instead: where its foot stands, in the rig's units. The
   thigh and calf are then turned (two-bone IK, the knee bending forward) so the foot is there,
@@ -165,6 +167,10 @@ class Rig:
                     self.reach(pb, move[1] + self.shift.get(name, Vector()), move[2])
                     continue
                 head = pb.matrix.to_translation()
+                if move[0] == 'set':
+                    pb.matrix = Matrix.Translation(head) @ move[1].to_matrix().to_4x4()
+                    bpy.context.view_layer.update()
+                    continue
                 if move[0] == 'ahead':
                     q = self.pointing(pb).rotation_difference(move[1])
                 else:

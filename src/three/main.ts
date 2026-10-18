@@ -93,8 +93,12 @@ const { width, height } = extent(map);
 const DRAW = 0.45;
 /** Seconds from the shot until the musket is slung again: a big kick and a slow return, chosen by the user. */
 const SHOT = 0.8;
-/** The share of the shot's clip at which the musket goes back to his back (mosquete.py: frame 15 of 19). */
-const SLUNG = 0.72;
+// The musket passes between his back and his hands where both hands hold it round in front of him
+// (mosquete.py's ROUND): any later, the left hand had already let go of it.
+/** The share of the draw at which the musket is in his hands (frame 4 of 6). */
+const DRAWN = 0.67;
+/** The share of the shot's clip at which the musket goes back to his back (frame 12 of 19). */
+const SLUNG = 0.63;
 // His kit, but with a speed and a dash of his own here: they are the look's (the panel's
 // "Movimiento" and "Rodada"), read every frame.
 const kit = { ...KITS.cabral, speed: 126, dash: { time: 0.8, distance: 170 }, shoulder: DRAW, shot: SHOT };
@@ -385,7 +389,7 @@ function advance(dt: number): void {
   // halfway through slinging it.
   if (shaped) {
     const musket = cabral.isShouldering && !cabral.pose().sheet.startsWith('grenade');
-    const inHand = musket && (fired === null ? shouldered >= DRAW * 0.5 : fired < SHOT * SLUNG);
+    const inHand = musket && (fired === null ? shouldered >= DRAW * DRAWN : fired < SHOT * SLUNG);
     const back = shaped.getObjectByName('mosquete'), hand = shaped.getObjectByName('mosquete_mano'), sabre = shaped.getObjectByName('sable');
     if (back) back.visible = !inHand;
     if (hand) hand.visible = inHand;
