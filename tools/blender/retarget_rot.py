@@ -67,6 +67,12 @@ def named(name: str) -> str:
     return next(b.name for b in src.data.bones if b.name.split(':')[-1] == name)
 
 
+# A spine of three (Mixamo's Spine, Spine1, Spine2, waist to chest) is given bone for bone to the
+# rig's three (Waist, Spine01, Spine02): passed one along, the chest took the middle of the back's
+# turn, the waist none, and the spine's twist gathered in one place, where it showed.
+if any(b.name.split(':')[-1] == 'Spine2' for b in src.data.bones):
+    PARTS = {**PARTS, 'Waist': 'Spine', 'Spine01': 'Spine1', 'Spine02': 'Spine2'}
+    NEXT = {**NEXT, 'Spine': 'Spine1', 'Spine1': 'Spine2', 'Spine2': 'Neck'}
 SRC = {ours: named(theirs) for ours, theirs in PARTS.items() if any(b.name.split(':')[-1] == theirs for b in src.data.bones)}
 SRC_NEXT = {named(a): named(b) for a, b in NEXT.items() if any(x.name.split(':')[-1] == a for x in src.data.bones)}
 
