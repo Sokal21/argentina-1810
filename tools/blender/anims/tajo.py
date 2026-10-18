@@ -144,7 +144,7 @@ def blend(a: dict, b: dict, k: float) -> dict:
     return out
 
 
-# The sweep, frames 4 to 8, is keyed every frame from one path, so that the blade draws a curve
+# The sweep is keyed every frame from one path, so that the blade draws a curve
 # instead of wandering between a few keys: the hand along a smooth arc from low on his left out
 # before him and up to his right (the arm reaching it by IK, the elbow out to his right), and the
 # blade turning steadily from point down, through point forward, to laid back over his shoulder.
@@ -164,7 +164,11 @@ REACH = 0.16
 # camera, a blade is a dot and seems to jump.
 BLADE = [Vector((0.1, 0.25, -1)).normalized(), Vector((1, -0.25, 0.2)).normalized(), Vector((-0.85, -0.3, 0.4)).normalized()]
 ELBOW = (0.0, -1.0, -0.6)
-KEYS = [(0, GUARD), (2, LIFT), (4, WIND), (5, STEP), (6, CUT), (8, FOLLOW), (10, BACK), (12, GUARD)]
+# The sweep takes frames 3 to 9, half the cut, the blow landing in its middle at frame 6 as the
+# game's does (0.26 s of 0.5): swept in four frames, the blade turned 90° a frame and seemed to
+# jump from place to place.
+SWEEP = (3, 9)
+KEYS = [(0, GUARD), (1.5, LIFT), (3, WIND), (4.5, STEP), (6, CUT), (9, FOLLOW), (10.5, BACK), (12, GUARD)]
 
 
 def body(frame: float) -> dict:
@@ -179,7 +183,7 @@ def hips_forward(pose: dict) -> float:
 
 
 def sweep(frame: int) -> dict:
-    t = (frame - 4) / 4                      # 0 at the start of the sweep, 1 at its end
+    t = (frame - SWEEP[0]) / (SWEEP[1] - SWEEP[0])   # 0 at the start of the sweep, 1 at its end
     pose = body(frame)
     a, b = HAND
     hand = a.lerp(b, t) + Vector((REACH * math.sin(math.pi * t), 0, 0))
@@ -193,7 +197,7 @@ def sweep(frame: int) -> dict:
 
 
 for frame in range(13):
-    pose = sweep(frame) if 4 <= frame <= 8 else body(frame)
+    pose = sweep(frame) if SWEEP[0] <= frame <= SWEEP[1] else body(frame)
     rig.key(act, frame, pose)
 
 rig.export(args[1])

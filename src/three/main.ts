@@ -10,6 +10,7 @@ import { CABRAL_DRESS, figure, model, type Dress } from './figure';
 import { mountHud, type Readings } from './hud';
 import { ground, heading } from './space';
 import { Motion } from './motion';
+import { Trail } from './trail';
 import { mountPanel } from './panel';
 import { View } from './view';
 import { raiseCountry } from './world';
@@ -65,6 +66,7 @@ let body: THREE.Object3D = blocks;
 view.scene.add(body);
 const wear = (next: THREE.Object3D) => { view.scene.remove(body); body = next; view.scene.add(body); };
 let motion: Motion | null = null;
+let trail: Trail | null = null;
 /** How far his trot carries him in a second at its own speed, in world units. */
 /**
  * How he goes: a walk from CMU's motion capture (07_01), chosen by the user out of the others in
@@ -75,6 +77,12 @@ let gait = { name: 'run', reach: 0 };
 void model('cabral/3d/cabral_animado.glb', CABRAL_DRESS.drawn).then(loaded => {
   shaped = loaded;
   motion = new Motion(loaded);
+  // The arc his sabre leaves as he cuts, from just past the guard to the point.
+  const blade = loaded.getObjectByName('sable');
+  if (blade) {
+    trail = new Trail(blade, 0.06, 0.34);
+    view.scene.add(trail.mesh);
+  }
   // Measured in his own units, which are grown to his height.
   const name = motion.has(GAIT) ? GAIT : 'run';
   gait = { name, reach: motion.reach(name, 'L_Foot') * loaded.scale.x };
@@ -124,10 +132,21 @@ tell();
 
 let last = performance.now();
 let wasSwinging = false;
+/** How long into the cut he is. */
+let swung = 0;
 const step = (now: number) => {
   // A long frame (the tab in the background) must not carry him off.
-  const dt = Math.min(0.05, (now - last) / 1000);
+  // `slow` (from the console while developing) plays the game slower: 0 stops it, and `tick`
+  // then moves it on by exactly so long, to look at a blow frame by frame.
+  const dt = Math.min(0.05, (now - last) / 1000) * ((globalThis as { slow?: number }).slow ?? 1);
   last = now;
+  advance(dt);
+  requestAnimationFrame(step);
+};
+requestAnimationFrame(step);
+if (import.meta.env.DEV) Object.assign(globalThis, { tick: (seconds: number) => advance(seconds) });
+
+function advance(dt: number): void {
   const input = keys.read();
   // The arrows cut the way they point, wherever he is walking, as in the 2D game.
   const arrows = keys.attacking;
@@ -176,14 +195,17 @@ const step = (now: number) => {
     else motion.play(motion.has('reposo') ? 'reposo' : 'idle');
     motion.update(dt);
   }
+  swung = cabral.isSwinging ? (wasSwinging ? swung + dt : 0) : 0;
   wasSwinging = cabral.isSwinging;
   body.position.copy(ground(cabral.x, cabral.y));
   body.rotation.y = facing;
   view.follow(body.position);
+  // The cut's arc, from where his blade is now: only while it sweeps (frames 3 to 9 of 12), not as
+  // he winds up or comes back to guard.
+  body.updateMatrixWorld(true);
+  trail?.update(swung > SWING * 3 / 12 && swung < SWING * 9 / 12);
   view.draw();
-  requestAnimationFrame(step);
-};
-requestAnimationFrame(step);
+}
 
 // Handy from the browser console while developing.
-if (import.meta.env.DEV) Object.assign(globalThis, { view, cabral, THREE });
+if (import.meta.env.DEV) Object.assign(globalThis, { view, cabral, THREE, trail: () => trail });

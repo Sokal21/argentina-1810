@@ -42,7 +42,7 @@ def box(name: str, size: tuple, at: tuple, colour: tuple, mat: str, turn: float 
     return o
 
 
-def curved_blade(length: float = 0.30, sections: int = 8) -> bpy.types.Object:
+def curved_blade(length: float = 0.31, sections: int = 8) -> bpy.types.Object:
     """A blade along +X from just past the guard: its flat face upright, curving down toward the
     point and narrowing to it, as one smooth piece."""
     verts, faces = [], []
@@ -50,8 +50,10 @@ def curved_blade(length: float = 0.30, sections: int = 8) -> bpy.types.Object:
         k = i / sections
         x = 0.03 + length * k
         mid = -0.035 * k * k
-        half = 0.007 * (1 - 0.7 * k)
-        for y in (-0.002, 0.002):
+        # Broad and thick for a blade: in the game Cabral is ~80 pixels tall, and a true blade's
+        # breadth is under a pixel, read as a broken line of dots that came and went.
+        half = 0.016 * (1 - 0.6 * k)
+        for y in (-0.006, 0.006):
             verts += [(x, y, mid - half), (x, y, mid + half)]
     for i in range(sections):
         a, b = i * 4, (i + 1) * 4
