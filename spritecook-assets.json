@@ -2244,6 +2244,18 @@
       "sha12": "e3dbfa2a426d",
       "label": "cabral 3D turnaround D — not chosen: painted grime and shading, ground line",
       "file": "assets/cabral/3d/giro_d.png"
+    },
+    {
+      "asset_id": "4bb69350-15bd-4b4a-9940-8d992a618dc8",
+      "sha12": "da40b6c4225e",
+      "label": "realista 3D turnaround A — CHOSEN: A-pose, flat colours, sabre clear of the legs",
+      "file": "assets/realista/3d/giro_a.png"
+    },
+    {
+      "asset_id": "c1d912bb-b4db-4c4b-b9d2-e0133ee322ba",
+      "sha12": "87d4b7d7639d",
+      "label": "realista 3D turnaround B — not chosen: sabre across the legs in the back view, ground line",
+      "file": "assets/realista/3d/giro_b.png"
     }
   ]
 }
