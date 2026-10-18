@@ -43,10 +43,8 @@ for frame in range(0, LENGTH + 1, STEP):
         # right hangs loose and swings as he shifts, the elbow giving with it.
         'L_Upperarm': [ahead(0.18, 0.22, -1), turn('y', -4 * sway)],
         'L_Forearm': [ahead(0.4, 0.04, -1), turn('y', -6 * sway)],
-        'L_Hand': ahead(0.3, -0.08, -1),
         'R_Upperarm': [ahead(0.06, -0.2, -1), turn('y', -9 * sway), turn('x', 3 * weight)],
         'R_Forearm': [ahead(0.3, -0.1, -1), turn('y', -12 * sway - 6 * breath)],
-        'R_Hand': ahead(0.25, -0.05, -1),
     })
 
 rig.export(args[1])

@@ -64,15 +64,20 @@ view.scene.add(body);
 const wear = (next: THREE.Object3D) => { view.scene.remove(body); body = next; view.scene.add(body); };
 let motion: Motion | null = null;
 /** How far his trot carries him in a second at its own speed, in world units. */
-let trot = 0;
-let stepping = 'run';
+/**
+ * The ways he can go, to be chosen between on C: his trot keyed in Blender, walks and a run taken
+ * from CMU's motion capture, and the library's run and walk.
+ */
+const GAITS = ['trote', 'cmu_35_01', 'cmu_08_01', 'cmu_07_01', 'cmu_35_22', 'run', 'walk'];
+let gaits: { name: string; reach: number }[] = [];
+let gait = 0;
 void model('cabral/3d/cabral_animado.glb', CABRAL_DRESS.drawn).then(loaded => {
   shaped = loaded;
   motion = new Motion(loaded);
   // Measured in his own units, which are grown to his height.
-  // His own trot, made in Blender; the library's run if it is missing.
-  stepping = motion.has('trote') ? 'trote' : 'run';
-  trot = motion.reach(stepping, 'L_Foot') * loaded.scale.x;
+  // His ways of going, each with how far it carries him, to try them against each other on C.
+  gaits = GAITS.filter(name => motion!.has(name)).map(name => ({ name, reach: motion!.reach(name, 'L_Foot') * loaded.scale.x }));
+  tell();
   wear(loaded);
 });
 
@@ -101,9 +106,9 @@ const readings: Readings = {
 const hud = mountHud(document.getElementById('hud')!, readings);
 
 // While trying it out: 1 the pixels or a plain scene, 2 the edge lines, [ and ] the size of a
-// pixel, H the HUD, M his model or his figure of blocks, K he falls or gets up.
+// pixel, H the HUD, M his model or his figure of blocks, K he falls or gets up, C his next gait.
 const told = document.getElementById('told')!;
-const tell = () => { told.textContent = `${view.pixelated ? `pixel ${view.pixel}` : 'sin pixel'} · bordes ${view.edges ? 'sí' : 'no'} · 1 pixel · 2 bordes · [ ] tamaño · H HUD · M modelo o muñeco · Q mosquete · E granada · K morir`; };
+const tell = () => { told.textContent = `${view.pixelated ? `pixel ${view.pixel}` : 'sin pixel'} · bordes ${view.edges ? 'sí' : 'no'} · 1 pixel · 2 bordes · [ ] tamaño · H HUD · M modelo o muñeco · Q mosquete · E granada · K morir · C andar: ${gaits[gait]?.name ?? '…'}`; };
 addEventListener('keydown', e => {
   if (e.repeat) return;
   if (e.code === 'Digit1') view.pixelated = !view.pixelated;
@@ -111,7 +116,8 @@ addEventListener('keydown', e => {
   else if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
     view.pixel = Math.max(1, Math.min(8, view.pixel + (e.code === 'BracketLeft' ? -1 : 1)));
     view.fit();
-  } else if (e.code === 'KeyK') {
+  } else if (e.code === 'KeyC' && gaits.length) gait = (gait + 1) % gaits.length;
+  else if (e.code === 'KeyK') {
     if (fallen) cabral.rise(); else cabral.fall();
     fallen = !fallen;
   } else if (e.code === 'KeyM' && shaped) wear(body === shaped ? blocks : shaped);
@@ -160,7 +166,10 @@ const step = (now: number) => {
     else if (cabral.isSwinging) motion.play('slash', { once: true, lasts: SWING, afresh: !wasSwinging });
     else if (cabral.isShouldering) motion.play(cabral.pose().sheet.startsWith('grenade') ? 'pitch_baseball' : 'shoot', { once: true });
     // His trot keeps step with the ground: played as fast as he goes, however fast that is.
-    else if (cabral.isMoving) motion.play(stepping, { pace: trot ? Math.max(LEAST_PACE, going / trot) : 1 });
+    else if (cabral.isMoving) {
+      const { name, reach } = gaits[gait] ?? { name: 'run', reach: 0 };
+      motion.play(name, { pace: reach ? Math.max(LEAST_PACE, going / reach) : 1 });
+    }
     // Standing: his own at-ease, made in Blender; the library's if it is missing.
     else motion.play(motion.has('reposo') ? 'reposo' : 'idle');
     motion.update(dt);

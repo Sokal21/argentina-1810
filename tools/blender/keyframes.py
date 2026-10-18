@@ -55,6 +55,20 @@ class Rig:
         for pb in self.arm.pose.bones:
             pb.rotation_mode = 'QUATERNION'
 
+    def pointing(self, pb: bpy.types.PoseBone) -> Vector:
+        """Which way a bone points now: from its joint to the next joint along the limb.
+
+        Not the bone's own axis: glTF has no bone ends, and the ones Blender makes up on import
+        point elsewhere (a forearm's toward nothing in particular), so aiming the axis left the
+        arms bent forward. The next joint is its child that is not a twist bone. A bone without one
+        (a hand) falls back on its axis, which is not where the hand points: do not aim hands,
+        turn them a little or leave them to follow the forearm."""
+        ends = [c for c in pb.children if 'Twist' not in c.name and (c.head - pb.head).length > 1e-4]
+        if not ends:
+            return (pb.matrix.to_3x3() @ Vector((0, 1, 0))).normalized()
+        end = min(ends, key=lambda c: (c.bone.head_local - pb.bone.head_local).length)
+        return (end.matrix.to_translation() - pb.matrix.to_translation()).normalized()
+
     def action(self, name: str) -> bpy.types.Action:
         act = bpy.data.actions.new(name)
         act.use_fake_user = True
@@ -82,8 +96,7 @@ class Rig:
                     continue
                 head = pb.matrix.to_translation()
                 if move[0] == 'ahead':
-                    now = (pb.matrix.to_3x3() @ Vector((0, 1, 0))).normalized()
-                    q = now.rotation_difference(move[1])
+                    q = self.pointing(pb).rotation_difference(move[1])
                 else:
                     q = move[1]
                 pb.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ pb.matrix
