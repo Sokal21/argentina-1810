@@ -1,6 +1,6 @@
 """Make a rigged, animated model ready for the 3D game, in Blender without a window.
 
-    Blender -b --python tools/blender/prepare_rigged.py -- OUT.glb MAIN.glb [MORE.glb ...] [--front +z] [--colors 16] [--texture 512]
+    Blender -b --python tools/blender/prepare_rigged.py -- OUT.glb MAIN.glb [MORE.glb ...] [--front +z] [--colors 16] [--texture 512] [--carries sabre]
 
 Tripo gives each batch of animations as a whole model of its own, the same skeleton in each. This
 keeps MAIN's skeleton and mesh, takes every animation out of all of them (by its own name, which
@@ -11,6 +11,7 @@ Tripo leaves in its files.
   looks as given with --front: a rigged model from Tripo looks along glTF +Z already.
 - Feet at the origin and one unit tall in its rest pose: the game grows it to its drawn height.
 - Flattens the texture as tools/blender/flatten.py does.
+- Gives it what it carries (--carries, from props.py, comma separated), held by its bone.
 - Exports one GLB with every animation as its own clip.
 """
 import os
@@ -22,6 +23,7 @@ from mathutils import Matrix, Vector
 
 sys.path.append(os.path.dirname(__file__))
 from flatten import flatten  # noqa: E402
+import props  # noqa: E402
 
 args = sys.argv[sys.argv.index('--') + 1:]
 files = [a for a in args if not a.startswith('--') and (args.index(a) == 0 or not args[args.index(a) - 1].startswith('--'))]
@@ -65,6 +67,10 @@ if armature.animation_data:
 for bone in armature.pose.bones:
     bone.matrix_basis = Matrix.Identity(4)
 bpy.context.view_layer.update()
+
+# What it carries, placed in the rig's own axes before it is turned.
+for prop in filter(None, opts.get('--carries', '').split(',')):
+    getattr(props, prop)(armature)
 
 # Blender is Z up and Y back: glTF's +X forward is Blender's +X; +Z, the target, is Blender's -Y.
 TURN = {'+x': -90, '-x': 90, '+z': 0, '-z': 180}[FRONT]

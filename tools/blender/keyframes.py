@@ -15,6 +15,9 @@ spine carries the head and arms with it.
 - `turn(axis, degrees)`: turn it about one of the rig's axes ('x' forward: he leans to his
   right; 'y' left: he leans forward; 'z' up: he looks to his left), on top of its parent.
 - `Hip` may also be given a `'move'`: how far the whole body is shifted, in the rig's units.
+- What the rig carries (`carries=('sabre',)`) may be given an `ahead(...)` under its own name:
+  the bone holding it turns so that the thing's length (its +X) points that way. Aim the blade
+  this way rather than turning the hand, whose axis is made up.
 
 Bones are keyed in the order of the skeleton, parents first; between keys Blender eases.
 """
@@ -35,7 +38,8 @@ def turn(axis: str, degrees: float) -> tuple:
 
 
 class Rig:
-    def __init__(self, path: str, fps: int = 24):
+    def __init__(self, path: str, fps: int = 24, carries: tuple = ()):
+        """`carries` names what the rig holds, from props.py ('sabre'), so the strips show it."""
         bpy.ops.wm.read_factory_settings(use_empty=True)
         bpy.ops.import_scene.gltf(filepath=path)
         self.arm = next(o for o in bpy.data.objects if o.type == 'ARMATURE')
@@ -54,6 +58,8 @@ class Rig:
                 walk(bone)
         for pb in self.arm.pose.bones:
             pb.rotation_mode = 'QUATERNION'
+        import props
+        self.held = {prop: getattr(props, prop)(self.arm) for prop in carries}
 
     def pointing(self, pb: bpy.types.PoseBone) -> Vector:
         """Which way a bone points now: from its joint to the next joint along the limb.
@@ -101,6 +107,17 @@ class Rig:
                     q = move[1]
                 pb.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ pb.matrix
                 bpy.context.view_layer.update()
+        # What is carried, pointed by turning the bone that holds it.
+        for name, thing in getattr(self, 'held', {}).items():
+            move = spec.get(name)
+            if not move:
+                continue
+            pb = self.arm.pose.bones[thing.parent_bone]
+            now = (thing.matrix_world.to_3x3() @ Vector((1, 0, 0))).normalized()
+            q = now.rotation_difference(move[1])
+            head = pb.matrix.to_translation()
+            pb.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ pb.matrix
+            bpy.context.view_layer.update()
 
     def key(self, act: bpy.types.Action, frame: int, spec: dict) -> None:
         """Poses the rig and keys every bone at a frame."""
