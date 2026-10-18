@@ -2089,6 +2089,8 @@ export class GameScene extends Phaser.Scene {
       this.look.crt = fx.crt ? 1 : 0;
       this.look.snow = fx.snow ? 1 : 0;
       this.look.leaves = fx.leaves ? 1 : 0;
+      this.look.finish = fx.finish ? 1 : 0;
+      this.look.outline = fx.outline ? 1 : 0;
       this.look.scrollX = cam.worldView.x;
       this.look.scrollY = cam.worldView.y;
       this.look.lightX = (x - cam.worldView.x) * cam.zoom;
