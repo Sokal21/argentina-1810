@@ -16,10 +16,10 @@ import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from keyframes import Rig, ahead, plant, turn  # noqa: E402
+from keyframes import CABRAL, Rig, ahead, plant, turn  # noqa: E402
 
 args = sys.argv[sys.argv.index('--') + 1:]
-rig = Rig(args[0], carries=('sabre', 'musket'))
+rig = Rig(args[0], carries=('sabre', 'musket'), written_for=CABRAL)
 
 LEFT_FOOT, RIGHT_FOOT = (0.1, 0.085, 0.008), (-0.03, -0.09, 0.008)
 STAND_L, STAND_R = (0.05, 0.085, 0.008), (0.03, -0.08, 0.008)

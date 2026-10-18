@@ -52,9 +52,28 @@ def turn(axis: str, degrees: float) -> tuple:
     return ('turn', Quaternion(AXES[axis], math.radians(degrees)))
 
 
+# Cabral's rig, the body the hand-keyed clips' points were measured on.
+CABRAL = 'assets/cabral/3d/tripo/2d9c6e0f-10ec-4f38-b2f7-d67283b4c302_model_url.glb'
+AT_ITS_END = {'Upperarm': 'Upperarm', 'Thigh': 'Foot'}
+
+
+def rest_joints(arm: bpy.types.Object) -> dict:
+    """Where each shoulder and ankle of a rig stands at rest, by the bone planted from it."""
+    return {f'{side}_{bone}': arm.matrix_world @ arm.data.bones[f'{side}_{joint}'].head_local
+            for side in 'LR' for bone, joint in AT_ITS_END.items()}
+
+
 class Rig:
-    def __init__(self, path: str, fps: int = 24, carries: tuple = ()):
-        """`carries` names what the rig holds, from props.py ('sabre'), so the strips show it."""
+    def __init__(self, path: str, fps: int = 24, carries: tuple = (), written_for: str = None):
+        """`carries` names what the rig holds, from props.py ('sabre'), so the strips show it.
+        `written_for` is the rig a script's planted points were measured on: on another body each
+        hand's point moves as far as its shoulder stands from that rig's, and each foot's as far
+        as its ankle, so a taller man raises the musket to his own shoulder."""
+        theirs = {}
+        if written_for:
+            bpy.ops.wm.read_factory_settings(use_empty=True)
+            bpy.ops.import_scene.gltf(filepath=written_for)
+            theirs = rest_joints(next(o for o in bpy.data.objects if o.type == 'ARMATURE'))
         bpy.ops.wm.read_factory_settings(use_empty=True)
         bpy.ops.import_scene.gltf(filepath=path)
         self.arm = next(o for o in bpy.data.objects if o.type == 'ARMATURE')
@@ -75,6 +94,8 @@ class Rig:
             pb.rotation_mode = 'QUATERNION'
         import props
         self.held = {prop: getattr(props, prop)(self.arm) for prop in carries}
+        ours = rest_joints(self.arm)
+        self.shift = {name: ours[name] - theirs[name] for name in theirs}
 
     def turn_to(self, pb: bpy.types.PoseBone, way: Vector) -> None:
         """Turns a bone about its joint so it points `way`."""
@@ -141,7 +162,7 @@ class Rig:
                     bpy.context.view_layer.update()
                     continue
                 if move[0] == 'plant':
-                    self.reach(pb, move[1], move[2])
+                    self.reach(pb, move[1] + self.shift.get(name, Vector()), move[2])
                     continue
                 head = pb.matrix.to_translation()
                 if move[0] == 'ahead':

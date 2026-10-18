@@ -13,10 +13,10 @@ import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from keyframes import Rig, ahead, cocked, plant, turn  # noqa: E402
+from keyframes import CABRAL, Rig, ahead, cocked, plant, turn  # noqa: E402
 
 args = sys.argv[sys.argv.index('--') + 1:]
-rig = Rig(args[0], carries=('sabre',))
+rig = Rig(args[0], carries=('sabre',), written_for=CABRAL)
 act = rig.action('tajo')
 
 # Where the feet stand, in the rig's units (he is ~0.75 tall): the left stays planted the whole
