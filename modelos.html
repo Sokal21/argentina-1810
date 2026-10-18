@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>1810: Argentina · Modelos</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<style>
+  html, body { margin: 0; height: 100%; background: #14110f; overflow: hidden; }
+  #world { position: fixed; inset: 0; }
+  #world canvas { display: block; }
+  #bar {
+    position: fixed; left: 8px; right: 8px; bottom: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    color: #cdbfa3; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; text-shadow: 0 1px 0 #000; user-select: none;
+  }
+  #bar button {
+    font: inherit; color: #f0e3c4; background: #241d17; border: 1px solid #6b5c44; border-radius: 3px; padding: 3px 8px; cursor: pointer;
+  }
+  #bar button.on { background: #6b5c44; }
+  #bar label { display: inline-flex; gap: 4px; align-items: center; margin-left: 8px; }
+  #told { position: fixed; left: 8px; top: 6px; color: #cdbfa3; font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; text-shadow: 0 1px 0 #000; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="world"></div>
+<div id="told"></div>
+<div id="bar"></div>
+<script type="module" src="/src/three/modelos.ts"></script>
+</body>
+</html>
