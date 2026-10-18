@@ -15,6 +15,10 @@ spine carries the head and arms with it.
 - `turn(axis, degrees)`: turn it about one of the rig's axes ('x' forward: he leans to his
   right; 'y' left: he leans forward; 'z' up: he looks to his left), on top of its parent.
 - `Hip` may also be given a `'move'`: how far the whole body is shifted, in the rig's units.
+- A thigh may be given `plant(x, y, z)` instead: where its foot stands, in the rig's units. The
+  thigh and calf are then turned (two-bone IK, the knee bending forward) so the foot is there,
+  wherever the hips have gone: a foot that is planted stays put, and one stepped puts down where
+  it is told. Use it whenever the hips move or turn with the feet on the ground.
 - What the rig carries (`carries=('sabre',)`) may be given an `ahead(...)` under its own name:
   the bone holding it turns so that the thing's length (its +X) points that way. Aim the blade
   this way rather than turning the hand, whose axis is made up.
@@ -31,6 +35,10 @@ AXES = {'x': Vector((1, 0, 0)), 'y': Vector((0, 1, 0)), 'z': Vector((0, 0, 1))}
 
 def ahead(x: float, y: float, z: float) -> tuple:
     return ('ahead', Vector((x, y, z)).normalized())
+
+
+def plant(x: float, y: float, z: float, knee: tuple = (1, 0, 0)) -> tuple:
+    return ('plant', Vector((x, y, z)), Vector(knee).normalized())
 
 
 def turn(axis: str, degrees: float) -> tuple:
@@ -60,6 +68,31 @@ class Rig:
             pb.rotation_mode = 'QUATERNION'
         import props
         self.held = {prop: getattr(props, prop)(self.arm) for prop in carries}
+
+    def turn_to(self, pb: bpy.types.PoseBone, way: Vector) -> None:
+        """Turns a bone about its joint so it points `way`."""
+        q = self.pointing(pb).rotation_difference(way.normalized())
+        head = pb.matrix.to_translation()
+        pb.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ pb.matrix
+        bpy.context.view_layer.update()
+
+    def reach(self, thigh: bpy.types.PoseBone, foot: Vector, knee: Vector) -> None:
+        """Turns a thigh and its calf so the ankle is at `foot`, the knee bending toward `knee`."""
+        calf = next(c for c in thigh.children if 'Twist' not in c.name)
+        ankle = next(c for c in calf.children if 'Twist' not in c.name)
+        upper = (calf.bone.head_local - thigh.bone.head_local).length
+        lower = (ankle.bone.head_local - calf.bone.head_local).length
+        hip = thigh.matrix.to_translation()
+        to = foot - hip
+        far = min(to.length, (upper + lower) * 0.999)
+        along = to.normalized()
+        # How far along the line from hip to foot the knee comes, and how far out from it.
+        a = (upper * upper - lower * lower + far * far) / (2 * far)
+        out = math.sqrt(max(0.0, upper * upper - a * a))
+        side = (knee - along * knee.dot(along)).normalized()
+        bend = hip + along * a + side * out
+        self.turn_to(thigh, bend - hip)
+        self.turn_to(calf, hip + along * far - bend)
 
     def pointing(self, pb: bpy.types.PoseBone) -> Vector:
         """Which way a bone points now: from its joint to the next joint along the limb.
@@ -99,6 +132,9 @@ class Rig:
                     offset = Vector(move[1])
                     pb.matrix = Matrix.Translation(offset) @ pb.matrix
                     bpy.context.view_layer.update()
+                    continue
+                if move[0] == 'plant':
+                    self.reach(pb, move[1], move[2])
                     continue
                 head = pb.matrix.to_translation()
                 if move[0] == 'ahead':

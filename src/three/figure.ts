@@ -77,6 +77,8 @@ export async function model(url: string, drawn: number): Promise<THREE.Group> {
       was.map.minFilter = was.map.magFilter = THREE.NearestFilter;
       material.map = was.map;
     } else material.color.copy(was.color);
+    // Thin things (a blade) are drawn from both sides, as the model asks.
+    material.side = was.side;
     node.material = material;
     node.castShadow = node.receiveShadow = true;
     // A body that moves can leave the box it was measured in at rest.

@@ -25,6 +25,8 @@ def material(name: str, colour: tuple) -> bpy.types.Material:
     bsdf.inputs['Base Color'].default_value = colour
     bsdf.inputs['Roughness'].default_value = 1
     m.diffuse_color = colour
+    # Drawn from both sides: a blade is thin enough to be seen edge on from either.
+    m.use_backface_culling = False
     return m
 
 
@@ -59,6 +61,14 @@ def curved_blade(length: float = 0.30, sections: int = 8) -> bpy.types.Object:
     faces += [(0, 1, 3, 2), (sections * 4, sections * 4 + 2, sections * 4 + 3, sections * 4 + 1)]
     mesh = bpy.data.meshes.new('hoja')
     mesh.from_pydata(verts, [], faces)
+    # Every face turned outward: one turned in is not drawn from the side it faces, and the blade
+    # was seen through from his left.
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
     mesh.materials.append(material('acero', STEEL))
     o = bpy.data.objects.new('hoja', mesh)
     bpy.context.scene.collection.objects.link(o)
