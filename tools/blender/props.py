@@ -204,3 +204,35 @@ def musket(armature: bpy.types.Object, bone: str = 'Spine02') -> bpy.types.Objec
     gun.parent_bone = bone
     gun.matrix_world = world
     return gun
+
+
+def musket_in_hand(armature: bpy.types.Object, action: str = 'mosquete_apuntar', frame: int = 0) -> bpy.types.Object:
+    """A second musket, held in the right hand: set along the line of the shot as the rig stands
+    in `action` at `frame` (the aiming pose), its butt at the shoulder, and kept there by the hand.
+    The game shows it, and hides the one on his back, while he has it up."""
+    before = armature.animation_data.action if armature.animation_data else None
+    armature.animation_data_create()
+    armature.animation_data.action = bpy.data.actions[action]
+    bpy.context.scene.frame_set(frame)
+    bpy.context.view_layer.update()
+    right = armature.matrix_world @ armature.pose.bones['R_Hand'].head
+    left = armature.matrix_world @ armature.pose.bones['L_Hand'].head
+    along = (left - right).normalized()
+    gun = musket(armature)
+    gun.name = 'mosquete_mano'
+    gun.parent = None
+    # Level across, its top up: the stock against the shoulder, a hand's breadth behind the right hand.
+    side = along.cross(Vector((0, 0, 1))).normalized()
+    up = side.cross(along).normalized()
+    butt = right - along * 0.12 + up * 0.012
+    gun.matrix_world = Matrix.Translation(butt) @ Matrix((along, -side, up)).transposed().to_4x4()
+    world = gun.matrix_world.copy()
+    gun.parent = armature
+    gun.parent_type = 'BONE'
+    gun.parent_bone = 'R_Hand'
+    gun.matrix_world = world
+    armature.animation_data.action = before
+    for pb in armature.pose.bones:
+        pb.matrix_basis = Matrix.Identity(4)
+    bpy.context.view_layer.update()
+    return gun

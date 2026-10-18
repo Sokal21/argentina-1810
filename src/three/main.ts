@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Keys } from '../input';
 import { lands, MachiController } from '../machi/controller';
-import { ISO_Y, KITS } from '../machi/data';
+import { ISO_Y, KITS, SHOT_TIME, SHOULDER_TIME } from '../machi/data';
 import { RUN, Stamina } from '../machi/stamina';
 import { pushOut, type Footprint } from '../world/footprint';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
@@ -182,6 +182,8 @@ tell();
 let last = performance.now();
 let wasSwinging = false;
 let wasDashing = false;
+/** How long the musket has been coming up or held, and how long since it was fired (null: not yet). */
+let shouldered = 0, fired: number | null = null;
 /** How long into the cut he is. */
 let swung = 0;
 const step = (now: number) => {
@@ -217,7 +219,11 @@ function advance(dt: number): void {
   if (arm) {
     // Aimed straight ahead of him, until the pointer is wired in.
     cabral.shoulder({ x: cabral.x + Math.sin(facing) * 100, y: cabral.y + Math.cos(facing) * 100 * ISO_Y }, arm);
-  } else if (arming) cabral.fire();
+  } else if (arming) {
+    cabral.fire();
+    if (arming === 'musket') fired = 0;
+  }
+  if (arm === 'musket' && arming !== 'musket') { shouldered = 0; fired = null; }
   arming = arm;
   cabral.update(dt, input);
   intoDash = () => (cabral.isDashing ? (wasDashing ? dashing + dt : dt) : 0);
@@ -272,7 +278,13 @@ function advance(dt: number): void {
     }
     // His own cut, keyed in Blender to land when the game's blow does; the library's if it is missing.
     else if (cabral.isSwinging) motion.play(motion.has('tajo') ? 'tajo' : 'slash', { once: true, lasts: SWING, afresh: !wasSwinging, blend: 0.05 });
-    else if (cabral.isShouldering) motion.play(cabral.pose().sheet.startsWith('grenade') ? 'pitch_baseball' : 'shoot', { once: true });
+    else if (cabral.isShouldering && cabral.pose().sheet.startsWith('grenade')) motion.play('pitch_baseball', { once: true });
+    else if (cabral.isShouldering && motion.has('mosquete_apuntar')) {
+      // The musket: drawn from his back while it comes up, held aiming, then the shot and slinging it again.
+      if (fired !== null) motion.play('mosquete_disparo', { once: true, lasts: SHOT_TIME, afresh: fired === 0, blend: 0.03 });
+      else if (shouldered < SHOULDER_TIME) motion.play('mosquete_sacar', { once: true, lasts: SHOULDER_TIME, afresh: shouldered === 0, blend: 0.06 });
+      else motion.play('mosquete_apuntar', { blend: 0.05 });
+    } else if (cabral.isShouldering) motion.play('shoot', { once: true });
     // His trot keeps step with the ground: played as fast as he goes, however fast that is.
     else if (cabral.isMoving) motion.play(gait.name, { pace: gait.reach ? Math.max(LEAST_PACE, going / gait.reach) : 1 });
     // Standing: his own at-ease, made in Blender; the library's if it is missing.
@@ -282,6 +294,21 @@ function advance(dt: number): void {
   swung = cabral.isSwinging ? (wasSwinging ? swung + dt : 0) : 0;
   wasSwinging = cabral.isSwinging;
   dashing = cabral.isDashing ? (wasDashing ? dashing + dt : dt) : 0;
+  if (cabral.isShouldering) {
+    if (fired === null) shouldered += dt;
+    else fired += dt;
+  } else fired = null;
+  // Which musket is seen, the one on his back or the one in his hands, and the sabre put away
+  // while he has the musket up: the hands take it halfway through drawing it, and give it back
+  // halfway through slinging it.
+  if (shaped) {
+    const musket = cabral.isShouldering && !cabral.pose().sheet.startsWith('grenade');
+    const inHand = musket && (fired === null ? shouldered >= SHOULDER_TIME * 0.5 : fired < SHOT_TIME * 0.55);
+    const back = shaped.getObjectByName('mosquete'), hand = shaped.getObjectByName('mosquete_mano'), sabre = shaped.getObjectByName('sable');
+    if (back) back.visible = !inHand;
+    if (hand) hand.visible = inHand;
+    if (sabre) sabre.visible = !musket;
+  }
   wasDashing = cabral.isDashing;
   body.position.copy(ground(cabral.x, cabral.y));
   body.rotation.y = facing;
