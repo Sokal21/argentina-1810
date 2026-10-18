@@ -2,11 +2,11 @@
 
     Blender -b --python tools/blender/anims/trote.py -- RIG.glb OUT.glb
 
-Each leg goes round its stride by curves through the moments of a real step, not by sine waves:
-the heel strikes with the knee nearly straight, the knee gives as the weight comes on, straightens
-to push off from the toe, and folds right up as the leg comes through. The body drops as the weight
-comes on and rises after, the hips drop toward the leg in the air, and the arms and head come a
-little late. A limb hanging down swings forward on a negative turn about 'y'.
+Its curves are measured from a real run, CMU motion capture 09_01 (Carnegie Mellon's free
+database), by tools/blender/measure_bvh.py, and eased down to a soldier's trot. Measured, a
+running arm goes back twice as far as forward and the elbow stays bent near a right angle; the
+first trot keyed by eye had neither. Signs as the rig takes them: a limb hanging down swings
+forward on a negative turn about 'y', back on a positive one.
 """
 import math
 import os
@@ -20,61 +20,65 @@ rig = Rig(args[0])
 act = rig.action('trote')
 
 LENGTH = 16   # frames: one stride of each leg
-STEP = 1
-BOB = 0.016   # how far the body drops onto each foot, in the rig's units (he is ~0.75 tall)
 INWARD = 5    # the thighs drawn in from the A-pose's wide stance, so the feet fall under him
-ARMS = 30
-LATE = 0.07   # how far round the stride the arms and head come behind
+
+# The left side over one stride, sixteen even moments from the left thigh furthest forward, in
+# degrees, as measured (09_01, frames 36 to 118; thigh and arm: back positive; bends: from straight).
+THIGH = [-54.4, -50.1, -43.5, -37.5, -35.8, -29.2, -18.1, -3.4, 8.9, 21.6, 15.1, 6.0, -8.6, -24.1, -45.1, -52.9]
+KNEE = [82.6, 57.0, 29.8, 23.1, 37.1, 41.4, 36.5, 25.8, 14.3, 0.0, 29.6, 57.5, 90.2, 110.1, 115.6, 105.4]
+ARM = [32.9, 35.8, 32.3, 24.2, 13.6, -5.3, -14.2, -18.8, -19.6, -16.0, -9.6, -0.8, 7.6, 15.7, 21.9, 27.0]
+ELBOW = [102.4, 105.1, 106.3, 106.8, 108.8, 109.5, 112.6, 118.1, 122.6, 120.0, 118.7, 113.0, 103.7, 99.0, 97.5, 99.8]
+HEIGHT = [18.17, 18.48, 18.40, 18.01, 17.58, 17.37, 17.60, 18.22, 18.68, 18.64, 18.65, 18.37, 17.76, 17.32, 17.32, 17.70]
+# A run eased to a trot: how much of each swing is kept round its middle.
+STRIDE, KNEES, ARMS, ELBOWS = 0.7, 0.75, 0.85, 0.8
+# The body's rise and fall, in the rig's units (he is ~0.75 tall; the run's is ~0.028).
+BOB = 0.018
 
 
-def curve(points: list[tuple[float, float]], p: float) -> float:
-    """The value at `p` (0 to 1, round a loop) of a smooth curve through (moment, value) points."""
-    p %= 1
-    pts = points + [(points[0][0] + 1, points[0][1])]
-    for (p0, v0), (p1, v1) in zip(pts, pts[1:]):
-        if p0 <= p <= p1:
-            k = (p - p0) / (p1 - p0)
-            k = k * k * (3 - 2 * k)  # eased in and out
-            return v0 + (v1 - v0) * k
-    return pts[0][1]
+def at(values: list[float], p: float, keep: float = 1.0) -> float:
+    """A measured curve at `p` round the stride, its swing round its middle scaled by `keep`."""
+    p = (p % 1) * len(values)
+    i, k = int(p) % len(values), p - int(p)
+    v = values[i] + (values[(i + 1) % len(values)] - values[i]) * k
+    middle = (max(values) + min(values)) / 2
+    return middle + (v - middle) * keep
 
 
-# One leg round its stride, from the moment its heel strikes (0); it pushes off at 0.45.
-THIGH = [(0, -21), (0.2, -4), (0.45, 17), (0.6, 12), (0.8, -17), (0.92, -23)]
-KNEE = [(0, 8), (0.15, 24), (0.42, 12), (0.68, 56), (0.86, 24), (0.96, 6)]
-# The foot's angle to the ground: toe up at the strike, flat, toe down to push off, up again.
-FOOT = [(0, -12), (0.1, 0), (0.32, 2), (0.47, 32), (0.62, 18), (0.82, -6)]
-# The body over one step: dropping as the weight comes on, highest after the push.
-BODY = [(0, -0.4), (0.3, -1), (0.75, 0.35)]
+def bend(values: list[float], p: float, keep: float) -> float:
+    """A bend kept from straight: scaled as a whole."""
+    return at(values, p) * keep
 
 
-def leg(p: float) -> tuple[float, float, float]:
-    thigh, knee = curve(THIGH, p), curve(KNEE, p)
-    return thigh, knee, curve(FOOT, p) - thigh - knee
+def foot(thigh: float, knee: float, p: float) -> float:
+    """The foot kept near flat to the ground while on it, its toe dropping as it leaves."""
+    # Toe down most as the thigh is furthest back (pushing off), level while it is forward.
+    push = max(0.0, math.sin(2 * math.pi * (p - 0.3)))
+    return 22 * push - thigh - knee
 
 
-for frame in range(0, LENGTH + 1, STEP):
+hmid = (max(HEIGHT) + min(HEIGHT)) / 2
+hhalf = (max(HEIGHT) - min(HEIGHT)) / 2
+for frame in range(LENGTH + 1):
     t = frame / LENGTH
-    lt, lk, lf = leg(t)
-    rt, rk, rf = leg(t + 0.5)
+    lt, rt = at(THIGH, t, STRIDE), at(THIGH, t + 0.5, STRIDE)
+    lk, rk = bend(KNEE, t, KNEES), bend(KNEE, t + 0.5, KNEES)
+    la, ra = at(ARM, t, ARMS), at(ARM, t + 0.5, ARMS)
+    le, re = bend(ELBOW, t, ELBOWS), bend(ELBOW, t + 0.5, ELBOWS)
     a = 2 * math.pi * t
-    late = 2 * math.pi * (t - LATE)
-    # Which leg is in the air: the hips drop toward it (left in the air from 0.5 to 1).
-    lifted = math.sin(a + math.pi)
+    lifted = math.sin(a + math.pi)   # the leg in the air: the hips drop toward it
     rig.key(act, frame, {
-        'Hip': [('move', (0, 0, BOB * curve(BODY, 2 * t))), turn('z', 5 * math.sin(a)), turn('x', 3 * lifted)],
-        'L_Thigh': [turn('x', -INWARD - 3 * lifted), turn('y', lt)], 'L_Calf': turn('y', lk), 'L_Foot': turn('y', lf),
-        'R_Thigh': [turn('x', INWARD - 3 * lifted), turn('y', rt)], 'R_Calf': turn('y', rk), 'R_Foot': turn('y', rf),
-        # Leaning a little into it; the chest turns against the hips and rolls back level.
-        'Spine01': [turn('y', 6), turn('z', -8 * math.sin(late)), turn('x', -3 * lifted)],
-        'Spine02': turn('y', 1.5 * math.sin(2 * late)),
-        'Head': [turn('z', 4 * math.sin(late)), turn('y', -3 + 2 * math.sin(2 * late))],
-        # The arms swing against the legs, late, the elbows giving more as they come forward.
-        'L_Upperarm': [ahead(0.05, 0.16, -1), turn('y', ARMS * 0.55 * math.sin(late))],
-        'L_Forearm': [ahead(0.05, 0.16, -1), turn('y', -30 - 12 * max(0, -math.sin(late)))],
-        'R_Upperarm': [ahead(0.05, -0.16, -1), turn('y', -ARMS * math.sin(late))],
-        'R_Forearm': [ahead(0.05, -0.16, -1), turn('y', -28 - 22 * max(0, math.sin(late)))],
-        'L_Hand': turn('y', -8), 'R_Hand': turn('y', -8),
+        'Hip': [('move', (0, 0, BOB * (at(HEIGHT, t) - hmid) / hhalf)), turn('z', 6 * math.sin(a)), turn('x', 3 * lifted)],
+        'L_Thigh': [turn('x', -INWARD - 2 * lifted), turn('y', lt)], 'L_Calf': turn('y', lk), 'L_Foot': turn('y', foot(lt, lk, t)),
+        'R_Thigh': [turn('x', INWARD - 2 * lifted), turn('y', rt)], 'R_Calf': turn('y', rk), 'R_Foot': turn('y', foot(rt, rk, t + 0.5)),
+        # Leaning into it; the chest turns against the hips.
+        'Spine01': [turn('y', 7), turn('z', -9 * math.sin(a)), turn('x', -2 * lifted)],
+        'Head': [turn('z', 5 * math.sin(a)), turn('y', -4)],
+        # The arms hang from the shoulder and swing as measured; the forearm folds up from them.
+        'L_Upperarm': [ahead(0.0, 0.12, -1), turn('y', la)],
+        'L_Forearm': [ahead(0.0, 0.12, -1), turn('y', la - le)],
+        'R_Upperarm': [ahead(0.0, -0.12, -1), turn('y', ra)],
+        'R_Forearm': [ahead(0.0, -0.12, -1), turn('y', ra - re)],
+        'L_Hand': turn('y', -10), 'R_Hand': turn('y', -10),
     })
 
 rig.export(args[1])
