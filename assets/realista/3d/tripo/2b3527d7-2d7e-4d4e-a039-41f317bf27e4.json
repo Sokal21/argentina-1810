@@ -1,0 +1,18 @@
+{
+  "type": "animate_rig",
+  "status": "success",
+  "progress": 100,
+  "input": {
+    "topology": "biped",
+    "out_format": "glb",
+    "original_model_id": "ac0766e5-3a4e-4f16-97cd-655791f1102e"
+  },
+  "output": {
+    "model_url": "https://tripo-data.rg1.data.tripo3d.com/tcli_a4dbe96f28da4d519a0267e9d8fc389e/20261018/2b3527d7-2d7e-4d4e-a039-41f317bf27e4/tripo_rigging_2b3527d7-2d7e-4d4e-a039-41f317bf27e4.glb?Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly90cmlwby1kYXRhLnJnMS5kYXRhLnRyaXBvM2QuY29tL3RjbGlfYTRkYmU5NmYyOGRhNGQ1MTlhMDI2N2U5ZDhmYzM4OWUvMjAyNjEwMTgvMmIzNTI3ZDctMmQ3ZS00ZDRlLWEwMzktNDFmMzE3YmYyN2U0L3RyaXBvX3JpZ2dpbmdfMmIzNTI3ZDctMmQ3ZS00ZDRlLWEwMzktNDFmMzE3YmYyN2U0LmdsYiIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTc5MjQ0NDcxOH19fV19&Signature=TV9-tvnixYumt7dYshhFN8BKO0hK-YAs8XszUmzVOgb4FRnwE5OtwvkfVYqI9m7qsNtxv55vziCCmGwVHo5PldpHnxrEuv-uHX7JmWQ84q-aCpjX0~Y4Ok9dAJ3-PSkYv4jNdyBtf5cxTNjSfUUA4IJIz3G2o~bPUi~ruRK8oPJPTXnt56~ExPbdrJuGKBt7eqrXAJs9OnrARtY-Al0fx-jt1rgppeop1aqPSKsHQAPMwSdaXbr9RLtWBEOLAVJAdNFju4UkgkWhyjKD1iPq4smBZCL-~l6UU3C6dGPuSZnl6Qbn~I6TpNUwbXQgW9is0Ts7VqD58viyK13NS0648g__&Key-Pair-Id=K1676C64NMVM2J",
+    "rendered_image_url": "https://tripo-data.rg1.data.tripo3d.com/tcli_a4dbe96f28da4d519a0267e9d8fc389e/20261018/2b3527d7-2d7e-4d4e-a039-41f317bf27e4/legacy_mesh.webp?Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly90cmlwby1kYXRhLnJnMS5kYXRhLnRyaXBvM2QuY29tL3RjbGlfYTRkYmU5NmYyOGRhNGQ1MTlhMDI2N2U5ZDhmYzM4OWUvMjAyNjEwMTgvMmIzNTI3ZDctMmQ3ZS00ZDRlLWEwMzktNDFmMzE3YmYyN2U0L2xlZ2FjeV9tZXNoLndlYnAiLCJDb25kaXRpb24iOnsiRGF0ZUxlc3NUaGFuIjp7IkFXUzpFcG9jaFRpbWUiOjE3OTI0NDQ3MTh9fX1dfQ__&Signature=oF1HS0NlYmWdlGkCl54STuOrNMK2lVLt9WaqcGFm6T8ArdG5hxxAuLn3kbQmoomEBHljKe4K~gqBgj4HyKB7s9g1kCUvF6EQ-J-CqgZFc5tGE5yGfbLR9nQ~XqCqqhK9sQ0Dpjojw93xl7qoRRtsqORXLYHiI-Vi-Z~LHGVc9TPoCJuawBtgqKD0NHioorgLqhQdZruPUaPK5kIrqO4LeFnqq0QSvSBa5u6vciVCRz4bgvBuxtPbuKaY2fkCb~UwNQ1rJebXHpJyGAgBg66bwVUhY2~xBpmzPnb9HFl9chq1p1T8QidnmpQpE8hv73dYV87Y8iVF9ZAw2H1MlRkrFQ__&Key-Pair-Id=K1676C64NMVM2J"
+  },
+  "task_id": "2b3527d7-2d7e-4d4e-a039-41f317bf27e4",
+  "created_at": "2026-10-18T21:18:28.198559Z",
+  "completed_at": "2026-10-18T21:18:30.717726Z",
+  "credits_consumed": 25.0
+}
