@@ -68,6 +68,12 @@ export class Dummy {
     return this.straw;
   }
 
+  /** Where a blade going (dx, dy) along the 2D ground meets it: its chest, on the near side. */
+  struckAt(dx: number, dy: number): THREE.Vector3 {
+    const way = ground(dx, dy).normalize();
+    return this.group.position.clone().add(new THREE.Vector3(0, DRAWN * UPRIGHT * 0.6, 0)).addScaledVector(way, -GIRTH);
+  }
+
   /** Struck, by a blow going (dx, dy) along the 2D ground. */
   hit(dx: number, dy: number): void {
     this.flash = 1;

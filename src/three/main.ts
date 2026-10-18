@@ -7,6 +7,7 @@ import { pushOut, type Footprint } from '../world/footprint';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { extent, middle, PLOT_H, PLOT_W, walk } from '../world/zones';
 import { Dummy, GIRTH } from './dummy';
+import { Impacts } from './impact';
 import { CABRAL_DRESS, figure, model, type Dress } from './figure';
 import { mountHud, type Readings } from './hud';
 import { ground, heading } from './space';
@@ -60,6 +61,8 @@ for (const { who, plot, faces } of map.people ?? []) {
 // A practice dummy a few steps from where he arrives, to try his blows on.
 const dummy = new Dummy(middle(map.start).x + PLOT_W * 1.6, middle(map.start).y - PLOT_H * 0.3);
 view.scene.add(dummy.group, dummy.debris);
+const impacts = new Impacts(view.camera);
+view.scene.add(impacts.group);
 country.feet.push(dummy.footprint);
 
 const { width, height } = extent(map);
@@ -178,9 +181,11 @@ function advance(dt: number): void {
   if (blow && lands(blow, dummy.spot, GIRTH)) {
     const x = dummy.x - blow.x, y = (dummy.y - blow.y) / ISO_Y;
     dummy.hit(x || blow.dx, y * ISO_Y);
+    impacts.spawn(dummy.struckAt(x || blow.dx, y * ISO_Y));
     view.jolt(0.07, 1);
   }
   dummy.update(dt);
+  impacts.update(dt);
   // Held, as in the 2D game, by what stands in the way and by country too thick to cross.
   for (const taken of country.feet) Object.assign(cabral, pushOut({ x: cabral.x, y: cabral.y, ...FEET }, taken));
   Object.assign(cabral, walk(map, from, cabral));
