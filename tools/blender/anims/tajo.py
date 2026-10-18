@@ -115,8 +115,73 @@ def calmer(pose: dict) -> dict:
     return out
 
 
-for frame, pose in [(0, GUARD), (2, LIFT), (4, WIND), (5, STEP), (6, CUT), (8, FOLLOW), (10, BACK), (12, GUARD)]:
-    pose = calmer(pose)
+def blend(a: dict, b: dict, k: float) -> dict:
+    """A pose a share `k` of the way from one to another: each named move eased between."""
+    def mix(x, y):
+        if x[0] != y[0]:
+            return y if k > 0.5 else x
+        if x[0] == 'ahead':
+            return ('ahead', x[1].lerp(y[1], k).normalized())
+        if x[0] == 'turn':
+            return ('turn', x[1].slerp(y[1], k))
+        if x[0] == 'move':
+            return ('move', tuple(p + (q - p) * k for p, q in zip(x[1], y[1])))
+        if x[0] == 'plant':
+            return ('plant', x[1].lerp(y[1], k), x[2].lerp(y[2], k).normalized())
+        return y
+    out = {}
+    for name in set(a) | set(b):
+        if name not in a or name not in b:
+            out[name] = a.get(name, b.get(name))
+            continue
+        x, y = a[name], b[name]
+        if isinstance(x, list) or isinstance(y, list):
+            x, y = (x if isinstance(x, list) else [x]), (y if isinstance(y, list) else [y])
+            out[name] = [mix(p, q) for p, q in zip(x, y)] if len(x) == len(y) else (y if k > 0.5 else x)
+        else:
+            out[name] = mix(x, y)
+    return out
+
+
+# The sweep, frames 4 to 8, is keyed every frame from one path, so that the blade draws a curve
+# instead of wandering between a few keys: the hand along a smooth arc from low on his left out
+# before him and up to his right (the arm reaching it by IK, the elbow out to his right), and the
+# blade turning steadily from point down, through point forward, to laid back over his shoulder.
+from mathutils import Quaternion, Vector  # noqa: E402
+
+HAND = [Vector((0.13, 0.05, 0.43)), Vector((0.32, -0.02, 0.47)), Vector((0.12, -0.21, 0.76))]  # start, pull, end
+BLADE = [Vector((0.1, 0.25, -1)).normalized(), Vector((1, 0.05, -0.05)).normalized(), Vector((-0.85, -0.3, 0.4)).normalized()]
+ELBOW = (0.0, -1.0, -0.6)
+KEYS = [(0, GUARD), (2, LIFT), (4, WIND), (5, STEP), (6, CUT), (8, FOLLOW), (10, BACK), (12, GUARD)]
+
+
+def body(frame: float) -> dict:
+    for (f0, p0), (f1, p1) in zip(KEYS, KEYS[1:]):
+        if f0 <= frame <= f1:
+            return blend(calmer(p0), calmer(p1), (frame - f0) / (f1 - f0))
+    return calmer(KEYS[-1][1])
+
+
+def hips_forward(pose: dict) -> float:
+    return next((m[1][0] for m in pose['Hip'] if m[0] == 'move'), 0.0)
+
+
+def sweep(frame: int) -> dict:
+    t = (frame - 4) / 4                      # 0 at the start of the sweep, 1 at its end
+    pose = body(frame)
+    a, c, b = HAND
+    hand = a * (1 - t) ** 2 + c * 2 * t * (1 - t) + b * t * t
+    hand.x += hips_forward(pose)             # the arc goes with the body as it lunges
+    half = min(1.0, t * 2)
+    way = BLADE[0].slerp(BLADE[1], half) if t < 0.5 else BLADE[1].slerp(BLADE[2], (t - 0.5) * 2)
+    pose.pop('R_Forearm', None)
+    pose['R_Upperarm'] = plant(*hand, knee=ELBOW)
+    pose['sabre'] = ('ahead', way)
+    return pose
+
+
+for frame in range(13):
+    pose = sweep(frame) if 4 <= frame <= 8 else body(frame)
     rig.key(act, frame, pose)
 
 rig.export(args[1])
