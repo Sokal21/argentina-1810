@@ -27,6 +27,7 @@ export function mountPanel(view: View): GUI {
 
   const pixels = gui.addFolder('Píxel y bordes');
   pixels.add(look, 'pixel', 1, 8, 1).name('tamaño del píxel');
+  pixels.add(look, 'far', 0.5, 4, 0.05).name('alejamiento de la cámara');
   pixels.add(look, 'creases', 0, 2, 0.01).name('bordes: pliegues');
   pixels.add(look, 'outlines', 0, 2, 0.01).name('bordes: contorno');
 

@@ -12,7 +12,7 @@ import { PITCH } from './space';
 // world, as one pixel of a sprite was. The camera only ever moves a whole pixel at a time, so
 // nothing standing still shimmers as it goes.
 
-/** How far round whoever is followed the sun's shadows are worked out, in world units. */
+/** How far round whoever is followed the sun's shadows are worked out, in world units, seen from close. */
 const SHADOWED = 900;
 const SHADOW_MAP = 2048;
 /** How far the camera stands off, along the way it looks: anything so long as all is in front. */
@@ -54,8 +54,6 @@ export class View {
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP);
     const s = this.sun.shadow.camera;
-    s.left = s.bottom = -SHADOWED;
-    s.right = s.top = SHADOWED;
     s.near = 1;
     s.far = OFF * 2;
     this.sun.shadow.bias = -0.0008;
@@ -74,7 +72,7 @@ export class View {
 
   /** Puts a look into effect: its pixels, edges and light; the finishing pass reads it each frame. */
   apply(look: Look): void {
-    const pixelChanged = look.pixel !== this.look.pixel;
+    const pixelChanged = look.pixel !== this.look.pixel || look.far !== this.look.far;
     this.look = { ...look };
     this.pixels.normalEdgeStrength = look.creases;
     this.pixels.depthEdgeStrength = look.outlines;
@@ -87,6 +85,11 @@ export class View {
     this.sky.intensity = look.skyStrength;
     shadeIn(look.steps, look.darkest);
     if (pixelChanged || !this.sized) this.fit();
+  }
+
+  /** How far round whoever is followed the sun's shadows reach: more, the further off the camera stands. */
+  private get shadowed(): number {
+    return SHADOWED * Math.max(1, this.look.far);
   }
 
   private sized = false;
@@ -103,24 +106,29 @@ export class View {
     this.pixels.setPixelSize(this.pixel);
     // One unit of the world to each of its pixels, whatever the screen. Drawn plain, the same
     // stretch of the world is seen, only finer.
-    const w = Math.floor(innerWidth / this.pixel), h = Math.floor(innerHeight / this.pixel);
+    const k = this.look.far;
+    const w = Math.floor(innerWidth / this.pixel) * k, h = Math.floor(innerHeight / this.pixel) * k;
     this.camera.left = -w / 2;
     this.camera.right = w / 2;
     this.camera.top = h / 2;
     this.camera.bottom = -h / 2;
     this.camera.updateProjectionMatrix();
+    const s = this.sun.shadow.camera;
+    s.left = s.bottom = -this.shadowed;
+    s.right = s.top = this.shadowed;
+    s.updateProjectionMatrix();
   }
 
   /** Keeps a spot on the ground in the middle of the screen. */
   follow(at: THREE.Vector3): void {
     const eye = at.clone().addScaledVector(this.back, OFF);
     // On whole pixels along the screen's two ways; along the third it makes no difference.
-    const r = eye.dot(this.right), u = eye.dot(this.up);
-    eye.addScaledVector(this.right, Math.round(r) - r);
-    eye.addScaledVector(this.up, Math.round(u) - u);
+    const unit = this.look.far, r = eye.dot(this.right), u = eye.dot(this.up);
+    eye.addScaledVector(this.right, Math.round(r / unit) * unit - r);
+    eye.addScaledVector(this.up, Math.round(u / unit) * unit - u);
     this.camera.position.copy(eye);
     // The sun's shadows are worked out round the same spot, kept on whole texels of its map.
-    const texel = (SHADOWED * 2) / SHADOW_MAP;
+    const texel = (this.shadowed * 2) / SHADOW_MAP;
     const spot = new THREE.Vector3(Math.round(at.x / texel) * texel, 0, Math.round(at.z / texel) * texel);
     this.sun.target.position.copy(spot);
     this.sun.position.copy(spot).addScaledVector(this.sunward, OFF);
