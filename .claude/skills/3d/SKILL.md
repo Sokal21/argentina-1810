@@ -1,6 +1,6 @@
 ---
 name: 3d
-description: The manual for moving 1810: Argentina to 3D (Three.js, pixelated). Use when standing a map or anything on it up in 3D, touching the camera, light, shadows or pixel pass, or making a character's 3D model, rig or animations.
+description: The manual for moving 1810: Argentina to 3D (Three.js, pixelated). Use when standing a map or anything on it up in 3D, touching the camera, light, shadows or pixel pass, making a character's 3D model, rig or animations (Mixamo, CMU, hand-keyed), or combat's feedback and the tuning panel.
 ---
 
 # Moving 1810: Argentina to 3D
@@ -29,4 +29,5 @@ tall stands `h * UPRIGHT` tall. One unit is one pixel of the drawing.
 | 1. The look: camera, light, shadows, pixels, a map stood up in flat shapes | approved | [`LOOK.md`](LOOK.md) |
 | 2. A character's HD turnaround sheet, cut into views | approved | [`TURNAROUND.md`](TURNAROUND.md) |
 | 3. Its model: Tripo, then Blender | approved | [`MODEL.md`](MODEL.md) |
-| 4. Its rig and animations | next | |
+| 4. Its rig and animations: capture first, keyed by hand for weapons | in progress (idle, gait, cut, roll, musket approved) | [`ANIMATION.md`](ANIMATION.md) |
+| Combat's feedback: dummy, hit flash, impact ring, trail, aim marks, the tuning panel | approved | [`COMBAT.md`](COMBAT.md) |
