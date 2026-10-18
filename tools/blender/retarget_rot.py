@@ -18,7 +18,7 @@ import os
 import sys
 
 import bpy
-from mathutils import Matrix, Vector
+from mathutils import Matrix, Quaternion, Vector
 
 sys.path.append(os.path.dirname(__file__))
 from keyframes import Rig  # noqa: E402
@@ -128,6 +128,9 @@ for name in rig.order:
         rig.turn_to(pb, want)
     reference[name] = pb.matrix.to_3x3().normalized()
 src_rest_turn = {SRC[n]: rest[SRC[n]].to_3x3().normalized() for n in SRC}
+# Each bone's reference turn as its parent's reference holds it, to know its own turn later.
+reference_from_parent = {n: arm.pose.bones[n].parent.matrix.to_3x3().normalized().inverted() @ reference[n]
+                         for n in reference if arm.pose.bones[n].parent is not None}
 
 # The captured legs against the rig's, to scale heights.
 leg_src = (rest[named('LeftUpLeg')].to_translation() - rest[named('LeftFoot')].to_translation()).length
@@ -135,6 +138,11 @@ leg_rig = (arm.data.bones['L_Thigh'].head_local - arm.data.bones['L_Foot'].head_
 scale = leg_rig / leg_src
 REST_HIP = arm.data.bones['Hip'].head_local.z
 ONTO4 = ONTO.to_4x4()
+# How much of each spine bone's twist about its own length is kept (--twist, 0 to 1): its bending,
+# forward and to the side, is all kept, but the capture's twisting of the back read as the spine
+# wringing round.
+TWIST = float(opts.get('--twist', '0.4'))
+SPINE = ('Waist', 'Spine01', 'Spine02', 'NeckTwist01')
 
 act = rig.action(NAME)
 length = max(2, round((last - first) / SOURCE_FPS * FPS))
@@ -209,7 +217,18 @@ for frame in range(length + 1):
             head = pb.matrix.to_translation()
             if name == 'Hip':
                 head = head + Vector((0, 0, lift))
-            pb.matrix = Matrix.Translation(head) @ (turned @ reference[name]).to_4x4()
+            want = turned @ reference[name]
+            if name in SPINE and TWIST < 1 and pb.parent is not None:
+                # Its turn from where its parent now holds it, as it was at the reference; the part
+                # of that about its own length is cut down.
+                held = pb.parent.matrix.to_3x3().normalized() @ reference_from_parent[name]
+                delta = (want @ held.inverted()).to_quaternion()
+                axis = (held @ Vector((0, 1, 0))).normalized()
+                twist = Quaternion((delta.w, *(axis * Vector(delta[1:4]).dot(axis)))).normalized()
+                swing = delta @ twist.inverted()
+                kept = Quaternion((1, 0, 0, 0)).slerp(twist, TWIST)
+                want = (swing @ kept).to_matrix() @ held
+            pb.matrix = Matrix.Translation(head) @ want.to_4x4()
             bpy.context.view_layer.update()
 
     # Posed with no action on it: with one, every update laid back what was keyed on the frames
