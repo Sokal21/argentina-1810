@@ -55,6 +55,11 @@ export class Motion {
     return (2 * (far - near)) / clip.duration;
   }
 
+  /** How long a clip lasts at its own pace, in seconds. */
+  seconds(name: string): number {
+    return this.clips.get(name)?.duration ?? 0;
+  }
+
   has(name: string): boolean {
     return this.clips.has(name);
   }

@@ -9,9 +9,16 @@ import type { View } from './view';
 // A new name whenever the game's own look changes, so what was kept from before does not hide it.
 const KEPT = '1810.3d.look.2';
 
+/** Values kept from before that were the game's own then and have changed since: taken as unset. */
+const STALE: Partial<Record<keyof Look, unknown[]>> = { rollTime: [0.8, 1.0], rollDistance: [170, 190] };
+
 function kept(): Partial<Look> {
   try {
-    return JSON.parse(localStorage.getItem(KEPT) ?? '{}') as Partial<Look>;
+    const was = JSON.parse(localStorage.getItem(KEPT) ?? '{}') as Partial<Look>;
+    for (const [key, old] of Object.entries(STALE) as [keyof Look, unknown[]][]) {
+      if (old.includes(was[key])) delete was[key];
+    }
+    return was;
   } catch {
     return {};
   }

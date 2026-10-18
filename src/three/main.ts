@@ -99,8 +99,12 @@ const TRAVEL: Record<string, number[]> = { rodada_mixamo: mixamoTravel };
 let dashing = 0;
 /** How far through his roll's clip he is shown, and whether he is still getting up after the dash. */
 let rolled = 0, rising = false;
-/** Past this share of the roll it may not run faster than this many times its even pace over the dash. */
-const RUSHED = 0.55, ROLL_PACE = 1.3;
+/**
+ * Past this share of the roll it may not run faster than this many times the pace it was captured
+ * at: the getting up looked rushed at the dash's pace, and the dash is long enough to give it its
+ * own (the panel's "Rodada").
+ */
+const RUSHED = 0.55, ROLL_PACE = 1.1;
 const dashed = () => { const p = Math.min(1, dashing / kit.dash.time); return p * (2 - p); };
 /** The share of a clip at which its actor had come `share` of his way. */
 function reached(travel: number[], share: number): number {
@@ -252,7 +256,8 @@ function advance(dt: number): void {
       const name = ROLLS[roll], travel = TRAVEL[name];
       if (travel) {
         if (!wasDashing && cabral.isDashing) rolled = 0;
-        const pace = dt / kit.dash.time * ROLL_PACE;
+        // Its own pace: as fast as the capture went, a little more at most.
+        const pace = dt / Math.max(0.1, motion.seconds(name)) * ROLL_PACE;
         const want = cabral.isDashing ? reached(travel, dashed()) : 1;
         rolled = want < RUSHED ? want : Math.min(want, rolled + pace);
         rising = !cabral.isDashing && rolled < 1;
