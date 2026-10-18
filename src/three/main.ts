@@ -138,6 +138,7 @@ const tell = () => { told.textContent = `${view.pixelated ? 'pixel' : 'sin pixel
 addEventListener('keydown', e => {
   if (e.repeat) return;
   if (e.code === 'Digit1') view.pixelated = !view.pixelated;
+  else if (e.code === 'KeyC') roll = (roll + 1) % ROLLS.length;
   else if (e.code === 'KeyK') {
     if (fallen) cabral.rise(); else cabral.fall();
     fallen = !fallen;

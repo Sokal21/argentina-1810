@@ -13,6 +13,7 @@ from its rest is given to the matching bone of the rig, from its reference; the 
 fall, scaled to the rig's legs. Played in place: what the capture travels, the game does. With
 --ground the body is rested on the ground every frame, its lowest point touching it.
 """
+import math
 import os
 import sys
 
@@ -79,6 +80,25 @@ forward = left.cross(spine_up).normalized()
 up = forward.cross(left).normalized()
 ONTO = Matrix((forward, left, up)).to_3x3()   # rows: captured axes; takes captured into the rig's
 
+# Ahead, while he moves, is the way he travels over the stretch taken, not the way the capture's
+# rest pose faces: an actor running and rolling some other way came out rolling sideways.
+scene = bpy.context.scene
+
+
+def hips_at(frame: float) -> Vector:
+    scene.frame_set(int(frame), subframe=frame - int(frame))
+    return (src.matrix_world @ src.pose.bones[named('Hips')].matrix).to_translation()
+
+
+travel = hips_at(last) - hips_at(first)
+travel.z = 0
+if travel.length > 1e-3:
+    t_forward = travel.normalized()
+    t_left = Vector((0, 0, 1)).cross(t_forward)
+    ALONG = Matrix((t_forward, t_left, Vector((0, 0, 1)))).to_3x3()
+else:
+    ALONG = ONTO
+
 
 def direction(world: dict, bone: str) -> Vector:
     nxt = SRC_NEXT.get(bone)
@@ -112,7 +132,21 @@ ONTO4 = ONTO.to_4x4()
 
 act = rig.action(NAME)
 length = max(2, round((last - first) / SOURCE_FPS * FPS))
-scene = bpy.context.scene
+
+
+def heading(frame: float) -> float:
+    """Which way round the captured pelvis faces, seen along his travel (radians about up)."""
+    scene.frame_set(int(frame), subframe=frame - int(frame))
+    w = {pb.name: src.matrix_world @ pb.matrix for pb in src.pose.bones}
+    left_ = ALONG @ (w[named('LeftUpLeg')].to_translation() - w[named('RightUpLeg')].to_translation())
+    return math.atan2(-left_.x, left_.y)
+
+
+# He ends facing the way he started: whatever the actor turned through by the end is taken back
+# a little each frame. (He came out of a roll turned a quarter round, and snapped back when he
+# walked on.)
+UNTURN = heading(first) - heading(last)
+UNTURN = (UNTURN + math.pi) % (2 * math.pi) - math.pi
 for frame in range(length + 1):
     at = first + (last - first) * frame / length
     scene.frame_set(int(at), subframe=at - int(at))
@@ -131,7 +165,9 @@ for frame in range(length + 1):
             theirs = SRC[name]
             # The captured bone's turn from its rest, laid into the rig's axes, after the rig's
             # bone's reference turn.
-            turned = ONTO @ (world[theirs].to_3x3().normalized() @ src_rest_turn[theirs].inverted()) @ ONTO.inverted()
+            # Posed as the capture is, seen along the way he travels; from its rest, seen as it faces.
+            turned = ALONG @ world[theirs].to_3x3().normalized() @ src_rest_turn[theirs].inverted() @ ONTO.inverted()
+            turned = Matrix.Rotation(UNTURN * frame / length, 3, 'Z') @ turned
             head = pb.matrix.to_translation()
             if name == 'Hip':
                 head = head + Vector((0, 0, lift))
