@@ -13,7 +13,7 @@ import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from keyframes import Rig, ahead, plant, turn  # noqa: E402
+from keyframes import Rig, ahead, cocked, plant, turn  # noqa: E402
 
 args = sys.argv[sys.argv.index('--') + 1:]
 rig = Rig(args[0], carries=('sabre',))
@@ -155,7 +155,10 @@ from mathutils import Quaternion, Vector  # noqa: E402
 # The hand keeps an arm's length from the shoulder and the blade carries on the arm's line, so
 # the edge cuts sideways. (With the hand reaching forward and the point at the enemy, it read as
 # a thrust.)
-LEVER = [Vector((0.2, 0.55, -0.8)).normalized(), Vector((0.3, -0.95, -0.05)).normalized(), Vector((0.1, -0.55, 0.83)).normalized()]
+# The arc wraps round him: it starts a little behind his left hip, strikes out in front of him to
+# his right, and ends up past his right shoulder, a little behind again. Laid square to the
+# camera it read well from the front but, from the side, as a straight blow up and down.
+LEVER = [Vector((-0.1, 0.6, -0.8)).normalized(), Vector((0.75, -0.6, -0.05)).normalized(), Vector((-0.1, -0.5, 0.86)).normalized()]
 SHOULDER = Vector((0.05, -0.09, 0.66))
 ARM = 0.2
 
@@ -183,15 +186,26 @@ def hips_forward(pose: dict) -> float:
     return next((m[1][0] for m in pose['Hip'] if m[0] == 'move'), 0.0)
 
 
+# The wrist cocks the blade this far off the forearm's line: held along it, the wrist's limit bent
+# it down and, from the side, the cut read as going downward.
+COCK_DEGREES = 40
+# The plane the cut sweeps in; the blade lags the hand in it, as a whip does, so it starts low and
+# lies near level as it strikes. (Cocked toward the sky, it stood upright at the blow.)
+PLANE = LEVER[0].cross(LEVER[2]).normalized()
+
+
 def sweep(frame: int) -> dict:
     t = (frame - SWEEP[0]) / (SWEEP[1] - SWEEP[0])   # 0 at the start of the sweep, 1 at its end
+    # Slow out of the wind-up and into the end, fastest through the blow: so where it comes from
+    # and where it ends can be read, and the trail covers the middle.
+    t = 0.5 - 0.5 * math.cos(math.pi * t)
     pose = body(frame)
     way = lever(t)
     hand = SHOULDER + way * ARM
     hand.x += hips_forward(pose)             # the arc goes with the body as it steps
     pose.pop('R_Forearm', None)
     pose['R_Upperarm'] = plant(*hand, knee=ELBOW)
-    pose['sabre'] = ('ahead', way)
+    pose['sabre'] = cocked(COCK_DEGREES, tuple(PLANE))
     return pose
 
 

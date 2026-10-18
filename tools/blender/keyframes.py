@@ -37,6 +37,13 @@ def ahead(x: float, y: float, z: float) -> tuple:
     return ('ahead', Vector((x, y, z)).normalized())
 
 
+def cocked(degrees: float, about: tuple = None) -> tuple:
+    """For what is carried: along the forearm, turned this far from its line (a wrist cocking a
+    blade), worked out from wherever the forearm ends up. Turned up, or about the axis given (the
+    normal of the plane a cut sweeps in, to lead or lag along it)."""
+    return ('cocked', math.radians(degrees), Vector(about).normalized() if about else None)
+
+
 def plant(x: float, y: float, z: float, knee: tuple = (1, 0, 0)) -> tuple:
     return ('plant', Vector((x, y, z)), Vector(knee).normalized())
 
@@ -155,7 +162,12 @@ class Rig:
             now = (thing.matrix_world.to_3x3() @ Vector((1, 0, 0))).normalized()
             forearm = pb.parent
             axis = self.pointing(forearm)
-            q = now.rotation_difference(self.gripped(move[1], axis))
+            if move[0] == 'cocked':
+                side = move[2] if move[2] is not None else axis.cross(Vector((0, 0, 1)))
+                way = Quaternion(side.normalized(), move[1]) @ axis if side.length > 1e-4 else axis
+            else:
+                way = move[1]
+            q = now.rotation_difference(self.gripped(way, axis))
             twist = Quaternion((q.w, *(axis * Vector(q[1:4]).dot(axis)))).normalized()
             angle = twist.angle if Vector(twist[1:4]).dot(axis) >= 0 else -twist.angle
             for child in forearm.children:
