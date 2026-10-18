@@ -88,6 +88,9 @@ export function mountPanel(view: View): GUI {
   const effects = gui.addFolder('Efectos');
   effects.add(look, 'trail').name('estela del sable');
 
+  const moving = gui.addFolder('Movimiento');
+  moving.add(look, 'speed', 40, 260, 1).name('velocidad');
+
   const roll = gui.addFolder('Rodada');
   roll.add(look, 'rollTime', 0.3, 1.6, 0.05).name('duración (s)');
   roll.add(look, 'rollDistance', 40, 320, 5).name('distancia');

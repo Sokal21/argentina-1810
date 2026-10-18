@@ -71,6 +71,9 @@ export interface Look {
   /** Turned to face whoever struck (seen in perspective), or to the camera. */
   impactFacesStriker: boolean;
 
+  /** How fast he goes, in the 3D game only: sprite pixels a second along the ground (the 2D game's is 84). */
+  speed: number;
+
   /** His roll (the dash), in the 3D game only: seconds it lasts and ground it covers (sprite pixels). */
   rollTime: number;
   rollDistance: number;
@@ -94,6 +97,8 @@ export const LOOK: Look = {
   // Mixamo's roll lasts 1.8 s and goes 4.5 m. A little quicker than that, chosen by the user: the
   // dive, tied to how far he has come, quickens most, and the roll and getting up a little.
   rollTime: 1.1, rollDistance: 200,
+  // Half as fast again as in the 2D game, chosen by the user.
+  speed: 126,
 };
 
 const hex = (colour: string) => new THREE.Color(colour);

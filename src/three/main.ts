@@ -67,9 +67,9 @@ view.scene.add(impacts.group);
 country.feet.push(dummy.footprint);
 
 const { width, height } = extent(map);
-// His kit, but with a dash of his own here: its length and reach are the look's (the panel's
-// "Rodada"), read every frame.
-const kit = { ...KITS.cabral, dash: { time: 0.8, distance: 170 } };
+// His kit, but with a speed and a dash of his own here: they are the look's (the panel's
+// "Movimiento" and "Rodada"), read every frame.
+const kit = { ...KITS.cabral, speed: 126, dash: { time: 0.8, distance: 170 } };
 const cabral = new MachiController({ minX: 12, maxX: width - 12, minY: 0, maxY: height }, kit);
 Object.assign(cabral, middle(map.start));
 // His model, once it has loaded; the figure of blocks until then, and on M to compare.
@@ -197,6 +197,7 @@ requestAnimationFrame(step);
 if (import.meta.env.DEV) Object.assign(globalThis, { tick: (seconds: number) => advance(seconds) });
 
 function advance(dt: number): void {
+  kit.speed = view.look.speed;
   kit.dash.time = view.look.rollTime;
   kit.dash.distance = view.look.rollDistance;
   const input = keys.read();
