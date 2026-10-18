@@ -1,57 +1,59 @@
 import * as THREE from 'three';
+import type { Look } from './look';
 
-// Where a blow lands: a thin red ring that opens out quickly and fades, with a soft glow round it
-// that adds light, always turned to the camera so it reads the same from every side. Any number
-// at once, each on its own.
-
-/** How long a ring lasts, how wide it starts and ends (world units), and how thick its band is. */
-const LIFE = 0.24, FROM = 2, TO = 14, BAND = 0.14;
-const COLOUR = new THREE.Color('#ff2a1a');
-/** The glow: a wider, fainter band of light about the ring. */
-const GLOW = { colour: new THREE.Color('#ff5a30'), band: 0.5, opacity: 0.45, wider: 1.15 };
+// Where a blow lands: a thin ring that opens out quickly and fades, with a soft glow round it that
+// adds light. It is turned to face whoever struck, so it is seen in perspective from wherever the
+// blow came, and hidden by what stands in front of it; or, if the look says so, turned to the
+// camera. Its numbers are the look's (the panel's "Impacto"), read as each ring is drawn.
 
 export class Impacts {
   readonly group = new THREE.Group();
-  private readonly rings: { mesh: THREE.Mesh; glow: THREE.Mesh; t: number }[] = [];
-  private readonly geometry = new THREE.RingGeometry(1 - BAND, 1, 24);
-  private readonly glowing = new THREE.RingGeometry(1 - GLOW.band, 1, 24);
+  private readonly rings: { mesh: THREE.Mesh; glow: THREE.Mesh; t: number; facing: THREE.Quaternion }[] = [];
 
-  constructor(private readonly camera: THREE.Camera) {}
+  constructor(private readonly camera: THREE.Camera, private readonly look: () => Look) {}
 
-  /** A ring opening where a blow lands. */
-  spawn(at: THREE.Vector3): void {
-    const material = new THREE.MeshBasicMaterial({ color: COLOUR, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
-    const mesh = new THREE.Mesh(this.geometry, material);
-    mesh.position.copy(at);
-    mesh.renderOrder = 21;
-    const glow = new THREE.Mesh(this.glowing, new THREE.MeshBasicMaterial({
-      color: GLOW.colour, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
-    }));
-    glow.position.copy(at);
-    glow.renderOrder = 20;
+  /** A ring opening at `at`, facing toward `from` (whoever struck). */
+  spawn(at: THREE.Vector3, from: THREE.Vector3): void {
+    const look = this.look();
+    const ring = (band: number, colour: string, glow: boolean) => {
+      const mesh = new THREE.Mesh(new THREE.RingGeometry(1 - Math.min(0.95, band), 1, 28), new THREE.MeshBasicMaterial({
+        color: colour, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+        blending: glow ? THREE.AdditiveBlending : THREE.NormalBlending,
+      }));
+      mesh.position.copy(at);
+      mesh.renderOrder = glow ? 20 : 21;
+      return mesh;
+    };
+    const glow = ring(look.impactGlowBand, look.impactGlowColour, true), mesh = ring(look.impactBand, look.impactColour, false);
+    // A ring lies square to its +Z: turned so that points at whoever struck.
+    const facing = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), from.clone().sub(at).normalize());
     this.group.add(glow, mesh);
-    this.rings.push({ mesh, glow, t: 0 });
+    this.rings.push({ mesh, glow, t: 0, facing });
   }
 
   update(dt: number): void {
+    const look = this.look();
     for (const ring of this.rings) {
       ring.t += dt;
-      const k = Math.min(1, ring.t / LIFE);
+      const k = Math.min(1, ring.t / look.impactLife);
       // Out fast, slowing as it goes; fading over the second half.
       const eased = 1 - (1 - k) * (1 - k);
-      const size = FROM + (TO - FROM) * eased, fade = k < 0.5 ? 1 : 1 - (k - 0.5) * 2;
+      const size = look.impactFrom + (look.impactTo - look.impactFrom) * eased, fade = k < 0.5 ? 1 : 1 - (k - 0.5) * 2;
+      const turn = look.impactFacesStriker ? ring.facing : this.camera.quaternion;
       ring.mesh.scale.setScalar(size);
-      ring.glow.scale.setScalar(size * GLOW.wider);
-      ring.mesh.quaternion.copy(this.camera.quaternion);
-      ring.glow.quaternion.copy(this.camera.quaternion);
+      ring.glow.scale.setScalar(size * look.impactGlowWider);
+      ring.mesh.quaternion.copy(turn);
+      ring.glow.quaternion.copy(turn);
       (ring.mesh.material as THREE.MeshBasicMaterial).opacity = fade;
-      (ring.glow.material as THREE.MeshBasicMaterial).opacity = fade * GLOW.opacity;
+      (ring.glow.material as THREE.MeshBasicMaterial).opacity = fade * look.impactGlow;
     }
-    for (const ring of this.rings.filter(r => r.t >= LIFE)) {
+    for (const ring of this.rings.filter(r => r.t >= look.impactLife)) {
       this.group.remove(ring.mesh, ring.glow);
-      (ring.mesh.material as THREE.Material).dispose();
-      (ring.glow.material as THREE.Material).dispose();
+      for (const m of [ring.mesh, ring.glow]) {
+        m.geometry.dispose();
+        (m.material as THREE.Material).dispose();
+      }
     }
-    this.rings.splice(0, this.rings.length, ...this.rings.filter(r => r.t < LIFE));
+    this.rings.splice(0, this.rings.length, ...this.rings.filter(r => r.t < look.impactLife));
   }
 }

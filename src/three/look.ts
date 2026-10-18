@@ -56,6 +56,20 @@ export interface Look {
 
   /** The pale arc a sabre leaves as it cuts. */
   trail: boolean;
+
+  /** The ring where a blow lands: how wide it starts and ends (world units), its band, how long it lasts. */
+  impactFrom: number;
+  impactTo: number;
+  impactBand: number;
+  impactLife: number;
+  impactColour: string;
+  /** Its glow: colour, strength, and how much wider than the ring, and its band. */
+  impactGlowColour: string;
+  impactGlow: number;
+  impactGlowWider: number;
+  impactGlowBand: number;
+  /** Turned to face whoever struck (seen in perspective), or to the camera. */
+  impactFacesStriker: boolean;
 }
 
 /** The look the user tuned in the panel and chose (17 October 2026). */
@@ -69,6 +83,9 @@ export const LOOK: Look = {
   levels: 0, dither: 0,
   grain: 0, grainMoves: true, vignette: 0, aberration: 0.9, bulge: 0, scanlines: 0.05,
   trail: true,
+  impactFrom: 2, impactTo: 14, impactBand: 0.14, impactLife: 0.24, impactColour: '#ff2a1a',
+  impactGlowColour: '#ff5a30', impactGlow: 0.45, impactGlowWider: 1.15, impactGlowBand: 0.5,
+  impactFacesStriker: true,
 };
 
 const hex = (colour: string) => new THREE.Color(colour);

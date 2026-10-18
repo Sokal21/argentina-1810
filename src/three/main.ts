@@ -10,7 +10,7 @@ import { Dummy, GIRTH } from './dummy';
 import { Impacts } from './impact';
 import { CABRAL_DRESS, figure, model, type Dress } from './figure';
 import { mountHud, type Readings } from './hud';
-import { ground, heading } from './space';
+import { ground, heading, UPRIGHT } from './space';
 import { Motion } from './motion';
 import { Trail } from './trail';
 import { mountPanel } from './panel';
@@ -61,7 +61,7 @@ for (const { who, plot, faces } of map.people ?? []) {
 // A practice dummy a few steps from where he arrives, to try his blows on.
 const dummy = new Dummy(middle(map.start).x + PLOT_W * 1.6, middle(map.start).y - PLOT_H * 0.3);
 view.scene.add(dummy.group, dummy.debris);
-const impacts = new Impacts(view.camera);
+const impacts = new Impacts(view.camera, () => view.look);
 view.scene.add(impacts.group);
 country.feet.push(dummy.footprint);
 
@@ -181,7 +181,8 @@ function advance(dt: number): void {
   if (blow && lands(blow, dummy.spot, GIRTH)) {
     const x = dummy.x - blow.x, y = (dummy.y - blow.y) / ISO_Y;
     dummy.hit(x || blow.dx, y * ISO_Y);
-    impacts.spawn(dummy.struckAt(x || blow.dx, y * ISO_Y));
+    // Facing him: toward his chest.
+    impacts.spawn(dummy.struckAt(x || blow.dx, y * ISO_Y), ground(cabral.x, cabral.y, CABRAL_DRESS.drawn * 0.6 * UPRIGHT));
     view.jolt(0.07, 1);
   }
   dummy.update(dt);

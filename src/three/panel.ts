@@ -69,6 +69,18 @@ export function mountPanel(view: View): GUI {
   const effects = gui.addFolder('Efectos');
   effects.add(look, 'trail').name('estela del sable');
 
+  const impact = gui.addFolder('Impacto');
+  impact.add(look, 'impactFacesStriker').name('mira a quien golpea');
+  impact.add(look, 'impactFrom', 0, 20, 0.5).name('tamaño inicial');
+  impact.add(look, 'impactTo', 2, 60, 0.5).name('tamaño final');
+  impact.add(look, 'impactBand', 0.02, 0.9, 0.01).name('grosor');
+  impact.add(look, 'impactLife', 0.05, 1, 0.01).name('duración (s)');
+  impact.addColor(look, 'impactColour').name('color');
+  impact.addColor(look, 'impactGlowColour').name('brillo: color');
+  impact.add(look, 'impactGlow', 0, 1.5, 0.01).name('brillo: fuerza');
+  impact.add(look, 'impactGlowWider', 1, 2.5, 0.01).name('brillo: ancho');
+  impact.add(look, 'impactGlowBand', 0.05, 1, 0.01).name('brillo: grosor');
+
   const actions = {
     copiar: async () => {
       const text = JSON.stringify(look, null, 2);
