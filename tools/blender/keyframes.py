@@ -206,14 +206,33 @@ class Rig:
         pb.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ pb.matrix
         bpy.context.view_layer.update()
 
+    def lowest(self) -> float:
+        """How high the lowest point of the body is, as it is posed now."""
+        body = next(o for o in bpy.data.objects if o.type == 'MESH' and o.parent == self.arm and o.vertex_groups)
+        bpy.context.view_layer.update()
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        depsgraph.update()
+        mesh = body.evaluated_get(depsgraph).to_mesh()
+        low = min((body.matrix_world @ v.co).z for v in mesh.vertices)
+        body.evaluated_get(bpy.context.evaluated_depsgraph_get()).to_mesh_clear()
+        return low
+
     def key(self, act: bpy.types.Action, frame: int, spec: dict) -> None:
         """Poses the rig and keys every bone at a frame."""
         self.arm.animation_data.action = act
         bpy.context.scene.frame_set(frame)
         self.pose(spec)
+        last = getattr(self, 'last', {}).get(act.name, {})
         for pb in self.arm.pose.bones:
+            # A turn and its negative are the same turn, but keys are eased between as numbers:
+            # one keyed on the far side of the last goes the long way round (a roll unrolling).
+            q = pb.rotation_quaternion
+            if pb.name in last and q.dot(last[pb.name]) < 0:
+                pb.rotation_quaternion = -q
+            last[pb.name] = pb.rotation_quaternion.copy()
             pb.keyframe_insert('rotation_quaternion', frame=frame)
             pb.keyframe_insert('location', frame=frame)
+        self.last = {**getattr(self, 'last', {}), act.name: last}
 
     def export(self, path: str) -> None:
         """The rig with every action made, each its own clip."""

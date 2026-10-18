@@ -205,7 +205,8 @@ function advance(dt: number): void {
   // What he is doing, in the clip that shows it.
   if (motion) {
     if (fallen) motion.play('defeat_02', { once: true });
-    else if (cabral.isDashing) motion.play('dive', { once: true, lasts: DIVE });
+    // His own roll, keyed in Blender; the library's dive if it is missing.
+    else if (cabral.isDashing) motion.play(motion.has('rodada') ? 'rodada' : 'dive', { once: true, lasts: DIVE, afresh: true, blend: 0.05 });
     // His own cut, keyed in Blender to land when the game's blow does; the library's if it is missing.
     else if (cabral.isSwinging) motion.play(motion.has('tajo') ? 'tajo' : 'slash', { once: true, lasts: SWING, afresh: !wasSwinging, blend: 0.05 });
     else if (cabral.isShouldering) motion.play(cabral.pose().sheet.startsWith('grenade') ? 'pitch_baseball' : 'shoot', { once: true });
