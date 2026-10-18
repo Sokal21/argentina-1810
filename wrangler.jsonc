@@ -4,5 +4,8 @@
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": "./dist"
-  }
+  },
+  // Each pull request is deployed as a preview (`wrangler preview`), which needs this block; it
+  // can stay empty: assets and settings are taken from the top level.
+  "previews": {}
 }
