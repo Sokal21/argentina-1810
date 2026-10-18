@@ -91,7 +91,7 @@ export const LOOK: Look = {
   impactGlowColour: '#ff5a30', impactGlow: 0.45, impactGlowWider: 1.15, impactGlowBand: 0.5,
   impactFacesStriker: true,
   // The 2D game's dash is 0.5 s and 96: under two metres, and a whole roll in it turned on the spot.
-  rollTime: 0.8, rollDistance: 170,
+  rollTime: 1.0, rollDistance: 190,
 };
 
 const hex = (colour: string) => new THREE.Color(colour);

@@ -147,6 +147,8 @@ def heading(frame: float) -> float:
 # walked on.)
 UNTURN = heading(first) - heading(last)
 UNTURN = (UNTURN + math.pi) % (2 * math.pi) - math.pi
+# And he starts facing the way he goes: an actor standing a little askew is set square to it.
+SQUARE = -heading(first)
 for frame in range(length + 1):
     at = first + (last - first) * frame / length
     scene.frame_set(int(at), subframe=at - int(at))
@@ -167,7 +169,7 @@ for frame in range(length + 1):
             # bone's reference turn.
             # Posed as the capture is, seen along the way he travels; from its rest, seen as it faces.
             turned = ALONG @ world[theirs].to_3x3().normalized() @ src_rest_turn[theirs].inverted() @ ONTO.inverted()
-            turned = Matrix.Rotation(UNTURN * frame / length, 3, 'Z') @ turned
+            turned = Matrix.Rotation(SQUARE + UNTURN * frame / length, 3, 'Z') @ turned
             head = pb.matrix.to_translation()
             if name == 'Hip':
                 head = head + Vector((0, 0, lift))

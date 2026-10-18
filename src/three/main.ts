@@ -86,10 +86,11 @@ let trail: Trail | null = null;
  */
 const GAIT = 'cmu_07_01';
 /**
- * His rolls, to be chosen between on C: four from CMU's motion capture (subjects 127 and 128,
- * "run, dive over, roll, run"), his own keyed in Blender, and the library's dive.
+ * His rolls, to be chosen between on C: Mixamo's "Stand To Roll", the user's pick; four from CMU's
+ * motion capture (subjects 127 and 128, "run, dive over, roll, run"); his own keyed in Blender;
+ * and the library's dive.
  */
-const ROLLS = ['rodada_127_23', 'rodada_127_24', 'rodada_128_10', 'rodada_128_11', 'rodada', 'dive'];
+const ROLLS = ['rodada_mixamo', 'rodada_127_23', 'rodada_127_24', 'rodada_128_10', 'rodada_128_11', 'rodada', 'dive'];
 let roll = 0;
 let gait = { name: 'run', reach: 0 };
 void model('cabral/3d/cabral_animado.glb', CABRAL_DRESS.drawn).then(loaded => {

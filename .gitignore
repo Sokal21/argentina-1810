@@ -11,3 +11,6 @@ __pycache__/
 .dolt/
 *.db
 .beads-credential-key
+
+# Mixamo animations: usable in the game, not to be handed on as they come (see tools/mocap/README.md).
+tools/mocap/*.fbx
