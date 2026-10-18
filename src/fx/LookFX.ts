@@ -10,6 +10,11 @@ import Phaser from 'phaser';
 //  - light: darkness away from the machi and a warm glow around her, at
 //    screen resolution over the upscaled pixels;
 //  - crt: scanlines, a faint RGB mask, a vignette and a little extra punch.
+// And two tuned by hand for the 3D game (its src/three/look.ts), brought back here:
+//  - finish: red and blue pulled a little apart toward the edges, and every other row of sprite
+//    pixels faintly darker;
+//  - outline: the edge of each shape darkened on its darker side, where it meets something
+//    lighter: in 3D this comes from depth, here from the picture's own brightness.
 // Each one is scaled by a 0..1 uniform so it can be switched off.
 const fragShader = `
 #define SHADER_NAME LOOK_FS
@@ -28,6 +33,8 @@ uniform float uGlow;      // how strong the warm glow round her is
 uniform float uCrt;
 uniform float uSnow;
 uniform float uLeaves;
+uniform float uFinish;
+uniform float uOutline;
 uniform vec2 uScroll;     // the camera's place in the world, in sprite pixels
 
 varying vec2 outTexCoord;
@@ -108,11 +115,39 @@ vec4 leaf(vec2 sp, float cell, float fall, float wind, float seed) {
   return vec4(colour, inside);
 }
 
+// How far red and blue are pulled apart at the screen's edge, in sprite pixels; how much darker
+// every other row is; and how much the edge of a shape is darkened. As tuned in the 3D game.
+const float ABERRATION = 0.9;
+const float SCANLINES = 0.05;
+const float OUTLINE = 0.89;
+
+float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
+
+// The picture at a spot measured in screen pixels from the top-left.
+vec3 at(vec2 p) {
+  return texture2D(uMainSampler, vec2(p.x, uResolution.y - p.y) / uResolution).rgb;
+}
+
 void main() {
   vec3 col = texture2D(uMainSampler, outTexCoord).rgb;
   // The frame is stored bottom-up; work in pixels measured from the top-left.
   vec2 px = vec2(outTexCoord.x, 1.0 - outTexCoord.y) * uResolution;
   float vmin = min(uResolution.x, uResolution.y);
+
+  if (uFinish > 0.0) {
+    vec2 apart = (px / uResolution * 2.0 - 1.0) * ABERRATION * uPixel;
+    vec3 split = vec3(at(px + apart).r, col.g, at(px - apart).b);
+    col = mix(col, split, uFinish);
+  }
+
+  if (uOutline > 0.0) {
+    // A pixel next to a lighter one is the edge of the darker shape: it is darkened, as the 3D
+    // outline darkens the near side of a silhouette.
+    float here = luma(col);
+    float lighter = max(max(luma(at(px + vec2(uPixel, 0.0))), luma(at(px - vec2(uPixel, 0.0)))),
+                        max(luma(at(px + vec2(0.0, uPixel))), luma(at(px - vec2(0.0, uPixel))))) - here;
+    col *= 1.0 - uOutline * OUTLINE * 0.45 * smoothstep(0.06, 0.28, lighter);
+  }
   // The same spot counted in sprite pixels of the world.
   vec2 sp = floor(px / uPixel) + floor(uScroll);
 
@@ -165,6 +200,8 @@ void main() {
     col = mix(col, c, uCrt);
   }
 
+  if (uFinish > 0.0) col *= 1.0 - uFinish * SCANLINES * mod(floor(px.y / uPixel), 2.0);
+
   gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
 }
 `;
@@ -175,6 +212,8 @@ export class LookFX extends Phaser.Renderer.WebGL.Pipelines.PostFXPipeline {
   crt = 1;
   snow = 0;
   leaves = 0;
+  finish = 0;
+  outline = 0;
   /** The camera's scroll, in sprite pixels. */
   scrollX = 0;
   scrollY = 0;
@@ -204,6 +243,8 @@ export class LookFX extends Phaser.Renderer.WebGL.Pipelines.PostFXPipeline {
     this.set1f('uCrt', this.crt);
     this.set1f('uSnow', this.snow);
     this.set1f('uLeaves', this.leaves);
+    this.set1f('uFinish', this.finish);
+    this.set1f('uOutline', this.outline);
     this.set2f('uScroll', this.scrollX, this.scrollY);
   }
 }
