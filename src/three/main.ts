@@ -104,7 +104,7 @@ let rolled = 0, rising = false;
  * at: the getting up looked rushed at the dash's pace, and the dash is long enough to give it its
  * own (the panel's "Rodada").
  */
-const RUSHED = 0.55, ROLL_PACE = 1.1;
+const RUSHED = 0.55, ROLL_PACE = 1.25;
 const dashed = () => { const p = Math.min(1, dashing / kit.dash.time); return p * (2 - p); };
 /** The share of a clip at which its actor had come `share` of his way. */
 function reached(travel: number[], share: number): number {

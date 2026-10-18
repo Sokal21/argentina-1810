@@ -91,8 +91,9 @@ export const LOOK: Look = {
   impactGlowColour: '#ff5a30', impactGlow: 0.45, impactGlowWider: 1.15, impactGlowBand: 0.5,
   impactFacesStriker: true,
   // The 2D game's dash is 0.5 s and 96: under two metres, and a whole roll in it turned on the spot.
-  // Mixamo's roll lasts 1.8 s and goes 4.5 m: near that, it can be shown at its own pace to the end.
-  rollTime: 1.4, rollDistance: 220,
+  // Mixamo's roll lasts 1.8 s and goes 4.5 m. A little quicker than that, chosen by the user: the
+  // dive, tied to how far he has come, quickens most, and the roll and getting up a little.
+  rollTime: 1.1, rollDistance: 200,
 };
 
 const hex = (colour: string) => new THREE.Color(colour);

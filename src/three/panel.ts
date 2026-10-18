@@ -10,7 +10,7 @@ import type { View } from './view';
 const KEPT = '1810.3d.look.2';
 
 /** Values kept from before that were the game's own then and have changed since: taken as unset. */
-const STALE: Partial<Record<keyof Look, unknown[]>> = { rollTime: [0.8, 1.0], rollDistance: [170, 190] };
+const STALE: Partial<Record<keyof Look, unknown[]>> = { rollTime: [0.8, 1.0, 1.4], rollDistance: [170, 190, 220] };
 
 function kept(): Partial<Look> {
   try {
