@@ -95,27 +95,32 @@ const ROLLS = ['rodada_mixamo', 'rodada_127_23', 'rodada_127_24', 'rodada_128_10
 let roll = 0;
 /** For each roll put on from motion capture, how far its actor had come at each of its frames. */
 const TRAVEL: Record<string, number[]> = { rodada_mixamo: mixamoTravel };
-/** How long into the dash he is; and the share of its distance he has covered, as the controller moves him. */
+/** How long into the dash he is. */
 let dashing = 0;
-/** How far through his roll's clip he is shown, and whether he is still getting up after the dash. */
-let rolled = 0, rising = false;
 /**
- * Past this share of the roll it may not run faster than this many times the pace it was captured
- * at: the getting up looked rushed at the dash's pace, and the dash is long enough to give it its
- * own (the panel's "Rodada").
+ * A roll's moments, as shares of its clip and of the dash's time: he leaves the ground at the
+ * first, lands at the second. Between them is the flight, given less of the dash than the capture
+ * gave it, so he flies quicker; the takeoff and the roll and getting up keep their pace. The clip
+ * is shown by this, and he is moved by it (as far as the actor had come at that moment), so
+ * neither runs ahead of the other and he never slides.
  */
-const RUSHED = 0.55, ROLL_PACE = 1.25;
-const dashed = () => { const p = Math.min(1, dashing / kit.dash.time); return p * (2 - p); };
-/** The share of a clip at which its actor had come `share` of his way. */
-function reached(travel: number[], share: number): number {
-  for (let k = 1; k < travel.length; k++) {
-    if (travel[k] >= share) {
-      const span = travel[k] - travel[k - 1];
-      return (k - 1 + (span > 0 ? (share - travel[k - 1]) / span : 0)) / (travel.length - 1);
-    }
-  }
-  return 1;
+const ROLL_PHASES = { clip: [0.24, 0.53], time: [0.09, 0.33] };
+function rollAt(t: number): number {
+  const [ca, cb] = ROLL_PHASES.clip, [ta, tb] = ROLL_PHASES.time;
+  t = Math.max(0, Math.min(1, t));
+  if (t < ta) return (t / ta) * ca;
+  if (t < tb) return ca + ((t - ta) / (tb - ta)) * (cb - ca);
+  return cb + ((t - tb) / (1 - tb)) * (1 - cb);
 }
+/** How far along its way the actor had come at a share of the clip. */
+function travelled(travel: number[], share: number): number {
+  const at = Math.max(0, Math.min(1, share)) * (travel.length - 1), k = Math.floor(at);
+  return k >= travel.length - 1 ? travel[travel.length - 1] : travel[k] + (travel[k + 1] - travel[k]) * (at - k);
+}
+/** Where the dash set out from, and the way it goes on the 2D ground (screen units, per unit of its distance). */
+let dashFrom = { x: 0, y: 0 }, dashWay = { x: 0, y: 0 };
+/** How long into the dash he is this frame (before `dashing` is moved on at its end). */
+let intoDash = () => 0;
 let gait = { name: 'run', reach: 0 };
 void model('cabral/3d/cabral_animado.glb', CABRAL_DRESS.drawn).then(loaded => {
   shaped = loaded;
@@ -214,6 +219,18 @@ function advance(dt: number): void {
   } else if (arming) cabral.fire();
   arming = arm;
   cabral.update(dt, input);
+  intoDash = () => (cabral.isDashing ? (wasDashing ? dashing + dt : dt) : 0);
+  // A roll from motion capture moves him as its actor moved, not by the controller's own curve.
+  if (cabral.isDashing && TRAVEL[ROLLS[roll]]) {
+    if (!wasDashing) {
+      dashFrom = from;
+      const dx = cabral.x - from.x, dy = (cabral.y - from.y) / ISO_Y, len = Math.hypot(dx, dy) || 1;
+      dashWay = { x: dx / len, y: (dy / len) * ISO_Y };
+    }
+    const share = travelled(TRAVEL[ROLLS[roll]], rollAt(intoDash() / kit.dash.time)) * kit.dash.distance;
+    cabral.x = dashFrom.x + dashWay.x * share;
+    cabral.y = dashFrom.y + dashWay.y * share;
+  }
   // A blow that lands on the dummy, as the 2D game lands one on a foe; and it is felt.
   const blow = cabral.takeStrike();
   if (blow && lands(blow, dummy.spot, GIRTH)) {
@@ -242,26 +259,14 @@ function advance(dt: number): void {
   }
   // What he is doing, in the clip that shows it.
   if (motion) {
-    // Getting up after a roll gives way to anything he is told to do.
-    if (cabral.isMoving || cabral.isSwinging || cabral.isShouldering || fallen) rising = false;
     if (fallen) motion.play('defeat_02', { once: true });
     // His own roll, keyed in Blender; the library's dive if it is missing.
-    else if (cabral.isDashing || rising) {
-      // A roll whose travel is known is shown at the moment its actor had come as far as he has:
-      // the dash goes fast at first and slows, the roll the other way, and played by the clock he
-      // slid before he rolled. Past its middle, where the actor gets up nearly on the spot, it is
-      // kept from running faster than its own pace, and finishes after the dash if need be
-      // (followed to the end, the getting up was crammed into the dash's last inch). Any other
-      // roll is played by the clock.
+    else if (cabral.isDashing) {
+      // A roll from motion capture is shown by its phases (see ROLL_PHASES), which also move him;
+      // any other is played by the clock.
       const name = ROLLS[roll], travel = TRAVEL[name];
       if (travel) {
-        if (!wasDashing && cabral.isDashing) rolled = 0;
-        // Its own pace: as fast as the capture went, a little more at most.
-        const pace = dt / Math.max(0.1, motion.seconds(name)) * ROLL_PACE;
-        const want = cabral.isDashing ? reached(travel, dashed()) : 1;
-        rolled = want < RUSHED ? want : Math.min(want, rolled + pace);
-        rising = !cabral.isDashing && rolled < 1;
-        motion.hold(name, rolled, { afresh: !wasDashing && cabral.isDashing, blend: 0.05 });
+        motion.hold(name, rollAt(intoDash() / kit.dash.time), { afresh: !wasDashing && cabral.isDashing, blend: 0.05 });
       } else motion.play(name, { once: true, lasts: kit.dash.time, afresh: !wasDashing, blend: 0.05 });
     }
     // His own cut, keyed in Blender to land when the game's blow does; the library's if it is missing.
