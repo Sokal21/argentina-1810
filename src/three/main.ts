@@ -10,6 +10,7 @@ import { CABRAL_DRESS, figure, model, type Dress } from './figure';
 import { mountHud, type Readings } from './hud';
 import { ground, heading } from './space';
 import { Motion } from './motion';
+import { mountPanel } from './panel';
 import { View } from './view';
 import { raiseCountry } from './world';
 
@@ -39,6 +40,7 @@ const DRESSES: Record<string, Dress> = {
 };
 
 const view = new View(document.getElementById('world')!);
+mountPanel(view);
 const country = raiseCountry(map);
 view.scene.add(country.group);
 
@@ -103,18 +105,14 @@ const readings: Readings = {
 };
 const hud = mountHud(document.getElementById('hud')!, readings);
 
-// While trying it out: 1 the pixels or a plain scene, 2 the edge lines, [ and ] the size of a
-// pixel, H the HUD, M his model or his figure of blocks, K he falls or gets up.
+// While trying it out: 1 the pixels or a plain scene, P the look's panel, H the HUD, M his model or
+// his figure of blocks, K he falls or gets up.
 const told = document.getElementById('told')!;
-const tell = () => { told.textContent = `${view.pixelated ? `pixel ${view.pixel}` : 'sin pixel'} · bordes ${view.edges ? 'sí' : 'no'} · 1 pixel · 2 bordes · [ ] tamaño · H HUD · M modelo o muñeco · Q mosquete · E granada · K morir`; };
+const tell = () => { told.textContent = `${view.pixelated ? 'pixel' : 'sin pixel'} · 1 pixel · P panel del look · H HUD · M modelo o muñeco · Q mosquete · E granada · K morir`; };
 addEventListener('keydown', e => {
   if (e.repeat) return;
   if (e.code === 'Digit1') view.pixelated = !view.pixelated;
-  else if (e.code === 'Digit2') view.edges = !view.edges;
-  else if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
-    view.pixel = Math.max(1, Math.min(8, view.pixel + (e.code === 'BracketLeft' ? -1 : 1)));
-    view.fit();
-  } else if (e.code === 'KeyK') {
+  else if (e.code === 'KeyK') {
     if (fallen) cabral.rise(); else cabral.fall();
     fallen = !fallen;
   } else if (e.code === 'KeyM' && shaped) wear(body === shaped ? blocks : shaped);

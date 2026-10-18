@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RenderPixelatedPass } from 'three/examples/jsm/postprocessing/RenderPixelatedPass.js';
+import type { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { finish, finishing, LOOK, sunWay, type Look } from './look';
+import { shadeIn } from './paint';
 import { PITCH } from './space';
 
 // The camera, the light and the pixels. The world is drawn at a few times fewer pixels than the
@@ -9,19 +12,11 @@ import { PITCH } from './space';
 // world, as one pixel of a sprite was. The camera only ever moves a whole pixel at a time, so
 // nothing standing still shimmers as it goes.
 
-/** Screen pixels to each pixel of the world, unless the address says otherwise (?px=4). */
-const PIXEL = Number(new URLSearchParams(location.search).get('px')) || 3;
-/** Where the sun is, as a way from the ground: behind the left shoulder, high. */
-const SUN = new THREE.Vector3(-0.55, 1, 0.45).normalize();
 /** How far round whoever is followed the sun's shadows are worked out, in world units. */
 const SHADOWED = 900;
 const SHADOW_MAP = 2048;
 /** How far the camera stands off, along the way it looks: anything so long as all is in front. */
 const OFF = 3000;
-/** How soft the sky's light is, and how strong the sun. */
-const SKY = { sky: '#cfd8dc', ground: '#8a7a50', strength: 1.6 };
-const SUNLIGHT = { colour: '#fff1d6', strength: 2.4 };
-const EDGES = { normal: 0.35, depth: 0.45 };
 
 export class View {
   readonly renderer = new THREE.WebGLRenderer({ antialias: false });
@@ -29,12 +24,17 @@ export class View {
   readonly camera = new THREE.OrthographicCamera();
   private readonly composer: EffectComposer;
   private readonly pixels: RenderPixelatedPass;
-  private readonly sun = new THREE.DirectionalLight(SUNLIGHT.colour, SUNLIGHT.strength);
+  private readonly finisher: ShaderPass;
+  private readonly sun = new THREE.DirectionalLight();
+  private readonly sky = new THREE.HemisphereLight();
+  /** The way to the sun. */
+  private sunward = sunWay(LOOK);
+  /** What the picture looks like: see look.ts. */
+  look: Look = { ...LOOK };
   /** The camera's own right and up, along which it is kept on whole pixels. */
   private readonly right = new THREE.Vector3(1, 0, 0);
   private readonly up = new THREE.Vector3(0, Math.cos(PITCH), -Math.sin(PITCH));
   private readonly back = new THREE.Vector3(0, Math.sin(PITCH), Math.cos(PITCH));
-  pixel = PIXEL;
   /** Drawn in big pixels, or as a plain 3D scene to compare. */
   pixelated = true;
 
@@ -50,7 +50,7 @@ export class View {
     this.camera.near = 1;
     this.camera.far = OFF * 2;
 
-    this.scene.add(new THREE.HemisphereLight(SKY.sky, SKY.ground, SKY.strength));
+    this.scene.add(this.sky);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP);
     const s = this.sun.shadow.camera;
@@ -63,14 +63,41 @@ export class View {
     this.scene.add(this.sun, this.sun.target);
 
     this.composer = new EffectComposer(this.renderer);
-    this.pixels = new RenderPixelatedPass(this.pixel, this.scene, this.camera, { normalEdgeStrength: EDGES.normal, depthEdgeStrength: EDGES.depth });
+    this.pixels = new RenderPixelatedPass(this.look.pixel, this.scene, this.camera);
     this.composer.addPass(this.pixels);
     this.composer.addPass(new OutputPass());
-    this.fit();
+    this.finisher = finishing();
+    this.composer.addPass(this.finisher);
+    this.apply(this.look);
     addEventListener('resize', () => this.fit());
   }
 
+  /** Puts a look into effect: its pixels, edges and light; the finishing pass reads it each frame. */
+  apply(look: Look): void {
+    const pixelChanged = look.pixel !== this.look.pixel;
+    this.look = { ...look };
+    this.pixels.normalEdgeStrength = look.creases;
+    this.pixels.depthEdgeStrength = look.outlines;
+    this.sun.color.set(look.sunColour);
+    this.sun.intensity = look.sunStrength;
+    this.sun.castShadow = look.shadows;
+    this.sunward = sunWay(look);
+    this.sky.color.set(look.skyColour);
+    this.sky.groundColor.set(look.groundColour);
+    this.sky.intensity = look.skyStrength;
+    shadeIn(look.steps, look.darkest);
+    if (pixelChanged || !this.sized) this.fit();
+  }
+
+  private sized = false;
+
+  /** Screen pixels to each pixel of the world. */
+  get pixel(): number {
+    return this.look.pixel;
+  }
+
   fit(): void {
+    this.sized = true;
     this.renderer.setSize(innerWidth, innerHeight);
     this.composer.setSize(innerWidth, innerHeight);
     this.pixels.setPixelSize(this.pixel);
@@ -82,16 +109,6 @@ export class View {
     this.camera.top = h / 2;
     this.camera.bottom = -h / 2;
     this.camera.updateProjectionMatrix();
-  }
-
-  /** Lines along the edges of things, lighter where they turn and darker where they stand in front: on or off. */
-  set edges(on: boolean) {
-    this.pixels.normalEdgeStrength = on ? EDGES.normal : 0;
-    this.pixels.depthEdgeStrength = on ? EDGES.depth : 0;
-  }
-
-  get edges(): boolean {
-    return (this.pixels.normalEdgeStrength ?? 0) > 0;
   }
 
   /** Keeps a spot on the ground in the middle of the screen. */
@@ -106,10 +123,11 @@ export class View {
     const texel = (SHADOWED * 2) / SHADOW_MAP;
     const spot = new THREE.Vector3(Math.round(at.x / texel) * texel, 0, Math.round(at.z / texel) * texel);
     this.sun.target.position.copy(spot);
-    this.sun.position.copy(spot).addScaledVector(SUN, OFF);
+    this.sun.position.copy(spot).addScaledVector(this.sunward, OFF);
   }
 
   draw(): void {
+    finish(this.finisher, this.look, innerWidth, innerHeight, performance.now() / 1000);
     if (this.pixelated) this.composer.render();
     else this.renderer.render(this.scene, this.camera);
   }
