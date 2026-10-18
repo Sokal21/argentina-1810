@@ -154,3 +154,53 @@ def sabre(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object:
     blade.parent_bone = bone
     blade.matrix_world = world
     return blade
+
+
+# In Blender's linear colour: a dark walnut stock, a blackened barrel.
+WOOD, IRON = (0.16, 0.075, 0.03, 1), (0.08, 0.085, 0.09, 1)
+
+
+def musket(armature: bpy.types.Object, bone: str = 'Spine02') -> bpy.types.Object:
+    """A musket of plain shapes, 0.62 long (about a metre and a half), slung across his back by the
+    chest's bone: from behind his right shoulder, muzzle up, down to his left hip, butt down.
+    Its length runs along its +X, from the butt (0) to the muzzle, so it can be aimed like the sabre."""
+    parts = []
+    length = 0.62
+    # The stock: the butt, broad and flat, narrowing into the fore-end under the barrel.
+    parts.append(box('culata', (0.13, 0.022, 0.05), (0.065, 0, -0.006), WOOD, 'madera'))
+    parts.append(box('caja', (0.36, 0.018, 0.026), (0.3, 0, 0.004), WOOD, 'madera'))
+    # The barrel, the length of it, on top; the lock by the wrist of the stock.
+    bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.0075, depth=length - 0.12, location=(0.12 + (length - 0.12) / 2, 0, 0.02), rotation=(0, math.pi / 2, 0))
+    barrel = bpy.context.active_object
+    barrel.name = 'cano'
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    barrel.data.materials.append(material('hierro', IRON))
+    parts.append(barrel)
+    parts.append(box('llave', (0.04, 0.026, 0.02), (0.15, 0, 0.012), IRON, 'hierro'))
+    # Brass bands round barrel and fore-end.
+    for x in (0.3, 0.42):
+        parts.append(box(f'abrazadera_{x}', (0.01, 0.024, 0.04), (x, 0, 0.01), BRASS, 'bronce'))
+    for p in parts:
+        p.select_set(True)
+    bpy.context.view_layer.objects.active = parts[0]
+    bpy.ops.object.join()
+    gun = bpy.context.active_object
+    gun.name = 'mosquete'
+
+    # Slung: on his back, a hand's breadth behind the chest's bone, slanting from the left hip up
+    # past the right shoulder (the rig's +X is forward, +Y his left).
+    pb = armature.pose.bones[bone]
+    chest = armature.matrix_world @ pb.head
+    butt = chest + Vector((-0.075, 0.13, -0.2))
+    muzzle = chest + Vector((-0.075, -0.17, 0.33))
+    along = (muzzle - butt).normalized()
+    side = Vector((-1, 0, 0))                     # the stock's flat lies against his back
+    up = along.cross(side).normalized()
+    side = up.cross(along).normalized()
+    gun.matrix_world = Matrix.Translation(butt) @ Matrix((along, side, up)).transposed().to_4x4()
+    world = gun.matrix_world.copy()
+    gun.parent = armature
+    gun.parent_type = 'BONE'
+    gun.parent_bone = bone
+    gun.matrix_world = world
+    return gun
