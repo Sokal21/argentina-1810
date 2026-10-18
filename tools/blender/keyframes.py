@@ -143,7 +143,10 @@ class Rig:
                     q = move[1]
                 pb.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ pb.matrix
                 bpy.context.view_layer.update()
-        # What is carried, pointed by turning the bone that holds it.
+        # What is carried, pointed by turning the bone that holds it. The turn's twist about the
+        # forearm is shared out along it, as a forearm turns: a third by the elbow's twist bone,
+        # two thirds by the wrist's, all of it by the hand; held in the wrist alone, it looked
+        # wrenched and nailed on.
         for name, thing in getattr(self, 'held', {}).items():
             move = spec.get(name)
             if not move:
@@ -151,9 +154,26 @@ class Rig:
             pb = self.arm.pose.bones[thing.parent_bone]
             now = (thing.matrix_world.to_3x3() @ Vector((1, 0, 0))).normalized()
             q = now.rotation_difference(move[1])
+            forearm = pb.parent
+            axis = self.pointing(forearm)
+            twist = Quaternion((q.w, *(axis * Vector(q[1:4]).dot(axis)))).normalized()
+            angle = twist.angle if Vector(twist[1:4]).dot(axis) >= 0 else -twist.angle
+            for child in forearm.children:
+                if 'Twist01' in child.name:
+                    self.spin(child, axis, angle / 3)
+                    for grand in child.children:
+                        if 'Twist02' in grand.name:
+                            self.spin(grand, axis, angle / 3)
             head = pb.matrix.to_translation()
             pb.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ pb.matrix
             bpy.context.view_layer.update()
+
+    def spin(self, pb: bpy.types.PoseBone, axis: Vector, angle: float) -> None:
+        """Turns a bone about an axis through its joint."""
+        head = pb.matrix.to_translation()
+        q = Quaternion(axis, angle)
+        pb.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ pb.matrix
+        bpy.context.view_layer.update()
 
     def key(self, act: bpy.types.Action, frame: int, spec: dict) -> None:
         """Poses the rig and keys every bone at a frame."""
