@@ -1,5 +1,5 @@
-"""Cabral's sabre cut: wound up over his right shoulder, a diagonal cut down across from his right
-to his left as he lunges onto his right foot, and back to guard. Half a second, as the game's
+"""Cabral's sabre cut: wound up over his left shoulder, a diagonal sweep across before him from
+his left to his right and down, as he lunges onto his right foot, and back to guard. Half a second, as the game's
 swing lasts, the blow landing at 0.26 s: frame 6 of 12.
 
     Blender -b --python tools/blender/anims/tajo.py -- RIG.glb OUT.glb
@@ -40,50 +40,51 @@ GUARD = {
     'sabre': ahead(0.45, -0.1, 0.9),
     'L_Upperarm': ahead(-0.15, 0.3, -1), 'L_Forearm': ahead(0.2, 0.3, -1),
 }
-# Lifting: the arm comes up by his head, the blade straight up, on its way back.
+# Gathering: the sabre brought across before him toward his left, rising.
 LIFT = {
     **GUARD,
-    'Spine01': [turn('z', -18), turn('y', 1)],
-    'R_Upperarm': ahead(0.3, -0.6, 0.3),
-    'R_Forearm': ahead(0.05, -0.25, 0.95),
-    'sabre': ahead(-0.1, -0.15, 1),
+    'Spine01': [turn('z', 8), turn('y', 3)],
+    'R_Upperarm': ahead(0.6, 0.2, 0.05),
+    'R_Forearm': ahead(0.35, 0.65, 0.45),
+    'sabre': ahead(0.05, 0.45, 0.9),
 }
-# Wound up: turned away to his right, weight back, the sabre back over the right shoulder.
+# Wound up: turned to his left, weight back, the right arm across his chest and the blade back
+# over his left shoulder.
 WIND = {
-    'Hip': [('move', (-0.015, 0, -0.018)), turn('z', -14)],
+    'Hip': [('move', (-0.015, 0, -0.018)), turn('z', 12)],
     **feet(RIGHT_BACK),
-    'Spine01': [turn('z', -28), turn('y', -4), turn('x', 4)],
-    'Head': turn('z', 18),
-    'R_Upperarm': ahead(-0.1, -0.7, 0.55),
-    'R_Forearm': ahead(-0.6, -0.1, 0.6),
-    'sabre': ahead(-0.6, 0.1, 0.55),
-    'L_Upperarm': ahead(0.5, 0.35, -0.6), 'L_Forearm': ahead(0.8, 0.1, -0.2),
+    'Spine01': [turn('z', 26), turn('y', -2)],
+    'Head': turn('z', -16),
+    'R_Upperarm': ahead(0.45, 0.45, 0.25),
+    'R_Forearm': ahead(-0.15, 0.85, 0.4),
+    'sabre': ahead(-0.55, 0.45, 0.55),
+    'L_Upperarm': ahead(-0.2, 0.35, -0.9), 'L_Forearm': ahead(0.1, 0.3, -1),
 }
-# The cut lands: lunged forward onto the right foot, turned through to his left, the arm thrown
-# out across and down, the blade at the end of it.
+# The cut lands: lunged onto the right foot, turned through to his right, the arm sweeping out
+# across before him and down, the blade level with his chest and still going.
 CUT = {
-    'Hip': [('move', (0.06, 0, -0.04)), turn('z', 16)],
+    'Hip': [('move', (0.06, 0, -0.04)), turn('z', -10)],
     **feet(RIGHT_STEP),
-    'Spine01': [turn('z', 30), turn('y', 22), turn('x', -4)],
-    'Head': [turn('z', -16), turn('y', -14)],
-    'R_Upperarm': ahead(0.85, 0.2, -0.35),
-    'R_Forearm': ahead(0.75, 0.55, -0.45),
-    'sabre': ahead(0.65, 0.65, -0.3),
-    'L_Upperarm': ahead(-0.5, 0.45, -0.7), 'L_Forearm': ahead(-0.4, 0.3, -0.8),
+    'Spine01': [turn('z', -18), turn('y', 18)],
+    'Head': [turn('z', 8), turn('y', -10)],
+    'R_Upperarm': ahead(0.85, -0.4, -0.1),
+    'R_Forearm': ahead(0.7, -0.65, -0.2),
+    'sabre': ahead(0.45, -0.85, -0.25),
+    'L_Upperarm': ahead(-0.45, 0.5, -0.7), 'L_Forearm': ahead(-0.3, 0.35, -0.85),
 }
-# Following through: the blade carried on down past his left knee, the body settling.
+# Following through: out to his right and down, the body turned well round after it.
 FOLLOW = {
     **CUT,
-    'Hip': [('move', (0.055, 0, -0.042)), turn('z', 20)],
-    'Spine01': [turn('z', 36), turn('y', 24), turn('x', -4)],
-    'R_Upperarm': ahead(0.55, 0.45, -0.7),
-    'R_Forearm': ahead(0.3, 0.6, -0.8),
-    'sabre': ahead(0.15, 0.6, -0.8),
+    'Hip': [('move', (0.055, 0, -0.042)), turn('z', -16)],
+    'Spine01': [turn('z', -30), turn('y', 20)],
+    'R_Upperarm': ahead(0.25, -0.8, -0.5),
+    'R_Forearm': ahead(0.05, -0.8, -0.6),
+    'sabre': ahead(-0.15, -0.7, -0.7),
 }
-
 # The right foot off the ground on its way forward, the body already going.
-STEP = {**WIND, **{k: v for k, v in CUT.items() if k.startswith(('R_Upper', 'R_Fore', 'sabre', 'Spine', 'Head'))},
-        'Hip': [('move', (0.025, 0, -0.022)), turn('z', 0)], **feet(RIGHT_LIFTED)}
+STEP = {**WIND, 'Hip': [('move', (0.025, 0, -0.022)), turn('z', 2)], **feet(RIGHT_LIFTED),
+        'Spine01': [turn('z', 5), turn('y', 10)],
+        'R_Upperarm': ahead(0.9, 0.15, 0.1), 'R_Forearm': ahead(0.9, 0.2, 0.05), 'sabre': ahead(0.75, 0.6, 0.1)}
 # Pulling the right foot back to guard.
 BACK = {**GUARD, 'Hip': [('move', (0.02, 0, -0.02))], **feet(RIGHT_LIFTED)}
 
