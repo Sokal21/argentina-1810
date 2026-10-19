@@ -134,7 +134,7 @@ export const LOOK: Look = {
   brightness: 0, contrast: 1, saturation: 1, gamma: 1,
   shadeColour: '#2a3a6a', shade: 0, lightColour: '#ffd9a0', light: 0,
   crush: 0, murkColour: '#6b6448', murk: 0, grime: 0, grimeColour: '#3a2c1e',
-  reds: 0, clouds: 0, cloudSize: 1100, cloudSpeed: 30, haze: 0, hazeColour: '#8e8f86', bloom: 0, bloomFrom: 0.92,
+  reds: 0, clouds: 0, cloudSize: 450, cloudSpeed: 30, haze: 0, hazeColour: '#8e8f86', bloom: 0, bloomFrom: 0.92,
   levels: 0, dither: 0,
   grain: 0, grainMoves: true, vignette: 0, aberration: 0.9, bulge: 0, scanlines: 0.05,
   trail: true,
