@@ -38,6 +38,14 @@ export interface Look {
   /** A colour laid over the light parts, and how much. */
   lightColour: string;
   light: number;
+  /** How far the darks are pushed down into black, for a harder picture. */
+  crush: number;
+  /** A dull colour every colour is drawn toward, and how much: sadder colours. */
+  murkColour: string;
+  murk: number;
+  /** Grime: dark blotches and specks over the ground, held to the world as it moves; their colour. */
+  grime: number;
+  grimeColour: string;
 
   /** Levels per colour channel the picture is brought down to (0: as it is), and how much it is dithered on the way. */
   levels: number;
@@ -79,7 +87,26 @@ export interface Look {
   rollDistance: number;
 }
 
-/** The look the user tuned in the panel and chose (17 October 2026). */
+/**
+ * The look before it was made harder (the user's, 17 October 2026), and the harder one, darker,
+ * dirtier and sadder, asked for on 19 October: either can be put back in the panel ("estética dura").
+ */
+export const CLEAN: Partial<Look> = {
+  sunStrength: 2.4, sunColour: '#fff1d6', skyStrength: 1.6, skyColour: '#cfd8dc', groundColour: '#8a7a50',
+  brightness: 0, contrast: 1, saturation: 1, gamma: 1,
+  shadeColour: '#2a3a6a', shade: 0, lightColour: '#ffd9a0', light: 0,
+  crush: 0, murkColour: '#6b6448', murk: 0, grime: 0, grimeColour: '#3a2c1e',
+  grain: 0, vignette: 0,
+};
+export const HARSH: Partial<Look> = {
+  sunStrength: 2.3, sunColour: '#f2e2c4', skyStrength: 1.45, skyColour: '#b4babb', groundColour: '#6e6142',
+  brightness: -0.01, contrast: 1.1, saturation: 0.65, gamma: 1,
+  shadeColour: '#2e3a48', shade: 0.4, lightColour: '#d8b47a', light: 0.2,
+  crush: 0.35, murkColour: '#6b6448', murk: 0.18, grime: 0.45, grimeColour: '#3a2c1e',
+  grain: 0.05, vignette: 0.7,
+};
+
+/** The look the user tuned in the panel and chose (17 October 2026), made harder (19 October). */
 export const LOOK: Look = {
   pixel: 3, far: 1.8, creases: 0.3, outlines: 0.89,
   sunStrength: 2.4, sunColour: '#fff1d6', sunRound: -50, sunHigh: 55,
@@ -87,6 +114,7 @@ export const LOOK: Look = {
   steps: 3, darkest: 0.45,
   brightness: 0, contrast: 1, saturation: 1, gamma: 1,
   shadeColour: '#2a3a6a', shade: 0, lightColour: '#ffd9a0', light: 0,
+  crush: 0, murkColour: '#6b6448', murk: 0, grime: 0, grimeColour: '#3a2c1e',
   levels: 0, dither: 0,
   grain: 0, grainMoves: true, vignette: 0, aberration: 0.9, bulge: 0, scanlines: 0.05,
   trail: true,
@@ -99,9 +127,11 @@ export const LOOK: Look = {
   rollTime: 1.1, rollDistance: 200,
   // Half as fast again as in the 2D game, chosen by the user.
   speed: 126,
+  ...HARSH,
 };
 
-const hex = (colour: string) => new THREE.Color(colour);
+/** A colour as it is written, for the finishing pass, which works on the screen's colours (Three keeps its own linear). */
+const written = (colour: string) => new THREE.Color().setStyle(colour, THREE.LinearSRGBColorSpace);
 
 /** The finishing pass, to go last, after the picture is in display colours. */
 export function finishing(): ShaderPass {
@@ -114,6 +144,8 @@ export function finishing(): ShaderPass {
       brightness: { value: 0 }, contrast: { value: 1 }, saturation: { value: 1 }, gamma: { value: 1 },
       shadeColour: { value: new THREE.Color() }, shade: { value: 0 },
       lightColour: { value: new THREE.Color() }, light: { value: 0 },
+      crush: { value: 0 }, murkColour: { value: new THREE.Color() }, murk: { value: 0 },
+      grime: { value: 0 }, grimeColour: { value: new THREE.Color() }, offset: { value: new THREE.Vector2() },
       levels: { value: 0 }, dither: { value: 0 },
       grain: { value: 0 }, grainMoves: { value: 0 },
       vignette: { value: 0 }, aberration: { value: 0 }, bulge: { value: 0 }, scanlines: { value: 0 },
@@ -129,6 +161,10 @@ export function finishing(): ShaderPass {
       uniform float brightness, contrast, saturation, gamma;
       uniform vec3 shadeColour, lightColour;
       uniform float shade, light, levels, dither, grain, grainMoves, vignette, aberration, bulge, scanlines;
+      uniform float crush, murk, grime;
+      uniform vec3 murkColour, grimeColour;
+      // Where the camera stands, in the world's pixels: the grime is held to the world by it.
+      uniform vec2 offset;
       varying vec2 vUv;
 
       float bayer(vec2 p) {
@@ -139,6 +175,16 @@ export function finishing(): ShaderPass {
         return (m[i] + 0.5) / 16.0;
       }
       float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+      float noise(vec2 p) {
+        vec2 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+      }
+      float clouds(vec2 p) {
+        float sum = 0.0, strength = 0.5;
+        for (int o = 0; o < 4; o++) { sum += noise(p) * strength; p *= 2.03; strength *= 0.5; }
+        return sum / 0.9375;
+      }
 
       void main() {
         // The glass's bulge, from the middle out.
@@ -159,6 +205,16 @@ export function finishing(): ShaderPass {
         luma = dot(col, vec3(0.299, 0.587, 0.114));
         col = mix(col, col * shadeColour * 2.0, shade * (1.0 - luma));
         col = mix(col, col * lightColour * 1.4, light * luma);
+        // Sadder: every colour drawn toward one dull one, by its own lightness.
+        luma = dot(col, vec3(0.299, 0.587, 0.114));
+        col = mix(col, murkColour * (luma * 1.9), murk);
+        // Harder: the darks pushed down into black.
+        col = mix(col, col * smoothstep(0.0, 0.28, col), crush);
+        // Dirtier: blotches and specks of grime, held to the world (the camera's place moves them with it).
+        vec2 world = block + offset;
+        float blotch = smoothstep(0.48, 0.82, clouds(world * 0.022)) * 0.75 + smoothstep(0.55, 0.9, clouds(world * 0.09 + 17.0)) * 0.35;
+        float specks = step(0.986, hash(world)) * 0.5;
+        col = mix(col, col * grimeColour * 2.2, clamp(blotch + specks, 0.0, 1.0) * grime);
 
         col += (hash(block + floor(time * 12.0) * grainMoves) - 0.5) * grain;
         if (levels >= 2.0) {
@@ -173,18 +229,21 @@ export function finishing(): ShaderPass {
   });
 }
 
-/** Sets the finishing pass's numbers from a look. */
-export function finish(pass: ShaderPass, look: Look, width: number, height: number, time: number): void {
+/** Sets the finishing pass's numbers from a look, and where the camera stands (in the world's pixels, across and up). */
+export function finish(pass: ShaderPass, look: Look, width: number, height: number, time: number, at = new THREE.Vector2()): void {
   const u = pass.uniforms;
   u.resolution.value.set(width, height);
   u.pixel.value = look.pixel;
   u.time.value = time;
-  for (const key of ['brightness', 'contrast', 'saturation', 'gamma', 'shade', 'light', 'levels', 'dither', 'grain', 'vignette', 'aberration', 'bulge', 'scanlines'] as const) {
+  for (const key of ['brightness', 'contrast', 'saturation', 'gamma', 'shade', 'light', 'crush', 'murk', 'grime', 'levels', 'dither', 'grain', 'vignette', 'aberration', 'bulge', 'scanlines'] as const) {
     u[key].value = look[key];
   }
   u.grainMoves.value = look.grainMoves ? 1 : 0;
-  u.shadeColour.value.copy(hex(look.shadeColour));
-  u.lightColour.value.copy(hex(look.lightColour));
+  u.shadeColour.value.copy(written(look.shadeColour));
+  u.lightColour.value.copy(written(look.lightColour));
+  u.murkColour.value.copy(written(look.murkColour));
+  u.grimeColour.value.copy(written(look.grimeColour));
+  u.offset.value.copy(at);
 }
 
 /** The way to the sun, from its place round the camera and its height. */

@@ -1,5 +1,5 @@
 import GUI from 'lil-gui';
-import { LOOK, type Look } from './look';
+import { CLEAN, HARSH, LOOK, type Look } from './look';
 import type { View } from './view';
 
 // A panel for tuning the look by hand: every number in it, grouped, put into effect as it is
@@ -8,7 +8,7 @@ import type { View } from './view';
 // the collision boxes).
 
 // A new name whenever the game's own look changes, so what was kept from before does not hide it.
-const KEPT = '1810.3d.look.2';
+const KEPT = '1810.3d.look.3';
 
 /** Values kept from before that were the game's own then and have changed since: taken as unset. */
 const STALE: Partial<Record<keyof Look, unknown[]>> = { rollTime: [0.8, 1.0, 1.4], rollDistance: [170, 190, 220] };
@@ -65,6 +65,14 @@ export function mountPanel(view: View, { key = 'KeyP', hidden = false } = {}): G
   light.add(look, 'steps', 1, 8, 1).name('escalones de luz');
   light.add(look, 'darkest', 0, 1, 0.01).name('escalón más oscuro');
 
+  // The harder look, or the one before it, to compare (19 October 2026).
+  const harsh = { dura: Object.entries(HARSH).every(([key, value]) => look[key as keyof Look] === value) };
+  gui.add(harsh, 'dura').name('estética dura').onChange((on: boolean) => {
+    Object.assign(look, on ? HARSH : CLEAN);
+    gui.controllersRecursive().forEach(c => c.updateDisplay());
+    changed();
+  });
+
   const colour = gui.addFolder('Color');
   colour.add(look, 'brightness', -0.5, 0.5, 0.01).name('brillo');
   colour.add(look, 'contrast', 0.3, 2, 0.01).name('contraste');
@@ -74,6 +82,11 @@ export function mountPanel(view: View, { key = 'KeyP', hidden = false } = {}): G
   colour.add(look, 'shade', 0, 1, 0.01).name('tinte en sombras: cuánto');
   colour.addColor(look, 'lightColour').name('tinte en luces');
   colour.add(look, 'light', 0, 1, 0.01).name('tinte en luces: cuánto');
+  colour.add(look, 'crush', 0, 1, 0.01).name('negros aplastados');
+  colour.addColor(look, 'murkColour').name('velo: color');
+  colour.add(look, 'murk', 0, 1, 0.01).name('velo: cuánto');
+  colour.addColor(look, 'grimeColour').name('mugre: color');
+  colour.add(look, 'grime', 0, 1.5, 0.01).name('mugre: cuánto');
 
   const palette = gui.addFolder('Paleta y tramado');
   palette.add(look, 'levels', 0, 32, 1).name('niveles por canal (0: sin)');

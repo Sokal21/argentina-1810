@@ -51,3 +51,15 @@ turns toward the way it moved (`heading`).
 ## HUD
 The 2D `HudScene` on a transparent Phaser canvas over the 3D one (`src/three/hud.ts`), reading a
 stand-in scene called `game` that forwards what the 3D game knows (`Readings`).
+
+## The harder look (19 October 2026)
+
+Asked for as "darker, dirtier, harder, sadder colours", and laid over the look the user had chosen
+(`HARSH` over `CLEAN` in `look.ts`; the panel's "estética dura" puts either back to compare). Less
+saturation and a little more contrast; cold grey-blue in the darks and dull ochre in the lights; a
+greyer sky, a weaker and less warm sun, a darker bounce from the ground; and three things of the
+finishing pass's own: the deepest darks crushed toward black (`crush`; pushed into the mid tones it
+blacked out Cabral's coat), every colour drawn toward one dull olive (`murk`), and grime, blotches
+and specks held to the world by the camera's place (`grime`), so they go by with the ground.
+The finishing pass works on the screen's colours: its tints are handed over as written, not as
+Three's linear colours, which came out nearly black.

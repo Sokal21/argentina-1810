@@ -152,7 +152,9 @@ export class View {
   }
 
   draw(): void {
-    finish(this.finisher, this.look, innerWidth, innerHeight, performance.now() / 1000);
+    // Where the camera stands, in the world's pixels across and up, to hold the grime to the world.
+    const unit = this.look.far, at = new THREE.Vector2(this.camera.position.dot(this.right) / unit, this.camera.position.dot(this.up) / unit);
+    finish(this.finisher, this.look, innerWidth, innerHeight, performance.now() / 1000, at);
     if (this.pixelated) this.composer.render();
     else this.renderer.render(this.scene, this.camera);
   }
