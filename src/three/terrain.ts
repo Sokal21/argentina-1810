@@ -27,7 +27,7 @@ export const WATER_LEVEL = -2.5;
 const SMOOTHING = 2, PAD = 12;
 
 /** Smooth noise from 0 to 1, about `across` units from one swell to the next. */
-function swell(x: number, z: number, across: number, seed: number): number {
+export function swell(x: number, z: number, across: number, seed: number): number {
   const u = x / across, v = z / across, i = Math.floor(u), j = Math.floor(v), fu = u - i, fv = v - j;
   const s = (t: number) => t * t * (3 - 2 * t);
   const a = chance(i, j, seed), b = chance(i + 1, j, seed), c = chance(i, j + 1, seed), d = chance(i + 1, j + 1, seed);

@@ -1,22 +1,28 @@
 import * as THREE from 'three';
+import { ISO_Y } from '../machi/data';
 import { chance } from '../world/chance';
 import { FEET, FOOT, GROWN } from '../world/country';
 import { palisade, walls } from '../world/fences';
 import type { Footprint } from '../world/footprint';
 import { plantCountry } from '../world/plants';
-import { DEEP, SHALLOW, WET, waterLevels } from '../world/water';
+import { SHALLOW, WET, waterLevels } from '../world/water';
 import { extent, letterAt, middle, PLOT_H, PLOT_W, type WorldMap } from '../world/zones';
 import { flat, joined, part, placed } from './paint';
 import { ground, standOn, UPRIGHT } from './space';
-import { CELL, shapeTerrain, WATER_LEVEL, type Terrain } from './terrain';
+import { CELL, shapeTerrain, swell, WATER_LEVEL, type Terrain } from './terrain';
 
 // A map of open country stood up in 3D from the same code that lays out the 2D one: the
 // ground patched in its colours and shaped into its relief (terrain.ts), the water standing in
 // its hollows, the plants where plantCountry puts them, the fences and the buildings. For now each
 // thing is a few flat-coloured shapes, in place of its model.
 
-/** Patches of ground a plot is painted in, each way. */
-const PATCHES = 8;
+/**
+ * How much ground each pixel of the ground's picture covers, in world units; how far its tone
+ * wanders between the map's darkest and lightest colours (shares of the way), and over how far its
+ * broad and small swells run; how high above the water mud reaches, and its colour.
+ */
+const TEXEL = 8;
+const GROUND = { from: 0.25, to: 0.75, broad: 460, small: 110, shore: 3, mud: '#56492a' };
 /** How much darker the ground nobody crosses is. */
 const WILD_SHADE = 0.72;
 const WATER = { deep: '#3e5c66', shallow: '#5b7672', wet: '#6f7444' };
@@ -48,33 +54,53 @@ export function raiseCountry(map: WorldMap): Country3D {
 
 function paintGround(map: WorldMap, terrain: Terrain): THREE.Mesh {
   const { width, height } = extent(map);
-  const cols = map.plots[0].length, rows = map.plots.length;
+  const depth = height / ISO_Y;
+  // One flat colour over all of it, the map's own, its tone wandering a little in broad swells and
+  // smaller ones; darker where nobody walks, mud where the water stands or has stood. No patches:
+  // the picture is smooth and the pixels are the render's.
   const canvas = document.createElement('canvas');
-  canvas.width = cols * PATCHES;
-  canvas.height = rows * PATCHES;
-  const ctx = canvas.getContext('2d')!;
+  canvas.width = Math.ceil(width / TEXEL);
+  canvas.height = Math.ceil(depth / TEXEL);
+  const ctx = canvas.getContext('2d')!, picture = ctx.createImageData(canvas.width, canvas.height);
+  // The map's colours from darkest to lightest: the tone wanders along them, never to either end.
+  const tones = map.ground.map(hex => new THREE.Color(hex)).sort((a, b) => a.getHSL({ h: 0, s: 0, l: 0 }).l - b.getHSL({ h: 0, s: 0, l: 0 }).l);
   const water = waterLevels(map);
-  const shade = (hex: string, k: number) => `#${new THREE.Color(hex).multiplyScalar(k).getHexString()}`;
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      const wild = letterAt(map, col, row) === undefined;
-      const level = water[row][col];
-      for (let j = 0; j < PATCHES; j++) {
-        for (let i = 0; i < PATCHES; i++) {
-          const px = col * PATCHES + i, py = row * PATCHES + j;
-          let colour = map.ground[Math.floor(chance(px, py, 7) * map.ground.length)];
-          if (level >= DEEP && wild) colour = WATER.deep;
-          else if (level >= SHALLOW) colour = WATER.shallow;
-          else if (level >= WET && chance(px, py, 9) < level) colour = WATER.wet;
-          ctx.fillStyle = wild && level < DEEP ? shade(colour, WILD_SHADE) : colour;
-          ctx.fillRect(px, py, 1, 1);
-        }
-      }
+  const cols = map.plots[0].length, rows = map.plots.length;
+  /** A share of something each plot has, read smoothly between the middles of the plots. */
+  const smooth = (x: number, y: number, of: (col: number, row: number) => number) => {
+    const u = Math.max(0, Math.min(cols - 1, x / PLOT_W - 0.5)), v = Math.max(0, Math.min(rows - 1, y / PLOT_H - 0.5));
+    const i = Math.min(cols - 2, Math.floor(u)), j = Math.min(rows - 2, Math.floor(v)), fu = u - i, fv = v - j;
+    const a = of(i, j), b = of(i + 1, j), c = of(i, j + 1), d = of(i + 1, j + 1);
+    return a + (b - a) * fu + (c - a) * fv + (a - b - c + d) * fu * fv;
+  };
+  const wildOf = (c: number, r: number) => (letterAt(map, c, r) === undefined ? 1 : 0);
+  const marshOf = (c: number, r: number) => (water[r][c] >= WET && water[r][c] < SHALLOW ? 1 : 0);
+  const s = (a: number, b: number, t: number) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
+  const colour = new THREE.Color(), mud = new THREE.Color(GROUND.mud), wet = new THREE.Color(WATER.wet);
+  for (let py = 0; py < canvas.height; py++) {
+    for (let px = 0; px < canvas.width; px++) {
+      const x = (px + 0.5) * TEXEL, z = (py + 0.5) * TEXEL, y = z * ISO_Y;
+      const tone = GROUND.from + (GROUND.to - GROUND.from) * (0.6 * swell(x, z, GROUND.broad, 31) + 0.4 * swell(x, z, GROUND.small, 37));
+      const at = tone * (tones.length - 1), k = Math.min(tones.length - 2, Math.floor(at));
+      colour.copy(tones[k]).lerp(tones[k + 1], at - k);
+      // The marsh: wet patches here and there.
+      const marsh = smooth(x, y, marshOf);
+      if (marsh > 0.05) colour.lerp(wet, s(0.5, 0.62, swell(x, z, 48, 41)) * marsh * 0.8);
+      // Mud along the water and under it.
+      colour.lerp(mud, s(WATER_LEVEL + GROUND.shore, WATER_LEVEL - 1, terrain.at(x, y)));
+      // Darker where nobody walks.
+      colour.multiplyScalar(1 - (1 - WILD_SHADE) * s(0.3, 0.8, smooth(x, y, wildOf)));
+      const o = (py * canvas.width + px) * 4;
+      picture.data[o] = colour.r * 255;
+      picture.data[o + 1] = colour.g * 255;
+      picture.data[o + 2] = colour.b * 255;
+      picture.data[o + 3] = 255;
     }
   }
+  ctx.putImageData(picture, 0, 0);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.minFilter = texture.magFilter = THREE.NearestFilter;
+  texture.anisotropy = 4;
   const material = flat('#ffffff');
   material.map = texture;
   // Shaped to the relief: one vertex for each height reckoned, the picture laid over it as before.
@@ -83,11 +109,11 @@ function paintGround(map: WorldMap, terrain: Terrain): THREE.Mesh {
   shape.rotateX(-Math.PI / 2);
   shape.translate(across / 2, 0, deep / 2);
   const position = shape.getAttribute('position') as THREE.BufferAttribute, uv = shape.getAttribute('uv') as THREE.BufferAttribute;
-  const depth = height / (PLOT_H / PLOT_W);
+  const pictured = { across: canvas.width * TEXEL, deep: canvas.height * TEXEL };
   for (let k = 0; k < position.count; k++) {
     position.setY(k, heights[k]);
     // The picture covers the map, which the heights may run a little past.
-    uv.setXY(k, position.getX(k) / width, 1 - position.getZ(k) / depth);
+    uv.setXY(k, position.getX(k) / pictured.across, 1 - position.getZ(k) / pictured.deep);
   }
   shape.computeVertexNormals();
   const mesh = new THREE.Mesh(shape, material);
