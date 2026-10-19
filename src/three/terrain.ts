@@ -7,14 +7,18 @@ import { extent, letterAt, middle, PLOT_H, PLOT_W, type WorldMap } from '../worl
 // is slowed or stopped by a slope. Where people walk the ground hardly rolls; where nobody does it
 // rises into low hills from the edge of what is walked; the stream runs in a bed sunk below the
 // banks, the ford shallow enough to wade, and the ground is levelled under every building.
-// Heights are in world units, up; Cabral stands 82.
+// Heights are in world units, up; Cabral stands 82. The hills and the water are far from where he
+// arrives (the stream runs 35 plots north of it); where he walks the ground rolls in long swells.
 
 /** How far apart the heights are reckoned, in the 3D ground's units, each way. */
 export const CELL = 32;
 /** The rise of the hills where nobody walks, and how far from what is walked they take to rise. */
-const HILLS = { tall: 30, rise: 110, across: 260 };
-/** How much the walked ground rolls: never below the ground, so it holds no puddles. */
-const ROLL = { tall: 3, across: 340 };
+const HILLS = { tall: 48, rise: 120, across: 280 };
+/**
+ * How much the walked ground rolls: in long low swells, never below the ground, so it holds no
+ * puddles. At 3 nothing was seen round where he arrives; the user asked for relief to be seen.
+ */
+const ROLL = { tall: 14, across: 520, shore: 220 };
 /** Below the ground: the stream's bed, its banks' width, the ford and the marsh. */
 const BED = { deep: 16, bank: 40, ford: 4, marsh: 0.8 };
 /** Where the water stands: above the ford's bed (to his ankles) and below every bank. */
@@ -64,26 +68,36 @@ export function shapeTerrain(map: WorldMap): Terrain {
     return { walked: plots.length > 0, fording: plots.length > 0 && plots.every(p => water[p.row][p.col] >= SHALLOW) };
   };
 
-  // What is walked, and how far every point that is not lies from what is (a chamfer distance).
-  const walked = new Uint8Array(n), far = new Float32Array(n).fill(Infinity);
-  for (let j = 0; j <= rows; j++) for (let i = 0; i <= cols; i++) {
-    if (walkedAt(i, j).walked) { walked[index(i, j)] = 1; far[index(i, j)] = 0; }
-  }
-  const D = CELL, DD = CELL * Math.SQRT2;
+  /** How far every point lies from the nearest point that is so (a chamfer distance). */
+  const distance = (so: (k: number) => boolean) => {
+    const far = new Float32Array(n);
+    for (let k = 0; k < n; k++) far[k] = so(k) ? 0 : Infinity;
+    const D = CELL, DD = CELL * Math.SQRT2;
+    for (let j = 0; j <= rows; j++) for (let i = 0; i <= cols; i++) {
+      const k = index(i, j);
+      if (i > 0) far[k] = Math.min(far[k], far[k - 1] + D);
+      if (j > 0) far[k] = Math.min(far[k], far[k - cols - 1] + D);
+      if (i > 0 && j > 0) far[k] = Math.min(far[k], far[k - cols - 2] + DD);
+      if (i < cols && j > 0) far[k] = Math.min(far[k], far[k - cols] + DD);
+    }
+    for (let j = rows; j >= 0; j--) for (let i = cols; i >= 0; i--) {
+      const k = index(i, j);
+      if (i < cols) far[k] = Math.min(far[k], far[k + 1] + D);
+      if (j < rows) far[k] = Math.min(far[k], far[k + cols + 1] + D);
+      if (i < cols && j < rows) far[k] = Math.min(far[k], far[k + cols + 2] + DD);
+      if (i > 0 && j < rows) far[k] = Math.min(far[k], far[k + cols] + DD);
+    }
+    return far;
+  };
+  // What is walked, and how far every point that is not lies from what is; and how far every point
+  // lies from water (the ford, the stream), near which the ground flattens to its level.
+  const walked = new Uint8Array(n), wet = new Uint8Array(n);
   for (let j = 0; j <= rows; j++) for (let i = 0; i <= cols; i++) {
     const k = index(i, j);
-    if (i > 0) far[k] = Math.min(far[k], far[k - 1] + D);
-    if (j > 0) far[k] = Math.min(far[k], far[k - cols - 1] + D);
-    if (i > 0 && j > 0) far[k] = Math.min(far[k], far[k - cols - 2] + DD);
-    if (i < cols && j > 0) far[k] = Math.min(far[k], far[k - cols] + DD);
+    if (walkedAt(i, j).walked) walked[k] = 1;
+    if (touching(i, j).some(p => water[p.row][p.col] >= SHALLOW)) wet[k] = 1;
   }
-  for (let j = rows; j >= 0; j--) for (let i = cols; i >= 0; i--) {
-    const k = index(i, j);
-    if (i < cols) far[k] = Math.min(far[k], far[k + 1] + D);
-    if (j < rows) far[k] = Math.min(far[k], far[k + cols + 1] + D);
-    if (i < cols && j < rows) far[k] = Math.min(far[k], far[k + cols + 2] + DD);
-    if (i > 0 && j < rows) far[k] = Math.min(far[k], far[k + cols] + DD);
-  }
+  const far = distance(k => walked[k] === 1), shore = distance(k => wet[k] === 1);
 
   const heights = new Float32Array(n);
   const s = (a: number, b: number, t: number) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
@@ -92,8 +106,8 @@ export function shapeTerrain(map: WorldMap): Terrain {
     const { col, row } = plotOf(i, j), level = water[row][col];
     if (walked[k]) {
       // Walked: it rolls a little, and the ford and the marsh lie a little below it.
-      const below = walkedAt(i, j).fording ? BED.ford : level >= WET && level < SHALLOW ? BED.marsh : 0;
-      heights[k] = ROLL.tall * swell(x, z, ROLL.across, 11) - below;
+      const fording = walkedAt(i, j).fording, below = fording ? BED.ford : level >= WET && level < SHALLOW ? BED.marsh : 0;
+      heights[k] = (fording ? 0 : ROLL.tall * swell(x, z, ROLL.across, 11) * s(0, ROLL.shore, shore[k])) - below;
     } else if (level >= DEEP) {
       // The stream: down from the bank to its bed.
       heights[k] = -BED.deep * s(0, BED.bank, far[k]);
