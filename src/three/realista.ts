@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { AIM, LOCK, MUZZLE, SLASH_TIME, type Mode } from '../realista/brain';
+import { AIM, MUZZLE, SLASH_TIME, type Mode } from '../realista/brain';
 import { barrelOf } from './cabral';
 import { flashes, model } from './figure';
 import { Motion } from './motion';
@@ -24,14 +24,14 @@ const TURN = 10, SETTLE = 10;
 const LIES = 0.8;
 /**
  * The warning at his muzzle, to dodge by: a faint red glow that grows a little while he aims, and
- * once his aim stops following (LOCK before the shot, when stepping aside makes him miss) a glint,
- * a star of four rays along the diagonals, white on a red halo, that bursts out, holds and dies
- * away by the shot. The glow's size in world units and opacity, from the first of the aim to the
- * lock; the star's size and its halo's, the shares of the lock it takes to burst out and from
- * which it dies away, and how far it turns meanwhile (radians). Its rays must stay wider than a
- * pixel of the picture (1.8 units): thinner, the pixels ate them and it was hardly seen.
+ * just before the shot a glint, a red star of four rays along the diagonals, that swells to its
+ * height a little before the shot (after his aim stops following, 0.25 s before it: stepping
+ * aside then makes him miss) and is gone as he fires. The glow's size in world units and opacity,
+ * from the first of the aim to the glint; the glint's size and its halo's, the seconds before the
+ * shot it begins and is at its height, and how far it turns (radians). Its rays must stay about a
+ * pixel of the picture wide (1.8 units): thinner the pixels ate them, twice that was too thick.
  */
-const WARN = { colour: '#ff3424', from: 1.5, to: 3.5, faint: 0.12, full: 0.45, star: 30, halo: 40, burst: 0.12, fades: 0.75, turn: 0.25 };
+const WARN = { colour: '#ff3424', from: 1.5, to: 3.5, faint: 0.12, full: 0.45, star: 30, halo: 38, begins: 0.4, height: 0.15, turn: 0.25 };
 
 /** The glow's picture: a soft round light, white at the heart. */
 let glowing: THREE.Texture | null = null;
@@ -61,17 +61,16 @@ function star(): THREE.Texture {
     g.rotate(Math.PI / 2);
     g.fillStyle = 'rgba(255,255,255,1)';
     g.beginPath();
-    g.moveTo(0, -5);
+    g.moveTo(0, -2.8);
     g.lineTo(half * 1.35, 0);
-    g.lineTo(0, 5);
+    g.lineTo(0, 2.8);
     g.fill();
   }
-  const heart = g.createRadialGradient(0, 0, 0, 0, 0, 14);
+  const heart = g.createRadialGradient(0, 0, 0, 0, 0, 10);
   heart.addColorStop(0, 'rgba(255,255,255,1)');
-  heart.addColorStop(0.5, 'rgba(255,255,255,0.9)');
   heart.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = heart;
-  g.fillRect(-14, -14, 28, 28);
+  g.fillRect(-10, -10, 20, 20);
   return starred = new THREE.CanvasTexture(canvas);
 }
 
@@ -94,10 +93,10 @@ class Figure {
     map: glow(), color: WARN.colour, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
   }));
   private readonly halo = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: star(), color: '#ff2a18', transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
+    map: star(), color: '#c80e04', transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
   }));
   private readonly star = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: star(), color: '#ffffff', transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
+    map: star(), color: '#ff4a30', transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
   }));
   private facing = 0;
   private going = 0;
@@ -161,16 +160,17 @@ class Figure {
   private warn(who: Royalist, mode: Mode, t: number): void {
     this.warning.visible = mode === 'aim';
     if (mode !== 'aim') return;
-    const k = Math.min(1, t / (AIM - LOCK)), into = Math.max(0, t - (AIM - LOCK)) / LOCK;
+    const k = Math.min(1, t / (AIM - WARN.begins)), left = AIM - t;
     this.glow.scale.setScalar(WARN.from + (WARN.to - WARN.from) * k);
     this.glow.material.opacity = WARN.faint + (WARN.full - WARN.faint) * k * k;
-    // Out at once, held, then dying away by the shot.
-    const out = into <= 0 ? 0 : into < WARN.burst ? into / WARN.burst : into < WARN.fades ? 1 : 1 - (into - WARN.fades) / (1 - WARN.fades);
+    // Swelling to its height a little before the shot, then gone by it.
+    const out = left > WARN.begins ? 0 : left > WARN.height ? 1 - (left - WARN.height) / (WARN.begins - WARN.height) : left / WARN.height;
+    const eased = out * out * (3 - 2 * out);
     for (const [ray, size] of [[this.halo, WARN.halo], [this.star, WARN.star]] as const) {
-      ray.visible = into > 0;
-      ray.scale.setScalar(size * (0.5 + 0.5 * out));
-      ray.material.opacity = out;
-      ray.material.rotation = into * WARN.turn;
+      ray.visible = out > 0;
+      ray.scale.setScalar(size * (0.35 + 0.65 * eased));
+      ray.material.opacity = eased;
+      ray.material.rotation = (WARN.begins - left) * WARN.turn / WARN.begins;
     }
     this.warning.position.copy(this.muzzle(who).tip);
   }
