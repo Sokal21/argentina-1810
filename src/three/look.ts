@@ -121,7 +121,7 @@ export const HARSH: Partial<Look> = {
   grain: 0, vignette: 0.7,
   // The reds kept (blood, his facings, the glint, the flash); clouds' shadows going over; the
   // faintest haze; a low evening sun, raking and warm; and a glow round only what burns.
-  reds: 0.8, clouds: 0.32, haze: 0.1, bloom: 0.7,
+  reds: 0.8, clouds: 0.6, haze: 0.1, bloom: 0.7,
   sunHigh: 24, sunStrength: 2.5, sunColour: '#ffd9b4',
 };
 
@@ -134,7 +134,7 @@ export const LOOK: Look = {
   brightness: 0, contrast: 1, saturation: 1, gamma: 1,
   shadeColour: '#2a3a6a', shade: 0, lightColour: '#ffd9a0', light: 0,
   crush: 0, murkColour: '#6b6448', murk: 0, grime: 0, grimeColour: '#3a2c1e',
-  reds: 0, clouds: 0, cloudSize: 900, cloudSpeed: 14, haze: 0, hazeColour: '#8e8f86', bloom: 0, bloomFrom: 0.92,
+  reds: 0, clouds: 0, cloudSize: 1100, cloudSpeed: 30, haze: 0, hazeColour: '#8e8f86', bloom: 0, bloomFrom: 0.92,
   levels: 0, dither: 0,
   grain: 0, grainMoves: true, vignette: 0, aberration: 0.9, bulge: 0, scanlines: 0.05,
   trail: true,
@@ -242,8 +242,8 @@ export function finishing(): ShaderPass {
         col = mix(col, col * grimeColour * 2.2, clamp(blotch + specks, 0.0, 1.0) * grime);
         // The shadows of clouds drifting over, a little cold, held to the world as it moves.
         vec2 sky = world * far / cloudSize + vec2(time, time * 0.4) * cloudSpeed / cloudSize;
-        float shadow = smoothstep(0.42, 0.7, billows(sky)) * clouds;
-        col *= mix(vec3(1.0), vec3(0.8, 0.84, 0.92), shadow / max(clouds, 0.001)) * (1.0 - shadow * 0.55);
+        float shadow = smoothstep(0.46, 0.6, billows(sky)) * clouds;
+        col *= mix(vec3(1.0), vec3(0.82, 0.86, 0.95), shadow / max(clouds, 0.001)) * (1.0 - shadow * 0.65);
         // The reds keep their colour, lifted a little, at the lightness the rest has come to.
         float lightness = dot(col, vec3(0.299, 0.587, 0.114)), wasLight = max(dot(was, vec3(0.299, 0.587, 0.114)), 0.001);
         col = mix(col, clamp(was * (lightness / wasLight) * vec3(1.18, 0.95, 0.95), 0.0, 1.0), redness * reds);
