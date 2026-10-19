@@ -11,7 +11,9 @@ import { Impacts } from './impact';
 import { AimMarks } from './aim';
 import { Shots } from './shot';
 import { MUSKET } from '../machi/musket';
-import { CabralFigure, DRAW, ROLLS, SHOT } from './cabral';
+import { CabralFigure, DRAW, ROLLS, SHOT, THROWN } from './cabral';
+import { GrenadeMarks, Grenades, within } from './grenade';
+import { GRENADE } from '../machi/grenade';
 import { CABRAL_DRESS } from './figure';
 import { raisePeople } from './people';
 import { mountHud, type Readings } from './hud';
@@ -59,6 +61,16 @@ const shots = new Shots(view.camera, (from, to) => {
 });
 view.scene.add(shots.group);
 view.scene.add(impacts.group);
+// His grenade: where it goes off it jolts the camera, and the dummy is struck if it is within the blast.
+const throwing = new GrenadeMarks();
+const grenades = new Grenades(view.camera, at => {
+  view.jolt(0.14, 3);
+  const x = dummy.x - at.x, y = (dummy.y - at.y) / ISO_Y;
+  if (Math.hypot(x, y) > GRENADE.radius + GIRTH) return;
+  dummy.hit(x || 1, y * ISO_Y);
+  impacts.spawn(dummy.struckAt(x || 1, y * ISO_Y), ground(at.x, at.y, 10));
+});
+view.scene.add(throwing.group, grenades.group);
 country.feet.push(dummy.footprint);
 
 const { width, height } = extent(map);
@@ -186,14 +198,20 @@ function advance(dt: number): void {
     view.jolt(0.07, 1);
   }
   // The musket goes off: from its muzzle, along its barrel.
-  if (cabral.takeShot() && loosed === 'musket') {
+  const shot = cabral.takeShot();
+  if (shot && loosed === 'musket') {
     const barrel = figured.barrel();
     if (barrel) {
       shots.fire(barrel.tip, barrel.way);
       view.jolt(0.1, 2);
     }
   }
+  // The grenade is thrown at the spot aimed at, pulled in to his reach; it leaves his hand as the throw does.
+  else if (shot && loosed === 'grenade' && aimed) {
+    grenades.lob(cabral, within(cabral, aimed, GRENADE.range), SHOT * THROWN, () => figured.grenade());
+  }
   shots.update(dt);
+  grenades.update(dt);
   dummy.update(dt);
   impacts.update(dt);
   // Held, as in the 2D game, by what stands in the way and by country too thick to cross.
@@ -203,6 +221,9 @@ function advance(dt: number): void {
   // The line of the shot and the ring of its blast, as the 2D game draws them while the musket is up.
   const aiming = aimed && cabral.arming?.kind === 'musket' && cabral.arming.phase !== 'fire';
   marks.show(aiming ? figured.aimFrom(cabral) : null, aiming ? aimed : null);
+  // How far he can throw and the patch it would land on, while a grenade is drawn back.
+  const drawing = aimed && cabral.arming?.kind === 'grenade' && cabral.arming.phase !== 'fire';
+  throwing.show(drawing ? cabral : null, drawing ? aimed : null);
   view.follow(figured.position, dt);
   view.draw();
 }
