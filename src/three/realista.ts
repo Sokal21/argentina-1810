@@ -104,6 +104,7 @@ class Figure {
   /** How long since his last shot, while its clip still plays. */
   private fired: number | null = null;
   private modeWas: Mode | null = null;
+  private resting = false;
 
   constructor(shape: THREE.Group) {
     this.body = clone(shape) as THREE.Group;
@@ -115,8 +116,15 @@ class Figure {
     this.warning.visible = false;
   }
 
+  /** Out of sight: not drawn, and taken up again where he is when he comes back into it. */
+  rest(): void {
+    this.body.visible = this.warning.visible = false;
+    this.resting = true;
+  }
+
   update(dt: number, who: Royalist): void {
     const { x, y, mode, t, dir } = who.mind;
+    if (this.resting) { this.was = { x, y }; this.resting = false; }
     const moved = { x: x - this.was.x, y: y - this.was.y };
     this.was = { x, y };
     const over = along(moved.x, moved.y).length() / Math.max(dt, 1e-3);
@@ -201,7 +209,12 @@ export class Royalists {
   }
 
   /** Shows each as he is this step; any no longer on the field is taken away. */
-  update(dt: number, everyone: readonly Royalist[]): void {
+  /**
+   * Shows each as he is this step; any no longer on the field is taken away. Those too far off to be
+   * seen (`seen` says) are neither drawn nor moved: there were dozens over the map, every one drawn
+   * and his clips played each frame, three times over (the shadows, the edges, the picture).
+   */
+  update(dt: number, everyone: readonly Royalist[], seen: (x: number, y: number) => boolean = () => true): void {
     if (!this.shape) return;
     for (const [who, figure] of this.figures) {
       if (everyone.includes(who)) continue;
@@ -215,7 +228,8 @@ export class Royalists {
         this.figures.set(who, figure);
         this.group.add(figure.body, figure.warning);
       }
-      figure.update(dt, who);
+      if (seen(who.mind.x, who.mind.y)) figure.update(dt, who);
+      else figure.rest();
     }
   }
 

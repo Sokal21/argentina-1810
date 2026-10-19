@@ -39,7 +39,12 @@ export class View {
   private readonly up = new THREE.Vector3(0, Math.cos(PITCH), -Math.sin(PITCH));
   private readonly back = new THREE.Vector3(0, Math.sin(PITCH), Math.cos(PITCH));
   /** Drawn in big pixels, or as a plain 3D scene to compare. */
-  pixelated = true;
+  private plain = false;
+  get pixelated(): boolean { return !this.plain; }
+  set pixelated(on: boolean) { this.plain = !on; this.fit(); }
+  /** The world's pixels across and down: what is rendered, the screen showing each as a block. */
+  private cols = 1;
+  private rows = 1;
 
   constructor(parent: HTMLElement) {
     this.renderer.setPixelRatio(1);
@@ -109,9 +114,18 @@ export class View {
 
   fit(): void {
     this.sized = true;
-    this.renderer.setSize(innerWidth, innerHeight);
-    this.composer.setSize(innerWidth, innerHeight);
-    this.pixels.setPixelSize(this.pixel);
+    // Rendered at the world's own pixels, every pass after it too, and shown a block to each by
+    // the browser, unsmoothed: the same picture as rendering at the screen's size and then blocking
+    // it, for a ninth of the pixels to work out. Drawn plain, at the screen's own.
+    const block = this.plain ? 1 : this.pixel;
+    this.cols = Math.max(1, Math.floor(innerWidth / block));
+    this.rows = Math.max(1, Math.floor(innerHeight / block));
+    this.renderer.setSize(this.cols, this.rows, false);
+    const canvas = this.renderer.domElement;
+    canvas.style.width = `${this.cols * block}px`;
+    canvas.style.height = `${this.rows * block}px`;
+    this.composer.setSize(this.cols, this.rows);
+    this.pixels.setPixelSize(1);
     // One unit of the world to each of its pixels, whatever the screen. Drawn plain, the same
     // stretch of the world is seen, only finer.
     const k = this.look.far;
@@ -159,11 +173,16 @@ export class View {
     this.sun.position.copy(spot).addScaledVector(this.sunward, OFF);
   }
 
+  /** A point of the page (as a pointer gives it), as a point of the picture from -1 to 1 each way. */
+  pointAt(x: number, y: number): THREE.Vector2 {
+    const box = this.renderer.domElement.getBoundingClientRect();
+    return new THREE.Vector2(((x - box.left) / box.width) * 2 - 1, -((y - box.top) / box.height) * 2 + 1);
+  }
+
   draw(): void {
     // Where the camera stands, in the world's pixels across and up, to hold the grime to the world.
     const unit = this.look.far, at = new THREE.Vector2(this.camera.position.dot(this.right) / unit, this.camera.position.dot(this.up) / unit);
-    finish(this.finisher, this.look, innerWidth, innerHeight, performance.now() / 1000, at);
-    if (this.pixelated) this.composer.render();
-    else this.renderer.render(this.scene, this.camera);
+    finish(this.finisher, this.look, this.cols, this.rows, performance.now() / 1000, at, 1);
+    this.composer.render();
   }
 }

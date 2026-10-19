@@ -25,6 +25,10 @@ import { CELL, clouds, heightPicture, shapeTerrain, swell, WATER_LEVEL, type Ter
  * high above the water mud reaches, and its colour.
  */
 const TEXEL = 8;
+/** The ground is laid in pieces this many of the relief's cells each way, each drawn only when in view. */
+const TILE = 24;
+/** And the plants and fences in patches this wide each way, in world units. */
+const PATCH = 768;
 const GROUND = { from: 0.08, to: 0.92, across: 700, light: 0.14, shore: 3, mud: '#56492a' };
 /**
  * The slopes shaded into the picture, lighter facing the sun and darker away, as a map shows its
@@ -66,7 +70,7 @@ export function raiseCountry(map: WorldMap): Country3D {
   return { group, feet, terrain };
 }
 
-function paintGround(map: WorldMap, terrain: Terrain): THREE.Mesh {
+function paintGround(map: WorldMap, terrain: Terrain): THREE.Group {
   const { width, height } = extent(map);
   const depth = height / ISO_Y;
   // One flat colour over all of it, the map's own, its tone wandering a little in broad swells and
@@ -128,21 +132,36 @@ function paintGround(map: WorldMap, terrain: Terrain): THREE.Mesh {
   const material = flat('#ffffff');
   material.map = texture;
   // Shaped to the relief: one vertex for each height reckoned, the picture laid over it as before.
-  const { heights } = terrain, across = terrain.cols * CELL, deep = terrain.rows * CELL;
-  const shape = new THREE.PlaneGeometry(across, deep, terrain.cols, terrain.rows);
-  shape.rotateX(-Math.PI / 2);
-  shape.translate(across / 2, 0, deep / 2);
-  const position = shape.getAttribute('position') as THREE.BufferAttribute, uv = shape.getAttribute('uv') as THREE.BufferAttribute;
+  // In pieces of TILE cells each way, so that only those in view are drawn (whole, the ground was
+  // drawn twice a frame, all of it, though a fiftieth is seen); each vertex's slope reckoned from
+  // the heights round it over the whole map, so no seam of light shows where two pieces meet.
+  const { heights } = terrain, across = terrain.cols, down = terrain.rows;
+  const at = (i: number, j: number) => heights[Math.min(down, Math.max(0, j)) * (across + 1) + Math.min(across, Math.max(0, i))];
   const pictured = { across: canvas.width * TEXEL, deep: canvas.height * TEXEL };
-  for (let k = 0; k < position.count; k++) {
-    position.setY(k, heights[k]);
-    // The picture covers the map, which the heights may run a little past.
-    uv.setXY(k, position.getX(k) / pictured.across, 1 - position.getZ(k) / pictured.deep);
+  const ground = new THREE.Group(), tilt = new THREE.Vector3();
+  for (let j0 = 0; j0 < down; j0 += TILE) {
+    for (let i0 = 0; i0 < across; i0 += TILE) {
+      const wide = Math.min(TILE, across - i0), deep = Math.min(TILE, down - j0);
+      const shape = new THREE.PlaneGeometry(wide * CELL, deep * CELL, wide, deep);
+      shape.rotateX(-Math.PI / 2);
+      shape.translate((i0 + wide / 2) * CELL, 0, (j0 + deep / 2) * CELL);
+      const position = shape.getAttribute('position') as THREE.BufferAttribute, uv = shape.getAttribute('uv') as THREE.BufferAttribute;
+      const normal = shape.getAttribute('normal') as THREE.BufferAttribute;
+      for (let k = 0; k < position.count; k++) {
+        const i = Math.round(position.getX(k) / CELL), j = Math.round(position.getZ(k) / CELL);
+        position.setY(k, at(i, j));
+        // The picture covers the map, which the heights may run a little past.
+        uv.setXY(k, position.getX(k) / pictured.across, 1 - position.getZ(k) / pictured.deep);
+        tilt.set(-(at(i + 1, j) - at(i - 1, j)) / (2 * CELL), 1, -(at(i, j + 1) - at(i, j - 1)) / (2 * CELL)).normalize();
+        normal.setXYZ(k, tilt.x, tilt.y, tilt.z);
+      }
+      shape.computeBoundingSphere();
+      const piece = new THREE.Mesh(shape, material);
+      piece.receiveShadow = true;
+      ground.add(piece);
+    }
   }
-  shape.computeVertexNormals();
-  const mesh = new THREE.Mesh(shape, material);
-  mesh.receiveShadow = true;
-  return mesh;
+  return ground;
 }
 
 /**
@@ -283,6 +302,19 @@ function plantShape(kind: string): THREE.BufferGeometry | undefined {
   return undefined;
 }
 
+/**
+ * Things of one kind sorted into patches of the map, each patch to be drawn as one: drawn as one
+ * over the whole map, none was ever out of view, and all of them were drawn three times a frame.
+ */
+function inPatches<T extends { x: number; y: number }>(things: T[]): T[][] {
+  const patches = new Map<string, T[]>();
+  for (const thing of things) {
+    const key = `${Math.floor(thing.x / PATCH)},${Math.floor(thing.y / ISO_Y / PATCH)}`;
+    patches.set(key, [...(patches.get(key) ?? []), thing]);
+  }
+  return [...patches.values()];
+}
+
 function plantPlants(map: WorldMap): { meshes: THREE.InstancedMesh[]; taken: Footprint[] } {
   const byKind = new Map<string, ReturnType<typeof plantCountry>>();
   const taken: Footprint[] = [];
@@ -298,20 +330,23 @@ function plantPlants(map: WorldMap): { meshes: THREE.InstancedMesh[]; taken: Foo
   const material = flat();
   const meshes: THREE.InstancedMesh[] = [];
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), tint = new THREE.Color();
-  for (const [kind, plants] of byKind) {
+  for (const [kind, all] of byKind) {
     const shape = plantShape(kind);
     if (!shape) continue;
-    const mesh = new THREE.InstancedMesh(shape, material, plants.length);
-    plants.forEach((plant, i) => {
-      q.setFromAxisAngle(new THREE.Object3D().up, plant.which * Math.PI * 2);
-      m.compose(ground(plant.x, plant.y), q, new THREE.Vector3(plant.size, plant.size, plant.size));
-      mesh.setMatrixAt(i, m);
-      // No two quite the same colour.
-      const k = 0.88 + chance(plant.x, plant.y, 3) * 0.24;
-      mesh.setColorAt(i, tint.setRGB(k, k, k));
-    });
-    mesh.castShadow = mesh.receiveShadow = true;
-    meshes.push(mesh);
+    for (const plants of inPatches(all)) {
+      const mesh = new THREE.InstancedMesh(shape, material, plants.length);
+      plants.forEach((plant, i) => {
+        q.setFromAxisAngle(new THREE.Object3D().up, plant.which * Math.PI * 2);
+        m.compose(ground(plant.x, plant.y), q, new THREE.Vector3(plant.size, plant.size, plant.size));
+        mesh.setMatrixAt(i, m);
+        // No two quite the same colour.
+        const k = 0.88 + chance(plant.x, plant.y, 3) * 0.24;
+        mesh.setColorAt(i, tint.setRGB(k, k, k));
+      });
+      mesh.computeBoundingSphere();
+      mesh.castShadow = mesh.receiveShadow = true;
+      meshes.push(mesh);
+    }
   }
   return { meshes, taken };
 }
@@ -324,11 +359,14 @@ function raiseFences(map: WorldMap): THREE.InstancedMesh[] {
   const material = flat();
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1);
   return kinds.filter(([stakes]) => stakes.length).map(([stakes, shape]) => {
-    const mesh = new THREE.InstancedMesh(shape, material, stakes.length);
-    stakes.forEach((stake, i) => mesh.setMatrixAt(i, m.compose(ground(stake.x, stake.y), q, one)));
-    mesh.castShadow = mesh.receiveShadow = true;
-    return mesh;
-  });
+    return inPatches(stakes).map(some => {
+      const mesh = new THREE.InstancedMesh(shape, material, some.length);
+      some.forEach((stake, i) => mesh.setMatrixAt(i, m.compose(ground(stake.x, stake.y), q, one)));
+      mesh.computeBoundingSphere();
+      mesh.castShadow = mesh.receiveShadow = true;
+      return mesh;
+    });
+  }).flat();
 }
 
 function raiseBuildings(map: WorldMap): { meshes: THREE.Mesh[]; taken: Footprint[] } {

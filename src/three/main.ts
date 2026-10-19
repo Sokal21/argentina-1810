@@ -131,7 +131,7 @@ const caster = new THREE.Raycaster();
 /** The spot of the 2D game's ground under the pointer, if it has moved. */
 function underPointer(): { x: number; y: number } | null {
   if (!pointer) return null;
-  caster.setFromCamera(new THREE.Vector2((pointer.x / innerWidth) * 2 - 1, -(pointer.y / innerHeight) * 2 + 1), view.camera);
+  caster.setFromCamera(view.pointAt(pointer.x, pointer.y), view.camera);
   return onTheGround(caster.ray);
 }
 /** What he last let go: the musket or a grenade. */

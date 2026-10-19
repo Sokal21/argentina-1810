@@ -106,7 +106,7 @@ function fit(): void {
 /** The spot of the map under a point of the screen, on the ground. */
 const caster = new THREE.Raycaster();
 function spot(sx: number, sy: number): { x: number; y: number } | null {
-  caster.setFromCamera(new THREE.Vector2((sx / innerWidth) * 2 - 1, -(sy / innerHeight) * 2 + 1), view.camera);
+  caster.setFromCamera(view.pointAt(sx, sy), view.camera);
   return onTheGround(caster.ray);
 }
 // Changes how far off the camera stands, keeping still what is under a point of the screen.

@@ -70,7 +70,9 @@ export class World3D {
   /** Cabral, as his controller has him this step, and every royalist as his brain has him. */
   update(dt: number, c: MachiController, doing: Doing, royalists: readonly Royalist[]): void {
     this.cabral.update(dt, c, doing);
-    this.royalists.update(dt, royalists);
+    // Only those near enough the camera to be seen, or to throw a shadow into its view.
+    const across = this.view.camera.right + 260, down = this.view.camera.top + 260;
+    this.royalists.update(dt, royalists, (x, y) => Math.abs(x - c.x) < across && Math.abs(y - c.y) < down);
     // The line of the shot and the ring of its blast, as the 2D game draws them while the musket is up.
     const aiming = doing.aimed && c.arming?.kind === 'musket' && c.arming.phase !== 'fire';
     this.marks.show(aiming ? this.cabral.aimFrom(c) : null, aiming ? doing.aimed : null);
@@ -117,7 +119,7 @@ export class World3D {
 
   /** The spot of the 2D game's ground under a point of the screen (in the page's pixels). */
   underPointer(x: number, y: number): Vec | null {
-    this.caster.setFromCamera(new THREE.Vector2((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1), this.view.camera);
+    this.caster.setFromCamera(this.view.pointAt(x, y), this.view.camera);
     return onTheGround(this.caster.ray);
   }
 

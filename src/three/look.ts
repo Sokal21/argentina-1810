@@ -122,7 +122,7 @@ export const HARSH: Partial<Look> = {
   grain: 0, vignette: 0.7,
   // The reds kept (blood, his facings, the glint, the flash); clouds' shadows going over; the
   // faintest haze; a low evening sun, raking and warm; and a glow round only what burns.
-  reds: 0.8, clouds: 0.42, haze: 0.1, bloom: 0.7,
+  reds: 0.8, clouds: 0.3, haze: 0.1, bloom: 0.7,
   sunHigh: 24, sunStrength: 2.5, sunColour: '#ffd9b4',
 };
 
@@ -243,7 +243,7 @@ export function finishing(): ShaderPass {
         col = mix(col, col * grimeColour * 2.2, clamp(blotch + specks, 0.0, 1.0) * grime);
         // The shadows of clouds drifting over, a little cold, held to the world as it moves.
         vec2 sky = world * far / cloudSize + vec2(time, time * 0.4) * cloudSpeed / cloudSize;
-        float shadow = smoothstep(0.46, 0.6, billows(sky)) * clouds;
+        float shadow = smoothstep(0.5, 0.55, billows(sky)) * clouds;
         col *= mix(vec3(1.0), vec3(0.82, 0.86, 0.95), shadow / max(clouds, 0.001)) * (1.0 - shadow * 0.65);
         // The reds keep their colour, lifted a little, at the lightness the rest has come to.
         float lightness = dot(col, vec3(0.299, 0.587, 0.114)), wasLight = max(dot(was, vec3(0.299, 0.587, 0.114)), 0.001);
@@ -265,10 +265,10 @@ export function finishing(): ShaderPass {
 }
 
 /** Sets the finishing pass's numbers from a look, and where the camera stands (in the world's pixels, across and up). */
-export function finish(pass: ShaderPass, look: Look, width: number, height: number, time: number, at = new THREE.Vector2()): void {
+export function finish(pass: ShaderPass, look: Look, width: number, height: number, time: number, at = new THREE.Vector2(), pixel = look.pixel): void {
   const u = pass.uniforms;
   u.resolution.value.set(width, height);
-  u.pixel.value = look.pixel;
+  u.pixel.value = pixel;
   u.time.value = time;
   for (const key of ['brightness', 'contrast', 'saturation', 'gamma', 'shade', 'light', 'crush', 'murk', 'grime', 'reds', 'clouds', 'cloudSize', 'cloudSpeed', 'haze', 'far', 'levels', 'dither', 'grain', 'vignette', 'aberration', 'bulge', 'scanlines'] as const) {
     u[key].value = look[key];

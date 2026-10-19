@@ -93,14 +93,16 @@ float hash1(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453)
   mesh.receiveShadow = true;
   const forward = new THREE.Vector3(), hit = new THREE.Vector3();
   // Kept round where the camera looks, and not drawn from far off, where it would be a patch.
-  mesh.onBeforeRender = (_renderer, _scene, camera) => {
+  mesh.onBeforeRender = (_renderer, scene, camera) => {
     uniforms.time.value = performance.now() / 1000;
     const cam = camera as THREE.OrthographicCamera;
     camera.getWorldDirection(forward);
     hit.copy(camera.position).addScaledVector(forward, -camera.position.y / forward.y);
     uniforms.origin.value.set(Math.floor(hit.x / CELL - across / 2), Math.floor(hit.z / CELL - deep / 2));
     // (Hidden by its count, not by its material: a hidden material is never asked again.)
-    mesh.count = cam.right - cam.left < FIELD.across * 0.95 ? count : 0;
+    // Nor in the pass that finds the picture's edges (drawn with a material of its own, it would not
+    // be placed, and outlines on every blade were not wanted).
+    mesh.count = !scene.overrideMaterial && cam.right - cam.left < FIELD.across * 0.95 ? count : 0;
   };
   return mesh;
 }
