@@ -21,6 +21,8 @@ const HILLS = { tall: 60, rise: 120, across: 280 };
 const ROLL = { tall: 28, across: 320, shore: 220 };
 /** Below the ground: the stream's bed, its banks' width, the ford and the marsh. */
 const BED = { deep: 16, bank: 40, ford: 4, marsh: 0.8 };
+/** The marsh's standing pools: sunk this far below the water, about this wide, in this share of it. */
+const POOLS = { deep: 2.5, across: 110, share: 0.38 };
 /** Where the water stands: above the ford's bed (to his ankles) and below every bank. */
 export const WATER_LEVEL = -2.5;
 /** How many times the heights are smoothed, and how far round a building the ground is levelled. */
@@ -74,10 +76,11 @@ export function shapeTerrain(map: WorldMap): Terrain {
     }
     return found;
   };
-  /** Whether a point is walked (it touches a plot that is), and whether only through the ford. */
+  /** Whether a point is walked (it touches a plot that is), and whether only through the ford, or only the marsh. */
   const walkedAt = (i: number, j: number) => {
     const plots = touching(i, j).filter(p => letterAt(map, p.col, p.row) !== undefined);
-    return { walked: plots.length > 0, fording: plots.length > 0 && plots.every(p => water[p.row][p.col] >= SHALLOW) };
+    const all = (at: (level: number) => boolean) => plots.length > 0 && plots.every(p => at(water[p.row][p.col]));
+    return { walked: plots.length > 0, fording: all(l => l >= SHALLOW), marsh: all(l => l >= WET && l < SHALLOW) };
   };
 
   /** How far every point lies from the nearest point that is so (a chamfer distance). */
@@ -107,7 +110,7 @@ export function shapeTerrain(map: WorldMap): Terrain {
   for (let j = 0; j <= rows; j++) for (let i = 0; i <= cols; i++) {
     const k = index(i, j);
     if (walkedAt(i, j).walked) walked[k] = 1;
-    if (touching(i, j).some(p => water[p.row][p.col] >= SHALLOW)) wet[k] = 1;
+    if (touching(i, j).some(p => water[p.row][p.col] >= WET)) wet[k] = 1;
   }
   const far = distance(k => walked[k] === 1), shore = distance(k => wet[k] === 1);
 
@@ -118,7 +121,10 @@ export function shapeTerrain(map: WorldMap): Terrain {
     const { col, row } = plotOf(i, j), level = water[row][col];
     if (walked[k]) {
       // Walked: it rolls a little, and the ford and the marsh lie a little below it.
-      const fording = walkedAt(i, j).fording, below = fording ? BED.ford : level >= WET && level < SHALLOW ? BED.marsh : 0;
+      // In the marsh, here and there a pool sunk below the water.
+      const { fording, marsh } = walkedAt(i, j);
+      const pool = marsh && swell(x, z, POOLS.across, 51) > 1 - POOLS.share ? -WATER_LEVEL + POOLS.deep : 0;
+      const below = fording ? BED.ford : marsh ? BED.marsh + pool : level >= WET && level < SHALLOW ? BED.marsh : 0;
       heights[k] = (fording ? 0 : ROLL.tall * swell(x, z, ROLL.across, 11) * s(0, ROLL.shore, shore[k])) - below;
     } else if (level >= DEEP) {
       // The stream: down from the bank to its bed.
@@ -158,8 +164,9 @@ export function shapeTerrain(map: WorldMap): Terrain {
   for (let j = 0; j <= rows; j++) for (let i = 0; i <= cols; i++) {
     const k = index(i, j);
     if (!walked[k]) continue;
-    const { fording } = walkedAt(i, j);
-    heights[k] = fording ? Math.min(-1, Math.max(-BED.ford - 1, heights[k])) : Math.min(ROLL.tall + 1, Math.max(0, heights[k]));
+    const { fording, marsh } = walkedAt(i, j);
+    heights[k] = fording ? Math.min(-1, Math.max(-BED.ford - 1, heights[k]))
+      : Math.min(ROLL.tall + 1, Math.max(marsh ? WATER_LEVEL - POOLS.deep : 0, heights[k]));
   }
 
   return {

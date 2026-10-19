@@ -34,6 +34,11 @@ const HILLSHADE = { strength: 4, darkest: 0.62, lightest: 1.28, step: 8 };
 /** How much darker the ground nobody crosses is. */
 const WILD_SHADE = 0.72;
 const WATER = { deep: '#3e5c66', shallow: '#5b7672', wet: '#6f7444' };
+/**
+ * The water's colours, the 2D game's (fx/water.ts); from how deep it is shallow and to how deep it
+ * darkens; how far its shore wanders; and how thin the rim of mud along it is, all in world units.
+ */
+const RIVER = { deep: '#38453d', shallow: '#5c6145', ripple: '#808f7a', mud: '#4f4024', shallowTo: 0.8, deepFrom: 9, ragged: 1.6, rim: 0.35 };
 
 export interface Country3D {
   group: THREE.Group;
@@ -49,7 +54,7 @@ export function raiseCountry(map: WorldMap): Country3D {
   // The relief first: whatever is put on the map after stands on it.
   const terrain = shapeTerrain(map);
   standOn(terrain.at);
-  group.add(paintGround(map, terrain), pourWater(map));
+  group.add(paintGround(map, terrain), pourWater(map, terrain));
   const { meshes, taken } = plantPlants(map);
   group.add(...meshes);
   feet.push(...taken);
@@ -139,16 +144,78 @@ function paintGround(map: WorldMap, terrain: Terrain): THREE.Mesh {
   return mesh;
 }
 
-/** The water standing in the hollows: one level, seen wherever the ground lies below it. */
-function pourWater(map: WorldMap): THREE.Mesh {
+/**
+ * The water standing in the hollows: one level, seen wherever the ground lies below it, as the 2D
+ * game's water is drawn (fx/water.ts): slow brownish water, darker where deep, pale lines of
+ * ripple sliding downstream, a shore that wanders and a rim of mud. It is told how deep it is
+ * everywhere by the relief's heights, read smoothly.
+ */
+function pourWater(map: WorldMap, terrain: Terrain): THREE.Mesh {
   const { width, height } = extent(map), depth = height / (PLOT_H / PLOT_W);
-  const material = flat(WATER.shallow);
-  material.transparent = true;
-  material.opacity = 0.82;
+  const { cols, rows, heights } = terrain;
+  const lie = new THREE.DataTexture(new Uint16Array(Array.from(heights, h => THREE.DataUtils.toHalfFloat(h))),
+    cols + 1, rows + 1, THREE.RedFormat, THREE.HalfFloatType);
+  lie.magFilter = lie.minFilter = THREE.LinearFilter;
+  lie.needsUpdate = true;
+  const uniforms = {
+    time: { value: 0 },
+    lie: { value: lie },
+    // The heights' first and last points lie on the texture's first and last pixels' middles.
+    span: { value: new THREE.Vector2(cols * CELL, rows * CELL) },
+    texels: { value: new THREE.Vector2(cols + 1, rows + 1) },
+    level: { value: WATER_LEVEL },
+    deep: { value: new THREE.Color(RIVER.deep) },
+    shallow: { value: new THREE.Color(RIVER.shallow) },
+    ripple: { value: new THREE.Color(RIVER.ripple) },
+    mud: { value: new THREE.Color(RIVER.mud) },
+  };
+  const material = flat('#ffffff');
+  material.onBeforeCompile = shader => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vWorld;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>
+varying vec3 vWorld;
+uniform float time;
+uniform sampler2D lie;
+uniform vec2 span;
+uniform vec2 texels;
+uniform float level;
+uniform vec3 deep;
+uniform vec3 shallow;
+uniform vec3 ripple;
+uniform vec3 mud;
+float hash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise2(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash2(i), hash2(i + vec2(1.0, 0.0)), f.x), mix(hash2(i + vec2(0.0, 1.0)), hash2(i + vec2(1.0, 1.0)), f.x), f.y);
+}`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+  {
+    vec2 at = vWorld.xz;
+    vec2 uv = (at / span * (texels - 1.0) + 0.5) / texels;
+    // How deep it is here, its shore pushed in and out a little so it wanders.
+    float ragged = noise2(at * 0.022) * 0.65 + noise2(at * 0.09 + 3.0) * 0.35;
+    float below = level - texture2D(lie, uv).r + (ragged - 0.5) * ${RIVER.ragged.toFixed(2)};
+    if (below < 0.0) discard;
+    // Lines of ripple, a pixel thick, drifting slowly downstream (along x, as the stream runs).
+    float drift = noise2(vec2(at.x * 0.045 - time * 0.22, at.y * 0.15)) * 2.4;
+    float lines = step(0.9, fract(at.y * 0.1 + drift)) * step(0.45, noise2(vec2(at.x * 0.07 - time * 0.3, at.y * 0.25 + 9.0)));
+    vec3 water = mix(shallow, deep, smoothstep(${RIVER.shallowTo.toFixed(1)}, ${RIVER.deepFrom.toFixed(1)}, below));
+    water = mix(water, ripple, lines * 0.75);
+    // A rim of mud where it meets the ground.
+    diffuseColor.rgb = below < ${RIVER.rim.toFixed(2)} ? mud : water;
+  }`);
+  };
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), material);
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.set(width / 2, WATER_LEVEL, depth / 2);
   mesh.receiveShadow = true;
+  // The ripples go on by themselves.
+  mesh.onBeforeRender = () => { uniforms.time.value = performance.now() / 1000; };
   return mesh;
 }
 
