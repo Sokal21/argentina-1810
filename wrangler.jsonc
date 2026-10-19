@@ -4,5 +4,7 @@
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": "./dist"
-  }
+  },
+  // `wrangler preview` (the branch previews) asks for this block; it may be empty.
+  "previews": {}
 }
