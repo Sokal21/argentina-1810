@@ -23,12 +23,13 @@ const TURN = 10, SETTLE = 10;
 /** Seconds he lies once fallen before he is gone from the field. */
 const LIES = 0.8;
 /**
- * The warning at his muzzle, to dodge by: a red glow that grows while he aims, and once his aim
- * stops following (LOCK before the shot, when stepping aside makes him miss) a bright flicker until
- * he fires. Its size in world units, from the first of the aim to the lock, and at the lock; its
- * opacity likewise; how fast it flickers once locked, per second.
+ * The warning at his muzzle, to dodge by: a faint red glow that grows a little while he aims, and
+ * once his aim stops following (LOCK before the shot, when stepping aside makes him miss) a glint,
+ * a star of four rays along the diagonals, that bursts out and dies away by the shot. The glow's
+ * size in world units and opacity, from the first of the aim to the lock; the star's size, the
+ * share of the lock it takes to burst out, and how far it turns meanwhile (radians).
  */
-const WARN = { colour: '#ff3424', from: 2, to: 6, locked: 10, faint: 0.25, full: 0.75, flicker: 28 };
+const WARN = { colour: '#ff3424', from: 1.5, to: 3.5, faint: 0.12, full: 0.45, star: 16, burst: 0.25, turn: 0.35 };
 
 /** The glow's picture: a soft round light, white at the heart. */
 let glowing: THREE.Texture | null = null;
@@ -45,6 +46,32 @@ function glow(): THREE.Texture {
   return glowing = new THREE.CanvasTexture(canvas);
 }
 
+/** The glint's picture: four thin rays along the diagonals, tapering from a white heart. */
+let starred: THREE.Texture | null = null;
+function star(): THREE.Texture {
+  if (starred) return starred;
+  const size = 64, half = size / 2, canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const g = canvas.getContext('2d')!;
+  g.translate(half, half);
+  g.rotate(Math.PI / 4);
+  for (let ray = 0; ray < 4; ray++) {
+    g.rotate(Math.PI / 2);
+    g.fillStyle = 'rgba(255,255,255,1)';
+    g.beginPath();
+    g.moveTo(0, -2.2);
+    g.lineTo(half * 1.3, 0);
+    g.lineTo(0, 2.2);
+    g.fill();
+  }
+  const heart = g.createRadialGradient(0, 0, 0, 0, 0, 9);
+  heart.addColorStop(0, 'rgba(255,255,255,1)');
+  heart.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = heart;
+  g.fillRect(-9, -9, 18, 18);
+  return starred = new THREE.CanvasTexture(canvas);
+}
+
 /** What his figure needs to know of him: his brain's state, and how red he flashes. */
 export interface Royalist {
   readonly mind: { readonly x: number; readonly y: number; readonly mode: Mode; readonly t: number; readonly dir: { x: number; y: number } };
@@ -58,9 +85,13 @@ class Figure {
   private readonly motion: Motion;
   private readonly flash: (amount: number) => void;
   private readonly reach: number;
-  /** The warning at his muzzle while he aims: seen through him too, aiming away, since it is there to be dodged by. */
-  readonly warning = new THREE.Sprite(new THREE.SpriteMaterial({
+  /** The warning at his muzzle while he aims, glow and glint: seen through him too, aiming away, since it is there to be dodged by. */
+  readonly warning = new THREE.Group();
+  private readonly glow = new THREE.Sprite(new THREE.SpriteMaterial({
     map: glow(), color: WARN.colour, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
+  }));
+  private readonly star = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: star(), color: '#ff8a70', transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
   }));
   private facing = 0;
   private going = 0;
@@ -75,6 +106,7 @@ class Figure {
     this.motion = new Motion(this.body);
     this.flash = flashes(this.body);
     this.reach = this.motion.reach('caminata_mixamo', 'L_Foot') * shape.scale.x;
+    this.warning.add(this.glow, this.star);
     this.warning.visible = false;
   }
 
@@ -119,15 +151,19 @@ class Figure {
     this.warn(who, mode, t);
   }
 
-  /** The glow at his muzzle while he aims, growing until his aim is fixed, then flickering bright until the shot. */
+  /** The glow at his muzzle while he aims, growing a little until his aim is fixed; then the glint, until the shot. */
   private warn(who: Royalist, mode: Mode, t: number): void {
     this.warning.visible = mode === 'aim';
     if (mode !== 'aim') return;
-    const locked = t >= AIM - LOCK, k = Math.min(1, t / (AIM - LOCK));
-    const size = locked ? WARN.locked : WARN.from + (WARN.to - WARN.from) * k * k;
-    const material = this.warning.material;
-    material.opacity = locked ? (Math.sin(t * WARN.flicker) > -0.3 ? 1 : 0.55) : WARN.faint + (WARN.full - WARN.faint) * k;
-    this.warning.scale.setScalar(size);
+    const k = Math.min(1, t / (AIM - LOCK)), into = Math.max(0, t - (AIM - LOCK)) / LOCK;
+    this.glow.scale.setScalar(WARN.from + (WARN.to - WARN.from) * k);
+    this.glow.material.opacity = WARN.faint + (WARN.full - WARN.faint) * k * k;
+    // Out at once, then dying away by the shot.
+    const out = into <= 0 ? 0 : into < WARN.burst ? into / WARN.burst : 1 - (into - WARN.burst) / (1 - WARN.burst);
+    this.star.visible = into > 0;
+    this.star.scale.setScalar(WARN.star * (0.4 + 0.6 * out));
+    this.star.material.opacity = out;
+    this.star.material.rotation = into * WARN.turn;
     this.warning.position.copy(this.muzzle(who).tip);
   }
 
