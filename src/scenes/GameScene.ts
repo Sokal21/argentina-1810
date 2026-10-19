@@ -59,7 +59,7 @@ import { Story } from '../story/story';
 import { THINGS } from '../story/things';
 import { FACTS, RULES, VADO } from '../story/vado';
 import { Vitals } from '../world/vitals';
-import { DRAW, SHOT as SLING } from '../three/cabral';
+import { DRAW, SHOT as SLING, SIP } from '../three/cabral';
 import { World3D } from '../three/world3d';
 import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Charge as Cargo, type Spot, type WorldMap } from '../world/zones';
 
@@ -447,13 +447,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.shots = new Bolts(this, this.size.width, this.size.height, SHOT);
-    this.physics.add.overlap(this.shots.bodies, this.hurtbox, (a, b) => {
-      const spot = ([a, b] as Phaser.GameObjects.GameObject[]).find(o => o.getData('bolt'));
-      if (spot && this.hurt()) {
-        this.shots.strike(spot);
-        this.three?.wounded(this.machi);
-      }
-    });
+    // What the royalists fire is tested along its path each step (see update): it flies too fast for the physics engine.
 
     this.lightning = new Lightning(this);
     this.marks = this.add.graphics().setDepth(-1000);
@@ -655,7 +649,8 @@ export class GameScene extends Phaser.Scene {
         if (restores === 'life') this.vitals.heal(amount);
         else this.abilities.mana = Math.min(MANA, this.abilities.mana + amount);
         // They stand and drink, facing the viewer, and the light of it comes up round them.
-        if (this.machi.kit.sheets.drink) this.machi.channel(DRINKING, 'drink');
+        // In 3D his drink is a capture, given the time it needs (three/cabral.ts).
+        if (this.machi.kit.sheets.drink) this.machi.channel(this.shownIn3d ? SIP : DRINKING, 'drink');
         this.mending?.begin(MEND[restores], this.machi);
       };
       const interact = () => {
@@ -988,6 +983,14 @@ export class GameScene extends Phaser.Scene {
     this.bolts.update(dt);
     this.embers.update(dt);
     this.shots.update(dt);
+    // A royalist's ball strikes the first time it is seen to touch her, anywhere along the stretch
+    // it flew this step; one that does not hurt her (a dodge, the grace after a blow) flies on.
+    const torso: Footprint = { x: this.machi.x, y: this.machi.y - TORSO.up, hw: TORSO.w / 2, hh: TORSO.h / 2 };
+    this.shots.sweep(4, (x, y) => {
+      if (!this.vitals.standing || !overlaps({ x, y, hw: 3.5, hh: 3.5 }, torso) || !this.hurt()) return false;
+      this.three?.wounded(this.machi);
+      return true;
+    });
     this.balls.update(dt);
     // A musket ball bursts on the first thing it is seen to touch, anywhere
     // along the stretch it flew this step.

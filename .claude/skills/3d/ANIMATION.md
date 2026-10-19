@@ -9,7 +9,8 @@ October 2026, with the user judging every clip in the game. Read it all before a
    downloads it (mixamo.com, free Adobe account, **FBX, "Without Skin"**) into `tools/mocap/`.
    Its files stay out of git (`.gitignore`, licence: usable in the game, not redistributable);
    only the GLB made from them is kept. Chosen so far: Stand To Roll (his roll), Breathing Idle,
-   Walking (his gait, replacing CMU's), Falling Back Death (the royalist's death). Each one's
+   Walking (his gait, replacing CMU's), Falling Back Death (the royalist's death), Drinking (his
+   flask: only the draught, played in 1.4 s; most of the capture is standing about). Each one's
    flags are in `tools/mocap/README.md`.
 2. **CMU motion capture** (free, `tools/mocap/*.bvh`, index: the cgspeed `cmu-mocap-index-text.txt`
    in the una-dinosauria/cmu-mocap mirror). Good enough for walks (his gait was CMU 07_01); crude for

@@ -27,6 +27,12 @@ const SLUNG = 0.63;
 const TAKEN = 0.36;
 /** The share of the throw at which it leaves his hand (granada.py: frame 3 of 19). */
 export const THROWN = 0.16;
+/**
+ * Seconds he takes over a drink from his flask, in the 3D game: Mixamo's Drinking (only the draught
+ * itself, raised, drunk and lowered; the capture stood about for five seconds more) played quicker.
+ * The 2D game's 0.8 rushed it.
+ */
+export const SIP = 1.4;
 /** How fast he turns to face the way he goes, per second. */
 const TURN = 14;
 /** How quickly what he is taken to be going at follows how fast he really goes, per second. */
@@ -112,6 +118,7 @@ export class CabralFigure {
   private dashing = 0;
   private wasDashing = false;
   private wasSwinging = false;
+  private wasChanneling = false;
   private swung = 0;
   private phaseWas: string | null = null;
   /** Where the dash set out from, and the way it goes on the 2D ground (screen units, per unit of its distance). */
@@ -213,6 +220,8 @@ export class CabralFigure {
       }
       // His own cut, keyed in Blender to land when the game's blow does; the library's if it is missing.
       else if (c.isSwinging) motion.play(motion.has('tajo') ? 'tajo' : 'slash', { once: true, lasts: SWING, afresh: !this.wasSwinging, blend: 0.05 });
+      // A drink from his flask, the one thing he stops for.
+      else if (c.isChanneling && motion.has('tomar')) motion.play('tomar', { once: true, lasts: SIP, afresh: !this.wasChanneling, blend: 0.1 });
       else if (arming?.kind === 'grenade' && motion.has('granada_apuntar')) {
         // The grenade: taken from his hip and drawn back while it comes up, held back until the
         // click, then thrown; his feet stay where they are.
@@ -234,6 +243,7 @@ export class CabralFigure {
     }
     this.swung = c.isSwinging ? (this.wasSwinging ? this.swung + dt : 0) : 0;
     this.wasSwinging = c.isSwinging;
+    this.wasChanneling = c.isChanneling;
     this.dashing = into;
     this.wasDashing = c.isDashing;
     this.phaseWas = arming?.phase ?? null;

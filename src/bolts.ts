@@ -32,9 +32,13 @@ export const BALL: BoltKind = {
   key: 'ball', colours: ['#b9b2a3', '#4a4640', '#2a2724'], speed: 1500, range: 420,
 };
 
-/** A royalist's musket ball: fast, but not so fast it cannot be stepped out of. */
+/**
+ * A royalist's musket ball: as fast as his, chosen by the user for the 3D game (at 330 it was
+ * stepped out of with ease); it is dodged by the glint at the muzzle before the shot. As fast as
+ * that it is tested along its path with `sweep`, as his is.
+ */
 export const SHOT: BoltKind = {
-  key: 'shot', colours: ['#d8cfb8', '#6b6458', '#2a2724'], speed: 330, range: 330,
+  key: 'shot', colours: ['#d8cfb8', '#6b6458', '#2a2724'], speed: 1500, range: 330,
 };
 
 interface Bolt {
