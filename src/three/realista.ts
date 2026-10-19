@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { AIM, MUZZLE, SLASH_TIME, type Mode } from '../realista/brain';
+import { AIM, LOCK, MUZZLE, SLASH_TIME, type Mode } from '../realista/brain';
 import { barrelOf } from './cabral';
 import { flashes, model } from './figure';
 import { Motion } from './motion';
@@ -22,6 +22,28 @@ const DRAWN_AT = 0.67, SLUNG = 0.63;
 const TURN = 10, SETTLE = 10;
 /** Seconds he lies once fallen before he is gone from the field. */
 const LIES = 0.8;
+/**
+ * The warning at his muzzle, to dodge by: a red glow that grows while he aims, and once his aim
+ * stops following (LOCK before the shot, when stepping aside makes him miss) a bright flicker until
+ * he fires. Its size in world units, from the first of the aim to the lock, and at the lock; its
+ * opacity likewise; how fast it flickers once locked, per second.
+ */
+const WARN = { colour: '#ff3424', from: 2, to: 6, locked: 10, faint: 0.25, full: 0.75, flicker: 28 };
+
+/** The glow's picture: a soft round light, white at the heart. */
+let glowing: THREE.Texture | null = null;
+function glow(): THREE.Texture {
+  if (glowing) return glowing;
+  const size = 32, canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const g = canvas.getContext('2d')!, light = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  light.addColorStop(0, 'rgba(255,255,255,1)');
+  light.addColorStop(0.25, 'rgba(255,255,255,0.85)');
+  light.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = light;
+  g.fillRect(0, 0, size, size);
+  return glowing = new THREE.CanvasTexture(canvas);
+}
 
 /** What his figure needs to know of him: his brain's state, and how red he flashes. */
 export interface Royalist {
@@ -36,6 +58,10 @@ class Figure {
   private readonly motion: Motion;
   private readonly flash: (amount: number) => void;
   private readonly reach: number;
+  /** The warning at his muzzle while he aims: seen through him too, aiming away, since it is there to be dodged by. */
+  readonly warning = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: glow(), color: WARN.colour, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
+  }));
   private facing = 0;
   private going = 0;
   private was = { x: 0, y: 0 };
@@ -49,6 +75,7 @@ class Figure {
     this.motion = new Motion(this.body);
     this.flash = flashes(this.body);
     this.reach = this.motion.reach('caminata_mixamo', 'L_Foot') * shape.scale.x;
+    this.warning.visible = false;
   }
 
   update(dt: number, who: Royalist): void {
@@ -89,6 +116,19 @@ class Figure {
     this.body.visible = mode !== 'gone' || t < LIES;
     this.body.position.copy(ground(x, y));
     this.body.rotation.y = this.facing;
+    this.warn(who, mode, t);
+  }
+
+  /** The glow at his muzzle while he aims, growing until his aim is fixed, then flickering bright until the shot. */
+  private warn(who: Royalist, mode: Mode, t: number): void {
+    this.warning.visible = mode === 'aim';
+    if (mode !== 'aim') return;
+    const locked = t >= AIM - LOCK, k = Math.min(1, t / (AIM - LOCK));
+    const size = locked ? WARN.locked : WARN.from + (WARN.to - WARN.from) * k * k;
+    const material = this.warning.material;
+    material.opacity = locked ? (Math.sin(t * WARN.flicker) > -0.3 ? 1 : 0.55) : WARN.faint + (WARN.full - WARN.faint) * k;
+    this.warning.scale.setScalar(size);
+    this.warning.position.copy(this.muzzle(who).tip);
   }
 
   /** Where his shot leaves from and the way it goes: down his barrel, or from his shoulder the way he faces. */
@@ -121,7 +161,7 @@ export class Royalists {
     if (!this.shape) return;
     for (const [who, figure] of this.figures) {
       if (everyone.includes(who)) continue;
-      this.group.remove(figure.body);
+      this.group.remove(figure.body, figure.warning);
       this.figures.delete(who);
     }
     for (const who of everyone) {
@@ -129,7 +169,7 @@ export class Royalists {
       if (!figure) {
         figure = new Figure(this.shape);
         this.figures.set(who, figure);
-        this.group.add(figure.body);
+        this.group.add(figure.body, figure.warning);
       }
       figure.update(dt, who);
     }
