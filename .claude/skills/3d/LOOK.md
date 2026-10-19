@@ -64,3 +64,11 @@ and specks held to the world by the camera's place (`grime`), so they go by with
 moving grain: it read as rain.
 The finishing pass works on the screen's colours: its tints are handed over as written, not as
 Three's linear colours, which came out nearly black.
+
+Then (the same day), what it lacked, each chosen by the user: the reds kept and lifted while the
+rest goes sad (`reds`: blood, his facings, the glint, the flash catch the eye); shadows of clouds
+drifting over, a little cold, held to the world (`clouds`); the faintest haze toward the top
+(`haze`, "muy leve"); a low evening sun, raking and warm, with long shadows (`sunHigh` 24); and a
+glow round only what is very bright (`bloom`, an UnrealBloomPass before the finishing pass, which
+draws it in the world's pixels). A uniform and a function in the same shader cannot share a name
+(`clouds`): the picture went black.

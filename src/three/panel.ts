@@ -8,7 +8,7 @@ import type { View } from './view';
 // the collision boxes).
 
 // A new name whenever the game's own look changes, so what was kept from before does not hide it.
-const KEPT = '1810.3d.look.4';
+const KEPT = '1810.3d.look.5';
 
 /** Values kept from before that were the game's own then and have changed since: taken as unset. */
 const STALE: Partial<Record<keyof Look, unknown[]>> = { rollTime: [0.8, 1.0, 1.4], rollDistance: [170, 190, 220] };
@@ -87,6 +87,16 @@ export function mountPanel(view: View, { key = 'KeyP', hidden = false } = {}): G
   colour.add(look, 'murk', 0, 1, 0.01).name('velo: cuánto');
   colour.addColor(look, 'grimeColour').name('mugre: color');
   colour.add(look, 'grime', 0, 1.5, 0.01).name('mugre: cuánto');
+  colour.add(look, 'reds', 0, 1, 0.01).name('rojos que resaltan');
+
+  const air = gui.addFolder('Aire');
+  air.add(look, 'clouds', 0, 1, 0.01).name('sombras de nubes');
+  air.add(look, 'cloudSize', 200, 3000, 10).name('nubes: tamaño');
+  air.add(look, 'cloudSpeed', 0, 80, 1).name('nubes: velocidad');
+  air.add(look, 'haze', 0, 0.6, 0.01).name('bruma');
+  air.addColor(look, 'hazeColour').name('bruma: color');
+  air.add(look, 'bloom', 0, 3, 0.01).name('brillo de lo que quema');
+  air.add(look, 'bloomFrom', 0, 2, 0.01).name('brillo: desde qué luz');
 
   const palette = gui.addFolder('Paleta y tramado');
   palette.add(look, 'levels', 0, 32, 1).name('niveles por canal (0: sin)');

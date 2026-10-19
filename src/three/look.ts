@@ -46,6 +46,18 @@ export interface Look {
   /** Grime: dark blotches and specks over the ground, held to the world as it moves; their colour. */
   grime: number;
   grimeColour: string;
+  /** How much the reds keep their colour (and are lifted) while everything else is made sadder. */
+  reds: number;
+  /** Shadows of clouds drifting over the country: how dark, how big (world pixels across), how fast. */
+  clouds: number;
+  cloudSize: number;
+  cloudSpeed: number;
+  /** A faint haze, thicker toward the top of the picture (further off), and its colour. */
+  haze: number;
+  hazeColour: string;
+  /** A glow round only what is very bright (a flash, a glint, fire): how strong, and from how bright. */
+  bloom: number;
+  bloomFrom: number;
 
   /** Levels per colour channel the picture is brought down to (0: as it is), and how much it is dithered on the way. */
   levels: number;
@@ -96,15 +108,20 @@ export const CLEAN: Partial<Look> = {
   brightness: 0, contrast: 1, saturation: 1, gamma: 1,
   shadeColour: '#2a3a6a', shade: 0, lightColour: '#ffd9a0', light: 0,
   crush: 0, murkColour: '#6b6448', murk: 0, grime: 0, grimeColour: '#3a2c1e',
+  reds: 0, clouds: 0, haze: 0, bloom: 0, sunHigh: 55,
   grain: 0, vignette: 0,
 };
 export const HARSH: Partial<Look> = {
-  sunStrength: 2.3, sunColour: '#f2e2c4', skyStrength: 1.45, skyColour: '#b4babb', groundColour: '#6e6142',
+  skyStrength: 1.45, skyColour: '#b4babb', groundColour: '#6e6142',
   brightness: -0.01, contrast: 1.1, saturation: 0.65, gamma: 1,
   shadeColour: '#2e3a48', shade: 0.4, lightColour: '#d8b47a', light: 0.2,
   crush: 0.35, murkColour: '#6b6448', murk: 0.18, grime: 0.45, grimeColour: '#3a2c1e',
   // No grain: moving, it read as rain, and the user did not want it.
   grain: 0, vignette: 0.7,
+  // The reds kept (blood, his facings, the glint, the flash); clouds' shadows going over; the
+  // faintest haze; a low evening sun, raking and warm; and a glow round only what burns.
+  reds: 0.8, clouds: 0.32, haze: 0.1, bloom: 0.7,
+  sunHigh: 24, sunStrength: 2.5, sunColour: '#ffc58e',
 };
 
 /** The look the user tuned in the panel and chose (17 October 2026), made harder (19 October). */
@@ -116,6 +133,7 @@ export const LOOK: Look = {
   brightness: 0, contrast: 1, saturation: 1, gamma: 1,
   shadeColour: '#2a3a6a', shade: 0, lightColour: '#ffd9a0', light: 0,
   crush: 0, murkColour: '#6b6448', murk: 0, grime: 0, grimeColour: '#3a2c1e',
+  reds: 0, clouds: 0, cloudSize: 900, cloudSpeed: 14, haze: 0, hazeColour: '#8e8f86', bloom: 0, bloomFrom: 0.92,
   levels: 0, dither: 0,
   grain: 0, grainMoves: true, vignette: 0, aberration: 0.9, bulge: 0, scanlines: 0.05,
   trail: true,
@@ -147,6 +165,8 @@ export function finishing(): ShaderPass {
       lightColour: { value: new THREE.Color() }, light: { value: 0 },
       crush: { value: 0 }, murkColour: { value: new THREE.Color() }, murk: { value: 0 },
       grime: { value: 0 }, grimeColour: { value: new THREE.Color() }, offset: { value: new THREE.Vector2() },
+      reds: { value: 0 }, clouds: { value: 0 }, cloudSize: { value: 900 }, cloudSpeed: { value: 14 },
+      haze: { value: 0 }, hazeColour: { value: new THREE.Color() }, far: { value: 1.8 },
       levels: { value: 0 }, dither: { value: 0 },
       grain: { value: 0 }, grainMoves: { value: 0 },
       vignette: { value: 0 }, aberration: { value: 0 }, bulge: { value: 0 }, scanlines: { value: 0 },
@@ -162,8 +182,8 @@ export function finishing(): ShaderPass {
       uniform float brightness, contrast, saturation, gamma;
       uniform vec3 shadeColour, lightColour;
       uniform float shade, light, levels, dither, grain, grainMoves, vignette, aberration, bulge, scanlines;
-      uniform float crush, murk, grime;
-      uniform vec3 murkColour, grimeColour;
+      uniform float crush, murk, grime, reds, clouds, cloudSize, cloudSpeed, haze, far;
+      uniform vec3 murkColour, grimeColour, hazeColour;
       // Where the camera stands, in the world's pixels: the grime is held to the world by it.
       uniform vec2 offset;
       varying vec2 vUv;
@@ -181,7 +201,7 @@ export function finishing(): ShaderPass {
         f = f * f * (3.0 - 2.0 * f);
         return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
       }
-      float clouds(vec2 p) {
+      float billows(vec2 p) {
         float sum = 0.0, strength = 0.5;
         for (int o = 0; o < 4; o++) { sum += noise(p) * strength; p *= 2.03; strength *= 0.5; }
         return sum / 0.9375;
@@ -198,6 +218,10 @@ export function finishing(): ShaderPass {
         vec2 at = (block + 0.5) * pixel / resolution;
         vec2 apart = c * aberration * pixel / resolution;
         vec3 col = vec3(texture2D(tDiffuse, at + apart).r, texture2D(tDiffuse, at).g, texture2D(tDiffuse, at - apart).b);
+        // How red it is before anything is done to it: red well above green and blue.
+        vec3 was = col;
+        float redness = smoothstep(0.08, 0.3, was.r - max(was.g, was.b)) * smoothstep(0.12, 0.3, was.r);
+        vec2 world = block + offset;
 
         col = (col - 0.5) * contrast + 0.5 + brightness;
         float luma = dot(col, vec3(0.299, 0.587, 0.114));
@@ -212,10 +236,18 @@ export function finishing(): ShaderPass {
         // Harder: the darks pushed down into black.
         col = mix(col, col * smoothstep(0.0, 0.28, col), crush);
         // Dirtier: blotches and specks of grime, held to the world (the camera's place moves them with it).
-        vec2 world = block + offset;
-        float blotch = smoothstep(0.48, 0.82, clouds(world * 0.022)) * 0.75 + smoothstep(0.55, 0.9, clouds(world * 0.09 + 17.0)) * 0.35;
+        float blotch = smoothstep(0.48, 0.82, billows(world * 0.022)) * 0.75 + smoothstep(0.55, 0.9, billows(world * 0.09 + 17.0)) * 0.35;
         float specks = step(0.986, hash(world)) * 0.5;
         col = mix(col, col * grimeColour * 2.2, clamp(blotch + specks, 0.0, 1.0) * grime);
+        // The shadows of clouds drifting over, a little cold, held to the world as it moves.
+        vec2 sky = world * far / cloudSize + vec2(time, time * 0.4) * cloudSpeed / cloudSize;
+        float shadow = smoothstep(0.42, 0.7, billows(sky)) * clouds;
+        col *= mix(vec3(1.0), vec3(0.8, 0.84, 0.92), shadow / max(clouds, 0.001)) * (1.0 - shadow * 0.55);
+        // The reds keep their colour, lifted a little, at the lightness the rest has come to.
+        float lightness = dot(col, vec3(0.299, 0.587, 0.114)), wasLight = max(dot(was, vec3(0.299, 0.587, 0.114)), 0.001);
+        col = mix(col, clamp(was * (lightness / wasLight) * vec3(1.18, 0.95, 0.95), 0.0, 1.0), redness * reds);
+        // The faintest haze, thicker further off (up the picture).
+        col = mix(col, hazeColour, haze * smoothstep(0.2, 1.0, uv.y));
 
         col += (hash(block + floor(time * 12.0) * grainMoves) - 0.5) * grain;
         if (levels >= 2.0) {
@@ -236,7 +268,7 @@ export function finish(pass: ShaderPass, look: Look, width: number, height: numb
   u.resolution.value.set(width, height);
   u.pixel.value = look.pixel;
   u.time.value = time;
-  for (const key of ['brightness', 'contrast', 'saturation', 'gamma', 'shade', 'light', 'crush', 'murk', 'grime', 'levels', 'dither', 'grain', 'vignette', 'aberration', 'bulge', 'scanlines'] as const) {
+  for (const key of ['brightness', 'contrast', 'saturation', 'gamma', 'shade', 'light', 'crush', 'murk', 'grime', 'reds', 'clouds', 'cloudSize', 'cloudSpeed', 'haze', 'far', 'levels', 'dither', 'grain', 'vignette', 'aberration', 'bulge', 'scanlines'] as const) {
     u[key].value = look[key];
   }
   u.grainMoves.value = look.grainMoves ? 1 : 0;
@@ -244,6 +276,7 @@ export function finish(pass: ShaderPass, look: Look, width: number, height: numb
   u.lightColour.value.copy(written(look.lightColour));
   u.murkColour.value.copy(written(look.murkColour));
   u.grimeColour.value.copy(written(look.grimeColour));
+  u.hazeColour.value.copy(written(look.hazeColour));
   u.offset.value.copy(at);
 }
 
