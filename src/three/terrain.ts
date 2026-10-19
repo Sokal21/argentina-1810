@@ -13,12 +13,12 @@ import { extent, letterAt, middle, PLOT_H, PLOT_W, type WorldMap } from '../worl
 /** How far apart the heights are reckoned, in the 3D ground's units, each way. */
 export const CELL = 32;
 /** The rise of the hills where nobody walks, and how far from what is walked they take to rise. */
-const HILLS = { tall: 48, rise: 120, across: 280 };
+const HILLS = { tall: 60, rise: 120, across: 280 };
 /**
- * How much the walked ground rolls: in long low swells, never below the ground, so it holds no
- * puddles. At 3 nothing was seen round where he arrives; the user asked for relief to be seen.
+ * How much the walked ground rolls: in swells, never below the ground, so it holds no puddles.
+ * At 3, and at 14 over 520, nothing was seen (a slope of 2°); the user asked for relief to be seen.
  */
-const ROLL = { tall: 14, across: 520, shore: 220 };
+const ROLL = { tall: 28, across: 320, shore: 220 };
 /** Below the ground: the stream's bed, its banks' width, the ford and the marsh. */
 const BED = { deep: 16, bank: 40, ford: 4, marsh: 0.8 };
 /** Where the water stands: above the ford's bed (to his ankles) and below every bank. */
@@ -27,6 +27,18 @@ export const WATER_LEVEL = -2.5;
 const SMOOTHING = 2, PAD = 12;
 
 /** Smooth noise from 0 to 1, about `across` units from one swell to the next. */
+/** Noise like clouds: swells within swells, each half the size and half the strength of the last, from 0 to 1. */
+export function clouds(x: number, z: number, across: number, seed: number, octaves = 5): number {
+  let sum = 0, weight = 0, strength = 1;
+  for (let o = 0; o < octaves; o++) {
+    sum += swell(x, z, across, seed + o * 101) * strength;
+    weight += strength;
+    across /= 2;
+    strength /= 2;
+  }
+  return sum / weight;
+}
+
 export function swell(x: number, z: number, across: number, seed: number): number {
   const u = x / across, v = z / across, i = Math.floor(u), j = Math.floor(v), fu = u - i, fv = v - j;
   const s = (t: number) => t * t * (3 - 2 * t);

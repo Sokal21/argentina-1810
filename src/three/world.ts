@@ -9,7 +9,8 @@ import { SHALLOW, WET, waterLevels } from '../world/water';
 import { extent, letterAt, middle, PLOT_H, PLOT_W, type WorldMap } from '../world/zones';
 import { flat, joined, part, placed } from './paint';
 import { ground, standOn, UPRIGHT } from './space';
-import { CELL, shapeTerrain, swell, WATER_LEVEL, type Terrain } from './terrain';
+import { LOOK, sunWay } from './look';
+import { CELL, clouds, shapeTerrain, swell, WATER_LEVEL, type Terrain } from './terrain';
 
 // A map of open country stood up in 3D from the same code that lays out the 2D one: the
 // ground patched in its colours and shaped into its relief (terrain.ts), the water standing in
@@ -18,11 +19,18 @@ import { CELL, shapeTerrain, swell, WATER_LEVEL, type Terrain } from './terrain'
 
 /**
  * How much ground each pixel of the ground's picture covers, in world units; how far its tone
- * wanders between the map's darkest and lightest colours (shares of the way), and over how far its
- * broad and small swells run; how high above the water mud reaches, and its colour.
+ * wanders between the map's darkest and lightest colours (shares of the way), over how far its
+ * broadest swells run (clouds: swells within swells), and how much they lighten and darken it; how
+ * high above the water mud reaches, and its colour.
  */
 const TEXEL = 8;
-const GROUND = { from: 0.25, to: 0.75, broad: 460, small: 110, shore: 3, mud: '#56492a' };
+const GROUND = { from: 0.08, to: 0.92, across: 700, light: 0.14, shore: 3, mud: '#56492a' };
+/**
+ * The slopes shaded into the picture, lighter facing the sun and darker away, as a map shows its
+ * hills: the light's own steps hardly told a gentle slope from the flat. How strongly, and how far
+ * apart the heights are compared.
+ */
+const HILLSHADE = { strength: 4, darkest: 0.62, lightest: 1.28, step: 8 };
 /** How much darker the ground nobody crosses is. */
 const WILD_SHADE = 0.72;
 const WATER = { deep: '#3e5c66', shallow: '#5b7672', wet: '#6f7444' };
@@ -76,13 +84,17 @@ function paintGround(map: WorldMap, terrain: Terrain): THREE.Mesh {
   const wildOf = (c: number, r: number) => (letterAt(map, c, r) === undefined ? 1 : 0);
   const marshOf = (c: number, r: number) => (water[r][c] >= WET && water[r][c] < SHALLOW ? 1 : 0);
   const s = (a: number, b: number, t: number) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
+  const written = { r: 0, g: 0, b: 0 }, slope = new THREE.Vector3(), sun = sunWay(LOOK);
   const colour = new THREE.Color(), mud = new THREE.Color(GROUND.mud), wet = new THREE.Color(WATER.wet);
   for (let py = 0; py < canvas.height; py++) {
     for (let px = 0; px < canvas.width; px++) {
       const x = (px + 0.5) * TEXEL, z = (py + 0.5) * TEXEL, y = z * ISO_Y;
-      const tone = GROUND.from + (GROUND.to - GROUND.from) * (0.6 * swell(x, z, GROUND.broad, 31) + 0.4 * swell(x, z, GROUND.small, 37));
+      // Its tone wanders like clouds, stretched so the swells reach well toward either end.
+      const cloud = Math.max(0, Math.min(1, (clouds(x, z, GROUND.across, 31) - 0.5) * 2.2 + 0.5));
+      const tone = GROUND.from + (GROUND.to - GROUND.from) * cloud;
       const at = tone * (tones.length - 1), k = Math.min(tones.length - 2, Math.floor(at));
-      colour.copy(tones[k]).lerp(tones[k + 1], at - k);
+      // The map's colours lie close together: the clouds lighten and darken it too.
+      colour.copy(tones[k]).lerp(tones[k + 1], at - k).multiplyScalar(1 + GROUND.light * (cloud - 0.5) * 2);
       // The marsh: wet patches here and there.
       const marsh = smooth(x, y, marshOf);
       if (marsh > 0.05) colour.lerp(wet, s(0.5, 0.62, swell(x, z, 48, 41)) * marsh * 0.8);
@@ -90,10 +102,16 @@ function paintGround(map: WorldMap, terrain: Terrain): THREE.Mesh {
       colour.lerp(mud, s(WATER_LEVEL + GROUND.shore, WATER_LEVEL - 1, terrain.at(x, y)));
       // Darker where nobody walks.
       colour.multiplyScalar(1 - (1 - WILD_SHADE) * s(0.3, 0.8, smooth(x, y, wildOf)));
-      const o = (py * canvas.width + px) * 4;
-      picture.data[o] = colour.r * 255;
-      picture.data[o + 1] = colour.g * 255;
-      picture.data[o + 2] = colour.b * 255;
+      // The slope, toward the sun or away from it.
+      const h = HILLSHADE.step, dx = terrain.at(x + h, y) - terrain.at(x - h, y), dz = terrain.at(x, y + h * ISO_Y) - terrain.at(x, y - h * ISO_Y);
+      slope.set(-dx / (2 * h), 1, -dz / (2 * h)).normalize();
+      colour.multiplyScalar(Math.max(HILLSHADE.darkest, Math.min(HILLSHADE.lightest, 1 + HILLSHADE.strength * (slope.dot(sun) - sun.y))));
+      // The picture is in the screen's colours (sRGB); Three keeps its colours linear, which written
+      // as they are came out dark and brown.
+      const o = (py * canvas.width + px) * 4, rgb = colour.getRGB(written, THREE.SRGBColorSpace);
+      picture.data[o] = rgb.r * 255;
+      picture.data[o + 1] = rgb.g * 255;
+      picture.data[o + 2] = rgb.b * 255;
       picture.data[o + 3] = 255;
     }
   }
