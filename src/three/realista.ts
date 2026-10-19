@@ -25,11 +25,13 @@ const LIES = 0.8;
 /**
  * The warning at his muzzle, to dodge by: a faint red glow that grows a little while he aims, and
  * once his aim stops following (LOCK before the shot, when stepping aside makes him miss) a glint,
- * a star of four rays along the diagonals, that bursts out and dies away by the shot. The glow's
- * size in world units and opacity, from the first of the aim to the lock; the star's size, the
- * share of the lock it takes to burst out, and how far it turns meanwhile (radians).
+ * a star of four rays along the diagonals, white on a red halo, that bursts out, holds and dies
+ * away by the shot. The glow's size in world units and opacity, from the first of the aim to the
+ * lock; the star's size and its halo's, the shares of the lock it takes to burst out and from
+ * which it dies away, and how far it turns meanwhile (radians). Its rays must stay wider than a
+ * pixel of the picture (1.8 units): thinner, the pixels ate them and it was hardly seen.
  */
-const WARN = { colour: '#ff3424', from: 1.5, to: 3.5, faint: 0.12, full: 0.45, star: 16, burst: 0.25, turn: 0.35 };
+const WARN = { colour: '#ff3424', from: 1.5, to: 3.5, faint: 0.12, full: 0.45, star: 30, halo: 40, burst: 0.12, fades: 0.75, turn: 0.25 };
 
 /** The glow's picture: a soft round light, white at the heart. */
 let glowing: THREE.Texture | null = null;
@@ -59,16 +61,17 @@ function star(): THREE.Texture {
     g.rotate(Math.PI / 2);
     g.fillStyle = 'rgba(255,255,255,1)';
     g.beginPath();
-    g.moveTo(0, -2.2);
-    g.lineTo(half * 1.3, 0);
-    g.lineTo(0, 2.2);
+    g.moveTo(0, -5);
+    g.lineTo(half * 1.35, 0);
+    g.lineTo(0, 5);
     g.fill();
   }
-  const heart = g.createRadialGradient(0, 0, 0, 0, 0, 9);
+  const heart = g.createRadialGradient(0, 0, 0, 0, 0, 14);
   heart.addColorStop(0, 'rgba(255,255,255,1)');
+  heart.addColorStop(0.5, 'rgba(255,255,255,0.9)');
   heart.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = heart;
-  g.fillRect(-9, -9, 18, 18);
+  g.fillRect(-14, -14, 28, 28);
   return starred = new THREE.CanvasTexture(canvas);
 }
 
@@ -90,8 +93,11 @@ class Figure {
   private readonly glow = new THREE.Sprite(new THREE.SpriteMaterial({
     map: glow(), color: WARN.colour, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
   }));
+  private readonly halo = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: star(), color: '#ff2a18', transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
+  }));
   private readonly star = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: star(), color: '#ff8a70', transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
+    map: star(), color: '#ffffff', transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
   }));
   private facing = 0;
   private going = 0;
@@ -106,7 +112,7 @@ class Figure {
     this.motion = new Motion(this.body);
     this.flash = flashes(this.body);
     this.reach = this.motion.reach('caminata_mixamo', 'L_Foot') * shape.scale.x;
-    this.warning.add(this.glow, this.star);
+    this.warning.add(this.glow, this.halo, this.star);
     this.warning.visible = false;
   }
 
@@ -158,12 +164,14 @@ class Figure {
     const k = Math.min(1, t / (AIM - LOCK)), into = Math.max(0, t - (AIM - LOCK)) / LOCK;
     this.glow.scale.setScalar(WARN.from + (WARN.to - WARN.from) * k);
     this.glow.material.opacity = WARN.faint + (WARN.full - WARN.faint) * k * k;
-    // Out at once, then dying away by the shot.
-    const out = into <= 0 ? 0 : into < WARN.burst ? into / WARN.burst : 1 - (into - WARN.burst) / (1 - WARN.burst);
-    this.star.visible = into > 0;
-    this.star.scale.setScalar(WARN.star * (0.4 + 0.6 * out));
-    this.star.material.opacity = out;
-    this.star.material.rotation = into * WARN.turn;
+    // Out at once, held, then dying away by the shot.
+    const out = into <= 0 ? 0 : into < WARN.burst ? into / WARN.burst : into < WARN.fades ? 1 : 1 - (into - WARN.fades) / (1 - WARN.fades);
+    for (const [ray, size] of [[this.halo, WARN.halo], [this.star, WARN.star]] as const) {
+      ray.visible = into > 0;
+      ray.scale.setScalar(size * (0.5 + 0.5 * out));
+      ray.material.opacity = out;
+      ray.material.rotation = into * WARN.turn;
+    }
     this.warning.position.copy(this.muzzle(who).tip);
   }
 
