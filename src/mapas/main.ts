@@ -164,7 +164,8 @@ function step(now: number): void {
     const w = (innerWidth / view.pixel) * GAME_FAR / 2, h = (innerHeight / view.pixel) * GAME_FAR / 2, points: THREE.Vector3[] = [];
     const corners = [{ x: at.x - w, y: at.y - h }, { x: at.x + w, y: at.y - h }, { x: at.x + w, y: at.y + h }, { x: at.x - w, y: at.y + h }];
     corners.forEach((c, i) => along(points, c, corners[(i + 1) % 4]));
-    frame.geometry.setFromPoints(points);
+    frame.geometry.dispose();
+    frame.geometry = new THREE.BufferGeometry().setFromPoints(points);
   }
   view.camera.updateMatrixWorld();
   const projected = new THREE.Vector3();

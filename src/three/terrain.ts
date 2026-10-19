@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { ISO_Y } from '../machi/data';
 import { chance } from '../world/chance';
 import { DEEP, SHALLOW, WET, waterLevels } from '../world/water';
@@ -178,4 +179,17 @@ export function shapeTerrain(map: WorldMap): Terrain {
       return a + (b - a) * fu + (c - a) * fv + (a - b - c + d) * fu * fv;
     },
   };
+}
+
+/**
+ * The relief's heights as a picture, for shaders to read smoothly (the water, the grass), and how
+ * to read it: a spot of the 3D ground `at` is `(at / span * (texels - 1) + 0.5) / texels`.
+ */
+export function heightPicture(terrain: Terrain): { lie: THREE.DataTexture; span: THREE.Vector2; texels: THREE.Vector2 } {
+  const { cols, rows, heights } = terrain;
+  const lie = new THREE.DataTexture(new Uint16Array(Array.from(heights, h => THREE.DataUtils.toHalfFloat(h))),
+    cols + 1, rows + 1, THREE.RedFormat, THREE.HalfFloatType);
+  lie.magFilter = lie.minFilter = THREE.LinearFilter;
+  lie.needsUpdate = true;
+  return { lie, span: new THREE.Vector2(cols * CELL, rows * CELL), texels: new THREE.Vector2(cols + 1, rows + 1) };
 }

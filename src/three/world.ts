@@ -10,7 +10,8 @@ import { extent, letterAt, middle, PLOT_H, PLOT_W, type WorldMap } from '../worl
 import { flat, joined, part, placed } from './paint';
 import { ground, standOn, UPRIGHT } from './space';
 import { LOOK, sunWay } from './look';
-import { CELL, clouds, shapeTerrain, swell, WATER_LEVEL, type Terrain } from './terrain';
+import { growMeadow } from './meadow';
+import { CELL, clouds, heightPicture, shapeTerrain, swell, WATER_LEVEL, type Terrain } from './terrain';
 
 // A map of open country stood up in 3D from the same code that lays out the 2D one: the
 // ground patched in its colours and shaped into its relief (terrain.ts), the water standing in
@@ -54,7 +55,7 @@ export function raiseCountry(map: WorldMap): Country3D {
   // The relief first: whatever is put on the map after stands on it.
   const terrain = shapeTerrain(map);
   standOn(terrain.at);
-  group.add(paintGround(map, terrain), pourWater(map, terrain));
+  group.add(paintGround(map, terrain), pourWater(map, terrain), growMeadow(map, terrain));
   const { meshes, taken } = plantPlants(map);
   group.add(...meshes);
   feet.push(...taken);
@@ -152,17 +153,12 @@ function paintGround(map: WorldMap, terrain: Terrain): THREE.Mesh {
  */
 function pourWater(map: WorldMap, terrain: Terrain): THREE.Mesh {
   const { width, height } = extent(map), depth = height / (PLOT_H / PLOT_W);
-  const { cols, rows, heights } = terrain;
-  const lie = new THREE.DataTexture(new Uint16Array(Array.from(heights, h => THREE.DataUtils.toHalfFloat(h))),
-    cols + 1, rows + 1, THREE.RedFormat, THREE.HalfFloatType);
-  lie.magFilter = lie.minFilter = THREE.LinearFilter;
-  lie.needsUpdate = true;
+  const { lie, span, texels } = heightPicture(terrain);
   const uniforms = {
     time: { value: 0 },
     lie: { value: lie },
-    // The heights' first and last points lie on the texture's first and last pixels' middles.
-    span: { value: new THREE.Vector2(cols * CELL, rows * CELL) },
-    texels: { value: new THREE.Vector2(cols + 1, rows + 1) },
+    span: { value: span },
+    texels: { value: texels },
     level: { value: WATER_LEVEL },
     deep: { value: new THREE.Color(RIVER.deep) },
     shallow: { value: new THREE.Color(RIVER.shallow) },
