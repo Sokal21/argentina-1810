@@ -7,8 +7,9 @@
 <link rel="icon" type="image/png" href="/favicon.png">
 <style>
   html, body { margin: 0; height: 100%; background: #14110f; overflow: hidden; }
-  #game { width: 100vw; height: 100vh; cursor: grab; }
-  #game:active { cursor: grabbing; }
+  #world { position: fixed; inset: 0; cursor: grab; }
+  #world:active { cursor: grabbing; }
+  #world canvas { display: block; }
   #info, #hud {
     position: fixed; left: 16px; color: #cdbfa3;
     font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .02em;
@@ -35,10 +36,10 @@
 </style>
 </head>
 <body>
-<div id="game"></div>
+<div id="world"></div>
 <div id="labels"></div>
 <div id="info"></div>
-<div id="hud"><kbd>Arrastrar</kbd> o <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> mover · <kbd>Rueda</kbd> acercar · <kbd>F</kbd> ver todo · <kbd>2</kbd> como en el juego · <kbd>T</kbd> árboles · <kbd>O</kbd> sombras · <kbd>G</kbd> parcelas · <kbd>V</kbd> lo que entra en pantalla</div>
+<div id="hud"><kbd>Arrastrar</kbd> o <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> mover · <kbd>Rueda</kbd> acercar · <kbd>F</kbd> ver todo · <kbd>2</kbd> como en el juego · <kbd>T</kbd> plantas, casas y gente · <kbd>O</kbd> sombras · <kbd>G</kbd> parcelas · <kbd>V</kbd> lo que entra en pantalla · <kbd>1</kbd> píxel</div>
 <script type="module" src="/src/mapas/main.ts"></script>
 </body>
 </html>
