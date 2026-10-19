@@ -112,16 +112,17 @@ export const CLEAN: Partial<Look> = {
   grain: 0, vignette: 0,
 };
 export const HARSH: Partial<Look> = {
-  skyStrength: 1.45, skyColour: '#b4babb', groundColour: '#6e6142',
+  // The shadows a little lighter than first made (the user: "demasiado oscuras"): more light from the sky fills them.
+  skyStrength: 1.75, skyColour: '#b4babb', groundColour: '#6e6142',
   // Less sepia and more contrast than first made (the user: "demasiado sepia").
   brightness: -0.01, contrast: 1.22, saturation: 0.82, gamma: 1,
-  shadeColour: '#2e3a48', shade: 0.4, lightColour: '#d8b47a', light: 0.1,
-  crush: 0.35, murkColour: '#6b6448', murk: 0.07, grime: 0.45, grimeColour: '#3a2c1e',
+  shadeColour: '#2e3a48', shade: 0.3, lightColour: '#d8b47a', light: 0.1,
+  crush: 0.25, murkColour: '#6b6448', murk: 0.07, grime: 0.45, grimeColour: '#3a2c1e',
   // No grain: moving, it read as rain, and the user did not want it.
   grain: 0, vignette: 0.7,
   // The reds kept (blood, his facings, the glint, the flash); clouds' shadows going over; the
   // faintest haze; a low evening sun, raking and warm; and a glow round only what burns.
-  reds: 0.8, clouds: 0.6, haze: 0.1, bloom: 0.7,
+  reds: 0.8, clouds: 0.42, haze: 0.1, bloom: 0.7,
   sunHigh: 24, sunStrength: 2.5, sunColour: '#ffd9b4',
 };
 

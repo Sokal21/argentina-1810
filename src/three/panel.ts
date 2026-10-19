@@ -8,7 +8,7 @@ import type { View } from './view';
 // the collision boxes).
 
 // A new name whenever the game's own look changes, so what was kept from before does not hide it.
-const KEPT = '1810.3d.look.8';
+const KEPT = '1810.3d.look.9';
 
 /** Values kept from before that were the game's own then and have changed since: taken as unset. */
 const STALE: Partial<Record<keyof Look, unknown[]>> = { rollTime: [0.8, 1.0, 1.4], rollDistance: [170, 190, 220] };
