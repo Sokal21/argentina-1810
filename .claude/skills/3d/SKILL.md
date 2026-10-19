@@ -41,6 +41,12 @@ games reckon the same.
 Coordinates (`src/three/space.ts`): `X = x`, `Z = y / ISO_Y`, `Y` up. Something drawn `h` pixels
 tall stands `h * UPRIGHT` tall. One unit is one pixel of the drawing.
 
+The ground has relief, for the eye only (`terrain.ts`): the walked ground hardly rolls (0 to 4),
+hills rise from the edge of what is walked, the stream lies in a sunk bed under one level of water,
+and the ground is levelled under buildings. `ground(x, y, h)` is a point `h` above the ground there,
+so whatever is put on the map follows it; **a way or a distance is `along(dx, dy)`**, which is
+level. The pointer is met on the relief with `onTheGround(ray)`.
+
 ## Stages
 
 | Stage | State | Read |

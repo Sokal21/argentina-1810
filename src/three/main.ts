@@ -17,7 +17,7 @@ import { GRENADE } from '../machi/grenade';
 import { CABRAL_DRESS } from './figure';
 import { raisePeople } from './people';
 import { mountHud, type Readings } from './hud';
-import { ground, UPRIGHT } from './space';
+import { ground, onTheGround, UPRIGHT } from './space';
 import { mountPanel } from './panel';
 import { View } from './view';
 import { raiseCountry } from './world';
@@ -127,13 +127,12 @@ let aimed: { x: number; y: number } | null = null;
 /** Where the pointer is on the screen, once it has moved. */
 let pointer: { x: number; y: number } | null = null;
 addEventListener('pointermove', e => { pointer = { x: e.clientX, y: e.clientY }; });
-const caster = new THREE.Raycaster(), floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit = new THREE.Vector3();
+const caster = new THREE.Raycaster();
 /** The spot of the 2D game's ground under the pointer, if it has moved. */
 function underPointer(): { x: number; y: number } | null {
   if (!pointer) return null;
   caster.setFromCamera(new THREE.Vector2((pointer.x / innerWidth) * 2 - 1, -(pointer.y / innerHeight) * 2 + 1), view.camera);
-  if (!caster.ray.intersectPlane(floor, hit)) return null;
-  return { x: hit.x, y: hit.z * ISO_Y };
+  return onTheGround(caster.ray);
 }
 /** What he last let go: the musket or a grenade. */
 let loosed: 'musket' | 'grenade' | null = null;

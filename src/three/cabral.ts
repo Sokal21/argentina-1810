@@ -5,7 +5,7 @@ import { MUSKET } from '../machi/musket';
 import { CABRAL_DRESS, figure, flashes, model } from './figure';
 import { Motion } from './motion';
 import mixamoTravel from './rolls/rodada_mixamo.json';
-import { ground, heading, UPRIGHT } from './space';
+import { along, ground, heading, UPRIGHT } from './space';
 import { Trail } from './trail';
 
 // Cabral in 3D, shown doing whatever his controller says he is doing: the clip for it, turned the
@@ -197,7 +197,7 @@ export class CabralFigure {
     // Cutting or aiming he faces where the controller turned him; walking, the way he goes.
     const fighting = c.isSwinging || c.isShouldering;
     // How fast he goes over the 3D ground, smoothed: a step held against a plant is still a step.
-    const over = ground(moved.x, moved.y).length() / Math.max(dt, 1e-3);
+    const over = along(moved.x, moved.y).length() / Math.max(dt, 1e-3);
     this.going += (over - this.going) * Math.min(1, dt * SETTLE);
     if (fighting || Math.hypot(moved.x, moved.y) > 0.01) {
       // Aiming at the pointer he turns to it at any angle, not only the eight ways.

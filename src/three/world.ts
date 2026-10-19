@@ -7,11 +7,13 @@ import { plantCountry } from '../world/plants';
 import { DEEP, SHALLOW, WET, waterLevels } from '../world/water';
 import { extent, letterAt, middle, PLOT_H, PLOT_W, type WorldMap } from '../world/zones';
 import { flat, joined, part, placed } from './paint';
-import { ground, UPRIGHT } from './space';
+import { ground, standOn, UPRIGHT } from './space';
+import { CELL, shapeTerrain, WATER_LEVEL, type Terrain } from './terrain';
 
 // A map of open country stood up in 3D from the same code that lays out the 2D one: the
-// ground patched in its colours, the plants where plantCountry puts them, the fences and the
-// buildings. For now each thing is a few flat-coloured shapes, in place of its model.
+// ground patched in its colours and shaped into its relief (terrain.ts), the water standing in
+// its hollows, the plants where plantCountry puts them, the fences and the buildings. For now each
+// thing is a few flat-coloured shapes, in place of its model.
 
 /** Patches of ground a plot is painted in, each way. */
 const PATCHES = 8;
@@ -23,12 +25,17 @@ export interface Country3D {
   group: THREE.Group;
   /** The ground taken up by whatever stands where people walk: plants in the way and buildings. */
   feet: Footprint[];
+  /** The lie of the land: everything put on the map stands on it. */
+  terrain: Terrain;
 }
 
 export function raiseCountry(map: WorldMap): Country3D {
   const group = new THREE.Group();
   const feet: Footprint[] = [];
-  group.add(paintGround(map));
+  // The relief first: whatever is put on the map after stands on it.
+  const terrain = shapeTerrain(map);
+  standOn(terrain.at);
+  group.add(paintGround(map, terrain), pourWater(map));
   const { meshes, taken } = plantPlants(map);
   group.add(...meshes);
   feet.push(...taken);
@@ -36,10 +43,10 @@ export function raiseCountry(map: WorldMap): Country3D {
   const built = raiseBuildings(map);
   group.add(...built.meshes);
   feet.push(...built.taken);
-  return { group, feet };
+  return { group, feet, terrain };
 }
 
-function paintGround(map: WorldMap): THREE.Mesh {
+function paintGround(map: WorldMap, terrain: Terrain): THREE.Mesh {
   const { width, height } = extent(map);
   const cols = map.plots[0].length, rows = map.plots.length;
   const canvas = document.createElement('canvas');
@@ -70,10 +77,33 @@ function paintGround(map: WorldMap): THREE.Mesh {
   texture.minFilter = texture.magFilter = THREE.NearestFilter;
   const material = flat('#ffffff');
   material.map = texture;
+  // Shaped to the relief: one vertex for each height reckoned, the picture laid over it as before.
+  const { heights } = terrain, across = terrain.cols * CELL, deep = terrain.rows * CELL;
+  const shape = new THREE.PlaneGeometry(across, deep, terrain.cols, terrain.rows);
+  shape.rotateX(-Math.PI / 2);
+  shape.translate(across / 2, 0, deep / 2);
+  const position = shape.getAttribute('position') as THREE.BufferAttribute, uv = shape.getAttribute('uv') as THREE.BufferAttribute;
   const depth = height / (PLOT_H / PLOT_W);
+  for (let k = 0; k < position.count; k++) {
+    position.setY(k, heights[k]);
+    // The picture covers the map, which the heights may run a little past.
+    uv.setXY(k, position.getX(k) / width, 1 - position.getZ(k) / depth);
+  }
+  shape.computeVertexNormals();
+  const mesh = new THREE.Mesh(shape, material);
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+/** The water standing in the hollows: one level, seen wherever the ground lies below it. */
+function pourWater(map: WorldMap): THREE.Mesh {
+  const { width, height } = extent(map), depth = height / (PLOT_H / PLOT_W);
+  const material = flat(WATER.shallow);
+  material.transparent = true;
+  material.opacity = 0.82;
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), material);
   mesh.rotation.x = -Math.PI / 2;
-  mesh.position.set(width / 2, 0, depth / 2);
+  mesh.position.set(width / 2, WATER_LEVEL, depth / 2);
   mesh.receiveShadow = true;
   return mesh;
 }

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Footprint } from '../world/footprint';
 import { flat, joined, part, placed } from './paint';
-import { ground, UPRIGHT } from './space';
+import { along, ground, UPRIGHT } from './space';
 
 // A practice dummy: a post with a crosspiece for arms, a sacking body stuffed with straw, a sacking
 // head tied off, straw sticking out at the ends. Struck, it flashes red (as the 2D game's HitFX
@@ -70,7 +70,7 @@ export class Dummy {
 
   /** Where a blade going (dx, dy) along the 2D ground meets it: its chest, on the near side. */
   struckAt(dx: number, dy: number): THREE.Vector3 {
-    const way = ground(dx, dy).normalize();
+    const way = along(dx, dy).normalize();
     return this.group.position.clone().add(new THREE.Vector3(0, DRAWN * UPRIGHT * 0.6, 0)).addScaledVector(way, -GIRTH);
   }
 
@@ -78,7 +78,7 @@ export class Dummy {
   hit(dx: number, dy: number): void {
     this.flash = 1;
     // Knocked over the way the blow went: a lean toward +X is a turn about -Z, toward +Z about +X.
-    const way = ground(dx, dy).normalize();
+    const way = along(dx, dy).normalize();
     this.swing.x += way.z * ROCK * STIFF * 0.12;
     this.swing.y += -way.x * ROCK * STIFF * 0.12;
     const from = this.group.position.clone().add(new THREE.Vector3(0, DRAWN * UPRIGHT * 0.6, 0));

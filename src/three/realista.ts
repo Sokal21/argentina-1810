@@ -4,7 +4,7 @@ import { AIM, MUZZLE, SLASH_TIME, type Mode } from '../realista/brain';
 import { barrelOf } from './cabral';
 import { flashes, model } from './figure';
 import { Motion } from './motion';
-import { ground, heading, UPRIGHT } from './space';
+import { along, ground, heading, UPRIGHT } from './space';
 
 // The royalist fusilier in 3D, shown doing whatever his brain is doing (realista/brain.ts): standing,
 // marching, drawing the musket and aiming, the shot, the sabre, falling. His model is Cabral's
@@ -119,7 +119,7 @@ class Figure {
     const { x, y, mode, t, dir } = who.mind;
     const moved = { x: x - this.was.x, y: y - this.was.y };
     this.was = { x, y };
-    const over = ground(moved.x, moved.y).length() / Math.max(dt, 1e-3);
+    const over = along(moved.x, moved.y).length() / Math.max(dt, 1e-3);
     this.going += (Math.min(over, 200) - this.going) * Math.min(1, dt * SETTLE);
     // Marching he faces the way he goes; otherwise the way his brain faces him (at the hero, down his aim).
     const want = mode === 'walk' && Math.hypot(moved.x, moved.y) > 0.01 ? heading(moved.x, moved.y) : Math.atan2(dir.x, dir.y);
@@ -226,7 +226,7 @@ export class Royalists {
 
   /** Where to show a blow landing on one: his chest, on the side it came from. */
   chest(who: Royalist, from: { x: number; y: number }): THREE.Vector3 {
-    const { x, y } = who.mind, at = ground(x, y, DRAWN * 0.6 * UPRIGHT), toward = ground(from.x - x, from.y - y);
+    const { x, y } = who.mind, at = ground(x, y, DRAWN * 0.6 * UPRIGHT), toward = along(from.x - x, from.y - y);
     toward.y = 0;
     return toward.lengthSq() > 0 ? at.addScaledVector(toward.normalize(), 8) : at;
   }

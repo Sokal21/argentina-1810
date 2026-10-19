@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { SHOT } from '../bolts';
 import type { MachiController, Vec } from '../machi/controller';
-import { ISO_Y } from '../machi/data';
 import type { WorldMap } from '../world/zones';
 import { AimMarks } from './aim';
 import { CabralFigure, THROWN, type Doing } from './cabral';
@@ -11,7 +10,7 @@ import { mountPanel } from './panel';
 import { raisePeople } from './people';
 import { Royalists, type Royalist } from './realista';
 import { Shots, type Strikes } from './shot';
-import { ground, UPRIGHT } from './space';
+import { ground, onTheGround, UPRIGHT } from './space';
 import { View } from './view';
 import { raiseCountry } from './world';
 
@@ -37,7 +36,6 @@ export class World3D {
   /** What his ball is tested against: set by whoever plays on this map. */
   strikes: Strikes = () => null;
   private readonly caster = new THREE.Raycaster();
-  private readonly floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
   /** The 3D world of a map, made the first time it is asked for. */
   static of(map: WorldMap, parent: HTMLElement): World3D {
@@ -120,9 +118,7 @@ export class World3D {
   /** The spot of the 2D game's ground under a point of the screen (in the page's pixels). */
   underPointer(x: number, y: number): Vec | null {
     this.caster.setFromCamera(new THREE.Vector2((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1), this.view.camera);
-    const hit = new THREE.Vector3();
-    if (!this.caster.ray.intersectPlane(this.floor, hit)) return null;
-    return { x: hit.x, y: hit.z * ISO_Y };
+    return onTheGround(this.caster.ray);
   }
 
   /** Draws the world with a spot of the 2D ground in the middle of the screen. */
