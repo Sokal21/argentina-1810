@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ISO_Y } from '../machi/data';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 
 // Everything the picture's look is made of, as numbers to tune: the pixels and their edges, the
@@ -223,7 +224,10 @@ export function finishing(): ShaderPass {
         // How red it is before anything is done to it: red well above green and blue.
         vec3 was = col;
         float redness = smoothstep(0.08, 0.3, was.r - max(was.g, was.b)) * smoothstep(0.12, 0.3, was.r);
-        vec2 world = block + offset;
+        // Where on the ground this is: up the picture is twice as far along the ground, which the
+        // camera sees from 30° up (the ground's own foreshortening, ISO_Y), so what lies on it (the
+        // grime, the clouds' shadows) is drawn as flat on it as the ground itself.
+        vec2 world = (block + offset) * vec2(1.0, ${(1 / ISO_Y).toFixed(1)});
 
         col = (col - 0.5) * contrast + 0.5 + brightness;
         float luma = dot(col, vec3(0.299, 0.587, 0.114));
