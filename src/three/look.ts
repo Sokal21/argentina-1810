@@ -103,7 +103,8 @@ export const HARSH: Partial<Look> = {
   brightness: -0.01, contrast: 1.1, saturation: 0.65, gamma: 1,
   shadeColour: '#2e3a48', shade: 0.4, lightColour: '#d8b47a', light: 0.2,
   crush: 0.35, murkColour: '#6b6448', murk: 0.18, grime: 0.45, grimeColour: '#3a2c1e',
-  grain: 0.05, vignette: 0.7,
+  // No grain: moving, it read as rain, and the user did not want it.
+  grain: 0, vignette: 0.7,
 };
 
 /** The look the user tuned in the panel and chose (17 October 2026), made harder (19 October). */

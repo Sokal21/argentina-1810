@@ -60,6 +60,7 @@ saturation and a little more contrast; cold grey-blue in the darks and dull ochr
 greyer sky, a weaker and less warm sun, a darker bounce from the ground; and three things of the
 finishing pass's own: the deepest darks crushed toward black (`crush`; pushed into the mid tones it
 blacked out Cabral's coat), every colour drawn toward one dull olive (`murk`), and grime, blotches
-and specks held to the world by the camera's place (`grime`), so they go by with the ground.
+and specks held to the world by the camera's place (`grime`), so they go by with the ground. No
+moving grain: it read as rain.
 The finishing pass works on the screen's colours: its tints are handed over as written, not as
 Three's linear colours, which came out nearly black.
