@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BALL } from '../bolts';
+import { BALL, type BoltKind } from '../bolts';
 import { ISO_Y } from '../machi/data';
 import { MUSKET } from '../machi/musket';
 import { ground } from './space';
@@ -15,12 +15,14 @@ const FLASH = { colour: '#ffd27a', light: 9, reach: 160, life: 0.08, size: 9 };
 const SMOKE = { puffs: 10, life: 1.4, from: 1.5, to: 12, rise: 14, jet: 170, spread: 10, colour: '#b9b2a3' };
 const STREAK = { length: 46, colour: '#fff1c4' };
 const BLAST = { life: 0.45, colour: '#ffb45a', dust: 10, dustColour: '#a0906a', dustLife: 0.9 };
+/** A ball striking someone: specks of blood flung on the way it went and falling, and a puff of dust off his coat. */
+const WOUND = { specks: 14, colours: ['#8a1410', '#b0201a', '#5a0c08'], speed: [40, 130], up: [30, 90], fall: 380, life: [0.45, 0.8], dust: 4, dustColour: '#9a8f7a' };
 
 /** Where a ball, flying from one spot of the 2D ground to another, strikes something: or null. */
 export type Strikes = (from: { x: number; y: number }, to: { x: number; y: number }) => { x: number; y: number } | null;
 
 interface Ball { at: THREE.Vector3; way: THREE.Vector3; flown: number; streak: THREE.Line }
-interface Puff { mesh: THREE.Mesh; t: number; life: number; v: THREE.Vector3; from: number; to: number }
+interface Puff { mesh: THREE.Mesh; t: number; life: number; v: THREE.Vector3; from: number; to: number; falls?: boolean }
 
 export class Shots {
   readonly group = new THREE.Group();
@@ -32,8 +34,14 @@ export class Shots {
   private blasts: { ring: THREE.LineLoop; t: number }[] = [];
   private readonly puffShape = new THREE.IcosahedronGeometry(1, 0);
 
-  /** `bursts`: whether a ball bursts where it strikes, as his does; a royalist's only stops there. */
-  constructor(private readonly camera: THREE.Camera, private readonly strikes: Strikes, private readonly blasted: (at: { x: number; y: number }) => void, private readonly bursts = true) {
+  /**
+   * `bursts`: whether a ball bursts where it strikes, as his does; a royalist's only stops there.
+   * `kind`: how fast and how far it flies, as the 2D game's (his ball, or the royalists' slower shot).
+   */
+  constructor(
+    private readonly camera: THREE.Camera, private readonly strikes: Strikes, private readonly blasted: (at: { x: number; y: number }) => void,
+    private readonly bursts = true, private readonly kind: Pick<BoltKind, 'speed' | 'range'> = BALL,
+  ) {
     this.light.castShadow = false;
     this.flash = new THREE.Mesh(new THREE.CircleGeometry(1, 6), new THREE.MeshBasicMaterial({
       color: FLASH.colour, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -64,6 +72,38 @@ export class Shots {
     this.balls.push({ at: muzzle.clone(), way: flat, flown: 0, streak });
   }
 
+  /**
+   * The ball nearest a spot has struck someone there (the 2D game says so): it stops, and blood
+   * and dust fly off him on the way it went.
+   */
+  stop(at: THREE.Vector3): void {
+    let nearest: Ball | null = null, least = Infinity;
+    for (const ball of this.balls) {
+      const far = Math.hypot(ball.at.x - at.x, ball.at.z - at.z);
+      if (ball.flown < this.kind.range && far < least) { least = far; nearest = ball; }
+    }
+    const way = nearest?.way ?? new THREE.Vector3(0, 0, 1);
+    // It is drawn last reaching him.
+    if (nearest) { nearest.flown = this.kind.range; nearest.at.set(at.x, nearest.at.y, at.z); }
+    const between = (r: number[]) => r[0] + Math.random() * (r[1] - r[0]);
+    for (let i = 0; i < WOUND.specks; i++) {
+      const v = way.clone().multiplyScalar(between(WOUND.speed))
+        .add(new THREE.Vector3((Math.random() - 0.5) * 70, between(WOUND.up), (Math.random() - 0.5) * 70));
+      const mesh = new THREE.Mesh(this.puffShape, new THREE.MeshBasicMaterial({ color: WOUND.colours[i % WOUND.colours.length], transparent: true, depthWrite: false }));
+      mesh.position.copy(at);
+      this.group.add(mesh);
+      const size = 0.9 + Math.random() * 0.9;
+      this.puffs.push({ mesh, t: 0, life: between(WOUND.life), v, from: size, to: size * 0.7, falls: true });
+    }
+    for (let i = 0; i < WOUND.dust; i++) {
+      const v = way.clone().multiplyScalar(20 + Math.random() * 30).add(new THREE.Vector3((Math.random() - 0.5) * 20, 10 + Math.random() * 15, (Math.random() - 0.5) * 20));
+      const mesh = new THREE.Mesh(this.puffShape, new THREE.MeshLambertMaterial({ color: WOUND.dustColour, transparent: true, depthWrite: false }));
+      mesh.position.copy(at);
+      this.group.add(mesh);
+      this.puffs.push({ mesh, t: 0, life: 0.6 + Math.random() * 0.3, v, from: 1.5, to: 5 });
+    }
+  }
+
   update(dt: number): void {
     // The flash: gone in a few frames, its light with it.
     this.flashing = Math.max(0, this.flashing - dt);
@@ -75,12 +115,12 @@ export class Shots {
     (this.flash.material as THREE.MeshBasicMaterial).opacity = k;
 
     for (const ball of this.balls) {
-      const step = Math.min(BALL.speed * dt, BALL.range - ball.flown);
+      const step = Math.min(this.kind.speed * dt, this.kind.range - ball.flown);
       const from = ball.at.clone(), to = ball.at.clone().addScaledVector(ball.way, step);
       const struck = this.strikes({ x: from.x, y: from.z * ISO_Y }, { x: to.x, y: to.z * ISO_Y });
       ball.flown += step;
       if (struck) {
-        ball.flown = BALL.range;
+        ball.flown = this.kind.range;
         to.set(struck.x, from.y, struck.y / ISO_Y);
         if (this.bursts) this.blast(struck);
       }
@@ -91,20 +131,26 @@ export class Shots {
       p.setXYZ(1, to.x, to.y, to.z);
       p.needsUpdate = true;
     }
-    for (const ball of this.balls.filter(b => b.flown >= BALL.range)) {
+    for (const ball of this.balls.filter(b => b.flown >= this.kind.range)) {
       this.group.remove(ball.streak);
       ball.streak.geometry.dispose();
       (ball.streak.material as THREE.Material).dispose();
     }
-    this.balls = this.balls.filter(b => b.flown < BALL.range);
+    this.balls = this.balls.filter(b => b.flown < this.kind.range);
 
     for (const puff of this.puffs) {
       puff.t += dt;
       const s = puff.t / puff.life;
       puff.mesh.position.addScaledVector(puff.v, dt);
-      // The jet dies quickly; then it drifts up.
-      puff.v.multiplyScalar(Math.max(0, 1 - dt * 4));
-      puff.v.y += 9 * dt;
+      if (puff.falls) {
+        // A speck flung off: it flies on and falls, and lies where it lands.
+        puff.v.y -= WOUND.fall * dt;
+        if (puff.mesh.position.y < 0.5) { puff.mesh.position.y = 0.5; puff.v.set(0, 0, 0); }
+      } else {
+        // The jet dies quickly; then it drifts up.
+        puff.v.multiplyScalar(Math.max(0, 1 - dt * 4));
+        puff.v.y += 9 * dt;
+      }
       puff.mesh.scale.setScalar(puff.from + (puff.to - puff.from) * (1 - (1 - s) * (1 - s)));
       (puff.mesh.material as THREE.MeshLambertMaterial).opacity = 0.85 * (1 - s);
     }

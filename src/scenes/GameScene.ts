@@ -432,15 +432,6 @@ export class GameScene extends Phaser.Scene {
         }
         return first?.at ?? null;
       };
-      // Theirs stops on him, if he is on his feet.
-      this.three.struck = (from, to) => {
-        if (!this.vitals.standing) return null;
-        const t = (p: Vec) => ({ x: p.x, y: p.y / ISO_Y });
-        const a = t(from), b = t(to), d = t(this.machi), ab = { x: b.x - a.x, y: b.y - a.y }, len = ab.x * ab.x + ab.y * ab.y || 1;
-        const k = Math.max(0, Math.min(1, ((d.x - a.x) * ab.x + (d.y - a.y) * ab.y) / len));
-        const near = { x: a.x + ab.x * k, y: a.y + ab.y * k };
-        return Math.hypot(d.x - near.x, d.y - near.y) <= FEET.hw + 4 ? { x: near.x, y: near.y * ISO_Y } : null;
-      };
       this.three.shown = true;
       this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { if (this.three) this.three.shown = false; });
     }
@@ -458,7 +449,10 @@ export class GameScene extends Phaser.Scene {
     this.shots = new Bolts(this, this.size.width, this.size.height, SHOT);
     this.physics.add.overlap(this.shots.bodies, this.hurtbox, (a, b) => {
       const spot = ([a, b] as Phaser.GameObjects.GameObject[]).find(o => o.getData('bolt'));
-      if (spot && this.hurt()) this.shots.strike(spot);
+      if (spot && this.hurt()) {
+        this.shots.strike(spot);
+        this.three?.wounded(this.machi);
+      }
     });
 
     this.lightning = new Lightning(this);

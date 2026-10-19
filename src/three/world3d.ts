@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SHOT } from '../bolts';
 import type { MachiController, Vec } from '../machi/controller';
 import { ISO_Y } from '../machi/data';
 import type { WorldMap } from '../world/zones';
@@ -10,7 +11,7 @@ import { mountPanel } from './panel';
 import { raisePeople } from './people';
 import { Royalists, type Royalist } from './realista';
 import { Shots, type Strikes } from './shot';
-import { ground } from './space';
+import { ground, UPRIGHT } from './space';
 import { View } from './view';
 import { raiseCountry } from './world';
 
@@ -35,8 +36,6 @@ export class World3D {
   private readonly impacts: Impacts;
   /** What his ball is tested against: set by whoever plays on this map. */
   strikes: Strikes = () => null;
-  /** And theirs. */
-  struck: Strikes = () => null;
   private readonly caster = new THREE.Raycaster();
   private readonly floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
@@ -55,7 +54,9 @@ export class World3D {
     this.view.scene.add(country.group, raisePeople(map), this.cabral.group, this.royalists.group, this.marks.group);
     // The blast itself is the 2D game's, which hurts; this only shows the ball and what it raises.
     this.shots = new Shots(this.view.camera, (from, to) => this.strikes(from, to), () => {});
-    this.volleys = new Shots(this.view.camera, (from, to) => this.struck(from, to), () => {}, false);
+    // Theirs is stopped by the 2D game's word that it struck him (`wounded`), not by a test of its own:
+    // drawn from the muzzle on his shoulder, its line ran beside the 2D ball's and passed through him.
+    this.volleys = new Shots(this.view.camera, () => null, () => {}, false, SHOT);
     this.impacts = new Impacts(this.view.camera, () => this.view.look);
     this.view.scene.add(this.shots.group, this.volleys.group, this.impacts.group);
     // What its blast hurts, and the shake, are the 2D game's; here it is seen.
@@ -101,7 +102,12 @@ export class World3D {
     if (muzzle) this.volleys.fire(muzzle.tip, muzzle.way);
   }
 
-  /** A blow lands on a royalist, struck from where Cabral stands. */
+  /** A royalist's ball strikes Cabral, where he stands: the ball stops on him and he bleeds. */
+  wounded(at: Vec): void {
+    this.volleys.stop(ground(at.x, at.y, 44 * UPRIGHT));
+  }
+
+    /** A blow lands on a royalist, struck from where Cabral stands. */
   blow(who: Royalist, from: Vec): void {
     this.impacts.spawn(this.royalists.chest(who, from), ground(from.x, from.y, 50));
   }
