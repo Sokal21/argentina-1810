@@ -127,6 +127,23 @@ const SECTOR = Math.PI / 4;
  */
 export const STEER = { side: 0.85, back: 0.65, runAhead: 0.3 };
 
+/**
+ * Where the keys send him, steered by the pointer, as a unit way along the ground, or null if none
+ * is held: the keys are taken along the line to the pointer, not the screen's (the user's choice):
+ * up goes toward it, down away from it, and the sides square to it, to his right and his left. A way
+ * given outright (toward the pointer by the mouse, a stick) goes as it is.
+ */
+export function steeredWay(input: MachiInput, steer: Vec): Vec | null {
+  if (input.move) {
+    const len = Math.hypot(input.move.x, input.move.y);
+    return len > 0 ? { x: input.move.x / len, y: input.move.y / len } : null;
+  }
+  const len = Math.hypot(input.dx, input.dy);
+  if (!len) return null;
+  const ahead = -input.dy / len, right = input.dx / len;
+  return { x: steer.x * ahead - steer.y * right, y: steer.y * ahead + steer.x * right };
+}
+
 export function snap8(v: Vec, prev: [number, number] | null): [number, number] {
   const angle = Math.atan2(v.y, v.x);
   if (prev) {
@@ -417,18 +434,16 @@ export class MachiController {
     this.snappedAim = snap8(aim, this.snappedAim);
     this.face(...this.snappedAim);
     this.turn = null;
-    let vx = input.move?.x ?? input.dx, vy = input.move?.y ?? input.dy;
-    const len = Math.hypot(vx, vy), wasMoving = this.moving;
-    this.moving = len > 0;
+    const way = steeredWay(input, aim), wasMoving = this.moving;
+    this.moving = !!way;
     if (this.moving !== wasMoving) this.t = 0;
     this.t += this.moving ? dt * this.pace : dt;
-    if (!this.moving) {
+    if (!way) {
       this.idle += dt;
       return;
     }
     this.idle = 0;
-    vx /= len;
-    vy /= len;
+    const { x: vx, y: vy } = way;
     this.dir = { x: vx, y: vy };
     const along = vx * aim.x + vy * aim.y;
     this.retreating = along < RETREAT_BELOW;
@@ -450,7 +465,9 @@ export class MachiController {
   // standing. It drops whatever she was doing: no cast and no turn survive it.
   private startDash(input: MachiInput): void {
     let dir: Vec;
-    if (input.move) dir = input.move;
+    const steered = this.steer && steeredWay(input, this.steer);
+    if (steered) dir = steered;
+    else if (input.move) dir = input.move;
     else if (input.dx || input.dy) {
       const len = Math.hypot(input.dx, input.dy);
       dir = { x: input.dx / len, y: input.dy / len };
