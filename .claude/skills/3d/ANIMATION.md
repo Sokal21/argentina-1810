@@ -10,7 +10,8 @@ October 2026, with the user judging every clip in the game. Read it all before a
    Its files stay out of git (`.gitignore`, licence: usable in the game, not redistributable);
    only the GLB made from them is kept. Chosen so far: Stand To Roll (his roll), Breathing Idle,
    Walking (his gait, replacing CMU's), Falling Back Death (the royalist's death), Drinking (his
-   flask: only the draught, played in 1.4 s; most of the capture is standing about). Each one's
+   flask: only the draught, played in 1.4 s; most of the capture is standing about), Walking
+   Backwards (walking against where the pointer has him look). Each one's
    flags are in `tools/mocap/README.md`.
 2. **CMU motion capture** (free, `tools/mocap/*.bvh`, index: the cgspeed `cmu-mocap-index-text.txt`
    in the una-dinosauria/cmu-mocap mirror). Good enough for walks (his gait was CMU 07_01); crude for
@@ -124,6 +125,11 @@ whole list (the last command in git history has it).
   as far as the actor had come at that moment (`--travel`), so neither runs ahead and he never
   slides; the flight is given less of the dash. Synced to the controller's own curve, he slid
   before diving and the getting up was crammed into the last inch.
+- **Steered by the pointer** (the 3D game's controls): he looks at the mouse, at any angle, and the
+  keys move him without turning him (`MachiController.steer`; slower to the side, slower still and
+  never running backwards: `STEER`). His legs walk ahead or backwards, whichever is nearer his look,
+  giving up to 30° toward it, and his spine turns the rest over its three bones, so it never turns
+  more than 60° (90° at the most); the change of legs waits 15° past square, so it does not flicker.
 - Swings and shots face where the controller turns him; aiming at the pointer he turns at any
   angle, and is turned so **the barrel's line**, not his middle, meets the pointer.
 

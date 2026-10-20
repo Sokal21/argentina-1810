@@ -120,6 +120,13 @@ const SECTOR = Math.PI / 4;
  * last answer: it is kept until the direction is clearly inside another
  * sector, so a pointer sitting on a boundary does not flicker between two.
  */
+/**
+ * Steered by the pointer (the 3D game): how fast he walks to the side and backwards, as shares of
+ * walking ahead, and how nearly ahead he must be going to run (the dot of where he goes and where he
+ * looks): backwards he never runs.
+ */
+export const STEER = { side: 0.85, back: 0.65, runAhead: 0.3 };
+
 export function snap8(v: Vec, prev: [number, number] | null): [number, number] {
   const angle = Math.atan2(v.y, v.x);
   if (prev) {
@@ -178,6 +185,11 @@ export class MachiController {
   // How long this character's dash lasts and how far it goes.
   /** How fast it walks, as a share of its usual speed. */
   pace = 1;
+  /**
+   * Where the pointer has him look, a unit way along the ground (the 3D game), or null. While it is
+   * set he faces it at any angle and walks whichever way he is told without turning: see walkSteered.
+   */
+  steer: Vec | null = null;
   /** And how fast it cuts. */
   haste = 1;
 
@@ -332,6 +344,11 @@ export class MachiController {
       this.updateAttack(dt, input.attack, input.aim ?? null, input.target ?? null);
     }
 
+    if (this.steer) {
+      this.walkSteered(dt, input, this.steer);
+      return;
+    }
+
     // A free walking direction is drawn as the nearest of the eight.
     let { dx, dy } = input;
     const free = input.move ?? null;
@@ -393,6 +410,38 @@ export class MachiController {
     }
   }
 
+  // Steered by the pointer: he faces it, and goes whichever way the keys say, at any angle to it,
+  // without turning; slower to the side and slower still backwards (whether he may run is the
+  // game's to say: see STEER.runAhead).
+  private walkSteered(dt: number, input: MachiInput, aim: Vec): void {
+    this.snappedAim = snap8(aim, this.snappedAim);
+    this.face(...this.snappedAim);
+    this.turn = null;
+    let vx = input.move?.x ?? input.dx, vy = input.move?.y ?? input.dy;
+    const len = Math.hypot(vx, vy), wasMoving = this.moving;
+    this.moving = len > 0;
+    if (this.moving !== wasMoving) this.t = 0;
+    this.t += this.moving ? dt * this.pace : dt;
+    if (!this.moving) {
+      this.idle += dt;
+      return;
+    }
+    this.idle = 0;
+    vx /= len;
+    vy /= len;
+    this.dir = { x: vx, y: vy };
+    const along = vx * aim.x + vy * aim.y;
+    this.retreating = along < RETREAT_BELOW;
+    const share = along >= 0 ? STEER.side + (1 - STEER.side) * along : STEER.side + (STEER.side - STEER.back) * along;
+    const speed = (this.kit.speed ?? SPEED) * this.pace * share * (this.attack !== null ? ATTACK_SLOW : 1);
+    this.x += vx * speed * dt;
+    this.y += vy * speed * ISO_Y * dt;
+    if (this.bounds) {
+      this.x = Math.max(this.bounds.minX, Math.min(this.bounds.maxX, this.x));
+      this.y = Math.max(this.bounds.minY, Math.min(this.bounds.maxY, this.y));
+    }
+  }
+
   // While the key is down the cast loops forward, starting on its first
   // frame. Once it is released she returns to rest the short way: unwinding
   // the cast backwards, or, if the light has already left the branch, letting
@@ -405,6 +454,9 @@ export class MachiController {
     else if (input.dx || input.dy) {
       const len = Math.hypot(input.dx, input.dy);
       dir = { x: input.dx / len, y: input.dy / len };
+    } else if (this.steer) {
+      // Standing, steered: the way he looks.
+      dir = { ...this.steer };
     } else {
       const fx = this.straight ? 0 : this.faceX, fy = this.straight || !this.level ? this.faceY : 0;
       const len = Math.hypot(fx, fy);
@@ -471,7 +523,8 @@ export class MachiController {
   private updateSwing(dt: number, melee: Melee, input: MachiInput): boolean {
     if (!this.swing) {
       if (!input.attack) return false;
-      let dir = this.facing();
+      // Steered, the way he looks, exactly; otherwise the nearest of the eight he faces.
+      let dir = this.steer ? { ...this.steer } : this.facing();
       // Aimed a way (the arrows, or by touch), the swing goes that way.
       if (input.aim && Math.hypot(input.aim.x, input.aim.y) > 0) {
         const len = Math.hypot(input.aim.x, input.aim.y);

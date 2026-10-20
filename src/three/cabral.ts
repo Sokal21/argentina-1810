@@ -33,6 +33,18 @@ export const THROWN = 0.16;
  * The 2D game's 0.8 rushed it.
  */
 export const SIP = 1.4;
+/**
+ * Steered by the pointer (the 3D game), his legs and his body part: the legs walk ahead or
+ * backwards, whichever is nearer where he looks, giving up to LEG_GIVE toward it (a step a little
+ * across, which the pixels hide), and the spine turns the rest, shared out over its three bones; so
+ * it never turns more than 90° less that, even walking square across his look. SWAP is how far past
+ * square to the side his walk must go before his legs change from ahead to backwards or back, so
+ * they do not flicker there. TWIST is how quickly the spine follows, per second.
+ */
+const LEG_GIVE = THREE.MathUtils.degToRad(30), SWAP = THREE.MathUtils.degToRad(15), TWIST = 16;
+const SPINE: [string, number][] = [['Waist', 0.3], ['Spine01', 0.35], ['Spine02', 0.35]];
+/** His walk backwards: Mixamo's Walking Backwards, the user's pick. */
+const BACKWARDS = 'caminata_atras';
 /** How fast he turns to face the way he goes, per second. */
 const TURN = 14;
 /** How quickly what he is taken to be going at follows how fast he really goes, per second. */
@@ -113,6 +125,11 @@ export class CabralFigure {
   private trail: Trail | null = null;
   private flash: (amount: number) => void = () => {};
   private gait = { name: 'run', reach: 0 };
+  /** How far a step of his walk backwards carries him. */
+  private backReach = 0;
+  /** Steered: whether his legs walk backwards, and how far his spine is turned from them. */
+  private backwards = false;
+  private twist = 0;
   private facing = 0;
   private going = 0;
   private dashing = 0;
@@ -141,6 +158,7 @@ export class CabralFigure {
       // Measured in his own units, which are grown to his height.
       const name = this.motion.has(GAIT) ? GAIT : 'run';
       this.gait = { name, reach: this.motion.reach(name, 'L_Foot') * loaded.scale.x };
+      if (this.motion.has(BACKWARDS)) this.backReach = this.motion.reach(BACKWARDS, 'L_Foot') * loaded.scale.x;
       this.wear(loaded);
     });
   }
@@ -199,13 +217,29 @@ export class CabralFigure {
     // How fast he goes over the 3D ground, smoothed: a step held against a plant is still a step.
     const over = along(moved.x, moved.y).length() / Math.max(dt, 1e-3);
     this.going += (over - this.going) * Math.min(1, dt * SETTLE);
-    if (fighting || Math.hypot(moved.x, moved.y) > 0.01) {
+    const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+    const steer = c.steer, look = steer ? Math.atan2(steer.x, steer.y) : null;
+    const walking = Math.hypot(moved.x, moved.y) > 0.01;
+    let twist = 0;
+    if (look !== null && !fighting && !c.isDashing && !fallen && !c.isChanneling) {
+      // Steered by the pointer: the legs walk ahead or backwards, nearer where he looks, and give a
+      // little toward it; the spine turns the rest.
+      let legs = look;
+      if (walking) {
+        const goes = heading(moved.x, moved.y), across = Math.abs(wrap(goes - look));
+        this.backwards = this.backwards ? across > Math.PI / 2 - SWAP : across > Math.PI / 2 + SWAP;
+        legs = this.backwards ? goes + Math.PI : goes;
+        legs += Math.max(-LEG_GIVE, Math.min(LEG_GIVE, wrap(look - legs)));
+      } else this.backwards = false;
+      this.facing += wrap(legs - this.facing) * Math.min(1, dt * TURN);
+      twist = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, wrap(look - this.facing)));
+    } else if (fighting || walking) {
       // Aiming at the pointer he turns to it at any angle, not only the eight ways.
       const want = aimed && c.isShouldering ? heading(aimed.x - c.x, aimed.y - c.y)
-        : fighting ? Math.atan2(c.faces.x, c.faces.y) : heading(moved.x, moved.y);
-      const turn = Math.atan2(Math.sin(want - this.facing), Math.cos(want - this.facing));
-      this.facing += turn * Math.min(1, dt * TURN);
+        : fighting ? look ?? Math.atan2(c.faces.x, c.faces.y) : heading(moved.x, moved.y);
+      this.facing += wrap(want - this.facing) * Math.min(1, dt * TURN);
     }
+    this.twist += (twist - this.twist) * Math.min(1, dt * TWIST);
     const into = this.into(c, dt);
     // What he is doing, in the clip that shows it.
     const motion = this.motion;
@@ -235,7 +269,9 @@ export class CabralFigure {
         else if (arming.phase === 'raise') motion.play('mosquete_sacar', { once: true, lasts: arming.shoulder, afresh: this.phaseWas !== 'raise', blend: 0.06 });
         else motion.play('mosquete_apuntar', { blend: 0.05 });
       } else if (arming) motion.play('shoot', { once: true });
-      // His walk keeps step with the ground: played as fast as he goes, however fast that is.
+      // His walk keeps step with the ground: played as fast as he goes, however fast that is;
+      // backwards, his walk backwards.
+      else if (c.isMoving && this.backwards && this.backReach) motion.play(BACKWARDS, { pace: Math.max(LEAST_PACE, this.going / this.backReach) });
       else if (c.isMoving) motion.play(this.gait.name, { pace: this.gait.reach ? Math.max(LEAST_PACE, this.going / this.gait.reach) : 1 });
       // Standing: Mixamo's Breathing Idle, the user's pick; his own keyed in Blender, or the library's, if missing.
       else motion.play(['reposo_mixamo', 'reposo', 'idle'].find(name => motion.has(name))!);
@@ -274,9 +310,20 @@ export class CabralFigure {
       this.facing += Math.atan2(Math.sin(want - has), Math.cos(want - has));
       this.body.rotation.y = this.facing;
     }
+    this.body.updateMatrixWorld(true);
+    // His spine turned from his legs toward where he looks, shared out over its bones, about the up.
+    if (this.shaped && this.body === this.shaped && Math.abs(this.twist) > 1e-3) {
+      const up = new THREE.Vector3(), parent = new THREE.Quaternion(), turn = new THREE.Quaternion();
+      for (const [name, share] of SPINE) {
+        const bone = this.shaped.getObjectByName(name);
+        if (!bone?.parent) continue;
+        up.set(0, 1, 0).applyQuaternion(bone.parent.getWorldQuaternion(parent).invert());
+        bone.quaternion.premultiply(turn.setFromAxisAngle(up, this.twist * share));
+        bone.updateMatrixWorld(true);
+      }
+    }
     // The cut's arc, from where his blade is now: only while it sweeps (frames 3 to 9 of 12), not as
     // he winds up or comes back to guard.
-    this.body.updateMatrixWorld(true);
     this.trail?.update(doing.trail && this.swung > SWING * 3 / 12 && this.swung < SWING * 9 / 12);
   }
 
