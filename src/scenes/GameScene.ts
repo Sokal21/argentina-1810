@@ -60,6 +60,7 @@ import { THINGS } from '../story/things';
 import { FACTS, RULES, VADO } from '../story/vado';
 import { Vitals } from '../world/vitals';
 import { DRAW, SHOT as SLING, SIP } from '../three/cabral';
+import { sunCursor } from '../three/cursor';
 import { World3D } from '../three/world3d';
 import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Charge as Cargo, type Spot, type WorldMap } from '../world/zones';
 
@@ -433,7 +434,12 @@ export class GameScene extends Phaser.Scene {
         return first?.at ?? null;
       };
       this.three.shown = true;
-      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { if (this.three) this.three.shown = false; });
+      // The pointer is a Sol de Mayo, aimed at its middle.
+      this.input.setDefaultCursor(sunCursor());
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+        if (this.three) this.three.shown = false;
+        this.input.setDefaultCursor('');
+      });
     }
     // What the enemies throw, and the part of her it can hit.
     this.embers = new Bolts(this, this.size.width, this.size.height, EMBER);

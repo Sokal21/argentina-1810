@@ -15,6 +15,7 @@ import { CabralFigure, DRAW, ROLLS, SHOT, THROWN } from './cabral';
 import { GrenadeMarks, Grenades, within } from './grenade';
 import { GRENADE } from '../machi/grenade';
 import { CABRAL_DRESS } from './figure';
+import { sunCursor } from './cursor';
 import { raisePeople } from './people';
 import { mountHud, type Readings } from './hud';
 import { ground, onTheGround, UPRIGHT } from './space';
@@ -31,6 +32,8 @@ const map = vadoDeLasVizcachas;
 const FEET: Pick<Footprint, 'hw' | 'hh'> = { hw: 7, hh: 3.5 }; // the ground he stands on, as in the 2D game
 
 const view = new View(document.getElementById('world')!);
+// The pointer is a Sol de Mayo, as in the game.
+document.body.style.cursor = sunCursor();
 mountPanel(view);
 const country = raiseCountry(map);
 view.scene.add(country.group);
