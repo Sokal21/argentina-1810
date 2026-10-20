@@ -35,13 +35,14 @@ export const THROWN = 0.16;
 export const SIP = 1.4;
 /**
  * Steered by the pointer (the 3D game), his legs and his body part: the legs walk ahead or
- * backwards, whichever is nearer where he looks, giving up to LEG_GIVE toward it (a step a little
- * across, which the pixels hide), and the spine turns the rest, shared out over its three bones; so
- * it never turns more than 90° less that, even walking square across his look. SWAP is how far past
- * square to the side his walk must go before his legs change from ahead to backwards or back, so
- * they do not flicker there. TWIST is how quickly the spine follows, per second.
+ * backwards, whichever is nearer where he looks, giving only LEG_GIVE toward it, and the spine turns
+ * the rest, shared out over its three bones, up to TWIST_MOST. Given 30° the legs walked plainly
+ * across his way, as though going on a diagonal; the user wanted the turn in the body. SWAP is how
+ * far past square to the side his walk must go before his legs change from ahead to backwards or
+ * back, so they do not flicker there. TWIST is how quickly the spine follows, per second.
  */
-const LEG_GIVE = THREE.MathUtils.degToRad(30), SWAP = THREE.MathUtils.degToRad(15), TWIST = 16;
+const LEG_GIVE = THREE.MathUtils.degToRad(8), SWAP = THREE.MathUtils.degToRad(15), TWIST = 16;
+const TWIST_MOST = THREE.MathUtils.degToRad(100);
 const SPINE: [string, number][] = [['Waist', 0.3], ['Spine01', 0.35], ['Spine02', 0.35]];
 /** His walk backwards: Mixamo's Walking Backwards, the user's pick. */
 const BACKWARDS = 'caminata_atras';
@@ -232,7 +233,7 @@ export class CabralFigure {
         legs += Math.max(-LEG_GIVE, Math.min(LEG_GIVE, wrap(look - legs)));
       } else this.backwards = false;
       this.facing += wrap(legs - this.facing) * Math.min(1, dt * TURN);
-      twist = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, wrap(look - this.facing)));
+      twist = Math.max(-TWIST_MOST, Math.min(TWIST_MOST, wrap(look - this.facing)));
     } else if (fighting || walking) {
       // Aiming at the pointer he turns to it at any angle, not only the eight ways.
       const want = aimed && c.isShouldering ? heading(aimed.x - c.x, aimed.y - c.y)

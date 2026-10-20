@@ -128,8 +128,8 @@ whole list (the last command in git history has it).
 - **Steered by the pointer** (the 3D game's controls): he looks at the mouse, at any angle, and the
   keys move him without turning him (`MachiController.steer`; slower to the side, slower still and
   never running backwards: `STEER`). His legs walk ahead or backwards, whichever is nearer his look,
-  giving up to 30° toward it, and his spine turns the rest over its three bones, so it never turns
-  more than 60° (90° at the most); the change of legs waits 15° past square, so it does not flicker.
+  giving only 8° toward it (given 30° he seemed to walk on a diagonal), and his spine turns the rest
+  over its three bones, up to 100°; the change of legs waits 15° past square, so it does not flicker.
 - Swings and shots face where the controller turns him; aiming at the pointer he turns at any
   angle, and is turned so **the barrel's line**, not his middle, meets the pointer.
 
