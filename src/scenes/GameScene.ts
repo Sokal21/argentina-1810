@@ -21,7 +21,7 @@ import { LookFX } from '../fx/LookFX';
 import { controls, fx } from '../fx/settings';
 import { Keys } from '../input';
 import { Abilities, ground, HEAL, MANA, REGEN, STRIKE, type Ability } from '../machi/abilities';
-import { lands, MachiController, STEER, steeredWay, type Arm, type MachiInput, type Strike, type Vec } from '../machi/controller';
+import { lands, MachiController, STEER, type Arm, type MachiInput, type Strike, type Vec } from '../machi/controller';
 import { BOLT_RANGE, FRAME, ISO_Y, KITS, type Hero } from '../machi/data';
 import { BLOW, FURY, Fury, WOUND } from '../machi/fury';
 import { Burning } from '../machi/burning';
@@ -854,8 +854,8 @@ export class GameScene extends Phaser.Scene {
     if (this.shownIn3d && !touch.on) {
       const at = this.underMouse(), dx = at.x - this.machi.x, dy = (at.y - this.machi.y) / ISO_Y, far = Math.hypot(dx, dy);
       if (far > 4) this.machi.steer = { x: dx / far, y: dy / far };
-      const steer = this.machi.steer, goes = steer && steeredWay(input, steer);
-      backing = !!steer && !!goes && goes.x * steer.x + goes.y * steer.y < STEER.runAhead;
+      const goes = input.move ?? { x: input.dx, y: input.dy }, len = Math.hypot(goes.x, goes.y), steer = this.machi.steer;
+      backing = !!steer && len > 0 && (goes.x * steer.x + goes.y * steer.y) / len < STEER.runAhead;
     } else this.machi.steer = null;
     const running = this.stamina.update(dt, standing && !this.machi.isDashing && !backing && (this.keys.running || touch.run), this.machi.isMoving);
     this.machi.pace = tune.speed * this.growth.gives('speed') * (this.wrath.active ? RAGE.pace : 1) * (running ? RUN : 1);

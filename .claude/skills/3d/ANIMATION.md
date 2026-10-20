@@ -126,8 +126,7 @@ whole list (the last command in git history has it).
   slides; the flight is given less of the dash. Synced to the controller's own curve, he slid
   before diving and the getting up was crammed into the last inch.
 - **Steered by the pointer** (the 3D game's controls): he looks at the mouse, at any angle, and the
-  keys move him along the line to it, not the screen's: up toward it, down away from it, the sides
-  square to it (`steeredWay`, `MachiController.steer`; slower to the side, slower still and
+  keys move him without turning him (`MachiController.steer`; slower to the side, slower still and
   never running backwards: `STEER`). His legs walk ahead or backwards, whichever is nearer his look,
   giving only 8° toward it (given 30° he seemed to walk on a diagonal), and his spine turns the rest
   over its three bones, up to 100°; the change of legs waits 15° past square, so it does not flicker.
