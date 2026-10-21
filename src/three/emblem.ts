@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-// The title's name and its Sol de Mayo in 3D: each the pixel art it was drawn as, raised into a
-// solid in Blender (tools/blender/extrude_pixels.py, the lighter the higher), turning a little one
-// way and the other while a warm light passes over its gold. Rendered into a picture of its own,
+// The title's name and its Sol de Mayo in 3D: each modelled in Blender on the pixel art it was
+// drawn as (tools/blender/model_emblem.py: its outline a dark slab, its gold standing forward,
+// bevelled, the drawing laid on its face), turning a little one way and the other while a warm
+// light passes over its gold. Rendered into a picture of its own,
 // a few of its pixels to each of the drawing's, for the title to show where the drawing was.
 
 /** One renderer for all of them: each picture is drawn in turn and copied out. */
@@ -55,9 +56,10 @@ export class TitleEmblem {
     void new GLTFLoader().loadAsync(url).then(({ scene }) => {
       scene.traverse(node => {
         if (!(node instanceof THREE.Mesh)) return;
-        const map = (node.material as THREE.MeshStandardMaterial).map;
-        if (map) map.minFilter = map.magFilter = THREE.NearestFilter;
-        node.material = new THREE.MeshStandardMaterial({ map, metalness: 0.3, roughness: 0.25 });
+        // Its own materials (the drawing on its face, gold or dark red on its sides), the drawing's pixels kept.
+        for (const material of [node.material].flat() as THREE.MeshStandardMaterial[]) {
+          if (material.map) material.map.minFilter = material.map.magFilter = THREE.NearestFilter;
+        }
       });
       this.body.add(scene);
       this.loaded = true;
