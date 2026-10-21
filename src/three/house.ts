@@ -118,7 +118,8 @@ export class House {
     if (k > 0) this.frontCut.set(out.clone().negate(), along + face);
     else this.frontCut.set(new THREE.Vector3(0, -1, 0), AWAY);
     this.behindCut.set(out.clone(), -(along + face));
-    this.footCut.set(new THREE.Vector3(0, -1, 0), base + tall * LOW);
+    // The front, wiped down as the roof is lifted: from the ridge (all of it, its eaves too) to its foot.
+    this.footCut.set(new THREE.Vector3(0, -1, 0), base + this.spec.tall + (tall * LOW - this.spec.tall) * k);
     this.undersideCut.constant = -(base + 1.5);
     if (this.foot) this.foot.visible = k > 0;
   }
