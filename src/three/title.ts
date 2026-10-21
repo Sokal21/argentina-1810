@@ -5,14 +5,18 @@ import { UPRIGHT } from './space';
 // The title's Cabildo in 3D, over the painted one: the model, by night, the size and place of the
 // painting's Cabildo, rendered at the painting's own size (each of its pixels one of the
 // painting's) on a clear ground, for the title to draw as a picture between the painted sky and
-// the people crossing the plaza. Seen from in front and a little above, as painted; it turns a
+// the people crossing the plaza. Seen from in front, from down in the plaza looking up; it turns a
 // little one way and the other, slowly, so it is seen to be solid. Moonlight, and the galleries lit
 // from within, their light flickering.
 
 /** Where the painted Cabildo stands in the painting: its front's left and right, and its foot. */
 const PAINTED = { left: 294, right: 665, foot: 346 };
-/** How far it is seen from above (radians), and how far and how slowly it turns either way. */
-const PITCH = THREE.MathUtils.degToRad(9), SWAY = { angle: 0.055, pace: 0.22 };
+/**
+ * Seen from the plaza, looking up at it: the eye a little over the ground (a share of its height),
+ * looking at a point up its front (another share), through a lens this wide (degrees). Its walls
+ * draw in as they rise, as a building's do seen from its foot. And how far and how slowly it turns.
+ */
+const EYE = 0.08, AIM = 0.75, FOV = 38, SWAY = { angle: 0.055, pace: 0.22 };
 /** The lights: the moon, the night sky, and the warm light in each gallery. */
 const MOON = { colour: '#9db2ff', strength: 1.1 }, SKY = { top: '#24365e', bottom: '#0b0c12', strength: 0.9 };
 const GALLERY = { colour: '#ffa040', strength: 420, reach: 90, arches: 5 };
@@ -23,12 +27,12 @@ export class TitleCabildo {
   private readonly picture: CanvasRenderingContext2D;
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
-  private readonly camera: THREE.OrthographicCamera;
+  private readonly camera: THREE.PerspectiveCamera;
   private readonly building = new THREE.Group();
   private readonly lights: { light: THREE.PointLight; strength: number; beat: number }[] = [];
   private loaded = false;
 
-  constructor(width: number, private readonly height: number) {
+  constructor(private readonly width: number, private readonly height: number) {
     this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, preserveDrawingBuffer: false });
     this.renderer.setPixelRatio(1);
     this.renderer.setSize(width, height, false);
@@ -37,8 +41,7 @@ export class TitleCabildo {
     this.canvas.width = width;
     this.canvas.height = height;
     this.picture = this.canvas.getContext('2d')!;
-    // One unit of the world to each pixel of the painting.
-    this.camera = new THREE.OrthographicCamera(-width / 2, width / 2, height / 2, -height / 2, 1, 6000);
+    this.camera = new THREE.PerspectiveCamera(FOV, width / height, 1, 20000);
     this.scene.add(new THREE.HemisphereLight(SKY.top, SKY.bottom, SKY.strength));
     const moon = new THREE.DirectionalLight(MOON.colour, MOON.strength);
     moon.position.set(-400, 700, 600);
@@ -70,23 +73,30 @@ export class TitleCabildo {
           this.lights.push({ light, strength, beat: Math.random() * 10 });
         }
       }
-      this.frame(deep / 2);
+      this.frame(long, deep / 2, tall);
       this.loaded = true;
     });
   }
 
-  /** Stands the camera so that the front of the building's foot is where the painted one's is. */
-  private frame(front: number): void {
-    const back = new THREE.Vector3(0, Math.sin(PITCH), Math.cos(PITCH));
-    this.camera.position.copy(back).multiplyScalar(3000);
-    this.camera.lookAt(0, 0, 0);
-    this.camera.updateMatrixWorld();
-    // Where its foot falls now, and where it should: the camera moved up or down its own up by the difference.
-    const foot = new THREE.Vector3(0, 0, front).project(this.camera);
-    const want = 1 - (2 * PAINTED.foot) / this.height;
-    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(this.camera.quaternion);
-    this.camera.position.addScaledVector(up, ((foot.y - want) * this.height) / 2);
-    this.camera.updateMatrixWorld();
+  /**
+   * Stands the camera in the plaza looking up at the building, as far off as puts its front's foot
+   * as wide as the painted one's, and shifts the picture so that foot falls where the painted one's did.
+   */
+  private frame(long: number, front: number, tall: number): void {
+    const w = this.width, h = this.height;
+    const foot = (x: number) => new THREE.Vector3(x, 0, front).project(this.camera);
+    let away = long * 2;
+    for (let i = 0; i < 12; i++) {
+      this.camera.position.set(0, tall * EYE, front + away);
+      this.camera.lookAt(0, tall * AIM, front);
+      this.camera.updateMatrixWorld();
+      this.camera.updateProjectionMatrix();
+      const wide = ((foot(long / 2).x - foot(-long / 2).x) * w) / 2;
+      away *= wide / (PAINTED.right - PAINTED.left);
+    }
+    // Its foot's middle, in the picture's pixels, against where the painted one's was.
+    const at = foot(0), x = ((at.x + 1) * w) / 2, y = ((1 - at.y) * h) / 2;
+    this.camera.setViewOffset(w, h, x - (PAINTED.left + PAINTED.right) / 2, y - PAINTED.foot, w, h);
   }
 
   /** Draws it at a moment (seconds); nothing until the model has loaded, so the painted one shows. */
