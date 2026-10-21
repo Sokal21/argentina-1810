@@ -6,6 +6,7 @@
     python3 tools/tripo.py wait TASK OUT_DIR              polls the task, saves what it made in OUT_DIR
     python3 tools/tripo.py multiview OUT_DIR JSON front=F left=L back=B right=R
                                                           uploads the views, submits, waits
+    python3 tools/tripo.py image OUT_DIR JSON FILE        one picture: uploads it, submits, waits
 
 JSON is the request body (a string, or @file); for `multiview` the inputs are filled in.
 Every task's full answer is saved as OUT_DIR/TASK.json, beside what it made.
@@ -107,6 +108,13 @@ if __name__ == '__main__':
         # In the order front, left, back, right; a view not given is left empty.
         body['inputs'] = [upload(views[side]) if side in views else '' for side in ('front', 'left', 'back', 'right')]
         task = submit('generation/multiview-to-model', body)
+        print(task)
+        data = wait(task, args[0])
+        print(f'credits: {data.get("credits_consumed")}', file=sys.stderr)
+    elif what == 'image':
+        body = body_of(args[1])
+        body['input'] = upload(args[2])
+        task = submit('generation/image-to-model', body)
         print(task)
         data = wait(task, args[0])
         print(f'credits: {data.get("credits_consumed")}', file=sys.stderr)

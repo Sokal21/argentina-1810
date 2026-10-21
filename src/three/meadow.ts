@@ -44,7 +44,11 @@ function tuft(map: WorldMap): THREE.BufferGeometry {
   return shape;
 }
 
-export function growMeadow(map: WorldMap, terrain: Terrain): THREE.InstancedMesh {
+/** How many houses' floors are kept clear of grass, at most. */
+const HOUSES = 4;
+
+/** `houses`: where the floors of those gone into lie, each its middle (3D ground), half its length and depth, and its turn. */
+export function growMeadow(map: WorldMap, terrain: Terrain, houses: { x: number; z: number; hw: number; hd: number; turn: number }[] = []): THREE.InstancedMesh {
   const across = Math.ceil(FIELD.across / CELL), deep = Math.ceil(FIELD.deep / CELL), count = across * deep;
   const mesh = new THREE.InstancedMesh(tuft(map), flat(), count);
   (mesh.material as THREE.MeshToonMaterial).side = THREE.DoubleSide;
@@ -54,6 +58,8 @@ export function growMeadow(map: WorldMap, terrain: Terrain): THREE.InstancedMesh
   const { lie, span, texels } = heightPicture(terrain);
   const uniforms = {
     time: { value: 0 }, origin: { value: new THREE.Vector2() }, lie: { value: lie }, span: { value: span }, texels: { value: texels },
+    houses: { value: Array.from({ length: HOUSES }, (_, i) => houses[i] ? new THREE.Vector4(houses[i].x, houses[i].z, houses[i].hw, houses[i].hd) : new THREE.Vector4(0, 0, -1, -1)) },
+    turns: { value: Array.from({ length: HOUSES }, (_, i) => houses[i]?.turn ?? 0) },
   };
   const material = mesh.material as THREE.MeshToonMaterial;
   material.onBeforeCompile = shader => {
@@ -66,6 +72,8 @@ uniform vec2 origin;
 uniform sampler2D lie;
 uniform vec2 span;
 uniform vec2 texels;
+uniform vec4 houses[${HOUSES}];
+uniform float turns[${HOUSES}];
 float hash1(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }`)
       .replace('#include <begin_vertex>', `
   // The cell of the ground this slot stands in: the one of its kind within the field round the camera.
@@ -76,6 +84,12 @@ float hash1(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453)
   // Not every cell holds a tuft, and none grows in the water or past the map.
   float grows = step(hash1(cell + 3.3), ${TUFTS.toFixed(2)}) * step(${(WATER_LEVEL + 0.8).toFixed(2)}, ground)
     * step(0.0, at.x) * step(0.0, at.y) * step(at.x, span.x) * step(at.y, span.y);
+  // Nor on the floor of a house.
+  for (int h = 0; h < ${HOUSES}; h++) {
+    vec2 off = at - houses[h].xy, k = vec2(cos(turns[h]), sin(turns[h]));
+    vec2 in_ = vec2(off.x * k.x - off.y * k.y, off.x * k.y + off.y * k.x);
+    if (abs(in_.x) < houses[h].z + 4.0 && abs(in_.y) < houses[h].w + 4.0) grows = 0.0;
+  }
   float size = grows * (0.7 + 0.5 * hash1(cell + 5.5));
   vec3 transformed = position * size;
   // The wind: swells crossing the ground, laying the blades over further the higher up they are.

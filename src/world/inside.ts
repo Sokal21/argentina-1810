@@ -124,12 +124,15 @@ export class Indoors {
 
   /** Whether a spot outside is on the ground a house stands on. */
   blocked(at: Vec): boolean {
-    return this.drawn.some(d => within(at, d.base));
+    return this.drawn.some(d => !this.open.has(d.b.name) && within(at, d.base));
   }
+
+  /** Houses whose ground here is not held: the 3D game holds them by their own walls, and goes into them by their door. */
+  open = new Set<string>();
 
   /** Keeps a step outside off the ground the houses stand on, sliding along their walls. */
   block(from: Vec, to: Vec): Vec {
-    const walls = this.drawn.filter(d => !(this.mode === 'directo' && d === this.inside)).map(d => d.base);
+    const walls = this.drawn.filter(d => !(this.mode === 'directo' && d === this.inside) && !this.open.has(d.b.name)).map(d => d.base);
     return slide(from, to, p => !walls.some(w => within(p, w)));
   }
 

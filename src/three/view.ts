@@ -50,6 +50,8 @@ export class View {
 
   constructor(parent: HTMLElement) {
     this.renderer.setPixelRatio(1);
+    // A house is cut open to be seen within (house.ts).
+    this.renderer.localClippingEnabled = true;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.BasicShadowMap;
     this.renderer.domElement.style.imageRendering = 'pixelated';

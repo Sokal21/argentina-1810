@@ -2266,6 +2266,36 @@
       "asset_id": "8122f21a-1780-4d79-90f6-8e284b731412",
       "label": "posada 3D turnaround B (weathered)",
       "file": "assets/edificios/3d/posada_giro_b.png"
+    },
+    {
+      "asset_id": "6524ec5a-59f9-454c-ab9d-dc35fa7c5293",
+      "label": "posada 3D interior cutaway A",
+      "file": "assets/edificios/3d/posada_interior_a.png"
+    },
+    {
+      "asset_id": "fb0adeaf-2a91-457b-be4f-e8b06e82a4ff",
+      "label": "posada 3D interior cutaway B",
+      "file": "assets/edificios/3d/posada_interior_b.png"
+    },
+    {
+      "asset_id": "348658d6-fe6e-4025-83e7-dd8176e5bb6e",
+      "label": "posada 3D furniture, no walls, A",
+      "file": "assets/edificios/3d/posada_muebles_a.png"
+    },
+    {
+      "asset_id": "3877dd26-e07d-4da4-9ed7-392f624ec42b",
+      "label": "posada 3D furniture, no walls, B",
+      "file": "assets/edificios/3d/posada_muebles_b.png"
+    },
+    {
+      "asset_id": "befbfb99-383c-4c25-bec8-be14854e3422",
+      "label": "posada 3D furniture, table moved off the door, C",
+      "file": "assets/edificios/3d/posada_muebles_c.png"
+    },
+    {
+      "asset_id": "485c4319-9743-475b-9f39-bfebe7639515",
+      "label": "posada 3D furniture, table moved off the door, D",
+      "file": "assets/edificios/3d/posada_muebles_d.png"
     }
   ]
 }

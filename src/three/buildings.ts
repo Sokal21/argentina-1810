@@ -18,11 +18,33 @@ export interface BuildingModel {
   /** Its length and depth, as shares of its height (the model's own proportions). */
   long: number;
   deep: number;
+  /** The room within it, gone into without a cut (house.ts), in the building's own frame. */
+  inside?: {
+    /** Its walls, where the model's are (measured below its eaves): length, depth, height, thickness. */
+    walls: { long: number; deep: number; tall: number; thick: number };
+    /** The door in its front wall: how far along from the middle (to the left as you face it, less) and how wide. */
+    door: { x: number; wide: number };
+    plaster: string;
+    floor: string;
+    /** What stands in it: its model, how tall that stands, its turn, and where its middle is. */
+    furniture: string;
+    scale: number;
+    turn: number;
+    at: [number, number];
+  };
 }
 
 export const MODELS: Record<string, BuildingModel> = {
   // Tripo from turnaround B (assets/edificios/3d), 20 October 2026.
-  'La posada': { url: 'edificios/3d/posada.glb', tall: 230, drawing: [358, 250], long: 1.906, deep: 1.458 },
+  'La posada': {
+    url: 'edificios/3d/posada.glb', tall: 230, drawing: [358, 250], long: 1.906, deep: 1.458,
+    // Tripo from furniture set C (no walls, the table off the door), 20 October 2026.
+    inside: {
+      walls: { long: 402, deep: 263, tall: 103, thick: 10 }, door: { x: -57, wide: 80 },
+      plaster: '#d6ccb4', floor: '#6e5638',
+      furniture: 'edificios/3d/posada_muebles.glb', scale: 152, turn: Math.PI / 2, at: [-58, 0],
+    },
+  },
 };
 
 /** Where a modelled building stands: its middle on the 2D ground, its turn about the upright, its length and depth. */

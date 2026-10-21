@@ -7,6 +7,7 @@ import { CabralFigure, THROWN, type Doing } from './cabral';
 import { GrenadeMarks, Grenades } from './grenade';
 import { Impacts } from './impact';
 import { Fury } from './fury';
+import type { House } from './house';
 import { Mendings } from './mend';
 import { mountPanel } from './panel';
 import { raisePeople } from './people';
@@ -39,6 +40,8 @@ export class World3D {
   private readonly mendings = new Mendings();
   /** His rage, about him. */
   private readonly fury = new Fury();
+  /** The houses gone into without a cut. */
+  private readonly houses: House[];
   /** What his ball is tested against: set by whoever plays on this map. */
   strikes: Strikes = () => null;
   private readonly caster = new THREE.Raycaster();
@@ -55,6 +58,7 @@ export class World3D {
     // The look's panel, while developing: L, since P shows the game's collision boxes.
     if (import.meta.env.DEV) mountPanel(this.view, { key: 'KeyL', hidden: true });
     const country = raiseCountry(map);
+    this.houses = country.houses;
     this.view.scene.add(country.group, raisePeople(map), this.cabral.group, this.royalists.group, this.marks.group);
     // The blast itself is the 2D game's, which hurts; this only shows the ball and what it raises.
     this.shots = new Shots(this.view.camera, (from, to) => this.strikes(from, to), () => {});
@@ -90,10 +94,22 @@ export class World3D {
     this.volleys.update(dt);
     this.impacts.update(dt);
     this.mendings.update(dt, c);
+    // A house he is within has its roof lifted off.
+    for (const house of this.houses) house.update(dt, c);
     // His rage, about him and over the whole picture: eased in, and out as it ends.
     const rage = doing.rage ?? 0;
     this.fury.update(dt, c, rage);
     this.view.fury += (rage - this.view.fury) * Math.min(1, dt * 6);
+  }
+
+  /** Keeps a step out of the houses' walls: in and out only by their doors. */
+  hold(from: Vec, to: Vec): Vec {
+    return this.houses.reduce((at, house) => house.hold(from, at), to);
+  }
+
+  /** Whether a spot is within a house's walls, where nobody else goes yet. */
+  housed(at: Vec): boolean {
+    return this.houses.some(house => house.within(at));
   }
 
   /** Life or mana comes back to him, in its colour. */

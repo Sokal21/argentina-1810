@@ -61,6 +61,7 @@ import { FACTS, RULES, VADO } from '../story/vado';
 import { Vitals } from '../world/vitals';
 import { DRAW, SHOT as SLING, SIP } from '../three/cabral';
 import { sunCursor } from '../three/cursor';
+import { MODELS } from '../three/buildings';
 import { World3D } from '../three/world3d';
 import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Charge as Cargo, type Spot, type WorldMap } from '../world/zones';
 
@@ -265,7 +266,7 @@ export class GameScene extends Phaser.Scene {
   /** The way round what is in the way to wherever the hero stands, for the enemy; on a map. */
   private route?: Route;
   /** Where soldiers can walk: on the map's ground, and not where a house stands. */
-  private walkable = (x: number, y: number): boolean => !!this.map && zoneAt(this.map, x, y) !== undefined && !this.indoors?.blocked({ x, y });
+  private walkable = (x: number, y: number): boolean => !!this.map && zoneAt(this.map, x, y) !== undefined && !this.indoors?.blocked({ x, y }) && !this.three?.housed({ x, y });
   /** The rings round whatever is being brought along, drawn afresh each step. */
   private orders?: Phaser.GameObjects.Graphics;
   /** Those who go for whatever is being brought along rather than the hero. */
@@ -367,6 +368,8 @@ export class GameScene extends Phaser.Scene {
     // How one goes into a building is still being tried: ?entrar=directo, or by default through a fade.
     const entering = new URLSearchParams(location.search).get('entrar') === 'directo' ? 'directo' : 'fundido';
     this.indoors = this.map ? new Indoors(this, this.map, entering as Entering) : undefined;
+    // In 3D the houses with rooms of their own are gone into without a cut (three/house.ts).
+    if (this.indoors && this.three) this.indoors.open = new Set(Object.entries(MODELS).filter(([, m]) => m.inside).map(([name]) => name));
     if (this.indoors && this.map) this.indoors.bounds = extent(this.map);
     // A side that will not see him shuts its door.
     if (this.indoors) {
@@ -906,7 +909,8 @@ export class GameScene extends Phaser.Scene {
       this.machi.x = held.x;
       this.machi.y = held.y;
     } else if (this.map) {
-      const clear = this.indoors?.block(from, this.machi) ?? this.machi;
+      // In 3D a house with a room is held by its own walls, and gone into by its door.
+      const clear = this.three?.hold(from, this.indoors?.block(from, this.machi) ?? this.machi) ?? this.indoors?.block(from, this.machi) ?? this.machi;
       this.machi.x = clear.x;
       this.machi.y = clear.y;
       const held = walk(this.map, from, this.machi);

@@ -12,7 +12,7 @@ import { ground, standOn, UPRIGHT } from './space';
 import { LOOK, sunWay } from './look';
 import { growMeadow } from './meadow';
 import { MODELS, placed as standing } from './buildings';
-import { model } from './figure';
+import { House } from './house';
 import { CELL, clouds, heightPicture, shapeTerrain, swell, WATER_LEVEL, type Terrain } from './terrain';
 
 // A map of open country stood up in 3D from the same code that lays out the 2D one: the
@@ -53,6 +53,8 @@ export interface Country3D {
   feet: Footprint[];
   /** The lie of the land: everything put on the map stands on it. */
   terrain: Terrain;
+  /** The buildings with models of their own, gone into without a cut. */
+  houses: House[];
 }
 
 export function raiseCountry(map: WorldMap): Country3D {
@@ -61,7 +63,12 @@ export function raiseCountry(map: WorldMap): Country3D {
   // The relief first: whatever is put on the map after stands on it.
   const terrain = shapeTerrain(map);
   standOn(terrain.at);
-  group.add(paintGround(map, terrain), pourWater(map, terrain), growMeadow(map, terrain));
+  // The floors of the houses gone into are kept clear of grass.
+  const floors = (map.buildings ?? []).flatMap(b => {
+    const where = standing(b), walls = MODELS[b.name]?.inside?.walls;
+    return where && walls ? [{ x: where.x, z: where.y / ISO_Y, hw: walls.long / 2, hd: walls.deep / 2, turn: where.turn }] : [];
+  });
+  group.add(paintGround(map, terrain), pourWater(map, terrain), growMeadow(map, terrain, floors));
   const { meshes, taken } = plantPlants(map);
   group.add(...meshes);
   feet.push(...taken);
@@ -69,7 +76,7 @@ export function raiseCountry(map: WorldMap): Country3D {
   const built = raiseBuildings(map);
   group.add(...built.meshes);
   feet.push(...built.taken);
-  return { group, feet, terrain };
+  return { group, feet, terrain, houses: built.houses };
 }
 
 function paintGround(map: WorldMap, terrain: Terrain): THREE.Group {
@@ -371,20 +378,20 @@ function raiseFences(map: WorldMap): THREE.InstancedMesh[] {
   }).flat();
 }
 
-function raiseBuildings(map: WorldMap): { meshes: THREE.Object3D[]; taken: Footprint[] } {
-  const meshes: THREE.Object3D[] = [], taken: Footprint[] = [];
+function raiseBuildings(map: WorldMap): { meshes: THREE.Object3D[]; taken: Footprint[]; houses: House[] } {
+  const meshes: THREE.Object3D[] = [], taken: Footprint[] = [], houses: House[] = [];
   for (const b of map.buildings ?? []) {
     // One with a model of its own stands as that, at its true size, once it has loaded.
     const where = standing(b);
     if (where) {
-      const holder = new THREE.Group();
-      holder.position.copy(ground(where.x, where.y));
-      holder.rotation.y = where.turn;
-      void model(MODELS[b.name].url, MODELS[b.name].tall / UPRIGHT).then(shape => holder.add(shape));
-      meshes.push(holder);
-      // What it takes up, for whoever is held by footprints (the demo): the box round it, a little in.
-      const c = Math.abs(Math.cos(where.turn)), s = Math.abs(Math.sin(where.turn));
-      taken.push({ x: where.x, y: where.y, hw: (where.long * c + where.deep * s) * 0.36, hh: (where.long * s + where.deep * c) * 0.36 * ISO_Y });
+      const house = new House(where, MODELS[b.name]);
+      houses.push(house);
+      meshes.push(house.group);
+      // What it takes up, for whoever is held by footprints, unless it is gone into: then its walls hold them (house.ts).
+      if (!MODELS[b.name].inside) {
+        const c = Math.abs(Math.cos(where.turn)), s = Math.abs(Math.sin(where.turn));
+        taken.push({ x: where.x, y: where.y, hw: (where.long * c + where.deep * s) * 0.36, hh: (where.long * s + where.deep * c) * 0.36 * ISO_Y });
+      }
       continue;
     }
     const { x, y } = middle(b.plot);
@@ -408,5 +415,5 @@ function raiseBuildings(map: WorldMap): { meshes: THREE.Object3D[]; taken: Footp
     const back = b.deep / 2;
     taken.push({ x, y: y - back / 2, hw: b.wide / 2, hh: back / 2 });
   }
-  return { meshes, taken };
+  return { meshes, taken, houses };
 }

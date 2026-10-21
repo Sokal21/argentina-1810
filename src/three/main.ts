@@ -219,6 +219,11 @@ function advance(dt: number): void {
   // Held, as in the 2D game, by what stands in the way and by country too thick to cross.
   for (const taken of country.feet) Object.assign(cabral, pushOut({ x: cabral.x, y: cabral.y, ...FEET }, taken));
   Object.assign(cabral, walk(map, from, cabral));
+  // Into a house only by its door; and seen from within once inside.
+  for (const house of country.houses) {
+    Object.assign(cabral, house.hold(from, cabral));
+    house.update(dt, cabral);
+  }
   figured.update(dt, cabral, { from, aimed, fallen, dashTime: kit.dash.time, trail: view.look.trail });
   // The line of the shot and the ring of its blast, as the 2D game draws them while the musket is up.
   const aiming = aimed && cabral.arming?.kind === 'musket' && cabral.arming.phase !== 'fire';
