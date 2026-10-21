@@ -52,13 +52,17 @@ export class House {
   private readonly walls: { x: number; z: number; hw: number; hd: number }[] = [];
   /** Who keeps it, standing within, and how they move. */
   private keeper: { body: THREE.Object3D; motion: Motion; facing: number } | null = null;
-  /** The sign over their head that they can be talked to, bobbing; and the clock it bobs by. */
-  private readonly ask = asks();
+  /**
+   * The sign over their head that they can be talked to, bobbing; and the clock it bobs by. Not in
+   * the house's group but in the view's `over`, whoever draws it adding it there: it is placed in the world.
+   */
+  readonly ask = asks();
   private time = 0;
 
   constructor(private readonly where: { x: number; y: number; turn: number }, private readonly spec: BuildingModel) {
     this.group.position.copy(ground(where.x, where.y));
     this.group.rotation.y = where.turn;
+    this.ask.visible = false;
     const inside = spec.inside;
     void model(spec.url, spec.tall / UPRIGHT).then(shape => {
       this.group.add(shape);
@@ -117,8 +121,6 @@ export class House {
         this.keeper = { body, motion: new Motion(body), facing: 0 };
         this.keeper.motion.play('reposo_mixamo');
         this.room.add(body);
-        this.ask.position.set(keeper.at[0], ASK.over, keeper.at[1]);
-        this.room.add(this.ask);
       });
     }
     this.hearth.position.set(inside.at[0], HEARTH.high, 0);
@@ -199,11 +201,13 @@ export class House {
       this.keeper.facing += Math.atan2(Math.sin(want - this.keeper.facing), Math.cos(want - this.keeper.facing)) * Math.min(1, dt * 5);
       this.keeper.body.rotation.y = this.keeper.facing;
       this.keeper.motion.update(dt);
-      // Their sign, over their head, gone once whoever comes is near enough to talk (the sign of what F does says the rest).
+      // Their sign, over their head, once whoever comes is within the walls; gone once they are near
+      // enough to talk (the sign of what F does says the rest).
       this.time += dt;
       const keeps = this.keeps;
-      this.ask.visible = !at || !keeps || Math.hypot(at.x - keeps.x, (at.y - keeps.y) / ISO_Y) > ASK.near;
-      this.ask.position.y = ASK.over + Math.sin(this.time * 3) * 2;
+      this.ask.visible = !!at && !!keeps && this.within(at) && Math.hypot(at.x - keeps.x, (at.y - keeps.y) / ISO_Y) > ASK.near;
+      this.room.updateWorldMatrix(true, false);
+      this.ask.position.copy(this.room.localToWorld(new THREE.Vector3(lx, ASK.over + Math.sin(this.time * 3) * 2, lz)));
     }
   }
 }

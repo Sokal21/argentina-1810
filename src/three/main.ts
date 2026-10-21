@@ -37,6 +37,7 @@ document.body.style.cursor = sunCursor();
 mountPanel(view);
 const country = raiseCountry(map);
 view.scene.add(country.group);
+for (const house of country.houses) view.over.add(house.ask);
 
 view.scene.add(raisePeople(map));
 

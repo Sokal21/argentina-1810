@@ -2,7 +2,8 @@ import * as THREE from 'three';
 
 // The sign over someone in the 3D game who can be talked to: a small speech bubble of parchment
 // with a dark question mark, drawn here pixel by pixel (16 by 18), ringed dark to read over
-// anything, and seen through walls and roofs, since it says someone is in there to be talked to.
+// anything. It stands in the view's `over`, drawn after the picture is finished: within the scene,
+// the pixelated pass drew the outlines and creases of what stood behind it (a roof's edge) across it.
 
 const W = 16, H = 18;
 const PAPER = '#efe0b8', SHADE = '#c9b27e', INK = '#3a2614', EDGE = '#1c120a';

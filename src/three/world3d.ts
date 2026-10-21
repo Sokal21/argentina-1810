@@ -66,6 +66,7 @@ export class World3D {
     this.sign.style.cssText = "position:fixed;left:0;top:0;z-index:12;pointer-events:none;white-space:nowrap;font:16px/1 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
     document.body.appendChild(this.sign);
     this.view.scene.add(country.group, raisePeople(map), this.cabral.group, this.royalists.group, this.marks.group);
+    for (const house of this.houses) this.view.over.add(house.ask);
     // The blast itself is the 2D game's, which hurts; this only shows the ball and what it raises.
     this.shots = new Shots(this.view.camera, (from, to) => this.strikes(from, to), () => {});
     // Theirs is stopped by the 2D game's word that it struck him (`wounded`), not by a test of its own:

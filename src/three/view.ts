@@ -22,6 +22,8 @@ const OFF = 3000;
 export class View {
   readonly renderer = new THREE.WebGLRenderer({ antialias: false });
   readonly scene = new THREE.Scene();
+  /** Drawn over the finished picture, on the world's pixels but past every pass: signs that must read whole. */
+  readonly over = new THREE.Scene();
   readonly camera = new THREE.OrthographicCamera();
   private readonly composer: EffectComposer;
   private readonly pixels: RenderPixelatedPass;
@@ -188,5 +190,9 @@ export class View {
     const unit = this.look.far, at = new THREE.Vector2(this.camera.position.dot(this.right) / unit, this.camera.position.dot(this.up) / unit);
     finish(this.finisher, this.look, this.cols, this.rows, performance.now() / 1000, at, 1, this.fury);
     this.composer.render();
+    this.renderer.autoClear = false;
+    this.renderer.setRenderTarget(null);
+    this.renderer.render(this.over, this.camera);
+    this.renderer.autoClear = true;
   }
 }
