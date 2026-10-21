@@ -77,6 +77,23 @@ export class World3D {
     // What its blast hurts, and the shake, are the 2D game's; here it is seen.
     this.grenades = new Grenades(this.view.camera);
     this.view.scene.add(this.grenades.group, this.throwing.group);
+    this.warm();
+  }
+
+  /**
+   * Every effect once, far out of sight, and everything compiled: the first shot, blast, blow or
+   * draught in play would otherwise have its materials compiled then, and freeze it.
+   */
+  private warm(): void {
+    const away = { x: -20000, y: -20000 };
+    this.grenades.warm(away);
+    this.shots.warm(away);
+    this.volleys.warm(away);
+    this.impacts.spawn(ground(away.x, away.y, 40), ground(away.x + 10, away.y, 40));
+    // About him wherever he is, so ended as soon as it is compiled.
+    this.mendings.begin(0xffffff);
+    this.view.warm();
+    this.mendings.stop();
   }
 
   /** Shown, or hidden (out of the game); and its sign with it. */

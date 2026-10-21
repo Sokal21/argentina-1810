@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Vec } from '../machi/controller';
+import { retire } from './paint';
 import { ground, UPRIGHT } from './space';
 
 // Life or mana coming back, in 3D, as the 2D game's (fx/mend.ts): for a moment a soft light stands
@@ -42,6 +43,15 @@ export class Mendings {
     this.under.push({ t: 0, specks, ring, colour: new THREE.Color(colour), seeds });
   }
 
+  /** Ends them all at once. */
+  stop(): void {
+    for (const it of this.under) {
+      retire(this.group, [it.specks, it.ring]);
+      it.specks.dispose();
+    }
+    this.under = [];
+  }
+
   /** Moves them along, about whoever they are for. */
   update(dt: number, at: Vec): void {
     const feet = ground(at.x, at.y), m = new THREE.Matrix4(), p = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), q = new THREE.Quaternion();
@@ -72,9 +82,7 @@ export class Mendings {
       }
     }
     for (const it of this.under.filter(one => one.t >= LASTS)) {
-      this.group.remove(it.specks, it.ring);
-      (it.specks.material as THREE.Material).dispose();
-      (it.ring.material as THREE.Material).dispose();
+      retire(this.group, [it.specks, it.ring]);
       it.specks.dispose();
     }
     this.under = this.under.filter(one => one.t < LASTS);

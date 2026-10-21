@@ -3,6 +3,7 @@ import { ground as along } from '../machi/abilities';
 import type { Vec } from '../machi/controller';
 import { GRENADE } from '../machi/grenade';
 import { READY, SPENT } from './aim';
+import { retire } from './paint';
 import { ground, UPRIGHT } from './space';
 
 // Cabral's grenade in 3D, as the 2D game reckons it (src/scenes/GameScene.ts: lob, updateGrenades,
@@ -84,21 +85,30 @@ interface Flying {
   ball: THREE.Group;
 }
 interface Bit { mesh: THREE.Mesh; t: number; life: number; v: THREE.Vector3; grow: [number, number]; fall?: number; fade: number }
-interface Burning { at: THREE.Vector3; t: number; tongues: { mesh: THREE.Mesh; height: number; rate: number; phase: number }[]; scorch: THREE.Mesh; light: THREE.PointLight }
+interface Burning { at: THREE.Vector3; t: number; tongues: { mesh: THREE.Mesh; height: number; rate: number; phase: number }[]; scorch: THREE.Mesh }
 
 export class Grenades {
   readonly group = new THREE.Group();
   private flying: Flying[] = [];
   private bits: Bit[] = [];
   private fires: Burning[] = [];
-  private blasts: { light: THREE.PointLight; ball: THREE.Mesh; outer: THREE.Mesh; ring: THREE.LineLoop; t: number }[] = [];
+  private blasts: { ball: THREE.Mesh; outer: THREE.Mesh; ring: THREE.LineLoop; t: number }[] = [];
+  /**
+   * The lights of the flash and of the fire, kept in the scene and dark between: a light come and
+   * gone had every lit material built anew, a freeze of most of a second at each grenade. One of
+   * each (one fire burns at a time, the cooldown being longer); the latest blast or fire has it.
+   */
+  private readonly flash = new THREE.PointLight(FLASH.colour, 0, FLASH.reach, 1.5);
+  private readonly fireLight = new THREE.PointLight(FIRE.colours[1], 0, FIRE.reach, 1.5);
   private readonly round = new THREE.IcosahedronGeometry(1, 1);
   private readonly rough = new THREE.IcosahedronGeometry(1, 0);
   private readonly clod = new THREE.BoxGeometry(1, 1, 1);
   private readonly tongue = new THREE.ConeGeometry(1, 1, 5).translate(0, 0.5, 0);
 
   /** `landed`: called where each one goes off, for the camera's jolt. */
-  constructor(private readonly camera: THREE.Camera, private readonly landed: (at: Vec) => void = () => {}) {}
+  constructor(private readonly camera: THREE.Camera, private readonly landed: (at: Vec) => void = () => {}) {
+    this.group.add(this.flash, this.fireLight);
+  }
 
   /**
    * Thrown from `from` to `to` on the 2D ground, as the 2D game lobs it: as long in the air and as
@@ -123,6 +133,13 @@ export class Grenades {
       to, wait: Math.min(wait, time * 0.5), t: 0, time, arc: GRENADE.arc * (0.35 + 0.65 * share) * UPRIGHT,
       from: ground(from.x, from.y, GRENADE.hand * UPRIGHT), hand, ball,
     });
+  }
+
+  /** One thrown and gone off at a spot out of sight, all at once, for its materials to be compiled before play. */
+  warm(at: Vec): void {
+    this.lob(at, at);
+    for (const g of this.flying) g.ball.visible = true;
+    this.burst(at);
   }
 
   update(dt: number): void {
@@ -150,15 +167,14 @@ export class Grenades {
       if (p >= 1) this.burst(g.to);
     }
     for (const g of this.flying.filter(f => f.wait <= 0 && f.t >= f.time)) {
-      this.group.remove(g.ball);
-      g.ball.traverse(o => { if (o instanceof THREE.Mesh) (o.material as THREE.Material).dispose(); });
+      retire(this.group, [g.ball]);
     }
     this.flying = this.flying.filter(f => f.wait > 0 || f.t < f.time);
 
     for (const b of this.blasts) {
       b.t += dt;
       const k = Math.max(0, 1 - b.t / FLASH.life);
-      b.light.intensity = FLASH.light * k * k * 1000;
+      if (b === this.blasts[this.blasts.length - 1]) this.flash.intensity = FLASH.light * k * k * 1000;
       // The fireball swells fast and then thins out where it stands.
       const s = Math.min(1, b.t / FIREBALL.grow), fade = Math.max(0, 1 - b.t / FIREBALL.life);
       const size = GRENADE.radius * FIREBALL.size * (1 - (1 - s) * (1 - s));
@@ -171,17 +187,19 @@ export class Grenades {
       (b.ring.material as THREE.LineBasicMaterial).opacity = 1 - r;
     }
     for (const b of this.blasts.filter(x => x.t >= Math.max(FLASH.life, FIREBALL.life, RING.life))) {
-      this.group.remove(b.light, b.ball, b.outer, b.ring);
-      for (const m of [b.ball, b.outer, b.ring]) (m.material as THREE.Material).dispose();
+      retire(this.group, [b.ball, b.outer]);
+      retire(this.group, [b.ring], true);
     }
     this.blasts = this.blasts.filter(b => b.t < Math.max(FLASH.life, FIREBALL.life, RING.life));
+    if (!this.blasts.length) this.flash.intensity = 0;
 
     for (const fire of this.fires) this.burn(fire, dt);
     for (const fire of this.fires.filter(f => f.t >= GRENADE.burns + FIRE.fadeOut)) {
-      this.group.remove(fire.scorch, fire.light, ...fire.tongues.map(t => t.mesh));
-      for (const m of [fire.scorch, ...fire.tongues.map(t => t.mesh)]) (m.material as THREE.Material).dispose();
+      retire(this.group, fire.tongues.map(t => t.mesh));
+      retire(this.group, [fire.scorch], true);
     }
     this.fires = this.fires.filter(f => f.t < GRENADE.burns + FIRE.fadeOut);
+    if (!this.fires.length) this.fireLight.intensity = 0;
 
     for (const bit of this.bits) {
       bit.t += dt;
@@ -201,8 +219,7 @@ export class Grenades {
       (bit.mesh.material as THREE.MeshBasicMaterial).opacity = bit.fade * (1 - s);
     }
     for (const bit of this.bits.filter(b => b.t >= b.life)) {
-      this.group.remove(bit.mesh);
-      (bit.mesh.material as THREE.Material).dispose();
+      retire(this.group, [bit.mesh]);
     }
     this.bits = this.bits.filter(b => b.t < b.life);
   }
@@ -210,8 +227,7 @@ export class Grenades {
   /** It goes off on a spot of the 2D ground, and leaves the ground there burning. */
   private burst(to: Vec): void {
     const at = ground(to.x, to.y);
-    const light = new THREE.PointLight(FLASH.colour, 0, FLASH.reach, 1.5);
-    light.position.copy(at).setY(14);
+    this.flash.position.copy(at).setY(at.y + 14);
     const glow = (colour: string) => {
       const mesh = new THREE.Mesh(this.round, new THREE.MeshBasicMaterial({
         color: colour, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -227,8 +243,8 @@ export class Grenades {
       new THREE.LineBasicMaterial({ color: RING.colour, transparent: true, depthWrite: false }));
     ring.position.copy(at).setY(LIFT);
     ring.frustumCulled = false;
-    const blast = { light, ball: glow(FIREBALL.colour), outer: glow(FIREBALL.outer), ring, t: 0 };
-    this.group.add(light, blast.ball, blast.outer, ring);
+    const blast = { ball: glow(FIREBALL.colour), outer: glow(FIREBALL.outer), ring, t: 0 };
+    this.group.add(blast.ball, blast.outer, ring);
     this.blasts.push(blast);
 
     for (let i = 0; i < SMOKE.puffs; i++) {
@@ -261,8 +277,7 @@ export class Grenades {
       new THREE.MeshBasicMaterial({ color: FIRE.scorch, transparent: true, opacity: 0.75, depthWrite: false }));
     scorch.rotation.x = -Math.PI / 2;
     scorch.position.copy(at).setY(LIFT * 0.4);
-    const light = new THREE.PointLight(FIRE.colours[1], 0, FIRE.reach, 1.5);
-    light.position.copy(at).setY(10);
+    this.fireLight.position.copy(at).setY(at.y + 10);
     const tongues = Array.from({ length: FIRE.tongues }, (_, i) => {
       const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * GRENADE.radius * 0.85;
       const mesh = new THREE.Mesh(this.tongue, new THREE.MeshBasicMaterial({
@@ -273,8 +288,8 @@ export class Grenades {
       const height = FIRE.low + (FIRE.high - FIRE.low) * (1 - r / GRENADE.radius) * (0.6 + Math.random() * 0.4);
       return { mesh, height, rate: 9 + Math.random() * 8, phase: Math.random() * 10 };
     });
-    this.group.add(scorch, light, ...tongues.map(t => t.mesh));
-    this.fires.push({ at, t: 0, tongues, scorch, light });
+    this.group.add(scorch, ...tongues.map(t => t.mesh));
+    this.fires.push({ at, t: 0, tongues, scorch });
   }
 
   private burn(fire: Burning, dt: number): void {
@@ -288,7 +303,7 @@ export class Grenades {
       mesh.scale.set(2.2 + h * 0.12, h, 2.2 + h * 0.12);
       (mesh.material as THREE.MeshBasicMaterial).opacity = 0.85 * Math.min(1, life * 1.5);
     }
-    fire.light.intensity = FIRE.light * 1000 * life * (0.75 + Math.random() * 0.35);
+    if (fire === this.fires[this.fires.length - 1]) this.fireLight.intensity = FIRE.light * 1000 * life * (0.75 + Math.random() * 0.35);
     const gone = Math.max(0, fire.t - GRENADE.burns) / FIRE.fadeOut;
     (fire.scorch.material as THREE.MeshBasicMaterial).opacity = 0.75 * (1 - gone);
     if (fire.t < GRENADE.burns && Math.random() < dt * FIRE.embers) {

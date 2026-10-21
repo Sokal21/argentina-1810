@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { BALL, type BoltKind } from '../bolts';
 import { ISO_Y } from '../machi/data';
 import { MUSKET } from '../machi/musket';
+import { retire } from './paint';
 import { ground } from './space';
 
 // The musket going off, as the 2D game reckons it and with what 3D can add: a flash at the muzzle
@@ -104,6 +105,15 @@ export class Shots {
     }
   }
 
+  /** One fired, striking someone and bursting, at a spot out of sight, for its materials to be compiled before play. */
+  warm(at: { x: number; y: number }): void {
+    const spot = ground(at.x, at.y, 40);
+    this.fire(spot, new THREE.Vector3(1, 0, 0));
+    this.stop(spot);
+    this.blast(at);
+    this.flash.visible = true;
+  }
+
   update(dt: number): void {
     // The flash: gone in a few frames, its light with it.
     this.flashing = Math.max(0, this.flashing - dt);
@@ -132,9 +142,7 @@ export class Shots {
       p.needsUpdate = true;
     }
     for (const ball of this.balls.filter(b => b.flown >= this.kind.range)) {
-      this.group.remove(ball.streak);
-      ball.streak.geometry.dispose();
-      (ball.streak.material as THREE.Material).dispose();
+      retire(this.group, [ball.streak], true);
     }
     this.balls = this.balls.filter(b => b.flown < this.kind.range);
 
@@ -155,8 +163,7 @@ export class Shots {
       (puff.mesh.material as THREE.MeshLambertMaterial).opacity = 0.85 * (1 - s);
     }
     for (const puff of this.puffs.filter(p => p.t >= p.life)) {
-      this.group.remove(puff.mesh);
-      (puff.mesh.material as THREE.Material).dispose();
+      retire(this.group, [puff.mesh]);
     }
     this.puffs = this.puffs.filter(p => p.t < p.life);
 
@@ -167,8 +174,7 @@ export class Shots {
       (blast.ring.material as THREE.LineBasicMaterial).opacity = 1 - s;
     }
     for (const blast of this.blasts.filter(b => b.t >= BLAST.life)) {
-      this.group.remove(blast.ring);
-      (blast.ring.material as THREE.Material).dispose();
+      retire(this.group, [blast.ring], true);
     }
     this.blasts = this.blasts.filter(b => b.t < BLAST.life);
   }

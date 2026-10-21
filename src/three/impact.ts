@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Look } from './look';
+import { retire } from './paint';
 
 // Where a blow lands: a thin ring that opens out quickly and fades, with a soft glow round it that
 // adds light. It is turned to face whoever struck, so it is seen in perspective from wherever the
@@ -48,11 +49,7 @@ export class Impacts {
       (ring.glow.material as THREE.MeshBasicMaterial).opacity = fade * look.impactGlow;
     }
     for (const ring of this.rings.filter(r => r.t >= look.impactLife)) {
-      this.group.remove(ring.mesh, ring.glow);
-      for (const m of [ring.mesh, ring.glow]) {
-        m.geometry.dispose();
-        (m.material as THREE.Material).dispose();
-      }
+      retire(this.group, [ring.mesh, ring.glow], true);
     }
     this.rings.splice(0, this.rings.length, ...this.rings.filter(r => r.t < look.impactLife));
   }

@@ -185,6 +185,19 @@ export class View {
     return new THREE.Vector2(((x - box.left) / box.width) * 2 - 1, -((y - box.top) / box.height) * 2 + 1);
   }
 
+  /**
+   * Compiles every material in the scene now, hidden things too (shown for the moment), so none is
+   * compiled the first time it shows, a freeze in the middle of play.
+   */
+  warm(): void {
+    for (const scene of [this.scene, this.over]) {
+      const hidden: THREE.Object3D[] = [];
+      scene.traverse(o => { if (!o.visible) { hidden.push(o); o.visible = true; } });
+      this.renderer.compile(scene, this.camera);
+      for (const o of hidden) o.visible = false;
+    }
+  }
+
   draw(): void {
     // Where the camera stands, in the world's pixels across and up, to hold the grime to the world.
     const unit = this.look.far, at = new THREE.Vector2(this.camera.position.dot(this.right) / unit, this.camera.position.dot(this.up) / unit);

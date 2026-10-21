@@ -70,3 +70,16 @@ export function placed(geometry: THREE.BufferGeometry, at: [number, number, numb
   );
   return geometry.applyMatrix4(m);
 }
+
+/**
+ * Takes what an effect showed out of the picture, freeing the geometry made for it alone if asked,
+ * but never its material: disposing the last material of a kind throws away the shader compiled for
+ * it, and the next shot or blast had it compiled again, a freeze in the middle of play.
+ */
+export function retire(group: THREE.Object3D, things: THREE.Object3D[], ownGeometry = false): void {
+  group.remove(...things);
+  if (!ownGeometry) return;
+  for (const thing of things) {
+    if (thing instanceof THREE.Mesh || thing instanceof THREE.Line) thing.geometry.dispose();
+  }
+}
