@@ -3,6 +3,7 @@ import type { Vec } from '../machi/controller';
 import { ISO_Y } from '../machi/data';
 import type { BuildingModel } from './buildings';
 import { model } from './figure';
+import { Motion } from './motion';
 import { flat } from './paint';
 import { ground, UPRIGHT } from './space';
 
@@ -46,6 +47,8 @@ export class House {
   private readonly undersideCut = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   /** The walls as boxes in the building's frame, which nobody walks through. */
   private readonly walls: { x: number; z: number; hw: number; hd: number }[] = [];
+  /** Who keeps it, standing within, and how they move. */
+  private keeper: { body: THREE.Object3D; motion: Motion; facing: number } | null = null;
 
   constructor(private readonly where: { x: number; y: number; turn: number }, private readonly spec: BuildingModel) {
     this.group.position.copy(ground(where.x, where.y));
@@ -100,6 +103,16 @@ export class House {
       });
     });
     // Always there: its doorway is open, and from outside the room is seen through it, in the dark.
+    // Whoever keeps it, breathing where they stand, turned toward the room.
+    const keeper = inside.keeper;
+    if (keeper) {
+      void model(keeper.url, keeper.drawn).then(body => {
+        body.position.set(keeper.at[0], 1, keeper.at[1]);
+        this.keeper = { body, motion: new Motion(body), facing: 0 };
+        this.keeper.motion.play('reposo_mixamo');
+        this.room.add(body);
+      });
+    }
     this.hearth.position.set(inside.at[0], HEARTH.high, 0);
     this.group.add(this.room, this.hearth);
   }
@@ -122,6 +135,16 @@ export class House {
     this.footCut.set(new THREE.Vector3(0, -1, 0), base + this.spec.tall + (tall * LOW - this.spec.tall) * k);
     this.undersideCut.constant = -(base + 1.5);
     if (this.foot) this.foot.visible = k > 0;
+  }
+
+  /** Where whoever keeps it stands, on the 2D ground, and who they are. */
+  get keeps(): { who: string; x: number; y: number } | null {
+    const keeper = this.spec.inside?.keeper;
+    if (!keeper) return null;
+    const [lx, lz] = keeper.at, c = Math.cos(this.where.turn), s = Math.sin(this.where.turn);
+    // The building's frame to the ground's: turned about the upright, as the group is.
+    const dx = lx * c + lz * s, dz = -lx * s + lz * c;
+    return { who: keeper.who, x: this.where.x + dx, y: this.where.y + dz * ISO_Y };
   }
 
   /** A spot of the 2D ground in the building's frame. */
@@ -161,5 +184,13 @@ export class House {
     }
     this.place();
     this.hearth.intensity = HEARTH.strength * this.lifted;
+    // Whoever keeps it turns toward whoever comes in, and back to the room when they go.
+    if (this.keeper && this.spec.inside?.keeper) {
+      const [lx, lz] = this.spec.inside.keeper.at, p = at && this.within(at) ? this.local(at) : null;
+      const want = p ? Math.atan2(p.x - lx, p.z - lz) : 0;
+      this.keeper.facing += Math.atan2(Math.sin(want - this.keeper.facing), Math.cos(want - this.keeper.facing)) * Math.min(1, dt * 5);
+      this.keeper.body.rotation.y = this.keeper.facing;
+      this.keeper.motion.update(dt);
+    }
   }
 }

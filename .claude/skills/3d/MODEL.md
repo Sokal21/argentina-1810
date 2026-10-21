@@ -31,3 +31,21 @@ From the turnaround's cut views to a GLB standing in the game. Approved for Cabr
 ## In the game
 `model(url, drawn)` in `src/three/figure.ts` loads it, gives it the game's stepped flat
 material with the texture nearest-filtered, and grows it to the drawn height.
+
+## A building, and a room gone into without a cut (La posada, 20–21 October 2026)
+- **Outside:** a turnaround of the building from its concept (front with the door, the gable end,
+  back, three-quarter; nothing standing about it), cut into squares, Tripo multiview (30), then
+  `prepare_model.py` (20 colours). Stood at its true size (a house about three men tall: its door
+  must let Cabral through), on the ground the 2D game gives it, turned as its door wall is
+  (`src/three/buildings.ts`). The door taken out with `tools/blender/cut_door.py`, measured on its
+  dark wood, so the doorway is open.
+- **Inside:** the walls are the model's own. Within them its roof is cut away from the ridge to the
+  top of the walls and its front wall wiped down to its foot (clipping planes, `src/three/house.ts`);
+  plain walls of their own looked like another house. The furniture is one Tripo model from a
+  picture of it **without walls**, arranged off the doorway (Tripo image, 30): show the picture first.
+  It came on a slab of earth: let it down so the slab's top is the floor, and paint the floor with
+  that earth (one spot of its texture). Walls nobody walks through but by the door; a warm light
+  within, kept in the scene and dark outside.
+- **Its keeper:** a character's turnaround and model as above, rigged (Tripo `animations/rig`,
+  `"input": <model task id>`, v1.0, 25), with the shared breathing idle; stood by the counter,
+  turning to whoever comes in; talked to with F as in the 2D game, a sign over them.

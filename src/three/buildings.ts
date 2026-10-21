@@ -38,6 +38,8 @@ export interface BuildingModel {
      */
     slab: number;
     earth: [number, number];
+    /** Who keeps it, standing within: their id (as the story knows them), model, drawn height, and where they stand. */
+    keeper?: { who: string; url: string; drawn: number; at: [number, number] };
   };
 }
 
@@ -52,6 +54,8 @@ export const MODELS: Record<string, BuildingModel> = {
       furniture: 'edificios/3d/posada_muebles.glb', scale: 152, turn: Math.PI / 2, at: [-58, 0],
       // Measured in Blender: the slab's top at 0.0885 of its height; its commonest earth at that spot.
       slab: 13.5, earth: [0.7283, 0.1296],
+      // Don Braulio, by his counter (Tripo from turnaround B, 21 October 2026).
+      keeper: { who: 'braulio', url: 'pulpero/3d/braulio_animado.glb', drawn: 80, at: [-25, -95] },
     },
   },
 };

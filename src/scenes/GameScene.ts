@@ -163,9 +163,9 @@ interface Orb extends Vec { t: number; glow: Phaser.GameObjects.Image; shadow: P
 // start on a map that names nobody, and the drawing that stands in for whoever has none
 // yet. Published, what is said to them is chosen; while developing it is written, and a model answers.
 // Those who only say their one thing are heard from a little further off.
-const TALK = { near: 52, heard: 84, trial: [-140, -80] as [number, number], standIn: 'pulpero/sprite.png' };
+const TALK = { near: 52, heard: 84, across: 110, trial: [-140, -80] as [number, number], standIn: 'pulpero/sprite.png' };
 /** Someone standing on the map: one to talk to (`npc`), or one who only says what the sign over them shows. */
-interface Talker { name: string; npc?: Npc; x: number; y: number; /** For one who only says a thing: what they say as things stand now. */ says?: () => string; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image }; /** Somewhere something can be done, and the mark on the ground that says so. */ spot?: { at: Spot; mark: Phaser.GameObjects.Image }; /** Something waiting there to be led off. */ charge?: Led; /** Whoever stands there, to be hidden with them. */ figure?: Phaser.GameObjects.GameObject[]; /** Whether it is there to be dealt with at all just now; always, if unsaid. */ there?: () => boolean }
+interface Talker { name: string; npc?: Npc; x: number; y: number; /** For one who only says a thing: what they say as things stand now. */ says?: () => string; hint: Phaser.GameObjects.Text; /** Something lying there to be picked up: what, and its drawing. */ take?: { what: string; drawn: Phaser.GameObjects.Image }; /** Somewhere something can be done, and the mark on the ground that says so. */ spot?: { at: Spot; mark: Phaser.GameObjects.Image }; /** Something waiting there to be led off. */ charge?: Led; /** Whoever stands there, to be hidden with them. */ figure?: Phaser.GameObjects.GameObject[]; /** How near one has to come, if not as near as usual. */ reach?: number; /** Whether it is there to be dealt with at all just now; always, if unsaid. */ there?: () => boolean }
 /** Something being brought somewhere: what, where it is, its drawing and the bar of what it can still take, and whether it is on its way. */
 interface Led { /** How wide its drawing is as shown, which its footprint and its ring are reckoned from. */ wide: number; /** Seen from the side just now, and for how long the other view has been wanted. */ sideways?: boolean; turning?: number; at: Cargo; body: Escort; drawn: Phaser.GameObjects.Sprite; bar: Phaser.GameObjects.Rectangle; going: boolean; /** Told to wait where it is, while the hero clears the way. */ halted?: boolean; /** What F does to it, over it while the hero is near enough to say. */ order?: Phaser.GameObjects.Text; /** How far its ring is shown, and lit, each easing in and out. */ ring?: { seen: number; lit: number }; /** For one that drives on by itself: the road to where it is going. */ road?: Road }
 // How near a named place counts as having come to it, in plots; and how many blows of life a bandage gives back.
@@ -543,7 +543,9 @@ export class GameScene extends Phaser.Scene {
       const told = this.three ? undefined : this.map;
       // Whoever the map names, each in their plot; on one that names nobody, while developing, the innkeeper, to try things on.
       // Whoever is indoors stands in the room; the rest, on their plot.
-      const named = (this.three ? [] : this.map?.people)?.map(({ who, plot, faces, inside }) => ({ npc: PEOPLE[who], ...(inside && this.indoors?.spot(inside.building, inside.at) || middle(plot)), left: faces === 'left' })).filter(p => p.npc)
+      // In 3D, only those who stand there as models of their own: whoever keeps a house, where they stand in it.
+      const named = (this.three ? this.three.keepers.map(k => ({ npc: PEOPLE[k.who], x: k.x, y: k.y, left: false })).filter(p => p.npc)
+        : this.map?.people?.map(({ who, plot, faces, inside }) => ({ npc: PEOPLE[who], ...(inside && this.indoors?.spot(inside.building, inside.at) || middle(plot)), left: faces === 'left' })).filter(p => p.npc))
         ?? (import.meta.env.DEV ? [{ npc: BRAULIO, x: this.start.x + TALK.trial[0], y: this.start.y + TALK.trial[1], left: false }] : []);
       for (const { npc, x, y, left } of named) {
         const shade = this.add.ellipse(x, y, 22, 8, 0x000000, 0.28).setDepth(y - 0.5);
@@ -562,7 +564,8 @@ export class GameScene extends Phaser.Scene {
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
         // Whoever is to be led off somewhere stops standing about once that is settled: they wait to go.
         const taken = this.map?.charges?.find(c => c.who === npc.id);
-        this.talkers.push({ name: npc.name, npc, x, y, hint, figure: [figure, shade], there: taken?.given ? () => !this.story?.has(taken.given!) : undefined });
+        // In 3D they stand at their true size, behind a counter: they are talked to from a little further.
+        this.talkers.push({ name: npc.name, npc, x, y, hint, figure: [figure, shade], reach: this.three ? TALK.across : undefined, there: taken?.given ? () => !this.story?.has(taken.given!) : undefined });
       }
       // Those who are not talked to: what each has to say shows over them when one comes near.
       for (const { who, plot, faces } of told?.people ?? []) {
@@ -742,7 +745,7 @@ export class GameScene extends Phaser.Scene {
       // A map with a story: it begins.
       this.board?.remove();
       // A map without a story has none to tell, but the same place on screen to be told things in.
-      this.story = his && this.map === vadoDeLasVizcachas && !this.three ? new Story(VADO, RULES) : new Story([]);
+      this.story = his && this.map === vadoDeLasVizcachas ? new Story(VADO, RULES) : new Story([]);
       // A game left earlier is taken up where it was, before anyone is listening to the story,
       // so nothing is paid or told a second time.
       const saved = load(this.hero);
@@ -1033,7 +1036,7 @@ export class GameScene extends Phaser.Scene {
       if (!there) continue;
       // Something to be brought along is set off from inside its own ring, the one drawn round it; the
       // rest are as near as they are.
-      const reached = talker.charge ? inZone(talker.charge, this.machi) <= 1 : ground(talker, this.machi) <= (talker.npc ? TALK.near : TALK.heard);
+      const reached = talker.charge ? inZone(talker.charge, this.machi) <= 1 : ground(talker, this.machi) <= (talker.reach ?? (talker.npc ? TALK.near : TALK.heard));
       if (reached && (!nearest || ground(talker, this.machi) < ground(nearest, this.machi))) nearest = talker;
     }
     // A place still held says so instead of offering what is done there.
@@ -1042,6 +1045,8 @@ export class GameScene extends Phaser.Scene {
       if (nearest.hint.text !== wanted) nearest.hint.setText(wanted);
     }
     this.beside = nearest;
+    // In 3D what can be done with whoever is near is said over them there.
+    this.three?.hint(nearest ? nearest.hint.text : null, nearest ?? null);
     // What is being brought somewhere comes along behind the hero, worn down by whoever gets near it.
     this.orders?.clear();
     for (const charge of this.led) {

@@ -2296,6 +2296,16 @@
       "asset_id": "485c4319-9743-475b-9f39-bfebe7639515",
       "label": "posada 3D furniture, table moved off the door, D",
       "file": "assets/edificios/3d/posada_muebles_d.png"
+    },
+    {
+      "asset_id": "61ead638-be63-4d3a-bf01-c1d5b2047e22",
+      "label": "don Braulio 3D turnaround A",
+      "file": "assets/pulpero/3d/giro_a.png"
+    },
+    {
+      "asset_id": "45507c59-fe8b-4ce7-aa82-a9cfd4a1b44a",
+      "label": "don Braulio 3D turnaround B",
+      "file": "assets/pulpero/3d/giro_b.png"
     }
   ]
 }

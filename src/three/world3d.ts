@@ -42,6 +42,9 @@ export class World3D {
   private readonly fury = new Fury();
   /** The houses gone into without a cut. */
   private readonly houses: House[];
+  /** The sign over whoever can be talked to, and what it says and over whom. */
+  private readonly sign = document.createElement('div');
+  private said: { text: string; at: Vec } | null = null;
   /** What his ball is tested against: set by whoever plays on this map. */
   strikes: Strikes = () => null;
   private readonly caster = new THREE.Raycaster();
@@ -59,6 +62,9 @@ export class World3D {
     if (import.meta.env.DEV) mountPanel(this.view, { key: 'KeyL', hidden: true });
     const country = raiseCountry(map);
     this.houses = country.houses;
+    this.sign.hidden = true;
+    this.sign.style.cssText = "position:fixed;left:0;top:0;z-index:12;pointer-events:none;white-space:nowrap;font:16px/1 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
+    document.body.appendChild(this.sign);
     this.view.scene.add(country.group, raisePeople(map), this.cabral.group, this.royalists.group, this.marks.group);
     // The blast itself is the 2D game's, which hurts; this only shows the ball and what it raises.
     this.shots = new Shots(this.view.camera, (from, to) => this.strikes(from, to), () => {});
@@ -72,9 +78,10 @@ export class World3D {
     this.view.scene.add(this.grenades.group, this.throwing.group);
   }
 
-  /** Shown, or hidden (out of the game). */
+  /** Shown, or hidden (out of the game); and its sign with it. */
   set shown(on: boolean) {
     this.parent.hidden = !on;
+    if (!on) this.hint(null, null);
   }
 
   /** Cabral, as his controller has him this step, and every royalist as his brain has him. */
@@ -100,6 +107,18 @@ export class World3D {
     const rage = doing.rage ?? 0;
     this.fury.update(dt, c, rage);
     this.view.fury += (rage - this.view.fury) * Math.min(1, dt * 6);
+  }
+
+  /** Whoever keeps a house, where they stand in it, on the 2D ground. */
+  get keepers(): { who: string; x: number; y: number }[] {
+    return this.houses.flatMap(house => house.keeps ?? []);
+  }
+
+  /** What can be done with someone near, said over them (null: nothing), as the 2D game's sign over them. */
+  hint(text: string | null, at: Vec | null): void {
+    this.said = text && at ? { text, at } : null;
+    if (this.sign.textContent !== (text ?? '')) this.sign.textContent = text ?? '';
+    this.sign.hidden = !this.said;
   }
 
   /** Keeps a step out of the houses' walls: in and out only by their doors. */
@@ -158,6 +177,14 @@ export class World3D {
   /** Draws the world with a spot of the 2D ground in the middle of the screen. */
   draw(centre: Vec, dt: number): void {
     this.view.follow(ground(centre.x, centre.y), dt);
+    // The sign over whoever it is for, above their head.
+    if (this.said) {
+      this.view.camera.updateMatrixWorld();
+      const p = ground(this.said.at.x, this.said.at.y, 100 * UPRIGHT).project(this.view.camera);
+      const box = this.view.renderer.domElement.getBoundingClientRect();
+      this.sign.style.left = `${Math.round(box.left + (p.x + 1) / 2 * box.width)}px`;
+      this.sign.style.top = `${Math.round(box.top + (1 - p.y) / 2 * box.height)}px`;
+    }
     this.view.draw();
   }
 }
