@@ -4,12 +4,14 @@ import * as THREE from 'three';
 // clouds with body to them, in a layer high over the plaza. Each pixel looks out through that layer
 // and gathers what it meets (a cloud's thickness, and how much of the moon reaches each part of it
 // through the rest), so the clouds are lit on top and toward the moon and dark underneath, big
-// overhead and small toward the horizon, drifting very slowly as the wind takes them. Then put
-// into the flat tones of pixel art, the steps between them dithered.
+// overhead and small toward the horizon, drifting very slowly as the wind takes them. And now and
+// then a star falls.
 // Colours are written as they are to be shown (the shader is not converted).
 
 /** The cloud layer: its floor and ceiling, how big a cloud is, the wind (units a second), how far off they fade. */
 const CLOUDS = { floor: 1500, ceiling: 2700, size: 1500, wind: new THREE.Vector3(26, 0, 8), fade: [7000, 22000] };
+/** The falling stars: one may fall each so many seconds (most often one does), taking so long, so long a streak (a share of the width). */
+const FALLING = { every: 7, takes: 0.8, chance: 0.75, streak: 0.16 };
 /** Where the moon is, as the Cabildo is lit from. */
 const MOON = new THREE.Vector3(-400, 700, 600).normalize();
 
@@ -29,6 +31,8 @@ const FRAGMENT = /* glsl */ `
   uniform vec3 uWind;
   uniform vec2 uFade;
   uniform vec3 uMoon;
+  uniform vec2 uRes;
+  uniform vec4 uFalling;
   varying vec3 vWorld;
 
   float hash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -41,13 +45,6 @@ const FRAGMENT = /* glsl */ `
       mix(mix(hash3(i + vec3(0, 0, 1)), hash3(i + vec3(1, 0, 1)), u.x), mix(hash3(i + vec3(0, 1, 1)), hash3(i + vec3(1, 1, 1)), u.x), u.y),
       u.z);
   }
-  float bayer(vec2 p) {
-    vec2 q = mod(floor(p), 4.0);
-    int i = int(q.x + q.y * 4.0);
-    float m[16] = float[16](0., 8., 2., 10., 12., 4., 14., 6., 3., 11., 1., 9., 15., 7., 13., 5.);
-    return m[i] / 16.0 - 0.5;
-  }
-
   // How thick the cloud is at a point: billows of noise, strung out along the wind, flat beneath and
   // rounded above as clouds are; \`detail\` octaves of it (fewer for the light's rays).
   float density(vec3 p, int detail) {
@@ -68,16 +65,33 @@ const FRAGMENT = /* glsl */ `
   void main() {
     vec3 dir = normalize(vWorld - cameraPosition);
     float up = clamp(dir.y, 0.0, 1.0);
-    // The sky: from the horizon up in steps, dithered where they meet.
+    // The sky, darkening from the horizon up.
     vec3 horizon = vec3(0.075, 0.17, 0.27), high = vec3(0.015, 0.04, 0.11);
-    float k = pow(up, 0.55) * 6.0 + bayer(gl_FragCoord.xy);
-    vec3 colour = mix(horizon, high, clamp(floor(k) / 6.0, 0.0, 1.0));
+    vec3 colour = mix(horizon, high, pow(up, 0.55));
     // Its stars, a pixel each, each twinkling at its own pace; fewer low down.
     vec2 cell = floor(gl_FragCoord.xy);
-    if (hash2(cell) > 0.993 - 0.003 * up) {
+    if (hash2(cell) > 0.9975 - 0.0015 * up) {
       float beat = hash2(cell + 7.3);
       float shine = 0.55 + 0.45 * sin(uTime * (1.0 + 2.5 * beat) + beat * 40.0);
       colour = mix(colour, vec3(0.85, 0.9, 1.0), shine * (0.5 + 0.5 * hash2(cell + 3.1)) * smoothstep(0.02, 0.15, up));
+    }
+
+    // A falling star, now and then: which one is falling this while, whether one does, how far it has gone.
+    float n = floor(uTime / uFalling.x), gone = (uTime - n * uFalling.x) / uFalling.y;
+    if (gone < 1.0 && hash2(vec2(n, 1.7)) < uFalling.z) {
+      vec2 from = vec2(0.15 + 0.7 * hash2(vec2(n, 2.3)), 0.6 + 0.35 * hash2(vec2(n, 3.1))) * uRes;
+      float side = hash2(vec2(n, 4.9)) < 0.5 ? -1.0 : 1.0, fall = 0.35 + 0.35 * hash2(vec2(n, 5.3));
+      vec2 way = normalize(vec2(side, -fall));
+      float streak = uFalling.w * uRes.x;
+      vec2 head = from + way * streak * 1.6 * gone;
+      // Along the streak behind its head, and how far across from it.
+      vec2 rel = gl_FragCoord.xy - head;
+      float back = -dot(rel, way), across = abs(dot(rel, vec2(-way.y, way.x)));
+      float tail = streak * min(1.0, gone * 2.5);
+      if (back > -1.0 && back < tail && across < 1.5) {
+        float glow = (1.0 - back / tail) * (1.0 - across / 1.5) * (1.0 - gone * gone);
+        colour = mix(colour, vec3(0.92, 0.95, 1.0), clamp(glow * 1.4, 0.0, 1.0));
+      }
     }
 
     // Through the cloud layer: from where the ray enters it to where it leaves, or fades from sight.
@@ -85,7 +99,7 @@ const FRAGMENT = /* glsl */ `
       float t0 = (uLayer.x - cameraPosition.y) / dir.y, t1 = (uLayer.y - cameraPosition.y) / dir.y;
       t1 = min(t1, uFade.y);
       if (t0 < t1) {
-        const int STEPS = 28;
+        const int STEPS = 22;
         float stride = (t1 - t0) / float(STEPS);
         float t = t0 + stride * hash2(cell);
         float seen = 1.0;
@@ -110,8 +124,6 @@ const FRAGMENT = /* glsl */ `
         colour = colour * seen + light;
       }
     }
-    // In flat tones: each channel in steps of its own, dithered between.
-    colour = floor(colour * 24.0 + 0.5 + bayer(gl_FragCoord.xy) * 0.9) / 24.0;
     gl_FragColor = vec4(colour, 1.0);
   }
 `;
@@ -119,6 +131,8 @@ const FRAGMENT = /* glsl */ `
 export class TitleSky {
   readonly scene = new THREE.Scene();
   private readonly time = { value: 0 };
+  /** The size it is drawn at, in pixels. */
+  private readonly res = { value: new THREE.Vector2(1, 1) };
 
   constructor() {
     const dome = new THREE.Mesh(
@@ -128,14 +142,16 @@ export class TitleSky {
         uniforms: {
           uTime: this.time, uLayer: { value: new THREE.Vector2(CLOUDS.floor, CLOUDS.ceiling) }, uSize: { value: CLOUDS.size },
           uWind: { value: CLOUDS.wind }, uFade: { value: new THREE.Vector2(...CLOUDS.fade) }, uMoon: { value: MOON },
+          uRes: this.res, uFalling: { value: new THREE.Vector4(FALLING.every, FALLING.takes, FALLING.chance, FALLING.streak) },
         },
       }),
     );
     this.scene.add(dome);
   }
 
-  /** Sets the moment (seconds) it is drawn at. */
-  at(t: number): void {
+  /** Sets the moment (seconds) it is drawn at, and its size in pixels. */
+  at(t: number, wide: number, high: number): void {
     this.time.value = t;
+    this.res.value.set(wide, high);
   }
 }

@@ -19,7 +19,7 @@ const PAINTED = { left: 294, right: 665, foot: 346 };
  */
 const EYE = 0.08, AIM = 0.75, FOV = 38;
 /** How big the sky is drawn, against the painting. */
-export const SKY_RES = 0.5;
+export const SKY_RES = 1.5;
 /** The lights: the moon, the night sky, and the warm light in each gallery. */
 const MOON = { colour: '#9db2ff', strength: 1.1 }, SKY = { top: '#24365e', bottom: '#0b0c12', strength: 0.9 };
 const GALLERY = { colour: '#ffa040', strength: 420, reach: 90, arches: 5 };
@@ -46,7 +46,8 @@ export class TitleCabildo {
   constructor(private readonly width: number, private readonly height: number) {
     this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, preserveDrawingBuffer: false });
     this.renderer.setPixelRatio(1);
-    this.renderer.setSize(width, height, false);
+    // Room for the bigger of the two pictures; each is drawn into its lower left corner.
+    this.renderer.setSize(width * Math.max(1, SKY_RES), height * Math.max(1, SKY_RES), false);
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.shadowMap.enabled = true;
     this.canvas.width = width;
@@ -121,15 +122,16 @@ export class TitleCabildo {
     if (!this.loaded) return;
     // Lamps and torches never burn evenly.
     for (const { light, strength, beat } of this.lights) light.intensity = strength * (0.82 + 0.12 * Math.sin(t * 7.3 + beat) + 0.06 * Math.sin(t * 13.1 + beat * 2));
-    this.sky.at(t);
     // Into a corner of the renderer's canvas, at the sky's own size (its foot at the canvas's foot).
     const { width: sw, height: sh } = this.skyCanvas;
+    this.sky.at(t, sw, sh);
     this.renderer.setViewport(0, 0, sw, sh);
     this.renderer.render(this.sky.scene, this.skyCamera);
-    this.skyPicture.drawImage(this.renderer.domElement, 0, this.height - sh, sw, sh, 0, 0, sw, sh);
+    const all = this.renderer.domElement;
+    this.skyPicture.drawImage(all, 0, all.height - sh, sw, sh, 0, 0, sw, sh);
     this.renderer.setViewport(0, 0, this.width, this.height);
     this.renderer.render(this.scene, this.camera);
     this.picture.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.picture.drawImage(this.renderer.domElement, 0, 0);
+    this.picture.drawImage(all, 0, all.height - this.height, this.width, this.height, 0, 0, this.width, this.height);
   }
 }
