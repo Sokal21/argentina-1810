@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Vec } from '../machi/controller';
 import { ISO_Y } from '../machi/data';
 import type { BuildingModel } from './buildings';
+import { asks } from './asks';
 import { model } from './figure';
 import { Motion } from './motion';
 import { flat } from './paint';
@@ -23,6 +24,8 @@ const KEEP = 7;
 const HEARTH = { colour: '#ffae6a', strength: 520, reach: 380, high: 90 };
 /** How far within the front wall's inside face its window reaches. */
 const REVEAL = 16;
+/** The sign over a keeper: how high over the floor, and how near (on the 2D ground) whoever comes must be before it gives way to what F does. */
+const ASK = { over: 122, near: 110 };
 /** Where a cut stands when it cuts nothing: far above, or far in front. */
 const AWAY = 1e5;
 
@@ -49,6 +52,9 @@ export class House {
   private readonly walls: { x: number; z: number; hw: number; hd: number }[] = [];
   /** Who keeps it, standing within, and how they move. */
   private keeper: { body: THREE.Object3D; motion: Motion; facing: number } | null = null;
+  /** The sign over their head that they can be talked to, bobbing; and the clock it bobs by. */
+  private readonly ask = asks();
+  private time = 0;
 
   constructor(private readonly where: { x: number; y: number; turn: number }, private readonly spec: BuildingModel) {
     this.group.position.copy(ground(where.x, where.y));
@@ -111,6 +117,8 @@ export class House {
         this.keeper = { body, motion: new Motion(body), facing: 0 };
         this.keeper.motion.play('reposo_mixamo');
         this.room.add(body);
+        this.ask.position.set(keeper.at[0], ASK.over, keeper.at[1]);
+        this.room.add(this.ask);
       });
     }
     this.hearth.position.set(inside.at[0], HEARTH.high, 0);
@@ -191,6 +199,11 @@ export class House {
       this.keeper.facing += Math.atan2(Math.sin(want - this.keeper.facing), Math.cos(want - this.keeper.facing)) * Math.min(1, dt * 5);
       this.keeper.body.rotation.y = this.keeper.facing;
       this.keeper.motion.update(dt);
+      // Their sign, over their head, gone once whoever comes is near enough to talk (the sign of what F does says the rest).
+      this.time += dt;
+      const keeps = this.keeps;
+      this.ask.visible = !at || !keeps || Math.hypot(at.x - keeps.x, (at.y - keeps.y) / ISO_Y) > ASK.near;
+      this.ask.position.y = ASK.over + Math.sin(this.time * 3) * 2;
     }
   }
 }
