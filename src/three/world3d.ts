@@ -6,6 +6,7 @@ import { AimMarks } from './aim';
 import { CabralFigure, THROWN, type Doing } from './cabral';
 import { GrenadeMarks, Grenades } from './grenade';
 import { Impacts } from './impact';
+import { Fury } from './fury';
 import { Mendings } from './mend';
 import { mountPanel } from './panel';
 import { raisePeople } from './people';
@@ -36,6 +37,8 @@ export class World3D {
   private readonly impacts: Impacts;
   /** Life or mana coming back to him. */
   private readonly mendings = new Mendings();
+  /** His rage, about him. */
+  private readonly fury = new Fury();
   /** What his ball is tested against: set by whoever plays on this map. */
   strikes: Strikes = () => null;
   private readonly caster = new THREE.Raycaster();
@@ -59,7 +62,7 @@ export class World3D {
     // drawn from the muzzle on his shoulder, its line ran beside the 2D ball's and passed through him.
     this.volleys = new Shots(this.view.camera, () => null, () => {}, false, SHOT);
     this.impacts = new Impacts(this.view.camera, () => this.view.look);
-    this.view.scene.add(this.shots.group, this.volleys.group, this.impacts.group, this.mendings.group);
+    this.view.scene.add(this.shots.group, this.volleys.group, this.impacts.group, this.mendings.group, this.fury.group);
     // What its blast hurts, and the shake, are the 2D game's; here it is seen.
     this.grenades = new Grenades(this.view.camera);
     this.view.scene.add(this.grenades.group, this.throwing.group);
@@ -87,6 +90,10 @@ export class World3D {
     this.volleys.update(dt);
     this.impacts.update(dt);
     this.mendings.update(dt, c);
+    // His rage, about him and over the whole picture: eased in, and out as it ends.
+    const rage = doing.rage ?? 0;
+    this.fury.update(dt, c, rage);
+    this.view.fury += (rage - this.view.fury) * Math.min(1, dt * 6);
   }
 
   /** Life or mana comes back to him, in its colour. */

@@ -170,6 +170,7 @@ export function finishing(): ShaderPass {
       grime: { value: 0 }, grimeColour: { value: new THREE.Color() }, offset: { value: new THREE.Vector2() },
       reds: { value: 0 }, clouds: { value: 0 }, cloudSize: { value: 900 }, cloudSpeed: { value: 14 },
       haze: { value: 0 }, hazeColour: { value: new THREE.Color() }, far: { value: 1.8 },
+      fury: { value: 0 },
       levels: { value: 0 }, dither: { value: 0 },
       grain: { value: 0 }, grainMoves: { value: 0 },
       vignette: { value: 0 }, aberration: { value: 0 }, bulge: { value: 0 }, scanlines: { value: 0 },
@@ -186,6 +187,8 @@ export function finishing(): ShaderPass {
       uniform vec3 shadeColour, lightColour;
       uniform float shade, light, levels, dither, grain, grainMoves, vignette, aberration, bulge, scanlines;
       uniform float crush, murk, grime, reds, clouds, cloudSize, cloudSpeed, haze, far;
+      // How deep in his rage Cabral is (0 to 1): the whole picture is in it with him.
+      uniform float fury;
       uniform vec3 murkColour, grimeColour, hazeColour;
       // Where the camera stands, in the world's pixels: the grime is held to the world by it.
       uniform vec2 offset;
@@ -219,7 +222,7 @@ export function finishing(): ShaderPass {
         // Read at the middle of the world's pixel this falls in, so its blocks stay whole.
         vec2 block = floor(uv * resolution / pixel);
         vec2 at = (block + 0.5) * pixel / resolution;
-        vec2 apart = c * aberration * pixel / resolution;
+        vec2 apart = c * aberration * (1.0 + fury * 1.6) * pixel / resolution;
         vec3 col = vec3(texture2D(tDiffuse, at + apart).r, texture2D(tDiffuse, at).g, texture2D(tDiffuse, at - apart).b);
         // How red it is before anything is done to it: red well above green and blue.
         vec3 was = col;
@@ -254,6 +257,18 @@ export function finishing(): ShaderPass {
         col = mix(col, clamp(was * (lightness / wasLight) * vec3(1.18, 0.95, 0.95), 0.0, 1.0), redness * reds);
         // The faintest haze, thicker further off (up the picture).
         col = mix(col, hazeColour, haze * smoothstep(0.2, 1.0, uv.y));
+        // His rage: all but the reds and the fire drained a little, harder, and the edges of the
+        // picture red and throbbing with a heartbeat, a double beat a little over once a second.
+        if (fury > 0.0) {
+          float beat = fract(time * 1.25);
+          float pulse = exp(-beat * 9.0) + 0.6 * exp(-max(beat - 0.2, 0.0) * 9.0) * step(0.2, beat);
+          float hot = max(redness, smoothstep(0.55, 0.95, col.r) * step(col.b, col.r * 0.6));
+          float grey = dot(col, vec3(0.299, 0.587, 0.114));
+          col = mix(col, vec3(grey) * vec3(1.08, 0.92, 0.86), fury * 0.4 * (1.0 - hot));
+          col = (col - 0.5) * (1.0 + 0.22 * fury) + 0.5;
+          float edge = smoothstep(0.45, 1.25, length(c));
+          col = mix(col, col * vec3(0.75, 0.2, 0.15) + vec3(0.22, 0.02, 0.0), edge * fury * (0.55 + 0.45 * pulse));
+        }
 
         col += (hash(block + floor(time * 12.0) * grainMoves) - 0.5) * grain;
         if (levels >= 2.0) {
@@ -269,7 +284,7 @@ export function finishing(): ShaderPass {
 }
 
 /** Sets the finishing pass's numbers from a look, and where the camera stands (in the world's pixels, across and up). */
-export function finish(pass: ShaderPass, look: Look, width: number, height: number, time: number, at = new THREE.Vector2(), pixel = look.pixel): void {
+export function finish(pass: ShaderPass, look: Look, width: number, height: number, time: number, at = new THREE.Vector2(), pixel = look.pixel, fury = 0): void {
   const u = pass.uniforms;
   u.resolution.value.set(width, height);
   u.pixel.value = pixel;
@@ -284,6 +299,7 @@ export function finish(pass: ShaderPass, look: Look, width: number, height: numb
   u.grimeColour.value.copy(written(look.grimeColour));
   u.hazeColour.value.copy(written(look.hazeColour));
   u.offset.value.copy(at);
+  u.fury.value = fury;
 }
 
 /** The way to the sun, from its place round the camera and its height. */

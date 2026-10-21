@@ -38,6 +38,8 @@ export class View {
   private readonly right = new THREE.Vector3(1, 0, 0);
   private readonly up = new THREE.Vector3(0, Math.cos(PITCH), -Math.sin(PITCH));
   private readonly back = new THREE.Vector3(0, Math.sin(PITCH), Math.cos(PITCH));
+  /** How deep in his rage Cabral is, which the whole picture shows (0 to 1). */
+  fury = 0;
   /** Drawn in big pixels, or as a plain 3D scene to compare. */
   private plain = false;
   get pixelated(): boolean { return !this.plain; }
@@ -182,7 +184,7 @@ export class View {
   draw(): void {
     // Where the camera stands, in the world's pixels across and up, to hold the grime to the world.
     const unit = this.look.far, at = new THREE.Vector2(this.camera.position.dot(this.right) / unit, this.camera.position.dot(this.up) / unit);
-    finish(this.finisher, this.look, this.cols, this.rows, performance.now() / 1000, at, 1);
+    finish(this.finisher, this.look, this.cols, this.rows, performance.now() / 1000, at, 1, this.fury);
     this.composer.render();
   }
 }

@@ -1137,6 +1137,8 @@ export class GameScene extends Phaser.Scene {
     if (this.three) {
       this.three.update(dt, this.machi, {
         from, aimed: this.machi.isShouldering ? this.shotAt : null, hurt: this.flash,
+        // His rage, dying down over its last moments as the 2D game's glow does.
+        rage: this.wrath.active ? Math.min(1, this.wrath.left / 0.8) : 0,
         fallen: !this.vitals.standing, dashTime: this.machi.kit.dash?.time ?? 0.5, trail: true,
       }, this.realistas.filter((r): r is Realista => r instanceof Realista));
       // Framed a little above his feet, so his body is in the middle.

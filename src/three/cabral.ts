@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { MachiController, Vec } from '../machi/controller';
 import { ISO_Y, KITS } from '../machi/data';
 import { MUSKET } from '../machi/musket';
+import { RAGE } from '../machi/rage';
 import { CABRAL_DRESS, figure, flashes, model } from './figure';
 import { Motion } from './motion';
 import mixamoTravel from './rolls/rodada_mixamo.json';
@@ -112,6 +113,8 @@ export interface Doing {
   trail: boolean;
   /** How red he flashes, struck: 0 to 1. */
   hurt?: number;
+  /** How strongly he is in his rage: 0 when he is himself, up to 1. */
+  rage?: number;
 }
 
 export class CabralFigure {
@@ -124,7 +127,8 @@ export class CabralFigure {
   private body: THREE.Object3D = this.blocks;
   private motion: Motion | null = null;
   private trail: Trail | null = null;
-  private flash: (amount: number) => void = () => {};
+  private flash: (amount: number, burn?: number) => void = () => {};
+  private time = 0;
   private gait = { name: 'run', reach: 0 };
   /** How far a step of his walk backwards carries him. */
   private backReach = 0;
@@ -254,8 +258,11 @@ export class CabralFigure {
         else motion.play(name, { once: true, lasts: dashTime, afresh: !this.wasDashing, blend: 0.05 });
       }
       // His own cut, keyed in Blender to land when the game's blow does; the library's if it is missing.
-      else if (c.isSwinging) motion.play(motion.has('tajo') ? 'tajo' : 'slash', { once: true, lasts: SWING, afresh: !this.wasSwinging, blend: 0.05 });
-      // A drink from his flask, the one thing he stops for.
+      // In his rage he cuts quicker: the clip as quick as the blow.
+      else if (c.isSwinging) motion.play(motion.has('tajo') ? 'tajo' : 'slash', { once: true, lasts: SWING / c.haste, afresh: !this.wasSwinging, blend: 0.05 });
+      // His roar as his rage begins, sabre to the sky.
+      else if (c.channelling === 'roar' && motion.has('grito')) motion.play('grito', { once: true, lasts: RAGE.roar, afresh: !this.wasChanneling, blend: 0.06 });
+      // A drink from his flask.
       else if (c.isChanneling && motion.has('tomar')) motion.play('tomar', { once: true, lasts: SIP, afresh: !this.wasChanneling, blend: 0.1 });
       else if (arming?.kind === 'grenade' && motion.has('granada_apuntar')) {
         // The grenade: taken from his hip and drawn back while it comes up, held back until the
@@ -298,7 +305,10 @@ export class CabralFigure {
       if (bomb) bomb.visible = arming?.kind === 'grenade' && (arming.phase === 'raise' ? arming.t >= arming.shoulder * TAKEN
         : arming.phase === 'fire' ? arming.t < arming.shot * THROWN : true);
     }
-    this.flash(doing.hurt ?? 0);
+    // In his rage he burns, the glow throbbing; struck, he flashes red over it.
+    this.time += dt;
+    const rage = doing.rage ?? 0;
+    this.flash(doing.hurt ?? 0, rage * RAGE.glow * (0.75 + 0.25 * Math.sin(this.time * 9)));
     this.body.position.copy(ground(c.x, c.y));
     this.body.rotation.y = this.facing;
     // Aiming at the pointer, he is turned so the line of the barrel, not the middle of him, runs
@@ -325,7 +335,8 @@ export class CabralFigure {
     }
     // The cut's arc, from where his blade is now: only while it sweeps (frames 3 to 9 of 12), not as
     // he winds up or comes back to guard.
-    this.trail?.update(doing.trail && this.swung > SWING * 3 / 12 && this.swung < SWING * 9 / 12);
+    const swing = SWING / c.haste;
+    this.trail?.update(doing.trail && this.swung > swing * 3 / 12 && this.swung < swing * 9 / 12);
   }
 
   /** Where the grenade in his hand is, as long as he has his model on. */

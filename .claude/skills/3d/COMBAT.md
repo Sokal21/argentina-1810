@@ -15,6 +15,14 @@ What makes a blow and an aim read in the 3D game. Code in `src/three/`. All appr
 - **Musket aim** (`aim.ts`): the 2D game's marks in 3D, the line of the shot from the muzzle to
   a ball's reach (420) and the blast's ring (46) as a true circle on the ground; amber.
 
+- **His rage (R)** is the 2D game's (`Rage`: faster, unkillable, scorching what is near); in 3D
+  it is seen (`fury.ts`): his roar keyed in Blender (`anims/grito.py`, sabre to the sky), a burst of
+  light and a ring flung out as it begins, then tongues of fire and embers about him, a flickering
+  light of fire, a faint ring as far as he scorches, his body burning and throbbing, his cuts as quick
+  as his blows; and the finishing pass's `fury`: all but the reds and the fire drained, harder, more
+  aberration, and red edges throbbing with a heartbeat. Lights for effects are kept in the scene and
+  dimmed, never added and removed: that rebuilds every material, a stutter.
+
 ## Tuning through the panel
 
 Every number the user may want to feel out goes in `Look` (`look.ts`) with a control in

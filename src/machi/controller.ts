@@ -210,6 +210,8 @@ export class MachiController {
   get isAttacking(): boolean { return this.attack !== null; }
   get isDashing(): boolean { return this.dash !== null; }
   get isChanneling(): boolean { return this.ritual !== null; }
+  /** What he stops to do, while he does: its sheet's name (a drink, a roar), or null. */
+  get channelling(): string | null { return this.ritual?.sheet ?? null; }
   get isSwinging(): boolean { return this.swing !== null; }
 
   get isShouldering(): boolean { return this.gun !== null; }

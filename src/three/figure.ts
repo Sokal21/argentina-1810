@@ -88,14 +88,14 @@ export async function model(url: string, drawn: number): Promise<THREE.Group> {
   return scene;
 }
 
-/** The red a body flashes when struck, as the 2D game's HitFX. */
-const HURT = new THREE.Color('#ff2a1f');
+/** The red a body flashes when struck, as the 2D game's HitFX; and the fire it burns with in a rage. */
+const HURT = new THREE.Color('#ff2a1f'), BURN = new THREE.Color('#ff6a18');
 
 /**
  * Gives a body materials of its own (a copy of a model shares them with every other copy) and
- * returns how to flash it red when struck: 0 none, 1 full.
+ * returns how to flash it red when struck (0 none, 1 full), and how strongly it burns, in a rage.
  */
-export function flashes(body: THREE.Object3D): (amount: number) => void {
+export function flashes(body: THREE.Object3D): (amount: number, burn?: number) => void {
   const own: THREE.MeshToonMaterial[] = [];
   body.traverse(node => {
     if (!(node instanceof THREE.Mesh)) return;
@@ -106,10 +106,13 @@ export function flashes(body: THREE.Object3D): (amount: number) => void {
     node.material = material;
     own.push(material);
   });
-  let shown = -1;
-  return amount => {
-    if (amount === shown) return;
+  let shown = -1, burnt = -1;
+  const glow = new THREE.Color();
+  return (amount, burn = 0) => {
+    if (amount === shown && burn === burnt) return;
     shown = amount;
-    for (const material of own) material.emissive.copy(HURT).multiplyScalar(amount);
+    burnt = burn;
+    glow.copy(HURT).multiplyScalar(amount).add(BURN.clone().multiplyScalar(burn));
+    for (const material of own) material.emissive.copy(glow);
   };
 }
