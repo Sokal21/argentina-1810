@@ -6,6 +6,7 @@ import { AimMarks } from './aim';
 import { CabralFigure, THROWN, type Doing } from './cabral';
 import { GrenadeMarks, Grenades } from './grenade';
 import { Impacts } from './impact';
+import { Mendings } from './mend';
 import { mountPanel } from './panel';
 import { raisePeople } from './people';
 import { Royalists, type Royalist } from './realista';
@@ -33,6 +34,8 @@ export class World3D {
   private readonly throwing = new GrenadeMarks();
   private readonly grenades: Grenades;
   private readonly impacts: Impacts;
+  /** Life or mana coming back to him. */
+  private readonly mendings = new Mendings();
   /** What his ball is tested against: set by whoever plays on this map. */
   strikes: Strikes = () => null;
   private readonly caster = new THREE.Raycaster();
@@ -56,7 +59,7 @@ export class World3D {
     // drawn from the muzzle on his shoulder, its line ran beside the 2D ball's and passed through him.
     this.volleys = new Shots(this.view.camera, () => null, () => {}, false, SHOT);
     this.impacts = new Impacts(this.view.camera, () => this.view.look);
-    this.view.scene.add(this.shots.group, this.volleys.group, this.impacts.group);
+    this.view.scene.add(this.shots.group, this.volleys.group, this.impacts.group, this.mendings.group);
     // What its blast hurts, and the shake, are the 2D game's; here it is seen.
     this.grenades = new Grenades(this.view.camera);
     this.view.scene.add(this.grenades.group, this.throwing.group);
@@ -83,6 +86,12 @@ export class World3D {
     this.shots.update(dt);
     this.volleys.update(dt);
     this.impacts.update(dt);
+    this.mendings.update(dt, c);
+  }
+
+  /** Life or mana comes back to him, in its colour. */
+  mend(colour: number): void {
+    this.mendings.begin(colour);
   }
 
   /** His musket goes off: from its muzzle, along its barrel. */

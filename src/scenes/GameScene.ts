@@ -657,7 +657,7 @@ export class GameScene extends Phaser.Scene {
         // They stand and drink, facing the viewer, and the light of it comes up round them.
         // In 3D his drink is a capture, given the time it needs (three/cabral.ts).
         if (this.machi.kit.sheets.drink) this.machi.channel(this.shownIn3d ? SIP : DRINKING, 'drink');
-        this.mending?.begin(MEND[restores], this.machi);
+        this.mend(MEND[restores]);
       };
       const interact = () => {
         if (!this.vitals.standing) return;
@@ -1142,6 +1142,12 @@ export class GameScene extends Phaser.Scene {
       // Framed a little above his feet, so his body is in the middle.
       this.three.draw({ x: this.machi.x, y: this.machi.y - CHEST }, dt);
     }
+  }
+
+  /** Life or mana comes back to the hero, seen in its colour: in 2D, and in 3D where he is drawn there. */
+  private mend(colour: number): void {
+    this.mending?.begin(colour, this.machi);
+    if (this.shownIn3d) this.three?.mend(colour);
   }
 
   /** Whether the hero is drawn in 3D: Cabral, where the map is 3D. */
@@ -1926,7 +1932,7 @@ export class GameScene extends Phaser.Scene {
   use(id: string): boolean {
     if (!this.useful(id)) return false;
     const use = this.pack.take(id);
-    if (use === 'mend') { this.vitals.heal(MENDS); this.mending?.begin(MEND.life, this.machi); }
+    if (use === 'mend') { this.vitals.heal(MENDS); this.mend(MEND.life); }
     else if (use === 'refill') this.flask.refill();
     return !!use;
   }
@@ -1963,7 +1969,7 @@ export class GameScene extends Phaser.Scene {
   private earn(xp: number): void {
     if (!this.growth.earn(xp)) return;
     this.board?.say(`Nivel ${this.growth.level}. Tenés ${this.growth.points === 1 ? 'un punto' : `${this.growth.points} puntos`} para repartir${touch.on ? ', en tu hoja' : ': I'}.`);
-    this.mending?.begin(0xffe08a, this.machi);
+    this.mend(0xffe08a);
   }
 
   /** Puts one of the hero's points into something, and makes it so at once. Says whether it did. */
