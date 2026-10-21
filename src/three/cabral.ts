@@ -143,8 +143,8 @@ export class CabralFigure {
   private wasChanneling = false;
   private swung = 0;
   private phaseWas: string | null = null;
-  /** Where the dash set out from, and the way it goes on the 2D ground (screen units, per unit of its distance). */
-  private dashFrom: Vec = { x: 0, y: 0 };
+  /** How much of the dash's distance he has covered, and the way it goes on the 2D ground (screen units, per unit of its distance). */
+  private dashDone = 0;
   private dashWay: Vec = { x: 0, y: 0 };
 
   constructor(url = 'cabral/3d/cabral_animado.glb') {
@@ -203,13 +203,16 @@ export class CabralFigure {
     const travel = TRAVEL[ROLLS[this.roll]];
     if (!c.isDashing || !travel) return;
     if (!this.wasDashing) {
-      this.dashFrom = from;
+      this.dashDone = 0;
       const dx = c.x - from.x, dy = (c.y - from.y) / ISO_Y, len = Math.hypot(dx, dy) || 1;
       this.dashWay = { x: dx / len, y: (dy / len) * ISO_Y };
     }
+    // Only this step's part of it, from where he stood: whatever held him back (a wall) keeps him
+    // there, where reckoning it from where the roll set out put him past the wall the step after.
     const share = travelled(travel, rollAt(this.into(c, dt) / dash.time)) * dash.distance;
-    c.x = this.dashFrom.x + this.dashWay.x * share;
-    c.y = this.dashFrom.y + this.dashWay.y * share;
+    c.x = from.x + this.dashWay.x * (share - this.dashDone);
+    c.y = from.y + this.dashWay.y * (share - this.dashDone);
+    this.dashDone = share;
   }
 
   /** Shows what he is doing this step. */
