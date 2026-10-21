@@ -2256,6 +2256,16 @@
       "sha12": "87d4b7d7639d",
       "label": "realista 3D turnaround B — not chosen: sabre across the legs in the back view, ground line",
       "file": "assets/realista/3d/giro_b.png"
+    },
+    {
+      "asset_id": "ebd29cdc-7359-4c30-8de1-1d4e1fbed00c",
+      "label": "posada 3D turnaround A (flat colour)",
+      "file": "assets/edificios/3d/posada_giro_a.png"
+    },
+    {
+      "asset_id": "8122f21a-1780-4d79-90f6-8e284b731412",
+      "label": "posada 3D turnaround B (weathered)",
+      "file": "assets/edificios/3d/posada_giro_b.png"
     }
   ]
 }

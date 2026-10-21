@@ -11,6 +11,8 @@ import { flat, joined, part, placed } from './paint';
 import { ground, standOn, UPRIGHT } from './space';
 import { LOOK, sunWay } from './look';
 import { growMeadow } from './meadow';
+import { MODELS, placed as standing } from './buildings';
+import { model } from './figure';
 import { CELL, clouds, heightPicture, shapeTerrain, swell, WATER_LEVEL, type Terrain } from './terrain';
 
 // A map of open country stood up in 3D from the same code that lays out the 2D one: the
@@ -369,9 +371,22 @@ function raiseFences(map: WorldMap): THREE.InstancedMesh[] {
   }).flat();
 }
 
-function raiseBuildings(map: WorldMap): { meshes: THREE.Mesh[]; taken: Footprint[] } {
-  const meshes: THREE.Mesh[] = [], taken: Footprint[] = [];
+function raiseBuildings(map: WorldMap): { meshes: THREE.Object3D[]; taken: Footprint[] } {
+  const meshes: THREE.Object3D[] = [], taken: Footprint[] = [];
   for (const b of map.buildings ?? []) {
+    // One with a model of its own stands as that, at its true size, once it has loaded.
+    const where = standing(b);
+    if (where) {
+      const holder = new THREE.Group();
+      holder.position.copy(ground(where.x, where.y));
+      holder.rotation.y = where.turn;
+      void model(MODELS[b.name].url, MODELS[b.name].tall / UPRIGHT).then(shape => holder.add(shape));
+      meshes.push(holder);
+      // What it takes up, for whoever is held by footprints (the demo): the box round it, a little in.
+      const c = Math.abs(Math.cos(where.turn)), s = Math.abs(Math.sin(where.turn));
+      taken.push({ x: where.x, y: where.y, hw: (where.long * c + where.deep * s) * 0.36, hh: (where.long * s + where.deep * c) * 0.36 * ISO_Y });
+      continue;
+    }
     const { x, y } = middle(b.plot);
     // Its front foot is on the plot; it runs `deep` back from there and is `tall` as drawn.
     const tall = b.tall * UPRIGHT, roof = Math.min(b.deep, b.wide) * 0.45;

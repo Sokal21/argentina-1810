@@ -3,6 +3,7 @@ import { ISO_Y } from '../machi/data';
 import { chance } from '../world/chance';
 import { DEEP, SHALLOW, WET, waterLevels } from '../world/water';
 import { extent, letterAt, middle, PLOT_H, PLOT_W, type WorldMap } from '../world/zones';
+import { placed } from './buildings';
 
 // The lie of the land, for the eye only: the game still walks a flat map (zones.ts), and nobody
 // is slowed or stopped by a slope. Where people walk the ground hardly rolls; where nobody does it
@@ -136,8 +137,20 @@ export function shapeTerrain(map: WorldMap): Terrain {
     }
   }
 
-  // Level under each building, to the height at its front, and a little round it.
+  // Level under each building, to the height at its front, and a little round it: a modelled one
+  // all round where it stands (it is larger than its block), any other under its block.
   for (const b of map.buildings ?? []) {
+    const model = placed(b);
+    if (model) {
+      const cx = model.x, cz = model.y / ISO_Y, r = Math.hypot(model.long, model.deep) / 2 + PAD;
+      const at = heights[index(Math.round(cx / CELL), Math.round(cz / CELL))] ?? 0;
+      for (let j = Math.max(0, Math.floor((cz - r) / CELL)); j <= Math.min(rows, Math.ceil((cz + r) / CELL)); j++) {
+        for (let i = Math.max(0, Math.floor((cx - r) / CELL)); i <= Math.min(cols, Math.ceil((cx + r) / CELL)); i++) {
+          if (Math.hypot(i * CELL - cx, j * CELL - cz) <= r) heights[index(i, j)] = at;
+        }
+      }
+      continue;
+    }
     const { x, y } = middle(b.plot), front = y / ISO_Y;
     const i0 = Math.floor((x - b.wide / 2 - PAD) / CELL), i1 = Math.ceil((x + b.wide / 2 + PAD) / CELL);
     const j0 = Math.floor((front - b.deep - PAD) / CELL), j1 = Math.ceil((front + PAD) / CELL);
