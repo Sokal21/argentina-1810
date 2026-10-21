@@ -31,6 +31,13 @@ export interface BuildingModel {
     scale: number;
     turn: number;
     at: [number, number];
+    /**
+     * The furniture came on a slab of earth of its own: how high its top stands (the furniture is let
+     * down that far, so feet are not sunk in it), and a spot of its picture on that earth, which the
+     * rest of the floor is painted with so the two are one floor.
+     */
+    slab: number;
+    earth: [number, number];
   };
 }
 
@@ -43,6 +50,8 @@ export const MODELS: Record<string, BuildingModel> = {
       walls: { long: 402, deep: 263, tall: 103, thick: 10 }, door: { x: -57, wide: 80 },
       plaster: '#d6ccb4', floor: '#6e5638',
       furniture: 'edificios/3d/posada_muebles.glb', scale: 152, turn: Math.PI / 2, at: [-58, 0],
+      // Measured in Blender: the slab's top at 0.0885 of its height; its commonest earth at that spot.
+      slab: 13.5, earth: [0.7283, 0.1296],
     },
   },
 };

@@ -72,8 +72,8 @@ export class House {
     });
     if (!inside) return;
     const { long, deep, thick } = inside.walls;
-    // The floor, within the walls.
-    const floor = new THREE.Mesh(new THREE.BoxGeometry(long - thick * 2, 1, deep - thick * 2), flat(inside.floor));
+    // The floor, out under the walls (within them it left the ground showing at their foot).
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(long, 1, deep), flat(inside.floor));
     floor.position.y = 0.5;
     floor.receiveShadow = true;
     this.room.add(floor);
@@ -85,11 +85,19 @@ export class House {
     const { x: door, wide } = inside.door, left = door - wide / 2, right = door + wide / 2;
     wall((-long / 2 + left) / 2, deep / 2 - thick / 2, left + long / 2, thick);
     wall((right + long / 2) / 2, deep / 2 - thick / 2, long / 2 - right, thick);
-    // What stands in it, turned and set where it goes.
+    // What stands in it, turned and set where it goes, let down so its slab's top is the floor; and
+    // the rest of the floor painted with that slab's own earth.
     void model(inside.furniture, inside.scale / UPRIGHT).then(shape => {
       shape.rotation.y = inside.turn;
-      shape.position.set(inside.at[0], 0, inside.at[1]);
+      shape.position.set(inside.at[0], 1 - inside.slab, inside.at[1]);
       this.room.add(shape);
+      shape.traverse(node => {
+        if (!(node instanceof THREE.Mesh)) return;
+        const uv = floor.geometry.getAttribute('uv') as THREE.BufferAttribute;
+        for (let k = 0; k < uv.count; k++) uv.setXY(k, inside.earth[0], inside.earth[1]);
+        uv.needsUpdate = true;
+        floor.material = node.material;
+      });
     });
     this.room.visible = false;
     this.hearth.position.set(inside.at[0], HEARTH.high, 0);
