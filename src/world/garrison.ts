@@ -16,8 +16,6 @@ export const PICKET = 3;
 export const APART = 6;
 /** How far from the middle of his picket a man stands, in pixels. */
 export const SPREAD = 46;
-/** How far the hero has to be from a post, in pixels, before its man can be back. */
-export const BEHIND = 1000;
 
 /** Every post on a map, the same each time for the same map. */
 export function garrison(map: WorldMap, seed = 1): Post[] {
@@ -61,13 +59,4 @@ export function garrison(map: WorldMap, seed = 1): Post[] {
     }
   }
   return posts;
-}
-
-/**
- * Whether the zone a post is in has been left behind by a hero standing at
- * a spot: he is in some other zone, and too far off to see the post.
- */
-export function leftBehind(map: WorldMap, post: Post, hero: { x: number; y: number }): boolean {
-  if (letterAt(map, Math.floor(hero.x / PLOT_W), Math.floor(hero.y / PLOT_H)) === post.letter) return false;
-  return Math.hypot(hero.x - post.x, hero.y - post.y) > BEHIND;
 }

@@ -171,6 +171,11 @@ export class World3D {
     if (muzzle) this.volleys.fire(muzzle.tip, muzzle.way);
   }
 
+  /** A fallen royalist is taken off the field where he lies, he and his blood. */
+  bury(who: Royalist): void {
+    this.royalists.bury(who);
+  }
+
   /** A royalist's ball strikes Cabral, where he stands: the ball stops on him and he bleeds. */
   wounded(at: Vec): void {
     this.volleys.stop(ground(at.x, at.y, 44 * UPRIGHT));

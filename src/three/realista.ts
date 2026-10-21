@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { AIM, MUZZLE, SLASH_TIME, type Mode } from '../realista/brain';
+import { Blood } from './blood';
 import { barrelOf } from './cabral';
 import { flashes, model } from './figure';
 import { Motion } from './motion';
@@ -9,6 +10,7 @@ import { along, ground, heading, UPRIGHT } from './space';
 // The royalist fusilier in 3D, shown doing whatever his brain is doing (realista/brain.ts): standing,
 // marching, drawing the musket and aiming, the shot, the sabre, falling. His model is Cabral's
 // clips put on the royalist's body (assets/realista/3d); it is loaded once and copied for each.
+// Fallen, he lies where he fell, in his blood, until he is up again or taken off the field.
 
 /** How tall he is drawn, beside Cabral's 82: a little smaller, as in the 2D game. */
 const DRAWN = 78;
@@ -20,8 +22,6 @@ const SHOT = 0.8;
 const DRAWN_AT = 0.67, SLUNG = 0.63;
 /** How fast he turns, per second; how quickly how fast he is taken to go follows how fast he goes. */
 const TURN = 10, SETTLE = 10;
-/** Seconds he lies once fallen before he is gone from the field. */
-const LIES = 0.8;
 /**
  * The warning at his muzzle, to dodge by: a faint red glow that grows a little while he aims, and
  * just before the shot a glint, a red star of four rays along the diagonals, that swells to its
@@ -105,8 +105,13 @@ class Figure {
   private fired: number | null = null;
   private modeWas: Mode | null = null;
   private resting = false;
+  /** Taken off the field, fallen: not drawn, nor his blood, until he is up again. */
+  private buried = false;
+  /** Which he is, to his blood. */
+  private static count = 0;
+  private readonly id = Figure.count++;
 
-  constructor(shape: THREE.Group) {
+  constructor(shape: THREE.Group, private readonly blood: Blood) {
     this.body = clone(shape) as THREE.Group;
     this.body.animations = shape.animations;
     this.motion = new Motion(this.body);
@@ -116,10 +121,18 @@ class Figure {
     this.warning.visible = false;
   }
 
-  /** Out of sight: not drawn, and taken up again where he is when he comes back into it. */
-  rest(): void {
+  /**
+   * Out of sight: not drawn, and taken up again where he is when he comes back into it. Up again
+   * out of sight, at his post, his blood is gone from where he fell, which may well be in sight.
+   */
+  rest(who: Royalist): void {
     this.body.visible = this.warning.visible = false;
     this.resting = true;
+    if (alive(who.mind.mode) && this.modeWas && !alive(this.modeWas)) {
+      this.blood.clear(this.id);
+      this.buried = false;
+      this.modeWas = who.mind.mode;
+    }
   }
 
   update(dt: number, who: Royalist): void {
@@ -139,6 +152,17 @@ class Figure {
     else if (this.fired !== null) this.fired += dt;
     if (this.fired !== null && (this.fired >= SHOT || mode === 'slash' || mode === 'aim' || !alive(mode))) this.fired = null;
     const m = this.motion, afresh = mode !== this.modeWas;
+    // Falling, his blood flung from his chest; down, pooling under him. Come upon already down
+    // (first seen so, or seen again), he is lying there, his blood spread.
+    if (mode === 'dying' && afresh) this.blood.splash(this.id, ground(x, y, DRAWN * 0.62 * UPRIGHT));
+    if (mode === 'gone' && afresh && this.modeWas !== 'dying') m.hold('muerte', 1);
+    if (mode === 'gone' && afresh && !this.buried) {
+      m.update(0);
+      this.body.position.copy(ground(x, y));
+      this.body.rotation.y = this.facing;
+      this.blood.pool(this.id, this.hips(), this.modeWas === 'dying' ? 0 : 1);
+    }
+    if (alive(mode) && !alive(this.modeWas ?? 'stand')) { this.blood.clear(this.id); this.buried = false; }
     if (mode === 'dying') m.play('muerte', { once: true, afresh, blend: 0.08 });
     else if (mode === 'gone') m.play('muerte', { once: true });
     else if (this.fired !== null) m.play('mosquete_disparo', { once: true, lasts: SHOT, afresh: this.fired === 0, blend: 0.03 });
@@ -158,10 +182,25 @@ class Figure {
     if (hand) hand.visible = inHand;
     if (sabre) sabre.visible = !musket;
     this.flash(who.hurt);
-    this.body.visible = mode !== 'gone' || t < LIES;
+    this.body.visible = !this.buried;
     this.body.position.copy(ground(x, y));
     this.body.rotation.y = this.facing;
     this.warn(who, mode, t);
+  }
+
+  /** Taken off the field where he lies: he and his blood are gone, until he is up again. */
+  bury(): void {
+    this.buried = true;
+    this.body.visible = false;
+    this.blood.clear(this.id);
+  }
+
+  /** Where his hips are, as he lies: his blood pools there, not at his feet. */
+  private hips(): THREE.Vector3 {
+    this.body.updateMatrixWorld(true);
+    let found: THREE.Object3D | null = null;
+    this.body.traverse(o => { if (!found && o instanceof THREE.Bone && /hip|pelvis/i.test(o.name)) found = o; });
+    return found ? (found as THREE.Object3D).getWorldPosition(new THREE.Vector3()) : this.body.position.clone();
   }
 
   /** The glow at his muzzle while he aims, growing a little until his aim is fixed; then the glint, until the shot. */
@@ -202,8 +241,11 @@ export class Royalists {
   readonly group = new THREE.Group();
   private shape: THREE.Group | null = null;
   private readonly figures = new Map<Royalist, Figure>();
+  /** The blood of those fallen. */
+  private readonly blood = new Blood();
 
   constructor() {
+    this.group.add(this.blood.group);
     loading ??= model('realista/3d/realista_animado.glb', DRAWN);
     void loading.then(shape => { this.shape = shape; });
   }
@@ -215,22 +257,29 @@ export class Royalists {
    * and his clips played each frame, three times over (the shadows, the edges, the picture).
    */
   update(dt: number, everyone: readonly Royalist[], seen: (x: number, y: number) => boolean = () => true): void {
+    this.blood.update(dt);
     if (!this.shape) return;
     for (const [who, figure] of this.figures) {
       if (everyone.includes(who)) continue;
+      figure.bury();
       this.group.remove(figure.body, figure.warning);
       this.figures.delete(who);
     }
     for (const who of everyone) {
       let figure = this.figures.get(who);
       if (!figure) {
-        figure = new Figure(this.shape);
+        figure = new Figure(this.shape, this.blood);
         this.figures.set(who, figure);
         this.group.add(figure.body, figure.warning);
       }
       if (seen(who.mind.x, who.mind.y)) figure.update(dt, who);
-      else figure.rest();
+      else figure.rest(who);
     }
+  }
+
+  /** One fallen is taken off the field where he lies, he and his blood. */
+  bury(who: Royalist): void {
+    this.figures.get(who)?.bury();
   }
 
   /** Where one's shot leaves from, and the way it goes. */

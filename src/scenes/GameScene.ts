@@ -38,7 +38,7 @@ import { Country, loadCountry, loadFences, raiseBuildings, raiseFences } from '.
 import { bosquePatagonico } from '../world/maps/bosque';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
-import { garrison, leftBehind, type Post } from '../world/garrison';
+import { garrison, type Post } from '../world/garrison';
 import { DRAUGHTS, DRINKING, Flask, FLASKS } from '../machi/flask';
 import { GROWTHS, toNext, WORTH, type Growth, type Stat } from '../machi/growth';
 import { ITEMS, PACKS, SPOILS, type Pack } from '../machi/pack';
@@ -284,6 +284,12 @@ export class GameScene extends Phaser.Scene {
   private realistas: Soldier[] = [];
   /** The post each soldier who holds one stands at. */
   private posts = new Map<Soldier, Post>();
+  /**
+   * The fallen to be up again (or, of a wave, taken off the field) once out of sight: the field is
+   * set as it was each time the hero comes somewhere safe. Till then they lie where they fell.
+   */
+  private readonly due = new Set<Soldier>();
+  private safeWas = false;
   /** What the royalists fire. */
   private shots!: Bolts;
   private abilities = new Abilities();
@@ -939,12 +945,20 @@ export class GameScene extends Phaser.Scene {
     // Indoors, nobody outside can get to the hero.
     if (this.indoors?.indoors) this.route?.toward(null);
     else this.route?.toward(this.machi);
+    // Come somewhere safe, every one fallen is due to be up again.
+    const safe = !!this.map && !!zoneAt(this.map, this.machi.x, this.machi.y)?.safe;
+    if (safe && !this.safeWas) for (const realista of this.realistas) if (!realista.alive) this.due.add(realista);
+    this.safeWas = safe;
     for (const realista of this.realistas) {
-      // One too far off to be seen or to see is left as he is. If he has fallen and the
-      // zone he held is left behind, he is back at his post, where nobody saw him come.
+      // One too far off to be seen or to see is left as he is. If he is due up, he is back at his
+      // post where nobody saw him come; one of a wave, with no post, is taken off the field.
       const post = this.posts.get(realista), at = realista.ground;
-      if (post && (Math.abs(at.x - this.machi.x) > AWAKE.x || Math.abs(at.y - this.machi.y) > AWAKE.y)) {
-        if (!realista.alive && this.map && leftBehind(this.map, post, this.machi)) realista.revive();
+      const far = Math.abs(at.x - this.machi.x) > AWAKE.x || Math.abs(at.y - this.machi.y) > AWAKE.y;
+      if (far && this.due.delete(realista)) {
+        if (post) realista.revive();
+        else if (realista instanceof Realista) this.three?.bury(realista);
+      }
+      if (post && far) {
         realista.sleep();
         continue;
       }

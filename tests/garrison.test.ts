@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { BEHIND, garrison, leftBehind } from '../src/world/garrison';
+import { garrison } from '../src/world/garrison';
 import { vadoDeLasVizcachas as vado } from '../src/world/maps/vado';
 import { middle, PLOT_W, zoneAt, type WorldMap } from '../src/world/zones';
 
@@ -41,18 +41,6 @@ test('they stand in pickets, not strung out one by one, and none where the hero 
 
 test('the same map is always held the same way', () => {
   expect(garrison(map)).toEqual(garrison(map));
-});
-
-test('a post is left behind only when the hero is in another zone and far from it', () => {
-  const [post] = garrison(map);
-  // Standing right there, or far off but still in the zone, it is not.
-  expect(leftBehind(map, post, post)).toBe(false);
-  const farEnd = middle([post.x < 15 * PLOT_W ? 28 : 4, 3]);
-  expect(Math.hypot(farEnd.x - post.x, farEnd.y - post.y)).toBeGreaterThan(BEHIND);
-  expect(leftBehind(map, post, farEnd)).toBe(false);
-  // In the village, it depends on how far the post is.
-  const village = middle([2, 3]);
-  expect(leftBehind(map, post, village)).toBe(Math.hypot(village.x - post.x, village.y - post.y) > BEHIND);
 });
 
 test("Cabral's road is held all along, and its two safe places by nobody", () => {
