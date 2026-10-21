@@ -99,7 +99,7 @@ export class House {
         floor.material = node.material;
       });
     });
-    this.room.visible = false;
+    // Always there: its doorway is open, and from outside the room is seen through it, in the dark.
     this.hearth.position.set(inside.at[0], HEARTH.high, 0);
     this.group.add(this.room, this.hearth);
   }
@@ -159,7 +159,6 @@ export class House {
       this.lifted = want > this.lifted ? Math.min(1, this.lifted + dt / LIFT) : Math.max(0, this.lifted - dt / LIFT);
     }
     this.place();
-    this.room.visible = this.lifted > 0;
     this.hearth.intensity = HEARTH.strength * this.lifted;
   }
 }

@@ -47,7 +47,7 @@ export const MODELS: Record<string, BuildingModel> = {
     url: 'edificios/3d/posada.glb', tall: 230, drawing: [358, 250], long: 1.906, deep: 1.458,
     // Tripo from furniture set C (no walls, the table off the door), 20 October 2026.
     inside: {
-      walls: { long: 402, deep: 263, tall: 103, thick: 10 }, door: { x: -57, wide: 80 },
+      walls: { long: 402, deep: 263, tall: 103, thick: 10 }, door: { x: -53, wide: 83 },
       plaster: '#d6ccb4', floor: '#6e5638',
       furniture: 'edificios/3d/posada_muebles.glb', scale: 152, turn: Math.PI / 2, at: [-58, 0],
       // Measured in Blender: the slab's top at 0.0885 of its height; its commonest earth at that spot.
