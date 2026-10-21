@@ -1,14 +1,21 @@
 import Phaser from 'phaser';
+import { TitleEmblem } from '../three/emblem';
 import { TitleCabildo } from '../three/title';
 import { LookFX } from '../fx/LookFX';
 import { fx } from '../fx/settings';
 import { musicWaiting, playMusic } from '../music';
 
 const W = 960, H = 405;       // the background, which is the scene's whole world
-const BACK = 'titulo/cabildo.png';
+// The plaza by night, its Cabildo painted out (tools/erase_cabildo.py): the 3D one stands there.
+const BACK = 'titulo/plaza.png';
 const CABILDO_3D = 'titulo:cabildo3d';
 const LOGO = 'titulo/logo.png';
 const SUN = 'titulo/sol.png';
+/** The name and the sun as drawn, in pixels; their solids, raised from those drawings; how many of
+ * their 3D pictures' pixels go to each drawn one, and how each turns. */
+const LOGO_SIZE = { w: 376, h: 147 }, SUN_SIZE = 94;
+const LOGO_3D = { url: 'titulo/3d/logo.glb', res: 2, sway: { turn: 0.3, pace: 0.33, nod: 0.1, nodPace: 0.26 } };
+const SUN_3D = { url: 'titulo/3d/sol.glb', res: 3, sway: { turn: 0.45, pace: 0.5, nod: 0.12, nodPace: 0.38 } };
 const SUN_AT = { x: W / 2, y: 44 };
 const LOGO_AT = { x: W / 2, y: 104, scale: 0.8 };
 const FADE = 500;             // milliseconds the screen takes to go dark on starting
@@ -41,7 +48,6 @@ interface Walker { sprite: Phaser.GameObjects.Sprite; dir: 1 | -1; speed: number
  */
 export class TitleScene extends Phaser.Scene {
   private walkers: Walker[] = [];
-  private lamps!: Phaser.GameObjects.Image;
   private sun!: Phaser.GameObjects.Image;
   private halo!: Phaser.GameObjects.Image;
   private logo!: Phaser.GameObjects.Image;
@@ -52,6 +58,11 @@ export class TitleScene extends Phaser.Scene {
   /** The Cabildo in 3D, and the texture its picture is copied into each frame. */
   private cabildo?: TitleCabildo;
   private cabildoTexture?: Phaser.Textures.CanvasTexture;
+  /** The name and the sun in 3D, each with the image it is shown in, once loaded. */
+  private emblems: { emblem: TitleEmblem; image: Phaser.GameObjects.Image; key: string; shown: boolean; texture?: Phaser.Textures.CanvasTexture }[] = [];
+  /** How much smaller than the drawing the name's and the sun's images are shown: 1, or their 3D pictures' `res`. */
+  private logoRes = 1;
+  private sunRes = 1;
   /** The music is waiting for the first touch, which is spent on it. */
   private hushed = false;
 
@@ -74,20 +85,21 @@ export class TitleScene extends Phaser.Scene {
     if (new URLSearchParams(location.search).has('jugar')) { this.play(); return; }
 
     this.add.image(0, 0, BACK).setOrigin(0, 0).setDepth(-10);
-    this.lamps = this.add.image(0, 0, this.lampsTexture()).setOrigin(0, 0).setDepth(-9)
-      .setBlendMode(Phaser.BlendModes.ADD);
-    // The Cabildo in 3D over the painted one, at the painting's size, under whoever crosses the
-    // plaza; the painted lamps were its arches' light, which it has now of its own.
+    // The Cabildo in 3D where the painted one stood, at the painting's size, under whoever crosses the plaza.
     this.cabildo = new TitleCabildo(W, H);
     if (this.textures.exists(CABILDO_3D)) this.textures.remove(CABILDO_3D);
     this.cabildoTexture = this.textures.addCanvas(CABILDO_3D, this.cabildo.canvas) ?? undefined;
     this.add.image(0, 0, CABILDO_3D).setOrigin(0, 0).setDepth(-8);
-    this.lamps.setVisible(false);
 
     this.halo = this.add.image(SUN_AT.x, SUN_AT.y, this.haloTexture()).setDepth(900)
       .setBlendMode(Phaser.BlendModes.ADD);
     this.sun = this.add.image(SUN_AT.x, SUN_AT.y, SUN).setDepth(901);
     this.logo = this.add.image(LOGO_AT.x, LOGO_AT.y, LOGO).setScale(LOGO_AT.scale).setDepth(902);
+    // In 3D as soon as their solids have loaded; drawn till then.
+    this.emblems = [
+      { emblem: new TitleEmblem(LOGO_3D.url, LOGO_SIZE.w, LOGO_SIZE.h, LOGO_3D.res, LOGO_3D.sway), image: this.logo, key: 'titulo:logo3d', shown: false },
+      { emblem: new TitleEmblem(SUN_3D.url, SUN_SIZE, SUN_SIZE, SUN_3D.res, SUN_3D.sway), image: this.sun, key: 'titulo:sol3d', shown: false },
+    ];
 
     for (const [role, lane, dir, along] of CROWD) {
       const { speed, fps } = CAST[role];
@@ -134,16 +146,28 @@ export class TitleScene extends Phaser.Scene {
     const t = time / 1000, dt = Math.min(0.05, delta / 1000);
     this.cabildo?.render(t);
     this.cabildoTexture?.refresh();
+    for (const e of this.emblems) {
+      e.emblem.render(t);
+      if (!e.emblem.loaded) continue;
+      if (!e.shown) {
+        // The drawing gives way to its solid, at the drawing's size.
+        if (this.textures.exists(e.key)) this.textures.remove(e.key);
+        e.texture = this.textures.addCanvas(e.key, e.emblem.canvas) ?? undefined;
+        e.image.setTexture(e.key);
+        if (e.image === this.logo) this.logoRes = e.emblem.res; else this.sunRes = e.emblem.res;
+        e.shown = true;
+        this.layout();
+      }
+      e.texture?.refresh();
+    }
     for (const { sprite, dir, speed } of this.walkers) {
       sprite.x += dir * speed * dt;
       if (sprite.x > W + MARGIN) sprite.x = -MARGIN;
       else if (sprite.x < -MARGIN) sprite.x = W + MARGIN;
     }
-    // Torches and lamps never burn evenly: two beats and a little noise.
-    this.lamps.setAlpha(0.16 + 0.07 * Math.sin(t * 7.3) + 0.05 * Math.sin(t * 13.1) + 0.04 * Math.random());
     // The sun breathes.
     const breath = 0.5 + 0.5 * Math.sin(t * 1.1);
-    this.sun.setScale(this.narrow * (1 + 0.03 * breath));
+    this.sun.setScale(this.narrow * (1 + 0.03 * breath) / this.sunRes);
     this.halo.setAlpha(0.35 + 0.3 * breath).setScale(this.narrow * (1 + 0.12 * breath));
 
     if (this.look) {
@@ -167,9 +191,9 @@ export class TitleScene extends Phaser.Scene {
     // On a screen held upright only the middle of the picture shows: the name is brought in to fit
     // it, and it and the sun come down to where the sky has room for them.
     const room = width / zoom * 0.94;
-    this.narrow = Math.min(1, room / (this.logo.width * LOGO_AT.scale));
+    this.narrow = Math.min(1, room / (LOGO_SIZE.w * LOGO_AT.scale));
     const down = (1 - this.narrow) * 26;
-    this.logo.setScale(LOGO_AT.scale * this.narrow).setY(LOGO_AT.y + down);
+    this.logo.setScale(LOGO_AT.scale * this.narrow / this.logoRes).setY(LOGO_AT.y + down);
     this.sun.setY(SUN_AT.y + down * 2.2);
     this.halo.setY(SUN_AT.y + down * 2.2);
   }
@@ -190,26 +214,6 @@ export class TitleScene extends Phaser.Scene {
     document.body.classList.add('playing');
     this.scene.launch('hud');
     this.scene.start('game', { hero: 'cabral' });
-  }
-
-  // Only the lit parts of the background, to add over it at a strength that
-  // wavers: what glows orange in the picture is what flickers.
-  private lampsTexture(): string {
-    const key = 'titulo-luces';
-    if (this.textures.exists(key)) return key;
-    const source = this.textures.get(BACK).getSourceImage() as HTMLImageElement;
-    const tex = this.textures.createCanvas(key, W, H)!;
-    const g = tex.getContext();
-    g.drawImage(source, 0, 0);
-    const image = g.getImageData(0, 0, W, H);
-    const d = image.data;
-    for (let i = 0; i < d.length; i += 4) {
-      const warm = d[i] > 150 && d[i] > d[i + 2] * 2.2 && d[i + 1] > 60;
-      if (!warm) d[i + 3] = 0;
-    }
-    g.putImageData(image, 0, 0);
-    tex.refresh();
-    return key;
   }
 
   // A soft gold disc that fades out, for the glow behind the sun.
