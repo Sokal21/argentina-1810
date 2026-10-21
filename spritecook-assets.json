@@ -2306,6 +2306,16 @@
       "asset_id": "45507c59-fe8b-4ce7-aa82-a9cfd4a1b44a",
       "label": "don Braulio 3D turnaround B",
       "file": "assets/pulpero/3d/giro_b.png"
+    },
+    {
+      "asset_id": "e566290e-cf69-4888-a89e-84d2ccf0b261",
+      "label": "Cabildo 3D turnaround A (flat colour, three arches a side)",
+      "file": "assets/edificios/3d/cabildo_giro_a.png"
+    },
+    {
+      "asset_id": "f9011334-b8b5-4d31-b4a1-6f09d3d6e899",
+      "label": "Cabildo 3D turnaround B (flat colour, five arches a side, courtyard)",
+      "file": "assets/edificios/3d/cabildo_giro_b.png"
     }
   ]
 }

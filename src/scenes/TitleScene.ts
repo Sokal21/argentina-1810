@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
+import { TitleCabildo } from '../three/title';
 import { LookFX } from '../fx/LookFX';
 import { fx } from '../fx/settings';
 import { musicWaiting, playMusic } from '../music';
 
 const W = 960, H = 405;       // the background, which is the scene's whole world
 const BACK = 'titulo/cabildo.png';
+const CABILDO_3D = 'titulo:cabildo3d';
 const LOGO = 'titulo/logo.png';
 const SUN = 'titulo/sol.png';
 const SUN_AT = { x: W / 2, y: 44 };
@@ -47,6 +49,9 @@ export class TitleScene extends Phaser.Scene {
   private narrow = 1;
   private look?: LookFX;
   private leaving = false;
+  /** The Cabildo in 3D, and the texture its picture is copied into each frame. */
+  private cabildo?: TitleCabildo;
+  private cabildoTexture?: Phaser.Textures.CanvasTexture;
   /** The music is waiting for the first touch, which is spent on it. */
   private hushed = false;
 
@@ -71,6 +76,13 @@ export class TitleScene extends Phaser.Scene {
     this.add.image(0, 0, BACK).setOrigin(0, 0).setDepth(-10);
     this.lamps = this.add.image(0, 0, this.lampsTexture()).setOrigin(0, 0).setDepth(-9)
       .setBlendMode(Phaser.BlendModes.ADD);
+    // The Cabildo in 3D over the painted one, at the painting's size, under whoever crosses the
+    // plaza; the painted lamps were its arches' light, which it has now of its own.
+    this.cabildo = new TitleCabildo(W, H);
+    if (this.textures.exists(CABILDO_3D)) this.textures.remove(CABILDO_3D);
+    this.cabildoTexture = this.textures.addCanvas(CABILDO_3D, this.cabildo.canvas) ?? undefined;
+    this.add.image(0, 0, CABILDO_3D).setOrigin(0, 0).setDepth(-8);
+    this.lamps.setVisible(false);
 
     this.halo = this.add.image(SUN_AT.x, SUN_AT.y, this.haloTexture()).setDepth(900)
       .setBlendMode(Phaser.BlendModes.ADD);
@@ -120,6 +132,8 @@ export class TitleScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     const t = time / 1000, dt = Math.min(0.05, delta / 1000);
+    this.cabildo?.render(t);
+    this.cabildoTexture?.refresh();
     for (const { sprite, dir, speed } of this.walkers) {
       sprite.x += dir * speed * dt;
       if (sprite.x > W + MARGIN) sprite.x = -MARGIN;
