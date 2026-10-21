@@ -18,6 +18,8 @@ const PAINTED = { left: 294, right: 665, foot: 346 };
  * draw in as they rise, as a building's do seen from its foot.
  */
 const EYE = 0.08, AIM = 0.75, FOV = 38;
+/** How big the sky is drawn, against the painting. */
+export const SKY_RES = 0.5;
 /** The lights: the moon, the night sky, and the warm light in each gallery. */
 const MOON = { colour: '#9db2ff', strength: 1.1 }, SKY = { top: '#24365e', bottom: '#0b0c12', strength: 0.9 };
 const GALLERY = { colour: '#ffa040', strength: 420, reach: 90, arches: 5 };
@@ -26,7 +28,10 @@ export class TitleCabildo {
   /** Its picture, copied out of the renderer's own canvas (one Phaser can read, which a WebGL one is not). */
   readonly canvas = document.createElement('canvas');
   private readonly picture: CanvasRenderingContext2D;
-  /** And the sky's, seen from where it is seen, by a camera that sees as far as the sky. */
+  /**
+   * And the sky's, seen from where it is seen, by a camera that sees as far as the sky; at a share
+   * of the size (its clouds are costly to draw), for the title to show that much bigger.
+   */
   readonly skyCanvas = document.createElement('canvas');
   private readonly skyPicture: CanvasRenderingContext2D;
   private readonly sky = new TitleSky();
@@ -47,8 +52,8 @@ export class TitleCabildo {
     this.canvas.width = width;
     this.canvas.height = height;
     this.picture = this.canvas.getContext('2d')!;
-    this.skyCanvas.width = width;
-    this.skyCanvas.height = height;
+    this.skyCanvas.width = Math.round(width * SKY_RES);
+    this.skyCanvas.height = Math.round(height * SKY_RES);
     this.skyPicture = this.skyCanvas.getContext('2d')!;
     this.camera = new THREE.PerspectiveCamera(FOV, width / height, 1, 20000);
     this.scene.add(new THREE.HemisphereLight(SKY.top, SKY.bottom, SKY.strength));
@@ -117,8 +122,12 @@ export class TitleCabildo {
     // Lamps and torches never burn evenly.
     for (const { light, strength, beat } of this.lights) light.intensity = strength * (0.82 + 0.12 * Math.sin(t * 7.3 + beat) + 0.06 * Math.sin(t * 13.1 + beat * 2));
     this.sky.at(t);
+    // Into a corner of the renderer's canvas, at the sky's own size (its foot at the canvas's foot).
+    const { width: sw, height: sh } = this.skyCanvas;
+    this.renderer.setViewport(0, 0, sw, sh);
     this.renderer.render(this.sky.scene, this.skyCamera);
-    this.skyPicture.drawImage(this.renderer.domElement, 0, 0);
+    this.skyPicture.drawImage(this.renderer.domElement, 0, this.height - sh, sw, sh, 0, 0, sw, sh);
+    this.renderer.setViewport(0, 0, this.width, this.height);
     this.renderer.render(this.scene, this.camera);
     this.picture.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.picture.drawImage(this.renderer.domElement, 0, 0);

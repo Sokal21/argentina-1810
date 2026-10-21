@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { TitleEmblem } from '../three/emblem';
-import { TitleCabildo } from '../three/title';
+import { SKY_RES, TitleCabildo } from '../three/title';
 import { LookFX } from '../fx/LookFX';
 import { fx } from '../fx/settings';
 import { musicWaiting, playMusic } from '../music';
@@ -94,7 +94,7 @@ export class TitleScene extends Phaser.Scene {
     // And the sky in 3D behind the painted houses.
     if (this.textures.exists(SKY_3D)) this.textures.remove(SKY_3D);
     this.skyTexture = this.textures.addCanvas(SKY_3D, this.cabildo.skyCanvas) ?? undefined;
-    this.add.image(0, 0, SKY_3D).setOrigin(0, 0).setDepth(-11);
+    this.add.image(0, 0, SKY_3D).setOrigin(0, 0).setScale(1 / SKY_RES).setDepth(-11);
 
     this.halo = this.add.image(SUN_AT.x, SUN_AT.y, this.haloTexture()).setDepth(900)
       .setBlendMode(Phaser.BlendModes.ADD);
