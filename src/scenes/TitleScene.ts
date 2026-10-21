@@ -6,9 +6,9 @@ import { fx } from '../fx/settings';
 import { musicWaiting, playMusic } from '../music';
 
 const W = 960, H = 405;       // the background, which is the scene's whole world
-// The plaza by night, its Cabildo painted out (tools/erase_cabildo.py): the 3D one stands there.
+// The plaza by night, its Cabildo painted out and its sky cleared (tools/erase_cabildo.py): the 3D ones show there.
 const BACK = 'titulo/plaza.png';
-const CABILDO_3D = 'titulo:cabildo3d';
+const CABILDO_3D = 'titulo:cabildo3d', SKY_3D = 'titulo:cielo3d';
 const LOGO = 'titulo/logo.png';
 const SUN = 'titulo/sol.png';
 /** The name and the sun as drawn, in pixels; their solids, raised from those drawings; how many of
@@ -58,6 +58,7 @@ export class TitleScene extends Phaser.Scene {
   /** The Cabildo in 3D, and the texture its picture is copied into each frame. */
   private cabildo?: TitleCabildo;
   private cabildoTexture?: Phaser.Textures.CanvasTexture;
+  private skyTexture?: Phaser.Textures.CanvasTexture;
   /** The name and the sun in 3D, each with the image it is shown in, once loaded. */
   private emblems: { emblem: TitleEmblem; image: Phaser.GameObjects.Image; key: string; shown: boolean; texture?: Phaser.Textures.CanvasTexture }[] = [];
   /** How much smaller than the drawing the name's and the sun's images are shown: 1, or their 3D pictures' `res`. */
@@ -90,6 +91,10 @@ export class TitleScene extends Phaser.Scene {
     if (this.textures.exists(CABILDO_3D)) this.textures.remove(CABILDO_3D);
     this.cabildoTexture = this.textures.addCanvas(CABILDO_3D, this.cabildo.canvas) ?? undefined;
     this.add.image(0, 0, CABILDO_3D).setOrigin(0, 0).setDepth(-8);
+    // And the sky in 3D behind the painted houses.
+    if (this.textures.exists(SKY_3D)) this.textures.remove(SKY_3D);
+    this.skyTexture = this.textures.addCanvas(SKY_3D, this.cabildo.skyCanvas) ?? undefined;
+    this.add.image(0, 0, SKY_3D).setOrigin(0, 0).setDepth(-11);
 
     this.halo = this.add.image(SUN_AT.x, SUN_AT.y, this.haloTexture()).setDepth(900)
       .setBlendMode(Phaser.BlendModes.ADD);
@@ -146,6 +151,7 @@ export class TitleScene extends Phaser.Scene {
     const t = time / 1000, dt = Math.min(0.05, delta / 1000);
     this.cabildo?.render(t);
     this.cabildoTexture?.refresh();
+    this.skyTexture?.refresh();
     for (const e of this.emblems) {
       e.emblem.render(t);
       if (!e.emblem.loaded) continue;
