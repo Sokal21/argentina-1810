@@ -19,6 +19,12 @@ export const SLASH_REST = 0.45; // seconds he stands before he can cut again
 export const MUZZLE = 30;       // height the ball leaves the barrel at
 export const DYING = 1.2;       // seconds he takes to fall
 export const RESPAWN = 7;       // seconds until he is back, so there is always one to fight
+/**
+ * One who holds a post walks round it while nobody is about, rather than standing there waiting:
+ * to a spot on his ground within `reach` of it, at `pace`, where he stands a while (`rest`, seconds)
+ * before the next.
+ */
+export const PATROL = { reach: 140, pace: WALK * 0.55, rest: [1.5, 4] as [number, number] };
 
 export type Mode = 'stand' | 'walk' | 'aim' | 'lower' | 'slash' | 'dying' | 'gone';
 
@@ -71,6 +77,11 @@ export class RealistaBrain {
   relentless = false;
   /** Seconds he is still after whoever struck him, however far off they are. */
   provoked = 0;
+  /** He walks round his post while nobody is about (one who holds a post does): see PATROL. */
+  patrols = false;
+  /** Where his round takes him next, and how long he stands before setting off again. */
+  private goal: Vec | null = null;
+  private resting = 0;
 
   /** Struck, or one of his own struck nearby: he goes after them for a while, wherever they are. */
   provoke(seconds: number): void {
@@ -108,7 +119,7 @@ export class RealistaBrain {
     switch (this.mode) {
       case 'stand':
       case 'walk': {
-        if (!to || (far > SIGHT && !this.relentless && this.provoked <= 0)) { this.enter('stand'); return NOTHING; }
+        if (!to || (far > SIGHT && !this.relentless && this.provoked <= 0)) return this.patrol(dt);
         this.look(to);
         if (far < NEAR) {
           if (this.rest <= 0) { this.enter('slash'); this.landed = false; } else this.enter('stand');
@@ -266,6 +277,38 @@ export class RealistaBrain {
     this.life = this.max;
     this.reload = 0.8 + this.rnd() * 0.8;
     this.rest = 0;
+    // Back at his post he is a fresh man: he no longer remembers who struck him (he came back
+    // hunting them), nor any shout that quickened him.
+    this.provoked = 0;
+    this.quick = 0;
+    this.goal = null;
+    this.resting = 0;
     this.enter('stand');
+  }
+
+  // Nobody about: one who holds a post walks round it, stands a while at each spot, and goes on.
+  private patrol(dt: number): Deed {
+    if (!this.patrols || this.resting > 0) {
+      this.resting = Math.max(0, this.resting - dt);
+      this.enter('stand');
+      return NOTHING;
+    }
+    // A spot on his ground near his post, if one can be found.
+    for (let tries = 0; !this.goal && tries < 6; tries++) {
+      const a = this.rnd() * Math.PI * 2, r = PATROL.reach * (0.3 + 0.7 * this.rnd());
+      const spot = { x: this.home.x + Math.cos(a) * r, y: this.home.y + Math.sin(a) * r * ISO_Y };
+      if (!this.ground || this.ground(spot.x, spot.y)) this.goal = spot;
+    }
+    const rest = () => { this.goal = null; this.resting = PATROL.rest[0] + this.rnd() * (PATROL.rest[1] - PATROL.rest[0]); this.enter('stand'); return NOTHING; };
+    if (!this.goal) return rest();
+    const to = { x: this.goal.x - this.x, y: (this.goal.y - this.y) / ISO_Y }, far = Math.hypot(to.x, to.y);
+    if (far < 6) return rest();
+    this.look(to);
+    this.enter('walk');
+    const was = { x: this.x, y: this.y }, step = PATROL.pace * dt;
+    this.move(to.x / far * step, to.y / far * step);
+    // Something in the way: he stands, and picks another spot after.
+    if (Math.hypot(this.x - was.x, (this.y - was.y) / ISO_Y) < step * 0.2) return rest();
+    return NOTHING;
   }
 }

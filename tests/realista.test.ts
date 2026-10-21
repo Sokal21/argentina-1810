@@ -134,3 +134,47 @@ describe('a soldier who holds a post', () => {
     expect(b.x).toBeLessThan(20);
   });
 });
+
+describe('royalist soldier at a post', () => {
+  const posted = (rnd = fixed(0.5)) => {
+    const b = new RealistaBrain(100, 100, undefined, rnd);
+    b.returns = false;
+    b.patrols = true;
+    return b;
+  };
+  it('walks round his post while nobody is about, near it', () => {
+    const b = posted();
+    let walked = 0, far = 0;
+    for (let t = 0; t < 20; t += DT) {
+      b.update(DT, null);
+      if (b.mode === 'walk') walked += DT;
+      far = Math.max(far, Math.hypot(b.x - 100, (b.y - 100) / ISO_Y));
+    }
+    expect(walked).toBeGreaterThan(1);
+    expect(far).toBeGreaterThan(20);
+    expect(far).toBeLessThanOrEqual(141);
+  });
+  it('stands a while at each spot before the next', () => {
+    const b = posted();
+    until(b, () => b.mode === 'walk', null);
+    until(b, () => b.mode === 'stand', null);
+    for (let t = 0; t < 1; t += DT) {
+      b.update(DT, null);
+      expect(b.mode).toBe('stand');
+    }
+  });
+  it('leaves his round as soon as he sees her', () => {
+    const b = posted();
+    until(b, () => b.mode === 'walk', null);
+    until(b, () => b.mode === 'aim', { x: b.x + RANGE - 20, y: b.y });
+  });
+  it('comes back to his post no longer after whoever struck him', () => {
+    const b = new RealistaBrain(100, 100, undefined, fixed(0));
+    b.provoke(30);
+    for (let i = 0; i < LIFE; i++) b.hit(1, 0);
+    expect(b.alive).toBe(false);
+    b.revive();
+    expect(b.alive).toBe(true);
+    expect(b.provoked).toBe(0);
+  });
+});

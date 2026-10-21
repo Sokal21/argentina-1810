@@ -127,6 +127,7 @@ export class Realista {
   hold(ground: (x: number, y: number) => boolean): this {
     this.brain.returns = false;
     this.brain.ground = ground;
+    this.brain.patrols = true;
     return this;
   }
 
