@@ -60,6 +60,31 @@ RAISE, LOWER = 6, 12
 bones = arm.pose.bones
 first, last = (int(f) for f in act.frame_range)
 world = arm.matrix_world
+local = world.inverted()
+# How far before his chest the left hand must be (from the chest bone's joint, along the way his
+# chest faces), so that his arm does not go through him; the places along the shaft it may take,
+# from the right hand (negative: toward the butt), the nearer the butt the better; and over how
+# many frames the place it takes is smoothed.
+CLEAR, PLACES, SMOOTH = 0.15, [x / 100 for x in range(-22, 23, 2)], 2
+
+
+def chest() -> tuple:
+    """Where his chest is, and the ways it faces ahead and to his left, as he is posed now."""
+    pb = bones['Spine02']
+    turned = pb.matrix.to_3x3() @ pb.bone.matrix_local.to_3x3().inverted()
+    return pb.matrix.to_translation(), (turned @ Vector((1, 0, 0))).normalized(), (turned @ Vector((0, 1, 0))).normalized()
+
+
+def shaft() -> tuple:
+    hand = bones['R_Hand']
+    butt = local @ pole.matrix_world.to_translation()
+    along = (local.to_3x3() @ (pole.matrix_world.to_3x3() @ Vector((1, 0, 0)))).normalized()
+    grip = hand.matrix.to_translation()
+    return butt + along * (grip - butt).dot(along), along
+
+
+# First the halberd, pointed along his right arm, every frame; and where on it the left hand can best go.
+chosen = {}
 for frame in range(first, last + 1):
     bpy.context.scene.frame_set(frame)
     bpy.context.view_layer.update()
@@ -70,29 +95,48 @@ for frame in range(first, last + 1):
     k = min(1.0, (frame - first) / RAISE, (last - frame) / LOWER)
     k = k * k * (3 - 2 * k)
     want = Vector((0, 0, 1)).slerp(want, k) if k < 1 else want
-    # The halberd turned by the hand, about the wrist, to lie that way.
     hand = bones['R_Hand']
-    now = (world.inverted().to_3x3() @ (pole.matrix_world.to_3x3() @ Vector((1, 0, 0)))).normalized()
+    now = (local.to_3x3() @ (pole.matrix_world.to_3x3() @ Vector((1, 0, 0)))).normalized()
     q = now.rotation_difference(want)
     head = hand.matrix.to_translation()
     hand.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ hand.matrix
     bpy.context.view_layer.update()
     hand.keyframe_insert('rotation_quaternion', frame=frame)
-    # The left hand on the shaft above the right, where it can reach it.
-    butt = world.inverted() @ pole.matrix_world.to_translation()
-    along = (world.inverted().to_3x3() @ (pole.matrix_world.to_3x3() @ Vector((1, 0, 0)))).normalized()
-    grip = world.inverted() @ (world @ hand.matrix.to_translation())
-    on = butt + along * ((grip - butt).dot(along) + APART)
+    grip, along = shaft()
+    middle, ahead, _ = chest()
+    reach_from = bones['L_Upperarm'].matrix.to_translation()
+
+    def worth(place):
+        spot = grip + along * place
+        clear = (spot - middle).dot(ahead)
+        far = (spot - reach_from).length
+        # Reachable and before his chest first; then as near the butt as can be.
+        return (far <= REACH) + (clear >= CLEAR), -abs(place - APART), clear
+    chosen[frame] = max(PLACES, key=worth)
+
+# Then the left hand on the shaft there (smoothed over the frames either side), the elbow out to his left.
+for frame in range(first, last + 1):
+    near = [chosen[f] for f in range(frame - SMOOTH, frame + SMOOTH + 1) if f in chosen]
+    place = sum(near) / len(near)
+    bpy.context.scene.frame_set(frame)
+    bpy.context.view_layer.update()
+    grip, along = shaft()
+    middle, ahead, left = chest()
+    on = grip + along * place
+    # Kept before his chest where it is level with his body (over his shoulders it cannot go through him).
+    clear = (on - middle).dot(ahead)
+    shoulders = bones['L_Upperarm'].matrix.to_translation().z
+    if clear < CLEAR and on.z < shoulders:
+        on += ahead * (CLEAR - clear) * min(1.0, (shoulders - on.z) / 0.08)
     upper = bones['L_Upperarm']
     far = (on - upper.matrix.to_translation()).length
+    # Where it cannot reach the shaft (standing, the halberd upright at his right), it keeps the capture's place.
     holds = max(0.0, min(1.0, (REACH + SLACK - far) / SLACK))
-    if holds > 0:
-        own = bones['L_Hand'].matrix.to_translation()
-        side = Vector((0, 1, 0)) - along * along.y
-        rig.reach(upper, own.lerp(on, holds), (side.normalized() * 0.6 + Vector((0, 0, -0.8))).normalized())
-        forearm = next(c for c in upper.children if 'Twist' not in c.name)
-        for pb in (upper, forearm):
-            pb.keyframe_insert('rotation_quaternion', frame=frame)
-    print('F', frame, 'left holds %.2f' % holds, 'reach %.3f' % far, 'hand z %.3f' % wrist.z)
+    on = bones['L_Hand'].matrix.to_translation().lerp(on, holds)
+    rig.reach(upper, on, (ahead * 0.5 + left * 1.0 - Vector((0, 0, 0.5))).normalized())
+    forearm = next(c for c in upper.children if 'Twist' not in c.name)
+    for pb in (upper, forearm):
+        pb.keyframe_insert('rotation_quaternion', frame=frame)
+    print('F', frame, 'place %+.2f' % place, 'reach %.3f' % far, 'clear %.3f' % clear, 'holds %.2f' % holds)
 
 rig.export(args[3])
