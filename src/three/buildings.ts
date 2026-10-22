@@ -81,6 +81,8 @@ export const MODELS: Record<string, BuildingModel> = {
       furniture: 'edificios/3d/capilla_muebles.glb', scale: 111, turn: 0, at: [0, -26],
       // Measured in Blender: the slab's top at 0.13 of its height; its commonest earth at that spot.
       slab: 14.5, earth: [0.3699, 0.4988],
+      // Fray Anselmo, in the aisle before his altar (Tripo from turnaround B, 22 October 2026).
+      keeper: { who: 'anselmo', url: 'anselmo/3d/anselmo_animado.glb', drawn: 78, at: [0, -105] },
       // The altar's candles, at the far end (measured in Blender: the cross's top at the middle,
       // 1.3 of the furniture's height back from its middle; the candles a little over half up it).
       light: {

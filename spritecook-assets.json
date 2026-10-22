@@ -2376,6 +2376,16 @@
       "asset_id": "796faf4d-2a7d-4927-99ef-d25c25496c06",
       "label": "sargento 3D turnaround B (A-pose, flat colours, sabre at the hip)",
       "file": "assets/tropa/sargento3d/giro_b.png"
+    },
+    {
+      "asset_id": "a9f4d641-2823-45f0-b21d-c3e6d2ee1685",
+      "label": "fray Anselmo 3D turnaround A (arms nearer the body, cleaner habit)",
+      "file": "assets/anselmo/3d/giro_a.png"
+    },
+    {
+      "asset_id": "ece53e05-353e-42b7-8ef1-a06683579a29",
+      "label": "fray Anselmo 3D turnaround B (arms wide, palms open, ragged hem)",
+      "file": "assets/anselmo/3d/giro_b.png"
     }
   ]
 }
