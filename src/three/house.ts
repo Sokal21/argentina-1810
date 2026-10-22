@@ -21,8 +21,12 @@ import { ground, UPRIGHT } from './space';
 const LIFT = 0.3, LOW = 0.22;
 /** How far in from a wall whoever walks is kept (half how wide they stand). */
 const KEEP = 7;
-/** The warm light within, as from its fire: kept always and dark when nobody is inside (a light come and gone rebuilds every material). */
-const HEARTH = { colour: '#ffae6a', strength: 520, reach: 380, high: 90 };
+/**
+ * The light within (its fire, its candles: the building's `light`) is kept always and dark when
+ * nobody is inside: a light come and gone rebuilds every material. It wavers as a flame does; its
+ * flames' glows are this wide.
+ */
+const FLAME = { wide: 7, colour: '#ffcf80' };
 /** How far within the front wall's inside face its window reaches. */
 const REVEAL = 16;
 /** The sign over a keeper: how high over the floor, and how near (on the 2D ground) whoever comes must be before it gives way to what F does. */
@@ -32,6 +36,21 @@ const SIDEWAYS = 0.25;
 /** Where a cut stands when it cuts nothing: far above, or far in front. */
 const AWAY = 1e5;
 
+/** A flame's glow: a soft round light, white at its heart, made once. */
+let glowing: THREE.Texture | null = null;
+function glow(): THREE.Texture {
+  if (glowing) return glowing;
+  const size = 32, canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const g = canvas.getContext('2d')!, light = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  light.addColorStop(0, 'rgba(255,255,255,1)');
+  light.addColorStop(0.3, 'rgba(255,255,255,0.6)');
+  light.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = light;
+  g.fillRect(0, 0, size, size);
+  return glowing = new THREE.CanvasTexture(canvas);
+}
+
 export class House {
   readonly group = new THREE.Group();
   /** A copy of the building showing only its front wall's foot, while inside; and one for its side wall's. */
@@ -40,7 +59,8 @@ export class House {
   /** Which side wall faces the camera as well as the front (its length's way, +1 or -1), if either does. */
   private readonly side: number;
   private readonly room = new THREE.Group();
-  private readonly hearth = new THREE.PointLight(HEARTH.colour, 0, HEARTH.reach, 1.2);
+  private readonly hearth = new THREE.PointLight('#ffffff', 0, 1, 1.2);
+  private readonly flames: THREE.Sprite[] = [];
   /** How far the roof has lifted: 0 standing, 1 off. */
   private lifted = 0;
   /**
@@ -106,7 +126,8 @@ export class House {
     // The floor, out under the walls (within them it left the ground showing at their foot).
     const floor = new THREE.Mesh(new THREE.BoxGeometry(long, 1, deep), flat(inside.floor));
     floor.position.y = 0.5;
-    floor.receiveShadow = true;
+    // Lit from within, not by the moon through its walls: the room takes none of the world's shadow.
+    floor.receiveShadow = false;
     this.room.add(floor);
     // The walls nobody walks through: the back and the two ends; the front either side of the door.
     const wall = (x: number, z: number, w: number, d: number) => this.walls.push({ x, z, hw: w / 2, hd: d / 2 });
@@ -124,6 +145,7 @@ export class House {
       this.room.add(shape);
       shape.traverse(node => {
         if (!(node instanceof THREE.Mesh)) return;
+        node.receiveShadow = false;
         const uv = floor.geometry.getAttribute('uv') as THREE.BufferAttribute;
         for (let k = 0; k < uv.count; k++) uv.setXY(k, inside.earth[0], inside.earth[1]);
         uv.needsUpdate = true;
@@ -141,7 +163,17 @@ export class House {
         this.room.add(body);
       });
     }
-    this.hearth.position.set(inside.at[0], HEARTH.high, 0);
+    const { at, colour, reach, flames } = inside.light;
+    this.hearth.position.set(...at);
+    this.hearth.color.set(colour);
+    this.hearth.distance = reach;
+    for (const spot of flames ?? []) {
+      const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow(), color: FLAME.colour, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      flame.position.set(...spot);
+      flame.scale.setScalar(FLAME.wide);
+      this.flames.push(flame);
+      this.room.add(flame);
+    }
     this.group.add(this.room, this.hearth);
   }
 
@@ -220,7 +252,14 @@ export class House {
       this.lifted = want > this.lifted ? Math.min(1, this.lifted + dt / LIFT) : Math.max(0, this.lifted - dt / LIFT);
     }
     this.place();
-    this.hearth.intensity = HEARTH.strength * this.lifted;
+    // A flame never burns evenly: two beats and a little noise, its glows with it.
+    this.time += dt;
+    const waver = 0.84 + 0.09 * Math.sin(this.time * 9.1) + 0.05 * Math.sin(this.time * 15.7 + 1.3) + 0.04 * Math.random();
+    this.hearth.intensity = this.spec.inside.light.strength * this.lifted * waver;
+    this.flames.forEach((flame, i) => {
+      flame.material.opacity = 0.55 + 0.45 * this.lifted * (waver + 0.08 * Math.sin(this.time * 11 + i * 2.1));
+      flame.scale.setScalar(FLAME.wide * (0.85 + 0.25 * waver));
+    });
     // Whoever keeps it turns toward whoever comes in, and back to the room when they go.
     if (this.keeper && this.spec.inside?.keeper) {
       const [lx, lz] = this.spec.inside.keeper.at, p = at && this.within(at) ? this.local(at) : null;
@@ -230,7 +269,6 @@ export class House {
       this.keeper.motion.update(dt);
       // Their sign, over their head, once whoever comes is within the walls; gone once they are near
       // enough to talk (the sign of what F does says the rest).
-      this.time += dt;
       const keeps = this.keeps;
       this.ask.visible = !!at && !!keeps && this.within(at) && Math.hypot(at.x - keeps.x, (at.y - keeps.y) / ISO_Y) > ASK.near;
       this.room.updateWorldMatrix(true, false);

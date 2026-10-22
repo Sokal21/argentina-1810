@@ -43,6 +43,11 @@ export interface BuildingModel {
      */
     slab: number;
     earth: [number, number];
+    /**
+     * The light within, from its fire or its candles, where it burns (x along, height, z out of the
+     * front), its colour, strength and reach; and the flames that give it, each a small glow there.
+     */
+    light: { at: [number, number, number]; colour: string; strength: number; reach: number; flames?: [number, number, number][] };
     /** Who keeps it, standing within: their id (as the story knows them), model, drawn height, and where they stand. */
     keeper?: { who: string; url: string; drawn: number; at: [number, number] };
   };
@@ -59,6 +64,8 @@ export const MODELS: Record<string, BuildingModel> = {
       furniture: 'edificios/3d/posada_muebles.glb', scale: 152, turn: Math.PI / 2, at: [-58, 0],
       // Measured in Blender: the slab's top at 0.0885 of its height; its commonest earth at that spot.
       slab: 13.5, earth: [0.7283, 0.1296],
+      // Its fire, in the middle of the room.
+      light: { at: [-58, 90, 0], colour: '#ffae6a', strength: 520, reach: 380 },
       // Don Braulio, by his counter (Tripo from turnaround B, 21 October 2026).
       keeper: { who: 'braulio', url: 'pulpero/3d/braulio_animado.glb', drawn: 80, at: [-25, -95] },
     },
@@ -74,6 +81,12 @@ export const MODELS: Record<string, BuildingModel> = {
       furniture: 'edificios/3d/capilla_muebles.glb', scale: 111, turn: 0, at: [0, -26],
       // Measured in Blender: the slab's top at 0.13 of its height; its commonest earth at that spot.
       slab: 14.5, earth: [0.3699, 0.4988],
+      // The altar's candles, at the far end (measured in Blender: the cross's top at the middle,
+      // 1.3 of the furniture's height back from its middle; the candles a little over half up it).
+      light: {
+        at: [0, 125, -95], colour: '#ffb866', strength: 1500, reach: 430,
+        flames: [[-28, 50, -170], [-16, 53, -172], [14, 53, -172], [26, 50, -170]],
+      },
     },
   },
 };
