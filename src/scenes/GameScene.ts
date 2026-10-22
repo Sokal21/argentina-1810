@@ -49,6 +49,7 @@ import { Waves } from '../world/waves';
 import { Escort } from '../world/escort';
 import { showEnding } from '../story/ending';
 import { prompt, touch } from '../touch';
+import { glyphs, pad, rumble } from '../pad';
 import { Indoors, ROOMS, type Entering } from '../world/inside';
 import { Road, Route } from '../world/route';
 import { leaning, markup, shut, standing, told as moved, type Standing } from '../story/standing';
@@ -71,6 +72,8 @@ const ZOOM = 1.5;
 // By touch: how near an enemy the sabre goes for by itself, how far off a musket dragged all
 // the way points, and how long an arm let go is kept up waiting to go off.
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
+/** With the gamepad a grenade lands this share of its reach straight ahead. */
+const PAD_THROW = 2 / 3;
 // Soldiers are kept this far apart on the ground, easing apart at this many of it a second: a squad
 // does not stand in one knot where a single swing takes them all. And the turn from one soldier's side
 // of the hero to the next, so that sides never repeat.
@@ -863,13 +866,13 @@ export class GameScene extends Phaser.Scene {
     // In 3D, with a mouse, he looks where the pointer is, at any angle, and walks whichever way the
     // keys say; never running backwards.
     let backing = false;
-    if (this.shownIn3d && !touch.on) {
+    if (this.shownIn3d && !touch.on && !pad.on) {
       const at = this.underMouse(), dx = at.x - this.machi.x, dy = (at.y - this.machi.y) / ISO_Y, far = Math.hypot(dx, dy);
       if (far > 4) this.machi.steer = { x: dx / far, y: dy / far };
       const goes = input.move ?? { x: input.dx, y: input.dy }, len = Math.hypot(goes.x, goes.y), steer = this.machi.steer;
       backing = !!steer && len > 0 && (goes.x * steer.x + goes.y * steer.y) / len < STEER.runAhead;
     } else this.machi.steer = null;
-    const running = this.stamina.update(dt, standing && !this.machi.isDashing && !backing && (this.keys.running || touch.run), this.machi.isMoving);
+    const running = this.stamina.update(dt, standing && !this.machi.isDashing && !backing && (this.keys.running || touch.run || pad.run), this.machi.isMoving);
     this.machi.pace = tune.speed * this.growth.gives('speed') * (this.wrath.active ? RAGE.pace : 1) * (running ? RUN : 1);
     this.machi.haste = this.wrath.active ? RAGE.haste : 1;
     const from = { x: this.machi.x, y: this.machi.y };
@@ -1060,7 +1063,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.beside = nearest;
     // In 3D what can be done with whoever is near is said over them there.
-    this.three?.hint(nearest ? nearest.hint.text : null, nearest ?? null);
+    this.three?.hint(nearest ? glyphs(nearest.hint.text) : null, nearest ?? null);
     // What is being brought somewhere comes along behind the hero, worn down by whoever gets near it.
     this.orders?.clear();
     for (const charge of this.led) {
@@ -1182,6 +1185,7 @@ export class GameScene extends Phaser.Scene {
 
   /** The camera shakes: this one's, or the 3D world's (in its pixels: about as far). */
   private shake(ms: number, intensity: number): void {
+    rumble(ms, intensity * 120);
     if (this.three) this.three.jolt(ms / 1000, Math.max(1, Math.round(intensity * 400)));
     else this.cameras.main.shake(ms, intensity);
   }
@@ -1237,9 +1241,9 @@ export class GameScene extends Phaser.Scene {
     const want: Arm | null = this.readying && held[this.readying] ? this.readying
       : held.musket ? 'musket' : held.grenade ? 'grenade' : null;
     if (want && !this.machi.isDashing) {
-      const pointer = this.pointing(want === 'musket' ? MUSKET_AIMS : GRENADE.range);
-      // A ball flies at the height of the barrel: by touch it is pointed along the ground, and goes level.
-      if (touch.on && want === 'musket') pointer.y -= MUSKET.height;
+      const pointer = this.pointing(want === 'musket' ? MUSKET_AIMS : GRENADE.range, want === 'grenade' ? PAD_THROW : 1);
+      // A ball flies at the height of the barrel: by touch or the gamepad it is pointed along the ground, and goes level.
+      if ((touch.on || pad.on) && want === 'musket') pointer.y -= MUSKET.height;
       this.machi.shoulder(pointer, want);
       this.shotAt = pointer;
       if (this.trigger && this.skill(want).ready && this.fury.spend(ARMS[want].cost)) {
@@ -1595,8 +1599,9 @@ export class GameScene extends Phaser.Scene {
     }
     // A dodge cannot be made with no breath; what it costs is taken once it has begun (below).
     if (input.dash && !this.stamina.canDodge) input.dash = false;
-    this.marker.setVisible(controls.mouse && !touch.on);
+    this.marker.setVisible(controls.mouse && !touch.on && !pad.on);
     if (touch.on) return this.byTouch(input);
+    if (pad.on) return this.byPad(input);
     if (!controls.mouse || arrows) return input;
 
     const mouse = this.input.activePointer, pointer = this.underMouse();
@@ -1635,6 +1640,20 @@ export class GameScene extends Phaser.Scene {
     return input;
   }
 
+  // With the gamepad: the stick walks at any angle and the hero faces the way it goes; an attack
+  // goes straight ahead, with no help to aim.
+  private byPad(input: MachiInput): MachiInput {
+    const { stick } = pad;
+    if (stick) {
+      // The stick is pushed the way the hero should be seen to go; the ground is foreshortened.
+      const far = Math.hypot(stick.x, stick.y / ISO_Y) || 1;
+      input.move = { x: stick.x / far, y: stick.y / ISO_Y / far };
+      this.heading = input.move;
+    }
+    if (input.attack) input.aim = this.heading;
+    return input;
+  }
+
   // Whoever of the enemy is nearest the hero and no further than a reach, if anyone.
   private nearest(reach: number): Foe | undefined {
     let found: Foe | undefined, least = reach;
@@ -1651,7 +1670,12 @@ export class GameScene extends Phaser.Scene {
    * as far as the button held is dragged, out to `reach` when dragged all the way; held and not
    * dragged, it is whoever of the enemy is nearest within that reach, or a little way ahead.
    */
-  private pointing(reach: number): Vec {
+  private pointing(reach: number, ahead = 1): Vec {
+    // With the gamepad, straight ahead: as far as it reaches, or the share of that asked for.
+    if (pad.on) {
+      const at = this.machi, far = reach * ahead;
+      return this.pointed = { x: at.x + this.heading.x * far, y: at.y + this.heading.y * far * ISO_Y };
+    }
     if (!touch.on) return this.underMouse();
     const { drag } = touch, at = this.machi;
     if (drag && drag.by !== 'attack') return this.pointed = { x: at.x + drag.x * reach, y: at.y + drag.y * reach * ISO_Y };

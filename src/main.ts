@@ -7,6 +7,7 @@ import { HudScene } from './scenes/HudScene';
 import { SelectScene } from './scenes/SelectScene';
 import { TitleScene } from './scenes/TitleScene';
 import { key, mountTouch, touch } from './touch';
+import { mountPad } from './pad';
 import { forget } from './save';
 import { music, nowPlaying, setMusic } from './music';
 import { mountSupport } from './support';
@@ -110,6 +111,7 @@ setInterval(() => {
 }, 1000);
 
 mountTouch(game);
+mountPad(game);
 mountSupport();
 mountSheet(game);
 mountShop(game);
