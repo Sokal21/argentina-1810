@@ -2316,6 +2316,56 @@
       "asset_id": "f9011334-b8b5-4d31-b4a1-6f09d3d6e899",
       "label": "Cabildo 3D turnaround B (flat colour, five arches a side, courtyard)",
       "file": "assets/edificios/3d/cabildo_giro_b.png"
+    },
+    {
+      "asset_id": "f8beeeaa-8289-4f43-8860-6659c6b17888",
+      "label": "capilla 3D turnaround A (gable door, lean-to porch)",
+      "file": "assets/edificios/3d/capilla_giro_a.png"
+    },
+    {
+      "asset_id": "e1215107-a217-441b-ad1c-64186aa4f8b8",
+      "label": "capilla 3D turnaround B (flatter, ghosted roofs above)",
+      "file": "assets/edificios/3d/capilla_giro_b.png"
+    },
+    {
+      "asset_id": "15f0ead6-1947-40cd-a741-d34c8ce8ddf0",
+      "label": "capilla 3D interior cutaway A (altar back right, cots right)",
+      "file": "assets/edificios/3d/capilla_interior_a.png"
+    },
+    {
+      "asset_id": "01424b82-4a67-49f7-b345-620da2d3191b",
+      "label": "capilla 3D interior cutaway B (altar at the far end, benches left, cots right)",
+      "file": "assets/edificios/3d/capilla_interior_b.png"
+    },
+    {
+      "asset_id": "e604db43-53fc-4e25-a20f-d93c5b2ac678",
+      "label": "capilla 3D turnaround, stone walls, thatched roof",
+      "file": "assets/edificios/3d/capilla_piedra_paja.png"
+    },
+    {
+      "asset_id": "6816c2b2-9ec4-42dc-a807-35c034a3677e",
+      "label": "capilla 3D turnaround, stone walls, clay tile roof",
+      "file": "assets/edificios/3d/capilla_piedra_tejas.png"
+    },
+    {
+      "asset_id": "ba343471-1cc9-4f48-a139-e584d793a9f4",
+      "label": "capilla 3D interior cutaway, stone, A (painted)",
+      "file": "assets/edificios/3d/capilla_interior_piedra_a.png"
+    },
+    {
+      "asset_id": "06f9731b-b72e-4514-90c8-34c56a61e192",
+      "label": "capilla 3D interior cutaway, stone, B (flatter, more floor)",
+      "file": "assets/edificios/3d/capilla_interior_piedra_b.png"
+    },
+    {
+      "asset_id": "e16cce18-c428-4954-8ea7-2ab5ad205f0f",
+      "label": "capilla 3D furniture, no walls, A (lantern post behind the benches)",
+      "file": "assets/edificios/3d/capilla_muebles_a.png"
+    },
+    {
+      "asset_id": "bab3e106-9f36-4684-ab83-3ecbb0d3a9bf",
+      "label": "capilla 3D furniture, no walls, B (lantern post in the far corner)",
+      "file": "assets/edificios/3d/capilla_muebles_b.png"
     }
   ]
 }
