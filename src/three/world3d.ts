@@ -7,7 +7,7 @@ import { CabralFigure, THROWN, type Doing } from './cabral';
 import { GrenadeMarks, Grenades } from './grenade';
 import { Impacts } from './impact';
 import { Fury } from './fury';
-import type { House } from './house';
+import { darkenRooms, roomLight, shadeRooms, type House } from './house';
 import { Mendings } from './mend';
 import { mountPanel } from './panel';
 import { raisePeople } from './people';
@@ -67,6 +67,7 @@ export class World3D {
     document.body.appendChild(this.sign);
     this.view.scene.add(country.group, raisePeople(map), this.cabral.group, this.royalists.group, this.marks.group);
     for (const house of this.houses) this.view.over.add(house.ask);
+    this.view.scene.add(roomLight());
     // The blast itself is the 2D game's, which hurts; this only shows the ball and what it raises.
     this.shots = new Shots(this.view.camera, (from, to) => this.strikes(from, to), () => {});
     // Theirs is stopped by the 2D game's word that it struck him (`wounded`), not by a test of its own:
@@ -120,7 +121,9 @@ export class World3D {
     this.impacts.update(dt);
     this.mendings.update(dt, c);
     // A house he is within has its roof lifted off.
+    darkenRooms();
     for (const house of this.houses) house.update(dt, c);
+    shadeRooms();
     // His rage, about him and over the whole picture: eased in, and out as it ends.
     const rage = doing.rage ?? 0;
     this.fury.update(dt, c, rage);

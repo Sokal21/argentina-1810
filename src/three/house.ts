@@ -21,12 +21,37 @@ import { ground, UPRIGHT } from './space';
 const LIFT = 0.3, LOW = 0.22;
 /** How far in from a wall whoever walks is kept (half how wide they stand). */
 const KEEP = 7;
-/**
- * The light within (its fire, its candles: the building's `light`) is kept always and dark when
- * nobody is inside: a light come and gone rebuilds every material. It wavers as a flame does; its
- * flames' glows are this wide.
- */
+/** Its flames' glows: how wide, and their colour. */
 const FLAME = { wide: 7, colour: '#ffcf80' };
+/** The room light's shadow: its picture's size, and how far it is drawn off what casts it. */
+const ROOM_SHADOW = { size: 512, bias: -0.004 };
+
+/**
+ * The light within whichever room is gone into (its fire, its candles: that building's `light`),
+ * one for them all and kept in the scene, dark when nobody is inside: a light come and gone, or
+ * one that starts or stops casting shadows, rebuilds every material. It casts the shadows of
+ * whoever and whatever stands within onto the floor; its shadows are drawn only while it is lit.
+ */
+let lighting: THREE.PointLight | null = null;
+export function roomLight(): THREE.PointLight {
+  if (lighting) return lighting;
+  lighting = new THREE.PointLight('#ffffff', 0, 1, 1.2);
+  lighting.castShadow = true;
+  lighting.shadow.mapSize.set(ROOM_SHADOW.size, ROOM_SHADOW.size);
+  lighting.shadow.bias = ROOM_SHADOW.bias;
+  lighting.shadow.camera.near = 4;
+  lighting.shadow.autoUpdate = false;
+  return lighting;
+}
+/** Each frame, before the houses: dark until one that is gone into lights it. */
+export function darkenRooms(): void {
+  roomLight().intensity = 0;
+}
+/** Each frame, after the houses: its shadows drawn only while one is lit. */
+export function shadeRooms(): void {
+  const light = roomLight();
+  light.shadow.autoUpdate = light.intensity > 0;
+}
 /** How far within the front wall's inside face its window reaches. */
 const REVEAL = 16;
 /** The sign over a keeper: how high over the floor, and how near (on the 2D ground) whoever comes must be before it gives way to what F does. */
@@ -59,7 +84,6 @@ export class House {
   /** Which side wall faces the camera as well as the front (its length's way, +1 or -1), if either does. */
   private readonly side: number;
   private readonly room = new THREE.Group();
-  private readonly hearth = new THREE.PointLight('#ffffff', 0, 1, 1.2);
   private readonly flames: THREE.Sprite[] = [];
   /** How far the roof has lifted: 0 standing, 1 off. */
   private lifted = 0;
@@ -102,20 +126,24 @@ export class House {
       const cut = (o: THREE.Object3D, planes: THREE.Plane[]) => o.traverse(node => {
         if (!(node instanceof THREE.Mesh)) return;
         const material = (node.material as THREE.Material).clone();
-        // Cut open, its walls are seen from within too; and the roof's shadow goes with the roof.
+        // Cut open, its walls are seen from within too. Its shadow is the whole house's, roof and
+        // all, cut or not: the room stays in it, out of the moon, lit only from within.
         material.side = THREE.DoubleSide;
         material.clippingPlanes = planes;
-        material.clipShadows = true;
+        material.clipShadows = false;
         node.material = material;
       });
       const foot = shape.clone(true), sideFoot = this.side ? shape.clone(true) : null;
       cut(shape, [this.roofCut, this.frontCut, this.sideCut, this.undersideCut]);
       cut(foot, [this.behindCut, this.footCut, this.undersideCut]);
+      // The whole house casts its shadow already.
+      foot.traverse(node => { node.castShadow = false; });
       foot.visible = false;
       this.foot = foot;
       this.group.add(foot);
       if (sideFoot) {
         cut(sideFoot, [this.besideCut, this.footCut, this.undersideCut]);
+        sideFoot.traverse(node => { node.castShadow = false; });
         sideFoot.visible = false;
         this.sideFoot = sideFoot;
         this.group.add(sideFoot);
@@ -126,8 +154,7 @@ export class House {
     // The floor, out under the walls (within them it left the ground showing at their foot).
     const floor = new THREE.Mesh(new THREE.BoxGeometry(long, 1, deep), flat(inside.floor));
     floor.position.y = 0.5;
-    // Lit from within, not by the moon through its walls: the room takes none of the world's shadow.
-    floor.receiveShadow = false;
+    floor.receiveShadow = true;
     this.room.add(floor);
     // The walls nobody walks through: the back and the two ends; the front either side of the door.
     const wall = (x: number, z: number, w: number, d: number) => this.walls.push({ x, z, hw: w / 2, hd: d / 2 });
@@ -145,7 +172,6 @@ export class House {
       this.room.add(shape);
       shape.traverse(node => {
         if (!(node instanceof THREE.Mesh)) return;
-        node.receiveShadow = false;
         const uv = floor.geometry.getAttribute('uv') as THREE.BufferAttribute;
         for (let k = 0; k < uv.count; k++) uv.setXY(k, inside.earth[0], inside.earth[1]);
         uv.needsUpdate = true;
@@ -163,10 +189,7 @@ export class House {
         this.room.add(body);
       });
     }
-    const { at, colour, reach, flames } = inside.light;
-    this.hearth.position.set(...at);
-    this.hearth.color.set(colour);
-    this.hearth.distance = reach;
+    const { flames } = inside.light;
     for (const spot of flames ?? []) {
       const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow(), color: FLAME.colour, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
       flame.position.set(...spot);
@@ -174,7 +197,7 @@ export class House {
       this.flames.push(flame);
       this.room.add(flame);
     }
-    this.group.add(this.room, this.hearth);
+    this.group.add(this.room);
   }
 
   /** Puts the cuts where the roof has lifted to, in the world. */
@@ -255,7 +278,15 @@ export class House {
     // A flame never burns evenly: two beats and a little noise, its glows with it.
     this.time += dt;
     const waver = 0.84 + 0.09 * Math.sin(this.time * 9.1) + 0.05 * Math.sin(this.time * 15.7 + 1.3) + 0.04 * Math.random();
-    this.hearth.intensity = this.spec.inside.light.strength * this.lifted * waver;
+    // The room light, while this one is gone into (the one most gone into, as one is left for another).
+    const light = roomLight(), { at: spot, colour, reach, strength } = this.spec.inside.light, lit = strength * this.lifted * waver;
+    if (lit > light.intensity) {
+      this.group.updateWorldMatrix(true, false);
+      light.position.copy(this.group.localToWorld(new THREE.Vector3(...spot)));
+      light.color.set(colour);
+      light.distance = light.shadow.camera.far = reach;
+      light.intensity = lit;
+    }
     this.flames.forEach((flame, i) => {
       flame.material.opacity = 0.55 + 0.45 * this.lifted * (waver + 0.08 * Math.sin(this.time * 11 + i * 2.1));
       flame.scale.setScalar(FLAME.wide * (0.85 + 0.25 * waver));

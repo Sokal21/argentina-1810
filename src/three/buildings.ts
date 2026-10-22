@@ -65,7 +65,7 @@ export const MODELS: Record<string, BuildingModel> = {
       // Measured in Blender: the slab's top at 0.0885 of its height; its commonest earth at that spot.
       slab: 13.5, earth: [0.7283, 0.1296],
       // Its fire, in the middle of the room.
-      light: { at: [-58, 90, 0], colour: '#ffae6a', strength: 520, reach: 380 },
+      light: { at: [-58, 110, 0], colour: '#ffae6a', strength: 900, reach: 400 },
       // Don Braulio, by his counter (Tripo from turnaround B, 21 October 2026).
       keeper: { who: 'braulio', url: 'pulpero/3d/braulio_animado.glb', drawn: 80, at: [-25, -95] },
     },
