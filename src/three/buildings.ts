@@ -24,6 +24,11 @@ export interface BuildingModel {
     walls: { long: number; deep: number; tall: number; thick: number };
     /** The door in its front wall: how far along from the middle (to the left as you face it, less) and how wide. */
     door: { x: number; wide: number };
+    /**
+     * Whether a side wall that faces the camera as well (turned that way enough) is cut down with the
+     * front, and whatever stands beyond it: where it hides the room, as the chapel's long side does.
+     */
+    side?: boolean;
     plaster: string;
     floor: string;
     /** What stands in it: its model, how tall that stands, its turn, and where its middle is. */
@@ -56,6 +61,19 @@ export const MODELS: Record<string, BuildingModel> = {
       slab: 13.5, earth: [0.7283, 0.1296],
       // Don Braulio, by his counter (Tripo from turnaround B, 21 October 2026).
       keeper: { who: 'braulio', url: 'pulpero/3d/braulio_animado.glb', drawn: 80, at: [-25, -95] },
+    },
+  },
+  // Tripo from the stone turnaround under clay tiles (the user's pick), 22 October 2026: its door in
+  // the gable end, a lean-to along its right. Centred on its walls, the lean-to standing out to one side.
+  'La capilla': {
+    url: 'edificios/3d/capilla.glb', tall: 260, drawing: [360, 261], long: 1.222, deep: 1.662,
+    // Tripo from furniture set B (no walls, the lantern's post out of the way), 22 October 2026.
+    inside: {
+      walls: { long: 231, deep: 398, tall: 135, thick: 12 }, door: { x: -4, wide: 65 }, side: true,
+      plaster: '#b8b2a4', floor: '#6e5638',
+      furniture: 'edificios/3d/capilla_muebles.glb', scale: 111, turn: 0, at: [0, -26],
+      // Measured in Blender: the slab's top at 0.13 of its height; its commonest earth at that spot.
+      slab: 14.5, earth: [0.3699, 0.4988],
     },
   },
 };

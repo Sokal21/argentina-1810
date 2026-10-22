@@ -46,6 +46,13 @@ material with the texture nearest-filtered, and grows it to the drawn height.
   It came on a slab of earth: let it down so the slab's top is the floor, and paint the floor with
   that earth (one spot of its texture). Walls nobody walks through but by the door; a warm light
   within, kept in the scene and dark outside.
+- **A second building (La capilla, 22 October 2026):** the sheet comes in two rows: cut it by
+  quadrants, and **check every view against the three-quarter one** before Tripo: its "right side"
+  showed the building's left (the lean-to was on the left, seen from the front), and its back view
+  was drawn mirrored. A lean-to off one side makes the model's box lopsided: centre it on its walls
+  (measured by the faces of its side walls), not its box, before cutting the door. A long side wall
+  that faces the camera hides the room as the front does: `side: true` cuts it down too, and the
+  lean-to with it.
 - **Its keeper:** a character's turnaround and model as above, rigged (Tripo `animations/rig`,
   `"input": <model task id>`, v1.0, 25), with the shared breathing idle; stood by the counter,
   turning to whoever comes in; talked to with F as in the 2D game, a sign over them.

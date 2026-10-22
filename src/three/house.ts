@@ -11,7 +11,8 @@ import { ground, UPRIGHT } from './space';
 // A building with a model of its own, and a room inside it that is gone into without a cut. The
 // room's walls are the model's own: as soon as someone stands within them its roof is lifted off
 // (cut away from the ridge down to the top of the walls) and its front wall is cut down low but for
-// its foot, door and all; stepping out, they come back. So the walls seen from within are the very
+// its foot, door and all, and, where it is asked for, so is a side wall that faces the camera too,
+// with whatever stands beyond it (a lean-to); stepping out, they come back. So the walls seen from within are the very
 // walls seen from without, plaster, stains and all (plain walls of its own looked another house).
 // Within them: a floor, and what stands in the room. Everything is laid out in the building's own
 // frame: x along its length, z out of its front, y up.
@@ -26,13 +27,18 @@ const HEARTH = { colour: '#ffae6a', strength: 520, reach: 380, high: 90 };
 const REVEAL = 16;
 /** The sign over a keeper: how high over the floor, and how near (on the 2D ground) whoever comes must be before it gives way to what F does. */
 const ASK = { over: 122, near: 110 };
+/** How far round toward the camera a side wall's outside must turn (the sine of its turn) to be cut like the front. */
+const SIDEWAYS = 0.25;
 /** Where a cut stands when it cuts nothing: far above, or far in front. */
 const AWAY = 1e5;
 
 export class House {
   readonly group = new THREE.Group();
-  /** A copy of the building showing only its front wall's foot, while inside. */
+  /** A copy of the building showing only its front wall's foot, while inside; and one for its side wall's. */
   private foot: THREE.Object3D | null = null;
+  private sideFoot: THREE.Object3D | null = null;
+  /** Which side wall faces the camera as well as the front (its length's way, +1 or -1), if either does. */
+  private readonly side: number;
   private readonly room = new THREE.Group();
   private readonly hearth = new THREE.PointLight(HEARTH.colour, 0, HEARTH.reach, 1.2);
   /** How far the roof has lifted: 0 standing, 1 off. */
@@ -46,6 +52,9 @@ export class House {
   private readonly frontCut = new THREE.Plane(new THREE.Vector3(0, -1, 0), AWAY);
   private readonly behindCut = new THREE.Plane(new THREE.Vector3(0, -1, 0), AWAY);
   private readonly footCut = new THREE.Plane(new THREE.Vector3(0, -1, 0), AWAY);
+  /** The same for the side wall that faces the camera: beyond its inside face, cut; its foot's copy, kept beyond it. */
+  private readonly sideCut = new THREE.Plane(new THREE.Vector3(0, -1, 0), AWAY);
+  private readonly besideCut = new THREE.Plane(new THREE.Vector3(0, -1, 0), AWAY);
   /** And its underside, never seen from outside but seen from within over the floor: cut always. */
   private readonly undersideCut = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   /** The walls as boxes in the building's frame, which nobody walks through. */
@@ -63,6 +72,9 @@ export class House {
     this.group.position.copy(ground(where.x, where.y));
     this.group.rotation.y = where.turn;
     this.ask.visible = false;
+    // The camera looks from +Z: a side whose outside turns that way hides the room as the front does.
+    const toward = spec.inside?.side ? -Math.sin(where.turn) : 0;
+    this.side = toward > SIDEWAYS ? 1 : toward < -SIDEWAYS ? -1 : 0;
     const inside = spec.inside;
     void model(spec.url, spec.tall / UPRIGHT).then(shape => {
       this.group.add(shape);
@@ -76,12 +88,18 @@ export class House {
         material.clipShadows = true;
         node.material = material;
       });
-      const foot = shape.clone(true);
-      cut(shape, [this.roofCut, this.frontCut, this.undersideCut]);
+      const foot = shape.clone(true), sideFoot = this.side ? shape.clone(true) : null;
+      cut(shape, [this.roofCut, this.frontCut, this.sideCut, this.undersideCut]);
       cut(foot, [this.behindCut, this.footCut, this.undersideCut]);
       foot.visible = false;
       this.foot = foot;
       this.group.add(foot);
+      if (sideFoot) {
+        cut(sideFoot, [this.besideCut, this.footCut, this.undersideCut]);
+        sideFoot.visible = false;
+        this.sideFoot = sideFoot;
+        this.group.add(sideFoot);
+      }
     });
     if (!inside) return;
     const { long, deep, thick } = inside.walls;
@@ -131,7 +149,7 @@ export class House {
   private place(): void {
     const inside = this.spec.inside;
     if (!inside) return;
-    const { tall, deep, thick } = inside.walls, base = this.group.position.y, k = this.lifted;
+    const { tall, long, deep, thick } = inside.walls, base = this.group.position.y, k = this.lifted;
     const out = new THREE.Vector3(Math.sin(this.where.turn), 0, Math.cos(this.where.turn)), along = out.dot(this.group.position);
     // From the ridge down to the top of the walls as it lifts; nowhere while it stands.
     this.roofCut.constant = k > 0 ? base + this.spec.tall + (tall - this.spec.tall) * k : AWAY;
@@ -141,10 +159,19 @@ export class House {
     if (k > 0) this.frontCut.set(out.clone().negate(), along + face);
     else this.frontCut.set(new THREE.Vector3(0, -1, 0), AWAY);
     this.behindCut.set(out.clone(), -(along + face));
+    // The side wall that faces the camera, likewise, and all beyond it.
+    if (this.side) {
+      const outward = new THREE.Vector3(Math.cos(this.where.turn), 0, -Math.sin(this.where.turn)).multiplyScalar(this.side);
+      const by = outward.dot(this.group.position), sideFace = long / 2 - thick - REVEAL;
+      if (k > 0) this.sideCut.set(outward.clone().negate(), by + sideFace);
+      else this.sideCut.set(new THREE.Vector3(0, -1, 0), AWAY);
+      this.besideCut.set(outward, -(by + sideFace));
+    }
     // The front, wiped down as the roof is lifted: from the ridge (all of it, its eaves too) to its foot.
     this.footCut.set(new THREE.Vector3(0, -1, 0), base + this.spec.tall + (tall * LOW - this.spec.tall) * k);
     this.undersideCut.constant = -(base + 1.5);
     if (this.foot) this.foot.visible = k > 0;
+    if (this.sideFoot) this.sideFoot.visible = k > 0;
   }
 
   /** Where whoever keeps it stands, on the 2D ground, and who they are. */
