@@ -57,6 +57,29 @@
   #keys dt, #taps dt { color: #ff7a00; white-space: nowrap; }
   #keys dd, #taps dd { margin: 0; color: #cdbf9d; }
   #keys[hidden], #taps[hidden] { display: none; }
+  /* The gamepad: drawn, each button pointed to with what it does. */
+  #padmap[hidden] { display: none; }
+  #padmap svg { display: block; width: 100%; height: auto; }
+  #padmap .lines path { fill: none; stroke: #6b5c44; stroke-width: 2; }
+  #padmap .body rect, #padmap .body path { fill: #1c1713; stroke: #e2c478; stroke-width: 3; }
+  #padmap .parts circle, #padmap .parts path { fill: #2a221c; stroke: #e2c478; stroke-width: 2; }
+  #padmap .parts .cap { fill: #3a3027; }
+  #padmap .parts .a { fill: #3f7a3a; } #padmap .parts .b { fill: #9a2e22; } #padmap .parts .x { fill: #2c4f8a; } #padmap .parts .y { fill: #a8862c; }
+  #padmap .letter { font: 13px/1 'Silkscreen', ui-monospace, monospace; fill: #f0e3c4; text-anchor: middle; }
+  #padmap .parts path.over { fill: none; stroke: #6b5c44; stroke-width: 2; }
+  #padmap .letter.small { font-size: 11px; fill: #e2c478; }
+  #padmap .labels text { font-size: 19px; fill: #cdbf9d; }
+  #padmap .labels .soft { fill: #8a7a5e; font-size: 16px; }
+  #padmap .labels .k, #padmap .labels .a, #padmap .labels .b, #padmap .labels .x { font: 15px 'Silkscreen', ui-monospace, monospace; }
+  #padmap .labels .k { fill: #ff7a00; }
+  #padmap .labels .a { fill: #6fbf5f; } #padmap .labels .b { fill: #e0604a; } #padmap .labels .x { fill: #6f9ae0; }
+  /* The word that a gamepad has been taken up, and where its buttons are shown. */
+  #pad-toast {
+    position: fixed; left: 50%; top: 18px; z-index: 20; transform: translateX(-50%); pointer-events: none;
+    padding: 9px 18px 10px; background: #14110f; color: #f0e3c4; box-shadow: 0 0 0 2px #e2c478, 0 0 0 4px #0a0807;
+    font: 19px/1 'Silkscreen', ui-monospace, monospace; transition: opacity .4s;
+  }
+  #pad-toast[hidden] { display: block; opacity: 0; }
   #pause .saved { margin: 0 0 8px; color: #cdbf9d; }
   #pause .music { display: flex; align-items: center; gap: 14px; }
   #pause .music input { flex: 1; accent-color: #e2c478; height: 28px; }
@@ -207,6 +230,50 @@
       <dt>Cartel</dt><dd>Hablar, levantar y comprar aparecen cuando hay con qué</dd>
       <dt>Libro</dt><dd>Personaje: nivel, puntos, lo que lleva y lo que sabe</dd>
     </dl>
+    <div id="padmap" hidden>
+      <svg viewBox="0 0 760 360" role="img" aria-label="Los botones del joystick y lo que hace cada uno">
+        <g class="lines">
+          <path d="M172 52 H232 L268 74" />
+          <path d="M564 52 H528 L492 74" /><path d="M564 98 H530 L498 100" />
+          <path d="M352 168 V318" /><path d="M408 168 V318" />
+        </g>
+        <g class="body">
+          <rect x="243" y="62" width="52" height="22" rx="9" /><rect x="465" y="62" width="52" height="22" rx="9" />
+          <rect x="236" y="92" width="72" height="14" rx="7" /><rect x="452" y="92" width="72" height="14" rx="7" />
+          <path d="M270 110 Q380 96 490 110 Q545 118 560 170 Q586 268 560 304 Q540 330 505 300 Q470 262 440 258 L320 258 Q290 262 255 300 Q220 330 200 304 Q174 268 200 170 Q215 118 270 110 Z" />
+        </g>
+        <g class="parts">
+          <circle cx="285" cy="160" r="22" /><circle cx="285" cy="160" r="13" class="cap" />
+          <circle cx="430" cy="215" r="20" /><circle cx="430" cy="215" r="12" class="cap" />
+          <path d="M322 196 h16 v12 h12 v16 h-12 v12 h-16 v-12 h-12 v-16 h12 Z" class="cap" />
+          <circle cx="352" cy="160" r="7" /><circle cx="408" cy="160" r="7" /><circle cx="380" cy="134" r="11" class="cap" />
+          <circle cx="475" cy="137" r="11" class="y" /><circle cx="452" cy="160" r="11" class="x" />
+          <circle cx="498" cy="160" r="11" class="b" /><circle cx="475" cy="183" r="11" class="a" />
+          <text x="475" y="142" class="letter">Y</text><text x="452" y="165" class="letter">X</text>
+          <text x="498" y="165" class="letter">B</text><text x="475" y="188" class="letter">A</text>
+          <text x="269" y="78" class="letter small">LT</text>
+          <path d="M172 150 H240 L263 160" class="over" /><path d="M172 230 H296 L312 218" class="over" /><text x="491" y="78" class="letter small">RT</text>
+          <text x="272" y="103" class="letter small">LB</text><text x="488" y="103" class="letter small">RB</text>
+        </g>
+        <g class="labels">
+          <text x="166" y="57" text-anchor="end"><tspan class="k">LT</tspan> el mosquete</text>
+          <text x="166" y="78" text-anchor="end" class="soft">mantené para apuntar</text>
+          <text x="166" y="146" text-anchor="end"><tspan class="k">Stick</tspan> moverse</text>
+          <text x="166" y="170" text-anchor="end"><tspan class="k">L3</tspan> correr</text>
+          <text x="166" y="226" text-anchor="end"><tspan class="k">↑</tspan> furia</text>
+          <text x="166" y="250" text-anchor="end"><tspan class="k">←</tspan> tienda <tspan class="k">↑↓</tspan> elegir</text>
+          <text x="570" y="57"><tspan class="k">RT</tspan> sablazo</text>
+          <text x="570" y="78" class="soft">con <tspan class="k">LT</tspan>, disparar</text>
+          <text x="570" y="103"><tspan class="k">RB</tspan> granada: mantené</text>
+          <text x="570" y="124" class="soft">y soltá para tirarla</text>
+          <text x="570" y="168"><tspan class="a">A</tspan> hablar · elegir</text>
+          <text x="570" y="194"><tspan class="b">B</tspan> rodar · volver</text>
+          <text x="570" y="220"><tspan class="x">X</tspan> tomar del chifle</text>
+          <text x="352" y="340" text-anchor="end"><tspan class="k">⧉</tspan> tu hoja</text>
+          <text x="408" y="340"><tspan class="k">≡</tspan> pausa</text>
+        </g>
+      </svg>
+    </div>
     <button id="quality" class="again quality">Calidad: alta</button>
     <h2>Partida</h2>
     <p class="saved">Se guarda sola mientras jugás. Al volver, seguís donde quedaste.</p>

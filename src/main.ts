@@ -7,7 +7,7 @@ import { HudScene } from './scenes/HudScene';
 import { SelectScene } from './scenes/SelectScene';
 import { TitleScene } from './scenes/TitleScene';
 import { key, mountTouch, touch } from './touch';
-import { mountPad } from './pad';
+import { mountPad, pad } from './pad';
 import { forget } from './save';
 import { music, nowPlaying, setMusic } from './music';
 import { mountSupport } from './support';
@@ -181,8 +181,9 @@ const togglePause = () => {
   if (!paused && !game.scene.isActive('game')) return;
   paused = !paused;
   // What it says of the controls is what there is to hand: keys, or the buttons on the screen.
-  document.getElementById('keys')!.hidden = touch.on;
+  document.getElementById('keys')!.hidden = touch.on || pad.on;
   document.getElementById('taps')!.hidden = !touch.on;
+  document.getElementById('padmap')!.hidden = !pad.on || touch.on;
   qualityButton.textContent = `Calidad: ${NAMES[quality]}`;
   again.classList.remove('sure');
   again.textContent = 'Empezar de nuevo';

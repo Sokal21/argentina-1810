@@ -83,6 +83,16 @@ function chooser(): HTMLElement | null {
 
 const STYLE = `.pad-chosen { outline: 3px solid #ffb45a !important; outline-offset: 2px; }`;
 
+/** The first time the gamepad is taken up, a word that it has been, and where its buttons are shown. */
+let greeted = false;
+function greet(): void {
+  if (greeted) return;
+  greeted = true;
+  const toast = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'pad-toast', textContent: 'Joystick conectado · ≡ para ver los controles' }));
+  setTimeout(() => { toast.hidden = true; }, 4500);
+  setTimeout(() => toast.remove(), 5200);
+}
+
 /** Starts listening to the gamepad, for as long as the game runs. */
 export function mountPad(game: Phaser.Game): void {
   if (!navigator.getGamepads) return;
@@ -114,7 +124,7 @@ export function mountPad(game: Phaser.Game): void {
     const far = Math.hypot(x, y);
     if (far > 1) { x /= far; y /= far; }
     const stick = far < SLACK ? null : { x, y };
-    if (stick || down.some(Boolean)) pad.on = true;
+    if ((stick || down.some(Boolean)) && !pad.on) { pad.on = true; greet(); }
     if (!pad.on) { was = down; return; }
 
     // A step through a list: the cross, or the stick pushed well over, again while held.
