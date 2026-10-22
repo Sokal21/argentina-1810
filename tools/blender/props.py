@@ -287,28 +287,31 @@ def halberd(armature: bpy.types.Object, bone: str = 'R_Hand', action: str = 'rep
     floor, tall = min(heights), max(heights) - min(heights)
     length = tall * 1.15
     shaft_r = tall * 0.011
-    # Built standing on its butt at the origin, along +Z, the blade toward -Y (his right, outward).
-    bpy.ops.mesh.primitive_cylinder_add(vertices=6, radius=shaft_r, depth=length * 0.94, location=(0, 0, length * 0.47))
+    # Built lying along +X from its butt at the origin (as the sabre and the musket, so that it can
+    # be aimed like them), the blade toward -Y (his right, outward), its flats facing up and down.
+    bpy.ops.mesh.primitive_cylinder_add(vertices=6, radius=shaft_r, depth=length * 0.94, location=(length * 0.47, 0, 0), rotation=(0, math.pi / 2, 0))
     shaft = bpy.context.active_object
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     shaft.data.materials.append(material('madera', WOOD))
     parts = [shaft]
-    parts.append(box('cubo', (shaft_r * 2.6, shaft_r * 2.6, length * 0.08), (0, 0, length * 0.9), IRON, 'hierro'))
-    bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=shaft_r * 1.6, radius2=0, depth=length * 0.13, location=(0, 0, length * 1.0))
+    parts.append(box('cubo', (length * 0.08, shaft_r * 2.6, shaft_r * 2.6), (length * 0.9, 0, 0), IRON, 'hierro'))
+    bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=shaft_r * 1.6, radius2=0, depth=length * 0.13, location=(length * 1.0, 0, 0), rotation=(0, math.pi / 2, 0))
     spike = bpy.context.active_object
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     spike.data.materials.append(material('acero', STEEL))
     parts.append(spike)
-    # The axe: broad and flat, out from the shaft toward his right; its edge a little longer below.
-    parts.append(box('hacha', (shaft_r * 1.2, length * 0.065, length * 0.08), (0, -length * 0.045, length * 0.9), STEEL, 'acero'))
-    parts.append(box('filo', (shaft_r * 1.2, length * 0.02, length * 0.11), (0, -length * 0.085, length * 0.895), STEEL, 'acero'))
+    # The axe: broad and flat, out from the shaft toward his right; its edge a little longer.
+    parts.append(box('hacha', (length * 0.08, length * 0.065, shaft_r * 1.2), (length * 0.9, -length * 0.045, 0), STEEL, 'acero'))
+    parts.append(box('filo', (length * 0.11, length * 0.02, shaft_r * 1.2), (length * 0.895, -length * 0.085, 0), STEEL, 'acero'))
     # The hook behind it, toward his left.
-    parts.append(box('gancho', (shaft_r * 1.2, length * 0.05, length * 0.02), (0, length * 0.035, length * 0.91), STEEL, 'acero'))
+    parts.append(box('gancho', (length * 0.02, length * 0.05, shaft_r * 1.2), (length * 0.91, length * 0.035, 0), STEEL, 'acero'))
     for p in parts:
         p.select_set(True)
     bpy.context.view_layer.objects.active = parts[0]
     bpy.ops.object.join()
     pole = bpy.context.active_object
     pole.name = 'alabarda'
-    # Its origin at its butt (the joined pieces kept the shaft's, half way up it).
+    # Its origin at its butt (the joined pieces kept the shaft's, half way along it).
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
     # The fist closed round it (in the rest pose, as the sabre's), and where the grip is in it.
@@ -329,7 +332,8 @@ def halberd(armature: bpy.types.Object, bone: str = 'R_Hand', action: str = 'rep
     posed = armature.matrix_world @ pb.matrix @ armature.data.bones[bone].matrix_local.inverted() @ armature.matrix_world.inverted()
     grip = posed @ grip_rest
     # Upright through the grip, its butt on the ground; the blade out to his right as he stands.
-    pole.matrix_world = Matrix.Translation(Vector((grip.x, grip.y, floor + tall * 0.005)))
+    # Its length (+X) turned up, its blade still toward his right.
+    pole.matrix_world = Matrix.Translation(Vector((grip.x, grip.y, floor + tall * 0.005))) @ Matrix.Rotation(-math.pi / 2, 4, 'Y')
     world = pole.matrix_world.copy()
     pole.parent = armature
     pole.parent_type = 'BONE'
