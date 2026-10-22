@@ -69,41 +69,92 @@ bones = arm.pose.bones
 local = arm.matrix_world.inverted()
 
 
-def wrists() -> tuple:
-    return bones['R_Hand'].matrix.to_translation(), bones['L_Hand'].matrix.to_translation()
+def fists() -> tuple:
+    return props.held_at(arm, 'R_Hand'), props.held_at(arm, 'L_Hand')
 
 
-# Which way the head is: from the left hand to the right, or back, whichever is ahead at the blow.
+def axis() -> Vector:
+    return (local.to_3x3() @ (pole.matrix_world.to_3x3() @ Vector((1, 0, 0)))).normalized()
+
+
+def edge() -> Vector:
+    """The way the axe's edge faces: the halberd's -Y."""
+    return (local.to_3x3() @ (pole.matrix_world.to_3x3() @ Vector((0, -1, 0)))).normalized()
+
+
+def lay(hand, way: Vector, facing: Vector | None) -> None:
+    """Turns the hand about its wrist so the halberd lies along `way`, its edge toward `facing`."""
+    target_x = way.normalized()
+    if facing is None:
+        q = axis().rotation_difference(target_x)
+    else:
+        e = (facing - target_x * facing.dot(target_x)).normalized()
+        target = Matrix((target_x, -e, target_x.cross(-e))).transposed()
+        now = Matrix((axis(), -edge(), axis().cross(-edge()))).transposed()
+        q = (target @ now.inverted()).to_quaternion()
+    head = hand.matrix.to_translation()
+    hand.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ hand.matrix
+    bpy.context.view_layer.update()
+
+
+def through_fists(hand) -> Vector:
+    """The halberd laid through both fists. The shaft is held in the right fist, which moves as the hand
+    turns about the wrist: laid, looked at again, laid again, until it passes through the left too."""
+    for _ in range(4):
+        right, left = fists()
+        way = ((right - left) * sign).normalized()
+        lay(hand, way, None)
+    return way
+
+
+# Which way the head is: from the left fist to the right, or back, whichever is down at the blow
+# (the shaft stands near upright there, and which way is ahead of him is too near to call).
 bones['R_Hand'].matrix_basis = Matrix.Identity(4)
 bpy.context.scene.frame_set(BLOW - FROM)
 bpy.context.view_layer.update()
-right, left = wrists()
-sign = 1 if (right - left).x >= 0 else -1
+right, left = fists()
+sign = 1 if (right - left).z <= 0 else -1
 
+# First the way it lies every frame, through both fists.
+ways = {}
 for frame in range(0, last + 1):
     hand = bones['R_Hand']
-    # The capture does not turn the hand: it is kept as the forearm has it, and turned here.
     hand.matrix_basis = Matrix.Identity(4)
     bpy.context.scene.frame_set(frame)
     bpy.context.view_layer.update()
-    right, left = wrists()
-    way = ((right - left) * sign).normalized()
-    now = (local.to_3x3() @ (pole.matrix_world.to_3x3() @ Vector((1, 0, 0)))).normalized()
-    q = now.rotation_difference(way)
-    hand.matrix = Matrix.Translation(right) @ q.to_matrix().to_4x4() @ Matrix.Translation(-right) @ hand.matrix
+    ways[frame] = through_fists(hand)
+
+# The edge toward where the head is going: the way it turns from the frame before to the frame
+# after, square to the shaft; where it hardly moves (standing on guard) it keeps the last edge it
+# had; and smoothed over the frames either side, so that it does not flicker.
+SMOOTH = 3
+going, held = {}, None
+for frame in range(0, last + 1):
+    a, b = ways[max(0, frame - 1)], ways[min(last, frame + 1)]
+    turn = b - a
+    turn -= ways[frame] * turn.dot(ways[frame])
+    if turn.length > 0.02:
+        held = turn.normalized()
+    going[frame] = held
+first_known = next(v for v in going.values() if v is not None)
+facing = {}
+for frame in range(0, last + 1):
+    near = [going[f] or first_known for f in range(frame - SMOOTH, frame + SMOOTH + 1) if f in going]
+    facing[frame] = sum(near, Vector()).normalized()
+
+# Then laid so, and keyed.
+for frame in range(0, last + 1):
+    hand = bones['R_Hand']
+    hand.matrix_basis = Matrix.Identity(4)
+    bpy.context.scene.frame_set(frame)
     bpy.context.view_layer.update()
+    through_fists(hand)
+    for _ in range(2):
+        right, left = fists()
+        lay(hand, ((right - left) * sign).normalized(), facing[frame])
     hand.keyframe_insert('rotation_quaternion', frame=frame)
-    # The left wrist onto the line the right's lies on, along the shaft; its elbow where it was.
-    upper = bones['L_Upperarm']
-    forearm = next(c for c in upper.children if 'Twist' not in c.name)
-    elbow = forearm.matrix.to_translation()
-    shoulder = upper.matrix.to_translation()
-    on = right + way * (left - right).dot(way)
-    moved = (on - left).length
-    middle = (shoulder + on) / 2
-    rig.reach(upper, on, (elbow - middle).normalized())
-    for pb in (upper, forearm):
-        pb.keyframe_insert('rotation_quaternion', frame=frame)
-    print('F', frame, 'left moved %.3f' % moved, 'apart %.3f' % (right - left).length)
+    right, left = fists()
+    off = (left - right) - axis() * (left - right).dot(axis())
+    print('F', frame, 'left fist off the shaft %.4f' % off.length, 'edge to going %.0f' % __import__('math').degrees(edge().angle(facing[frame] - axis() * facing[frame].dot(axis()))))
 
 rig.export(args[3])

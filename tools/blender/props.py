@@ -102,6 +102,17 @@ def hand(armature: bpy.types.Object, bone: str) -> tuple:
     return wrist, way, length, palm, held, body
 
 
+def held_at(armature: bpy.types.Object, bone: str) -> Vector:
+    """Where in a closed fist a thing is held, as the fist is posed now: across the palm, a little way
+    in from the wrist (where the sabre's grip and the halberd's shaft go), from the open hand's measure;
+    in the armature's space."""
+    wrist, way, length, palm = OPEN_HANDS[(armature.name, bone)]
+    rest = armature.matrix_world.inverted() @ (wrist + way * length * 0.42 + palm * length * 0.18)
+    pb = armature.pose.bones[bone]
+    # In the armature's own space, as its bones' matrices are.
+    return pb.matrix @ pb.bone.matrix_local.inverted() @ rest
+
+
 def fist(armature: bpy.types.Object, bone: str = 'R_Hand') -> None:
     """Closes a hand's mesh into a fist, in the rest pose: the rig has no finger bones, so the
     fingers are bent toward the palm in the mesh itself, at the knuckles and again halfway down
@@ -286,6 +297,10 @@ def halberd_in_hands(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.ty
     from its butt. Its lie in the hand matters little: the blow's script turns the hand every frame
     to lay it along the line between his two hands (tools/blender/anims/golpe_pesado.py)."""
     pole = halberd(armature, held=SWUNG, name='alabarda_mano')
+    # His left hand closed too: it holds the shaft below the right.
+    if (armature.name, 'L_Hand') not in OPEN_HANDS:
+        OPEN_HANDS[(armature.name, 'L_Hand')] = hand(armature, 'L_Hand')[:4]
+    fist(armature, 'L_Hand')
     pole.parent = None
     key = (armature.name, bone)
     wrist, way, hand_len, palm = OPEN_HANDS[key]
