@@ -9,8 +9,6 @@ import { View } from './view';
 
 /** Timed as main.ts times Cabral's: the draw, the shot until slung again, the cut. */
 const DRAW = 0.45, SHOT = 0.8, SLUNG = 0.72, SWING = 0.5;
-/** The sergeant's sweep, as long as his blow in the game (src/tropa/brain.ts). */
-const BLOW = 0.9;
 
 interface Step {
   clip: string;
@@ -36,7 +34,7 @@ const ROUND: Step[] = [
   { clip: 'granada_apuntar', seconds: 1.2 },
   { clip: 'granada_lanzar', seconds: SHOT + 0.3, lasts: SHOT },
   { clip: 'reposo_mixamo', seconds: 0.8 },
-  { clip: 'barrido', seconds: BLOW + 0.5, lasts: BLOW },
+  { clip: 'barrido', seconds: 2.2, once: true },
   { clip: 'reposo_mixamo', seconds: 0.8 },
   { clip: 'muerte', seconds: 4, once: true },
 ];

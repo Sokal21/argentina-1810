@@ -290,7 +290,7 @@ def halberd_in_hands(armature: bpy.types.Object) -> bpy.types.Object:
 
 
 # Where up the halberd's shaft the right hand holds it to swing it, as a share of its length.
-SWUNG = 0.05
+SWUNG = 0.22
 # Each hand as it was open, measured the first time something is set in it.
 OPEN_HANDS: dict = {}
 

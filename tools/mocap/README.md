@@ -27,3 +27,4 @@ with `tools/blender/retarget_rot.py`.
 | Falling Back Death.fbx | "Falling Back Death": the royalist's death, `--ground --backward`, its start eased from his standing by `tools/blender/ease_from.py` (the actor starts on guard) |
 | Drinking.fbx | "Drinking": his flask, frames 66 to 180 only (raised with the left hand, drunk, lowered; the rest is standing about), `--feet`, played in 1.4 s |
 | Walking Backwards.fbx | "Walking Backwards": his walk backwards while steered by the pointer, one cycle, frames 1 to 36, `--gait --feet` |
+| Standing Melee Attack Downward.fbx | "Standing Melee Attack Downward": the sergeant's halberd blow, all 43 frames, `--name barrido --feet`, then `tools/blender/anims/hachazo.py` puts the halberd and his left hand on it |
