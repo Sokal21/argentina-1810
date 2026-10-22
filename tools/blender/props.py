@@ -281,12 +281,31 @@ def grenade(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Objec
     return bomb
 
 
-def halberd_in_hands(armature: bpy.types.Object) -> bpy.types.Object:
-    """The halberd as he swings it: the same, held by the right hand close to its butt (as a long
-    weapon is swung, the far hand near its end; held half way up, half of it came through him as
-    he swung). Set as the standing one is, only slid down through his hand: the game shows one or
-    the other, and the change reads as his hand going down the shaft."""
-    return halberd(armature, held=SWUNG, name='alabarda_mano')
+def halberd_in_hands(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object:
+    """The halberd as he swings it in both hands: the same, gripped by the right hand a share SWUNG up
+    from its butt. Its lie in the hand matters little: the blow's script turns the hand every frame
+    to lay it along the line between his two hands (tools/blender/anims/golpe_pesado.py)."""
+    pole = halberd(armature, held=SWUNG, name='alabarda_mano')
+    pole.parent = None
+    key = (armature.name, bone)
+    wrist, way, hand_len, palm = OPEN_HANDS[key]
+    grip = wrist + way * hand_len * 0.42 + palm * hand_len * 0.18
+    # Its head out the back of his hand (away from the palm), its shaft down through the fist: of the
+    # hand's ways, the one that, as a captured axe blow turns his wrist, goes up, back over his
+    # shoulder and down before him (measured; head past the thumb, it swung down behind him).
+    forward = -palm
+    breadth = (way - forward * way.dot(forward)).normalized()
+    side = -breadth                                  # the blade's edge the way his fingers point
+    up = forward.cross(side).normalized()
+    length = (pole.dimensions.x if pole.dimensions.x > 0.1 else 1.15)
+    frame = Matrix((forward, side, up)).transposed().to_4x4()
+    pole.matrix_world = Matrix.Translation(grip) @ frame @ Matrix.Translation((-length * SWUNG, 0, 0))
+    world = pole.matrix_world.copy()
+    pole.parent = armature
+    pole.parent_type = 'BONE'
+    pole.parent_bone = bone
+    pole.matrix_world = world
+    return pole
 
 
 # Where up the halberd's shaft the right hand holds it to swing it, as a share of its length.

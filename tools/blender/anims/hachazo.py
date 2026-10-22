@@ -52,11 +52,9 @@ if getattr(act, 'slots', None):
 # How far along the shaft from the right hand the left takes it (below it, toward the butt); how far the left reaches from its
 # shoulder to the shaft, and over how much further it lets it go.
 APART, REACH, SLACK = -0.15, 0.345, 0.05
-# How much more upright than the arm's line the halberd is held.
-LIFT = 0.25
 # Over how many frames at the start it is brought from standing upright to the arm's line, and
 # over how many at the end it is stood up again, as he stands about with it.
-RAISE, LOWER = 6, 12
+RAISE, LOWER = 6, 10
 bones = arm.pose.bones
 first, last = (int(f) for f in act.frame_range)
 world = arm.matrix_world
@@ -83,25 +81,46 @@ def shaft() -> tuple:
     return butt + along * (grip - butt).dot(along), along
 
 
-# First the halberd, pointed along his right arm, every frame; and where on it the left hand can best go.
-chosen = {}
+# The halberd's way, keyed on the capture's timing (it is his arm's, not his wrist's: the capture
+# ends the blow with his hand hung back by his hip, as an axe can be and a halberd cannot): frame,
+# bearing (0 ahead, 90 his left, 180 behind), rise. Upright as he stands, back over his shoulder as
+# he gathers, over the top, down before him at the blow (frame 17), on low to his left, and up again.
+PATH = [(0, 0, 90), (4, 175, 70), (9, 175, 25), (12, 180, 15), (14, 0, 85), (16, 0, 25), (17, 5, -20),
+        (20, 30, -30), (26, 35, -25), (32, 15, 15), (37, 0, 70), (last, 0, 90)]
+
+
+def bearing(azimuth: float, rise: float) -> Vector:
+    a, e = math.radians(azimuth), math.radians(rise)
+    return Vector((math.cos(e) * math.cos(a), math.cos(e) * math.sin(a), math.sin(e)))
+
+
+def path(frame: int) -> Vector:
+    for (f0, a0, e0), (f1, a1, e1) in zip(PATH, PATH[1:]):
+        if f0 <= frame <= f1:
+            k = (frame - f0) / (f1 - f0)
+            return bearing(a0, e0).slerp(bearing(a1, e1), k * k * (3 - 2 * k))
+    return bearing(*PATH[-1][1:])
+
+
+# Every frame keyed, the hand turned (from as the capture has it) so the halberd lies that way.
 for frame in range(first, last + 1):
+    hand = bones['R_Hand']
+    hand.matrix_basis = Matrix.Identity(4)
     bpy.context.scene.frame_set(frame)
     bpy.context.view_layer.update()
-    shoulder = bones['R_Upperarm'].matrix.to_translation()
-    wrist = bones['R_Hand'].matrix.to_translation()
-    line = (wrist - shoulder).normalized()
-    want = (line + Vector((0, 0, LIFT))).normalized()
-    k = min(1.0, (frame - first) / RAISE, (last - frame) / LOWER)
-    k = k * k * (3 - 2 * k)
-    want = Vector((0, 0, 1)).slerp(want, k) if k < 1 else want
-    hand = bones['R_Hand']
     now = (local.to_3x3() @ (pole.matrix_world.to_3x3() @ Vector((1, 0, 0)))).normalized()
-    q = now.rotation_difference(want)
+    q = now.rotation_difference(path(frame))
     head = hand.matrix.to_translation()
     hand.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ hand.matrix
     bpy.context.view_layer.update()
     hand.keyframe_insert('rotation_quaternion', frame=frame)
+
+# Where on the shaft the left hand can best go, every frame: the halberd itself is the capture's
+# wrist's, held as an axe.
+chosen = {}
+for frame in range(first, last + 1):
+    bpy.context.scene.frame_set(frame)
+    bpy.context.view_layer.update()
     grip, along = shaft()
     middle, ahead, _ = chest()
     reach_from = bones['L_Upperarm'].matrix.to_translation()

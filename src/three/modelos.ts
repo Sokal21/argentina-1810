@@ -34,7 +34,7 @@ const ROUND: Step[] = [
   { clip: 'granada_apuntar', seconds: 1.2 },
   { clip: 'granada_lanzar', seconds: SHOT + 0.3, lasts: SHOT },
   { clip: 'reposo_mixamo', seconds: 0.8 },
-  { clip: 'barrido', seconds: 2.2, once: true },
+  { clip: 'barrido', seconds: 3.6, once: true },
   { clip: 'reposo_mixamo', seconds: 0.8 },
   { clip: 'muerte', seconds: 4, once: true },
 ];
