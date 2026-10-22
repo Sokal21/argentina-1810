@@ -2366,6 +2366,16 @@
       "asset_id": "bab3e106-9f36-4684-ab83-3ecbb0d3a9bf",
       "label": "capilla 3D furniture, no walls, B (lantern post in the far corner)",
       "file": "assets/edificios/3d/capilla_muebles_b.png"
+    },
+    {
+      "asset_id": "5ffaccdc-fe00-471a-b627-ff3e127c591c",
+      "label": "sargento 3D turnaround A (painted, arms down, sabre hanging by the legs)",
+      "file": "assets/tropa/sargento3d/giro_a.png"
+    },
+    {
+      "asset_id": "796faf4d-2a7d-4927-99ef-d25c25496c06",
+      "label": "sargento 3D turnaround B (A-pose, flat colours, sabre at the hip)",
+      "file": "assets/tropa/sargento3d/giro_b.png"
     }
   ]
 }

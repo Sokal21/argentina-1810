@@ -40,9 +40,11 @@ const ROUND: Step[] = [
 /** What is played for a clip a model lacks: Cabral dies by the library's fall. */
 const INSTEAD: Record<string, string> = { muerte: 'defeat_02' };
 
+/** Each, and how tall he is drawn: the sergeant a head over the rest, as in the 2D game. */
 const WHO = [
-  { name: 'Cabral', url: 'cabral/3d/cabral_animado.glb' },
-  { name: 'Realista', url: 'realista/3d/realista_animado.glb' },
+  { name: 'Cabral', url: 'cabral/3d/cabral_animado.glb', drawn: 82 },
+  { name: 'Realista', url: 'realista/3d/realista_animado.glb', drawn: 78 },
+  { name: 'Sargento', url: 'tropa/sargento3d/sargento_animado.glb', drawn: 90 },
 ];
 /** How far apart they stand, in world units. */
 const APART = 70;
@@ -116,7 +118,7 @@ slider('velocidad', 0.1, 1, 1, 0.05, v => { pace = v; });
 slider('cerca', 0.25, 1.8, 0.6, 0.05, v => view.apply({ ...view.look, far: v }));
 mark(round);
 
-void Promise.all(WHO.map(w => model(w.url, 82))).then(loaded => {
+void Promise.all(WHO.map(w => model(w.url, w.drawn))).then(loaded => {
   loaded.forEach((body, i) => {
     body.position.x = (i - (loaded.length - 1) / 2) * APART;
     view.scene.add(body);

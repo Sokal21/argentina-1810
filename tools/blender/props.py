@@ -275,3 +275,69 @@ def grenade(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Objec
     bomb.parent_bone = bone
     bomb.matrix_world = world
     return bomb
+
+
+def halberd(armature: bpy.types.Object, bone: str = 'R_Hand', action: str = 'reposo_mixamo', frame: int = 0) -> bpy.types.Object:
+    """The sergeant's halberd: a wooden shaft a little taller than he is, and at its top a spike, an
+    axe blade turned out from him and a hook behind, of steel over an iron socket. Held in his right
+    fist, upright, its butt by his foot, as he stands in `action` at `frame` (standing about, the way
+    the 2D drawing has it); the hand bone keeps it there through every animation."""
+    body = body_of(armature)
+    heights = [(body.matrix_world @ v.co).z for v in body.data.vertices]
+    floor, tall = min(heights), max(heights) - min(heights)
+    length = tall * 1.15
+    shaft_r = tall * 0.011
+    # Built standing on its butt at the origin, along +Z, the blade toward -Y (his right, outward).
+    bpy.ops.mesh.primitive_cylinder_add(vertices=6, radius=shaft_r, depth=length * 0.94, location=(0, 0, length * 0.47))
+    shaft = bpy.context.active_object
+    shaft.data.materials.append(material('madera', WOOD))
+    parts = [shaft]
+    parts.append(box('cubo', (shaft_r * 2.6, shaft_r * 2.6, length * 0.08), (0, 0, length * 0.9), IRON, 'hierro'))
+    bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=shaft_r * 1.6, radius2=0, depth=length * 0.13, location=(0, 0, length * 1.0))
+    spike = bpy.context.active_object
+    spike.data.materials.append(material('acero', STEEL))
+    parts.append(spike)
+    # The axe: broad and flat, out from the shaft toward his right; its edge a little longer below.
+    parts.append(box('hacha', (shaft_r * 1.2, length * 0.065, length * 0.08), (0, -length * 0.045, length * 0.9), STEEL, 'acero'))
+    parts.append(box('filo', (shaft_r * 1.2, length * 0.02, length * 0.11), (0, -length * 0.085, length * 0.895), STEEL, 'acero'))
+    # The hook behind it, toward his left.
+    parts.append(box('gancho', (shaft_r * 1.2, length * 0.05, length * 0.02), (0, length * 0.035, length * 0.91), STEEL, 'acero'))
+    for p in parts:
+        p.select_set(True)
+    bpy.context.view_layer.objects.active = parts[0]
+    bpy.ops.object.join()
+    pole = bpy.context.active_object
+    pole.name = 'alabarda'
+    # Its origin at its butt (the joined pieces kept the shaft's, half way up it).
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+    # The fist closed round it (in the rest pose, as the sabre's), and where the grip is in it.
+    wrist, way, hand_len, palm, _, _ = hand(armature, bone)
+    fist(armature, bone)
+    grip_rest = wrist + way * hand_len * 0.42 + palm * hand_len * 0.18
+    # Where that grip is as he stands about: the hand bone's rest frame to its posed one.
+    before = armature.animation_data.action if armature.animation_data else None
+    armature.animation_data_create()
+    act = bpy.data.actions[action]
+    armature.animation_data.action = act
+    slots = getattr(act, 'slots', None)
+    if slots:
+        armature.animation_data.action_slot = slots[0]
+    bpy.context.scene.frame_set(frame)
+    bpy.context.view_layer.update()
+    pb = armature.pose.bones[bone]
+    posed = armature.matrix_world @ pb.matrix @ armature.data.bones[bone].matrix_local.inverted() @ armature.matrix_world.inverted()
+    grip = posed @ grip_rest
+    # Upright through the grip, its butt on the ground; the blade out to his right as he stands.
+    pole.matrix_world = Matrix.Translation(Vector((grip.x, grip.y, floor + tall * 0.005)))
+    world = pole.matrix_world.copy()
+    pole.parent = armature
+    pole.parent_type = 'BONE'
+    pole.parent_bone = bone
+    pole.matrix_world = world
+    print('HALBERD', round(length, 3), 'long, held at', tuple(round(v, 3) for v in grip))
+    armature.animation_data.action = before
+    for p in armature.pose.bones:
+        p.matrix_basis = Matrix.Identity(4)
+    bpy.context.view_layer.update()
+    return pole
