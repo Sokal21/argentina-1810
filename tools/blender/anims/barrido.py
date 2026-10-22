@@ -47,7 +47,7 @@ rig.GRIP = (0.0, math.pi)
 FRAMES, BLOW = 22, 13
 # How far up the shaft from the right hand the left takes it; how far the left can reach from its
 # shoulder to the shaft (its arm and its fist), and over how much further it lets go.
-APART, REACH, SLACK = 0.09, 0.32, 0.05
+APART, REACH, SLACK = 0.15, 0.345, 0.04
 # Where the left hand goes when it has let go: out to his side, a little back (before his chest).
 FREE = Vector((-0.02, 0.21, 0.55))
 HIPS = Vector((0.032, 0.009, 0))
@@ -75,7 +75,7 @@ KEYS = [
     (7, -130, 30, (0.13, -0.08, 0.66), (-0.02, 0, -0.02), -15, -25, 4, 25, LEFT),
     (9, -150, 24, (0.12, -0.08, 0.68), (-0.025, 0, -0.022), -18, -30, 4, 30, LEFT),
     # Round before him: the head straight ahead at the blow, as the left foot lands ahead.
-    (11, -70, 8, (0.15, -0.05, 0.64), (0.01, 0, -0.025), -4, -6, 10, 6, LEFT_UP),
+    (11, -70, 8, (0.14, -0.03, 0.64), (0.01, 0, -0.025), -4, -6, 10, 6, LEFT_UP),
     (BLOW, 0, -2, (0.14, -0.02, 0.63), (0.04, 0, -0.03), 12, 14, 14, -14, LEFT_STEP),
     (15, 55, -5, (0.13, 0.0, 0.6), (0.045, 0, -0.03), 20, 26, 14, -22, LEFT_STEP),
     # Following on round to his left, low; then gathered back to standing.
