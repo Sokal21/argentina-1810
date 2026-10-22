@@ -105,7 +105,11 @@ def hand(armature: bpy.types.Object, bone: str) -> tuple:
 def fist(armature: bpy.types.Object, bone: str = 'R_Hand') -> None:
     """Closes a hand's mesh into a fist, in the rest pose: the rig has no finger bones, so the
     fingers are bent toward the palm in the mesh itself, at the knuckles and again halfway down
-    them, a vertex moving as much as the hand bone holds it."""
+    them, a vertex moving as much as the hand bone holds it. Once: a hand holding two things (the
+    halberd standing and the halberd swung) is closed only the once."""
+    if armature.get(f'fist {bone}'):
+        return
+    armature[f'fist {bone}'] = True
     wrist, way, length, palm, held, body = hand(armature, bone)
     axis = way.cross(palm).normalized()   # turning the fingers about this brings them to the palm
     inverse = body.matrix_world.inverted()
@@ -277,7 +281,22 @@ def grenade(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Objec
     return bomb
 
 
-def halberd(armature: bpy.types.Object, bone: str = 'R_Hand', action: str = 'reposo_mixamo', frame: int = 0) -> bpy.types.Object:
+def halberd_in_hands(armature: bpy.types.Object) -> bpy.types.Object:
+    """The halberd as he swings it: the same, held by the right hand close to its butt (as a long
+    weapon is swung, the far hand near its end; held half way up, half of it came through him as
+    he swung). Set as the standing one is, only slid down through his hand: the game shows one or
+    the other, and the change reads as his hand going down the shaft."""
+    return halberd(armature, held=SWUNG, name='alabarda_mano')
+
+
+# Where up the halberd's shaft the right hand holds it to swing it, as a share of its length.
+SWUNG = 0.05
+# Each hand as it was open, measured the first time something is set in it.
+OPEN_HANDS: dict = {}
+
+
+def halberd(armature: bpy.types.Object, bone: str = 'R_Hand', action: str = 'reposo_mixamo', frame: int = 0,
+            held: float = None, name: str = 'alabarda') -> bpy.types.Object:
     """The sergeant's halberd: a wooden shaft a little taller than he is, and at its top a spike, an
     axe blade turned out from him and a hook behind, of steel over an iron socket. Held in his right
     fist, upright, its butt by his foot, as he stands in `action` at `frame` (standing about, the way
@@ -310,12 +329,16 @@ def halberd(armature: bpy.types.Object, bone: str = 'R_Hand', action: str = 'rep
     bpy.context.view_layer.objects.active = parts[0]
     bpy.ops.object.join()
     pole = bpy.context.active_object
-    pole.name = 'alabarda'
+    pole.name = name
     # Its origin at its butt (the joined pieces kept the shaft's, half way along it).
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
-    # The fist closed round it (in the rest pose, as the sabre's), and where the grip is in it.
-    wrist, way, hand_len, palm, _, _ = hand(armature, bone)
+    # The fist closed round it (in the rest pose, as the sabre's), and where the grip is in it:
+    # measured on the open hand, once, so that a second thing held is set as the first was.
+    key = (armature.name, bone)
+    if key not in OPEN_HANDS:
+        OPEN_HANDS[key] = hand(armature, bone)[:4]
+    wrist, way, hand_len, palm = OPEN_HANDS[key]
     fist(armature, bone)
     grip_rest = wrist + way * hand_len * 0.42 + palm * hand_len * 0.18
     # Where that grip is as he stands about: the hand bone's rest frame to its posed one.
@@ -332,14 +355,16 @@ def halberd(armature: bpy.types.Object, bone: str = 'R_Hand', action: str = 'rep
     posed = armature.matrix_world @ pb.matrix @ armature.data.bones[bone].matrix_local.inverted() @ armature.matrix_world.inverted()
     grip = posed @ grip_rest
     # Upright through the grip, its butt on the ground; the blade out to his right as he stands.
-    # Its length (+X) turned up, its blade still toward his right.
-    pole.matrix_world = Matrix.Translation(Vector((grip.x, grip.y, floor + tall * 0.005))) @ Matrix.Rotation(-math.pi / 2, 4, 'Y')
+    # Its length (+X) turned up, its blade still toward his right: its butt by his foot, or (held
+    # near its end) as far below his hand as that.
+    butt = floor + tall * 0.005 if held is None else grip.z - length * held
+    pole.matrix_world = Matrix.Translation(Vector((grip.x, grip.y, butt))) @ Matrix.Rotation(-math.pi / 2, 4, 'Y')
     world = pole.matrix_world.copy()
     pole.parent = armature
     pole.parent_type = 'BONE'
     pole.parent_bone = bone
     pole.matrix_world = world
-    print('HALBERD', round(length, 3), 'long, held at', tuple(round(v, 3) for v in grip))
+    print('HALBERD', name, round(length, 3), 'long, held at', tuple(round(v, 3) for v in grip))
     armature.animation_data.action = before
     for p in armature.pose.bones:
         p.matrix_basis = Matrix.Identity(4)

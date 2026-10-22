@@ -81,6 +81,9 @@ function carried(body: THREE.Object3D, s: Step): void {
   const back = body.getObjectByName('mosquete'), hand = body.getObjectByName('mosquete_mano'), sabre = body.getObjectByName('sable');
   if (back) back.visible = !inHand;
   if (hand) hand.visible = inHand;
+  // The sergeant's halberd: standing in his fist, or slid down it to be swung.
+  const pole = body.getObjectByName('alabarda'), swung = body.getObjectByName('alabarda_mano');
+  if (pole && swung) { pole.visible = s.clip !== 'barrido'; swung.visible = s.clip === 'barrido'; }
   const grenade = s.clip.startsWith('granada'), bomb = body.getObjectByName('granada');
   if (sabre) sabre.visible = !musket && !grenade;
   // In his hand from when he takes it (granada.py: frame 4 of 11) until it leaves it (frame 3 of 19).
