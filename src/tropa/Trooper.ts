@@ -54,6 +54,11 @@ export class Trooper {
   }
 
   get alive(): boolean { return this.brain.alive; }
+  /** What his brain is doing, for whoever draws him in 3D; and how red he is flashing, struck (0 to 1). */
+  get mind(): Readonly<TroopBrain> { return this.brain; }
+  get hurt(): number { return Math.min(1, this.flash / FLASH); }
+  /** His look in 3D: his kind. */
+  get look3d(): string { return this.kind; }
   set burning(amount: number) { if (this.fx) this.fx.burn = amount; }
   get ground(): Vec { return { x: this.brain.x, y: this.brain.y }; }
   get girth(): number { return this.brain.kind.girth; }

@@ -19,8 +19,8 @@ export interface Kind {
   sight: number;
   /** He shoots: from how far, how long he aims (the warning), how long before the shot his aim stops following, how long until he can again, and how high the ball leaves from. */
   shot?: { range: number; aim: number; lock: number; reload: [number, number]; muzzle: number };
-  /** He strikes whoever is nearer than `near`: how long the whole blow takes, when in it it lands, how far it reaches, and how long he stands before another. */
-  blow?: { near: number; time: number; hit: number; reach: number; rest: number };
+  /** He strikes whoever is nearer than `near`: how long the whole blow takes, when in it it lands, how far it reaches, how long he stands before another, and how much life it takes (one if not said). */
+  blow?: { near: number; time: number; hit: number; reach: number; rest: number; damage?: number };
   /** He rallies those about him: how often, how long the shout takes, how far it carries, and for how long it quickens them. */
   rally?: { every: number; time: number; reach: number; lasts: number };
   /** Below half his life he comes on this many times faster. */
@@ -36,7 +36,9 @@ export const KINDS = {
   // Behind his basket of earth he never moves, and shoots from further and oftener than anyone. Helpless up close.
   tirador: { id: 'tirador', name: 'Tirador', life: 2, girth: 11, pace: 0, sight: 460, shot: { range: 440, aim: 1.1, lock: 0.3, reload: [1.6, 2.2], muzzle: 22 }, worth: 8, spoils: 5 },
   // Slow, hard to bring down, a wide sweep with his halberd, and a shout that quickens his men.
-  sargento: { id: 'sargento', name: 'Sargento', life: 8, girth: 11, pace: 30, sight: 320, blow: { near: 54, time: 0.9, hit: 0.55, reach: 62, rest: 0.6 }, rally: { every: 9, time: 0.9, reach: 260, lasts: 5 }, worth: 20, spoils: 12 },
+  // His blow is a heavy two-handed one (tools/blender/anims/golpe_pesado.py): long in the coming, to be
+  // dodged; a halberd's reach (twice a sabre's), and twice what any other blow or ball takes.
+  sargento: { id: 'sargento', name: 'Sargento', life: 8, girth: 11, pace: 30, sight: 320, blow: { near: 80, time: 1.8, hit: 1.0, reach: 95, rest: 1.0, damage: 2 }, rally: { every: 9, time: 0.9, reach: 260, lasts: 5 }, worth: 20, spoils: 12 },
   // Whoever commands the column: a pistol from afar, a long thrust up close, and worse once he is hurt.
   capitan: { id: 'capitan', name: 'El capitán', life: 14, girth: 10, pace: 44, sight: 420, shot: { range: 230, aim: 0.7, lock: 0.2, reload: [2.4, 3.2], muzzle: 34 }, blow: { near: 52, time: 0.7, hit: 0.4, reach: 60, rest: 0.5 }, fury: 1.5, worth: 80, spoils: 60 },
 } satisfies Record<string, Kind>;

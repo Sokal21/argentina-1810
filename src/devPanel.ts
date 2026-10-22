@@ -143,6 +143,7 @@ export function mountDevPanel(game: Phaser.Game): void {
   heading('Enemigos');
   const foes = row();
   button(foes, '+ Realista', s => s.spawn('realista'));
+  button(foes, '+ Sargento', s => s.spawn('sargento'));
   button(foes, '+ Chonchón', s => s.spawn('chonchon'));
   button(foes, '+ Cubo', s => s.spawn('cubo'));
 

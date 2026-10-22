@@ -72,6 +72,8 @@ const ZOOM = 1.5;
 // By touch: how near an enemy the sabre goes for by itself, how far off a musket dragged all
 // the way points, and how long an arm let go is kept up waiting to go off.
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
+/** The kinds of the king's men that have a model in 3D (three/realista.ts, LOOKS). */
+const IN_3D = new Set(['sargento']);
 /** With the gamepad a grenade lands this share of its reach straight ahead. */
 const PAD_THROW = 2 / 3;
 // Soldiers are kept this far apart on the ground, easing apart at this many of it a second: a squad
@@ -959,7 +961,7 @@ export class GameScene extends Phaser.Scene {
       const far = Math.abs(at.x - this.machi.x) > AWAKE.x || Math.abs(at.y - this.machi.y) > AWAKE.y;
       if (far && this.due.delete(realista)) {
         if (post) realista.revive();
-        else if (realista instanceof Realista) this.three?.bury(realista);
+        else this.three?.bury(realista);
       }
       if (post && far) {
         realista.sleep();
@@ -977,7 +979,7 @@ export class GameScene extends Phaser.Scene {
         if (realista instanceof Realista) this.three?.volley(realista);
       }
       if (deed.cut && prey) { prey.body.strike(); this.sparks.emitParticleAt(prey.body.x, prey.body.y - 20, 6); }
-      else if (deed.cut && !drawn) this.hurt();
+      else if (deed.cut && !drawn) this.hurt(realista instanceof Trooper ? realista.brain.kind.blow?.damage ?? 1 : 1);
       // A sergeant's shout quickens whoever of his own is within hearing.
       const rally = (deed as { rally?: { reach: number; lasts: number } }).rally;
       if (rally) {
@@ -1166,7 +1168,7 @@ export class GameScene extends Phaser.Scene {
         // His rage, dying down over its last moments as the 2D game's glow does.
         rage: this.wrath.active ? Math.min(1, this.wrath.left / 0.8) : 0,
         fallen: !this.vitals.standing, dashTime: this.machi.kit.dash?.time ?? 0.5, trail: true,
-      }, this.realistas.filter((r): r is Realista => r instanceof Realista));
+      }, this.realistas.filter((r): r is Realista | Trooper => r instanceof Realista || r.kind === 'sargento'));
       // Framed a little above his feet, so his body is in the middle.
       this.three.draw({ x: this.machi.x, y: this.machi.y - CHEST }, dt);
     }
@@ -1387,7 +1389,7 @@ export class GameScene extends Phaser.Scene {
       if (!lands(blow, spot, enemy.girth)) continue;
       const x = spot.x - blow.x, y = (spot.y - blow.y) / ISO_Y;
       this.wound(enemy, x || blow.dx, y * ISO_Y, blow.damage, 'basic');
-      if (enemy instanceof Realista) this.three?.blow(enemy, this.machi);
+      if (enemy instanceof Realista || enemy instanceof Trooper) this.three?.blow(enemy, this.machi);
       // Sparks fly off what the blade bites, the way it was swung.
       const { x: bx, y: by } = enemy.body;
       for (let i = 0; i < 9; i++) {
@@ -1540,8 +1542,8 @@ export class GameScene extends Phaser.Scene {
 
   // Something reached her. Mid-dash, or while she cannot be hurt again, it
   // does nothing; returns whether it counted.
-  private hurt(): boolean {
-    if (cheats.unhurt || this.machi.isDashing || !this.vitals.hit(this.wrath.active)) return false;
+  private hurt(amount = 1): boolean {
+    if (cheats.unhurt || this.machi.isDashing || !this.vitals.hit(this.wrath.active, amount)) return false;
     // Being hurt angers him.
     if (this.hero === 'cabral') this.fury.gain(WOUND * this.growth.gives('flow'));
     // A hit breaks the healing ritual.
@@ -1800,13 +1802,14 @@ export class GameScene extends Phaser.Scene {
   };
 
   /** For trying things out: one more enemy, a little way off from the hero. */
-  spawn(kind: 'realista' | 'chonchon' | 'cubo'): void {
+  spawn(kind: 'realista' | 'sargento' | 'chonchon' | 'cubo'): void {
     const angle = Math.random() * Math.PI * 2;
     const x = Phaser.Math.Clamp(this.machi.x + Math.cos(angle) * 150, 30, this.size.width - 30);
     const y = Phaser.Math.Clamp(this.machi.y + Math.sin(angle) * 150 * ISO_Y, FRAME, this.size.height - 20);
     const bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
     let foe: Foe;
     if (kind === 'realista') this.realistas.push(foe = new Realista(this, x, y, bounds));
+    else if (kind === 'sargento') this.realistas.push(foe = new Trooper(this, 'sargento', x, y));
     else if (kind === 'chonchon') this.chonchones.push(foe = new Chonchon(this, x, y, bounds));
     else this.enemies.push(foe = new Enemy(this, x, y));
     this.physics.add.overlap(this.bolts.bodies, foe.zone, this.struck);
@@ -1927,7 +1930,9 @@ export class GameScene extends Phaser.Scene {
   // One of the king's men of a kind, by its name: a fusilier, unless it is one of the others.
   private enlist(kind: string | undefined, x: number, y: number, bounds: { minX: number; maxX: number; minY: number; maxY: number }): Soldier {
     // In 3D every one of them is a fusilier, the one soldier modelled so far.
-    const soldier = kind && kind in KINDS && !this.three ? new Trooper(this, kind as KindName, x, y) : new Realista(this, x, y, bounds);
+    // In 3D only the kinds that have a model of their own there are themselves; the rest are fusiliers.
+    const own = kind && kind in KINDS && (!this.three || IN_3D.has(kind));
+    const soldier = own ? new Trooper(this, kind as KindName, x, y) : new Realista(this, x, y, bounds);
     // Each comes at the hero from a side of his own: one after another round the circle, never two the same.
     const angle = this.enlisted++ * GOLDEN;
     soldier.flank = { x: Math.cos(angle), y: Math.sin(angle) };

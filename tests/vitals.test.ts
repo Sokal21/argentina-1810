@@ -42,3 +42,13 @@ test('she is protected for a moment after getting up', () => {
   v.update(0.7);
   expect(v.hit()).toBe(true);
 });
+
+test('a heavy blow takes as much life as it says, but never the last of it in a rage', () => {
+  const v = new Vitals(5, 1, 3);
+  expect(v.hit(false, 2)).toBe(true);
+  expect(v.life).toBe(3);
+  const raging = new Vitals(2, 0, 3);
+  raging.hit(true, 2);
+  expect(raging.life).toBe(1);
+  expect(raging.standing).toBe(true);
+});

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { AIM, MUZZLE, SLASH_TIME, type Mode } from '../realista/brain';
+import { AIM, MUZZLE, SLASH_TIME, type Mode as RealistaMode } from '../realista/brain';
+import { KINDS, type Mode as TroopMode } from '../tropa/brain';
 import { Blood } from './blood';
 import { barrelOf } from './cabral';
 import { flashes, model } from './figure';
@@ -12,8 +13,19 @@ import { along, ground, heading, UPRIGHT } from './space';
 // clips put on the royalist's body (assets/realista/3d); it is loaded once and copied for each.
 // Fallen, he lies where he fell, in his blood, until he is up again or taken off the field.
 
+type Mode = RealistaMode | TroopMode;
+
 /** How tall he is drawn, beside Cabral's 82: a little smaller, as in the 2D game. */
 const DRAWN = 78;
+/**
+ * The other kinds drawn in 3D, by their kind: their model and how tall it is drawn; for one who
+ * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
+ * the pace that lands it when his brain does.
+ */
+const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number } }> = {
+  // A head over his men. His blow lands at frame 34 of 76 (golpe_pesado.py).
+  sargento: { url: 'tropa/sargento3d/sargento_animado.glb', drawn: 90, blow: { clip: 'barrido', lands: 34 / 76, hit: KINDS.sargento.blow.hit } },
+};
 /** Seconds of his aim spent drawing the musket from his back; the rest he holds it levelled. */
 const DRAW = Math.min(0.45, AIM * 0.55);
 /** How long the shot's clip lasts, from the kick until he has slung the musket again. */
@@ -78,6 +90,8 @@ function star(): THREE.Texture {
 export interface Royalist {
   readonly mind: { readonly x: number; readonly y: number; readonly mode: Mode; readonly t: number; readonly dir: { x: number; y: number } };
   readonly hurt: number;
+  /** Another kind than the fusilier, drawn as LOOKS has him. */
+  readonly look3d?: string;
 }
 
 let loading: Promise<THREE.Group> | null = null;
@@ -111,7 +125,7 @@ class Figure {
   private static count = 0;
   private readonly id = Figure.count++;
 
-  constructor(shape: THREE.Group, private readonly blood: Blood) {
+  constructor(shape: THREE.Group, private readonly blood: Blood, private readonly look?: (typeof LOOKS)[string]) {
     this.body = clone(shape) as THREE.Group;
     this.body.animations = shape.animations;
     this.motion = new Motion(this.body);
@@ -170,6 +184,11 @@ class Figure {
       if (t < DRAW) m.play('mosquete_sacar', { once: true, lasts: DRAW, afresh, blend: 0.06 });
       else m.play('mosquete_apuntar', { blend: 0.05 });
     } else if (mode === 'slash') m.play('tajo', { once: true, lasts: SLASH_TIME, afresh, blend: 0.05 });
+    else if (mode === 'blow' && this.look?.blow) {
+      // At the pace that lands his blow when his brain does.
+      const { clip, lands, hit } = this.look.blow;
+      m.play(clip, { once: true, pace: (lands * m.seconds(clip)) / hit, afresh, blend: 0.1 });
+    }
     else if (mode === 'walk') m.play('caminata_mixamo', { pace: this.reach ? Math.max(0.35, this.going / this.reach) : 1 });
     else m.play('reposo_mixamo');
     m.update(dt);
@@ -240,6 +259,8 @@ function alive(mode: Mode): boolean {
 export class Royalists {
   readonly group = new THREE.Group();
   private shape: THREE.Group | null = null;
+  /** The other kinds' models, by their kind, once loaded. */
+  private readonly shapes = new Map<string, THREE.Group>();
   private readonly figures = new Map<Royalist, Figure>();
   /** The blood of those fallen. */
   private readonly blood = new Blood();
@@ -248,6 +269,7 @@ export class Royalists {
     this.group.add(this.blood.group);
     loading ??= model('realista/3d/realista_animado.glb', DRAWN);
     void loading.then(shape => { this.shape = shape; });
+    for (const [kind, look] of Object.entries(LOOKS)) void model(look.url, look.drawn).then(shape => { this.shapes.set(kind, shape); });
   }
 
   /** Shows each as he is this step; any no longer on the field is taken away. */
@@ -268,7 +290,11 @@ export class Royalists {
     for (const who of everyone) {
       let figure = this.figures.get(who);
       if (!figure) {
-        figure = new Figure(this.shape, this.blood);
+        const kind = who.look3d && LOOKS[who.look3d] ? who.look3d : null;
+        const shape = kind ? this.shapes.get(kind) : this.shape;
+        // Not loaded yet: drawn once it is.
+        if (!shape) continue;
+        figure = new Figure(shape, this.blood, kind ? LOOKS[kind] : undefined);
         this.figures.set(who, figure);
         this.group.add(figure.body, figure.warning);
       }

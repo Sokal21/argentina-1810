@@ -24,9 +24,10 @@ export class Vitals {
    * Takes a hit if one can land. Says whether it did. One who is `deathless`
    * feels the hit all the same, but it cannot take the last of their life.
    */
-  hit(deathless = false): boolean {
+  hit(deathless = false, amount = 1): boolean {
     if (!this.standing || this.protected) return false;
-    if (!deathless || this.life > 1) this.life--;
+    // In a rage he is never brought below one by a blow, however heavy.
+    this.life = deathless ? Math.max(Math.min(this.life, 1), this.life - amount) : this.life - amount;
     this.mercy = this.grace;
     if (this.life <= 0) this.fallen = 0;
     return true;
