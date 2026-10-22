@@ -24,9 +24,10 @@ from keyframes import Rig  # noqa: E402
 
 args = sys.argv[sys.argv.index('--') + 1:]
 rig = Rig(args[0])
-# Where the capture is cut: its stillest frame before it moves, and the frame it is still again by;
+# Where the capture is cut: where it begins to raise the weapon (its sway and its slow first lowering
+# left out: he took too long to strike), and the frame it is still again by;
 # and the frame of the blow (the hands lowest, stopped hardest), as the capture numbers them.
-FROM, TO, BLOW = 19, 95, 53
+FROM, TO, BLOW = 37, 95, 53
 
 
 def bring(path: str) -> bpy.types.Action:

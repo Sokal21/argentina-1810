@@ -1,14 +1,14 @@
 """The sergeant standing and walking with his halberd in both hands, on guard, as his blow begins:
 his standing and walking clips kept as they are but for his arms, which hold the halberd across
-before him as the blow's first frame has it, both fists on the shaft, carried with his chest as it
+before him as the blow ends, both fists on the shaft, carried with his chest as it
 breathes and sways.
 
     Blender -b --python tools/blender/anims/guardia.py -- RIG.glb REPOSO.glb CAMINATA.glb GOLPE.glb OUT_DIR
 
 GOLPE is his blow (tools/blender/anims/golpe_pesado.py); OUT_DIR gets reposo_guardia.glb and
 caminata_guardia.glb, their clips still named as the game plays them (reposo_mixamo, caminata_mixamo),
-the captures they are made from kept as they are. The guard is read off the blow's first frame, in his chest's frame: where
-each fist is, and how the halberd lies. Then, every frame of each clip, his right arm reaches so its
+the captures they are made from kept as they are. The guard is read off the blow's last frame, in his chest's frame: where
+each fist is, and how the halberd lies (read off its last frame). Then, every frame of each clip, his right arm reaches so its
 fist is there and its hand turns the halberd so; his left reaches so its fist is on the shaft.
 """
 import os
@@ -74,8 +74,9 @@ def elbow(upper) -> Vector:
     return next(c for c in upper.children if 'Twist' not in c.name).matrix.to_translation()
 
 
-# The guard, off the blow's first frame, in his chest's frame.
-play(blow, 0)
+# The guard, off the blow's last frame (where it ends, still, on guard: its first is already the
+# weapon dropped to be swung), in his chest's frame.
+play(blow, int(blow.frame_range[1]))
 to_chest = chest().inverted()
 GUARD = {
     'right': to_chest @ props.held_at(arm, 'R_Hand'),
