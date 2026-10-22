@@ -23,8 +23,8 @@ const DRAWN = 78;
  * the pace that lands it when his brain does.
  */
 const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number } }> = {
-  // A head over his men. His blow lands at frame 16 of 58 (golpe_pesado.py).
-  sargento: { url: 'tropa/sargento3d/sargento_animado.glb', drawn: 90, blow: { clip: 'barrido', lands: 16 / 58, hit: KINDS.sargento.blow.hit } },
+  // A head over his men. His blow lands at frame 12 of 58, the halberd's head straight before him (golpe_pesado.py).
+  sargento: { url: 'tropa/sargento3d/sargento_animado.glb', drawn: 90, blow: { clip: 'barrido', lands: 12 / 58, hit: KINDS.sargento.blow.hit } },
 };
 /** Seconds of his aim spent drawing the musket from his back; the rest he holds it levelled. */
 const DRAW = Math.min(0.45, AIM * 0.55);

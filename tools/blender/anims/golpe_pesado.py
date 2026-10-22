@@ -26,7 +26,9 @@ args = sys.argv[sys.argv.index('--') + 1:]
 rig = Rig(args[0])
 # Where the capture is cut: where it begins to raise the weapon (its sway and its slow first lowering
 # left out: he took too long to strike), and the frame it is still again by;
-# and the frame of the blow (the hands lowest, stopped hardest), as the capture numbers them.
+# and the frame the hands are lowest at, as the capture numbers them, where the shaft is near upright (it
+# tells which end is the head). The blow lands before that, at frame 12 of the cut (49 of the capture):
+# the halberd sweeps across before him from his right, and its head is straight before him then.
 FROM, TO, BLOW = 37, 95, 53
 
 
@@ -143,7 +145,39 @@ for frame in range(0, last + 1):
     near = [going[f] or first_known for f in range(frame - SMOOTH, frame + SMOOTH + 1) if f in going]
     facing[frame] = sum(near, Vector()).normalized()
 
-# Then laid so, and keyed.
+# Where the axe's head is along the shaft from the right fist, and the ground it is kept on: the
+# capture's weapon was shorter, and at the blow, bent over, the halberd went down through the ground
+# at his feet. Where it would, it is raised about his right fist so the head lies on the ground before him.
+LENGTH = pole.dimensions.x
+HEAD = LENGTH * (0.9 - props.SWUNG)
+GROUND = 0.035
+
+
+def onto_ground(way: Vector) -> Vector:
+    right = props.held_at(arm, 'R_Hand')
+    if (right + way * HEAD).z >= GROUND:
+        return way
+    flat = Vector((way.x, way.y, 0))
+    flat = flat.normalized() if flat.length > 0.25 else Vector((1, 0, 0))
+    down = max(-1.0, min(1.0, (GROUND - right.z) / HEAD))
+    return (flat * (1 - down * down) ** 0.5 + Vector((0, 0, down))).normalized()
+
+
+def left_onto(way: Vector) -> None:
+    """His left fist onto the shaft where it was along it, his elbow where it was."""
+    upper, hand = bones['L_Upperarm'], bones['L_Hand']
+    elbow = next(c for c in upper.children if 'Twist' not in c.name).matrix.to_translation()
+    right = props.held_at(arm, 'R_Hand')
+    along = (props.held_at(arm, 'L_Hand') - right).dot(way)
+    for _ in range(4):
+        fist_at = right + way * along
+        wrist = hand.matrix.to_translation()
+        target = fist_at - (props.held_at(arm, 'L_Hand') - wrist)
+        shoulder = upper.matrix.to_translation()
+        rig.reach(upper, target, (elbow - (shoulder + target) / 2).normalized())
+
+
+# Then laid so (on the ground where it would go through it), and keyed.
 for frame in range(0, last + 1):
     hand = bones['R_Hand']
     hand.matrix_basis = Matrix.Identity(4)
@@ -153,7 +187,17 @@ for frame in range(0, last + 1):
     for _ in range(2):
         right, left = fists()
         lay(hand, ((right - left) * sign).normalized(), facing[frame])
+    raised = onto_ground(axis())
+    if raised.angle(axis()) > 0.01:
+        for _ in range(3):
+            lay(hand, onto_ground(axis()) if _ else raised, facing[frame])
+        left_onto(axis())
+        upper = bones['L_Upperarm']
+        for pb in (upper, next(c for c in upper.children if 'Twist' not in c.name)):
+            pb.keyframe_insert('rotation_quaternion', frame=frame)
     hand.keyframe_insert('rotation_quaternion', frame=frame)
+    tip = props.held_at(arm, 'R_Hand') + axis() * HEAD
+    print('TIP', frame, 'ahead %.3f up %.3f' % (tip.x, tip.z))
     right, left = fists()
     off = (left - right) - axis() * (left - right).dot(axis())
     print('F', frame, 'left fist off the shaft %.4f' % off.length, 'edge to going %.0f' % __import__('math').degrees(edge().angle(facing[frame] - axis() * facing[frame].dot(axis()))))
