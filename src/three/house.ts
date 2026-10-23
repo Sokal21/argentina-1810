@@ -29,7 +29,7 @@ const FLOOR = 0.1;
 /**
  * What stands in a room is not walked through either: its ground is cut into squares this wide, and
  * a square is taken where any of it stands higher than this over the floor (an ankle: a bench's
- * seat, a cot, an altar); the squares that touch are one block, kept as the box round them.
+ * seat, a cot, an altar); each row's run of them is kept as a box.
  */
 const BLOCK = { cell: 8, over: 6 };
 /** Its flames' glows: how wide, and their colour. */
@@ -251,22 +251,15 @@ export class House {
         if (p.y > FLOOR + BLOCK.over) taken.add(`${Math.floor(p.x / BLOCK.cell)},${Math.floor(p.z / BLOCK.cell)}`);
       }
     });
-    const seen = new Set<string>();
-    for (const start of taken) {
-      if (seen.has(start)) continue;
-      const stack = [start];
-      seen.add(start);
-      let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
-      while (stack.length) {
-        const [x, z] = stack.pop()!.split(',').map(Number);
-        x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z);
-        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          const next = `${x + dx},${z + dz}`;
-          if (taken.has(next) && !seen.has(next)) { seen.add(next); stack.push(next); }
-        }
-      }
-      const c = BLOCK.cell;
-      this.walls.push({ x: ((x0 + x1 + 1) * c) / 2, z: ((z0 + z1 + 1) * c) / 2, hw: ((x1 - x0 + 1) * c) / 2, hd: ((z1 - z0 + 1) * c) / 2 });
+    // Each row's run of squares is a box of its own: the box round all that touches took in the
+    // aisle behind La posada's counter, its shelves and its table, and kept Don Braulio out of reach.
+    const c = BLOCK.cell;
+    for (const square of taken) {
+      const [x, z] = square.split(',').map(Number);
+      if (taken.has(`${x - 1},${z}`)) continue;
+      let end = x;
+      while (taken.has(`${end + 1},${z}`)) end++;
+      this.walls.push({ x: ((x + end + 1) * c) / 2, z: (z + 0.5) * c, hw: ((end - x + 1) * c) / 2, hd: c / 2 });
     }
   }
 
