@@ -26,6 +26,8 @@ import { raiseCountry } from './world';
 const made = new Map<WorldMap, World3D>();
 /** A sergeant's roar felt: how long the camera shakes, and how far (a blow landing is ~2). */
 const ROAR = { seconds: 0.45, pixels: 1 };
+/** How far under someone's question mark the sign of what F does stands (it was 100 high over everyone, 7 under a standing keeper's). */
+const SIGN_UNDER = 7;
 
 export class World3D {
   readonly view: View;
@@ -47,6 +49,8 @@ export class World3D {
   /** The sign over whoever can be talked to, and what it says and over whom. */
   private readonly sign = document.createElement('div');
   private said: { text: string; at: Vec } | null = null;
+  /** Where it was last shown, kept while it fades out; how high over the ground. */
+  private signAt: { at: Vec; over: number } | null = null;
   /** What his ball is tested against: set by whoever plays on this map. */
   strikes: Strikes = () => null;
   private readonly caster = new THREE.Raycaster();
@@ -64,8 +68,7 @@ export class World3D {
     if (import.meta.env.DEV) mountPanel(this.view, { key: 'KeyL', hidden: true });
     const country = raiseCountry(map);
     this.houses = country.houses;
-    this.sign.hidden = true;
-    this.sign.style.cssText = "position:fixed;left:0;top:0;z-index:12;pointer-events:none;white-space:nowrap;font:16px/1 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
+    this.sign.style.cssText = "opacity:0;transition:opacity 0.25s;position:fixed;left:0;top:0;z-index:12;pointer-events:none;white-space:nowrap;font:16px/1 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
     document.body.appendChild(this.sign);
     this.view.scene.add(country.group, raisePeople(map), this.cabral.group, this.royalists.group, this.marks.group);
     // A sergeant's roar is felt: a faint shake of the camera, its rings leaving his feet.
@@ -135,15 +138,21 @@ export class World3D {
   }
 
   /** Whoever is in a house, where they stand in it, on the 2D ground. */
-  get keepers(): { who: string; x: number; y: number }[] {
+  get keepers(): { who: string; x: number; y: number; over: number }[] {
     return this.houses.flatMap(house => house.keeps);
   }
 
   /** What can be done with someone near, said over them (null: nothing), as the 2D game's sign over them. */
   hint(text: string | null, at: Vec | null): void {
     this.said = text && at ? { text, at } : null;
-    if (this.sign.textContent !== (text ?? '')) this.sign.textContent = text ?? '';
-    this.sign.hidden = !this.said;
+    // It fades in and out, keeping what it said and where while it fades.
+    if (this.said) {
+      if (this.sign.textContent !== this.said.text) this.sign.textContent = this.said.text;
+      // Just under the question mark of whoever is in a house (lower over one who sits); over anyone else's head.
+      const { x, y } = this.said.at, near = this.keepers.find(k => Math.hypot(k.x - x, k.y - y) < 1);
+      this.signAt = { at: this.said.at, over: near ? near.over - SIGN_UNDER : 100 * UPRIGHT };
+    }
+    this.sign.style.opacity = this.said ? '1' : '0';
   }
 
   /** Keeps a step out of the houses' walls: in and out only by their doors. */
@@ -208,9 +217,9 @@ export class World3D {
   draw(centre: Vec, dt: number): void {
     this.view.follow(ground(centre.x, centre.y), dt);
     // The sign over whoever it is for, above their head.
-    if (this.said) {
+    if (this.signAt) {
       this.view.camera.updateMatrixWorld();
-      const p = ground(this.said.at.x, this.said.at.y, 100 * UPRIGHT).project(this.view.camera);
+      const p = ground(this.signAt.at.x, this.signAt.at.y, this.signAt.over).project(this.view.camera);
       const box = this.view.renderer.domElement.getBoundingClientRect();
       this.sign.style.left = `${Math.round(box.left + (p.x + 1) / 2 * box.width)}px`;
       this.sign.style.top = `${Math.round(box.top + (1 - p.y) / 2 * box.height)}px`;

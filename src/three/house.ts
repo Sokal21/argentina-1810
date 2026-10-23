@@ -271,9 +271,9 @@ export class House {
     if (this.sideFoot) this.sideFoot.visible = k > 0;
   }
 
-  /** Where whoever is within stands, on the 2D ground, and who they are. */
-  get keeps(): { who: string; x: number; y: number }[] {
-    return (this.spec.inside?.keepers ?? []).map(keeper => ({ who: keeper.who, ...this.onGround(keeper.at) }));
+  /** Where whoever is within stands, on the 2D ground, who they are, and how high their sign stands over the floor. */
+  get keeps(): { who: string; x: number; y: number; over: number }[] {
+    return (this.spec.inside?.keepers ?? []).map(keeper => ({ who: keeper.who, ...this.onGround(keeper.at), over: keeper.sits?.over ?? ASK.over }));
   }
 
   /** A spot of the building's frame on the 2D ground: turned about the upright, as the group is. */
