@@ -130,6 +130,33 @@ out byte for byte the same. Re-run a character's hand-keyed clips whenever Cabra
   (distance from him, frame) and set the brain's `hit` and `reach` from it; play the clip at the pace
   that lands it when the brain does (`LOOKS` in `src/three/realista.ts`).
 
+## Something held pointing where it counts (the tirador and the captain, 23 October 2026)
+
+- **A capture aims where its actor aimed, not where the game's ball goes.** The shotgun man fired
+  55° to his left and 15° up; the kneeling pistol man aimed 27° up at one standing. Measure what is
+  held (its +X) every frame, and turn it straight ahead and level at the frame that counts:
+  `tools/blender/anims/al_frente.py` (`--aim F`; `--stand` keeps a standing clip's legs under a
+  kneeling capture, stood up from the waist; `--level-arm yes` levels the arm from the shoulder; the
+  wrist bends what is left; the waist turns about the upright). Choose that frame by the arm's reach
+  (straight out at the shoulder), printed without `--aim`, not by the barrel being level.
+- **Two halves of two captures** (`tiro_arrodillado.py`): legs from one held at a frame, the upper body
+  from the other frame by frame.
+- **A capture for the other hand**: `tools/blender/mirror_clip.py` (the captain's pistol is in his
+  left; Mixamo's Handgun fires with the right).
+- **The grip the capture's hand holds**: a knife held point down stood the sabre on end; held by the
+  little finger's side (`sabre@R_Hand@little`, a second sabre shown only while thrusting) it was 20°
+  off and needed little.
+- **A long cape** (the captain): Tripo binds it to the arms, hands and legs (a bat's wing off the raised
+  arm, split by every step). `prepare_rigged.py --cape yes` (`tools/blender/cape.py`) gives what lies
+  further from a limb than its skin to the chest or hips. Measure the skin's reach per limb first
+  (histogram of distances); and run the same before placing a prop in a hand
+  (`al_frente.py` does): the hand's vertices are where the prop is set.
+- **A move the game makes of a clip** (the captain's lunge: charge, point out, slide, thrust) is shown
+  in `modelos.html` by the game itself: its brain against Cabral standing off, its figure as the game
+  draws it (`LUNGE` in `src/three/modelos.ts`). The user wants to see it "tal cual en el juego".
+- **Feet that slide**: a clip played while the brain walks him (the pistol lowered after the shot)
+  slid; the brain stands him for as long (`shot.after`) and the clip is played over that time.
+
 ## The game's model
 
 `prepare_rigged.py OUT MAIN.glb CLIPS... --front +x --carries sabre,musket,musket_in_hand` joins
