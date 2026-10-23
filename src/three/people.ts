@@ -46,7 +46,7 @@ const BREATHE = 'reposo_mixamo';
 /** Everyone a map stands about on it, outdoors, where it says. */
 export class People {
   readonly group = new THREE.Group();
-  private readonly moving: { motion: Motion; now?: string; next: number; back?: number }[] = [];
+  private readonly moving: { motion: Motion; at: { x: number; y: number }; now?: string; next: number; back?: number }[] = [];
 
   constructor(map: WorldMap) {
     for (const { who, plot, faces, inside } of map.people ?? []) {
@@ -63,20 +63,29 @@ export class People {
       void model(dress.url, dress.drawn).then(body => {
         const motion = new Motion(body);
         motion.play(BREATHE);
-        this.moving.push({ motion, now: dress.now, next: NOW.least + Math.random() * NOW.more });
+        this.moving.push({ motion, at: { x, y }, now: dress.now, next: NOW.least + Math.random() * NOW.more });
         stand(body);
       });
     }
   }
 
+  /** Whoever stands at this spot of the 2D ground has just been come near, and says their one thing: they do what they do now and then, then and there (unless they are doing it already). */
+  heard(at: { x: number; y: number }): void {
+    const one = this.moving.find(m => Math.hypot(m.at.x - at.x, m.at.y - at.y) < 1);
+    if (one?.now && one.back === undefined) this.now(one);
+  }
+
+  private now(one: People['moving'][number]): void {
+    one.motion.play(one.now!, { once: true, afresh: true, blend: 0.4 });
+    one.next = one.motion.seconds(one.now!) + NOW.least + Math.random() * NOW.more;
+    one.back = one.motion.seconds(one.now!);
+  }
+
   update(dt: number): void {
     for (const one of this.moving) {
       // Breathing until it is time for what they do now and then; once it is done, breathing again.
-      if (one.now && (one.next -= dt) <= 0) {
-        one.motion.play(one.now, { once: true, afresh: true, blend: 0.4 });
-        one.next = one.motion.seconds(one.now) + NOW.least + Math.random() * NOW.more;
-        one.back = one.motion.seconds(one.now);
-      } else if (one.back !== undefined && (one.back -= dt) <= 0) {
+      if (one.now && (one.next -= dt) <= 0) this.now(one);
+      else if (one.back !== undefined && (one.back -= dt) <= 0) {
         one.motion.play(BREATHE, { blend: 0.4 });
         one.back = undefined;
       }

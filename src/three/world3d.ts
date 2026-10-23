@@ -148,7 +148,10 @@ export class World3D {
 
   /** What can be done with someone near, said over them (null: nothing), as the 2D game's sign over them. */
   hint(text: string | null, at: Vec | null): void {
+    // Whoever stands about and is newly come near says their thing with what they do now and then.
+    const was = this.said?.at;
     this.said = text && at ? { text, at } : null;
+    if (at && text && (!was || Math.hypot(was.x - at.x, was.y - at.y) >= 1)) this.people.heard(at);
     // It fades in and out, keeping what it said and where while it fades.
     if (this.said) {
       if (this.sign.textContent !== this.said.text) this.sign.textContent = this.said.text;
