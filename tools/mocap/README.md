@@ -34,3 +34,4 @@ with `tools/blender/retarget_rot.py`.
 | Look Over Shoulder.fbx | "Look Over Shoulder": Mateo's standing, glancing back as one in hiding, all of it, `--name mirada --feet` |
 | Slow Run.fbx | "Slow Run": the sableador's run, its 15-frame cycle, `--name carrera --gait --feet`, paced by its stride in the game |
 | Standing Melee Combo Attack Ver. 3.fbx | "Standing Melee Combo Attack Ver. 3": the sableador's two cuts, all 52 frames at their own pace (faster read as frantic), `--name tajo --feet` |
+| Crying.fbx | "Crying": Remedios breaking down now and then by her burnt house, all of it, `--name llanto --feet` |

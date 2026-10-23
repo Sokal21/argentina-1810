@@ -2426,6 +2426,16 @@
       "asset_id": "e3ac038f-d62d-4411-88e7-d3a4afbd0643",
       "label": "tirador 3D turnaround B (arms wide, flat colours) — chosen",
       "file": "assets/tropa/tirador3d/giro_b.png"
+    },
+    {
+      "asset_id": "2968bc9a-b9bb-47f9-913e-95fa3b7dde62",
+      "label": "Remedios 3D turnaround A (painted, stained apron)",
+      "file": "assets/gente/3d/remedios/giro_a.png"
+    },
+    {
+      "asset_id": "352095f8-f0e8-4ea0-af17-fb1d8420ce75",
+      "label": "Remedios 3D turnaround B (chosen: flat colours)",
+      "file": "assets/gente/3d/remedios/giro_b.png"
     }
   ]
 }

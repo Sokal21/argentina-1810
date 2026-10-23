@@ -22,7 +22,9 @@ export const DRESSES: Record<string, Dress & { url?: string; now?: string; turne
   // knees went the red of his facings, and read as blood). Now and then he looks back over his
   // shoulder, as one hiding from those he ran from (Mixamo's "Look Over Shoulder").
   mateo: { drawn: 78, coat: '#a08a5a', legs: '#5a4a36', url: 'mateo/3d/mateo_animado.glb', now: 'mirada', turned: 0.2 },
-  remedios: { drawn: 74, coat: '#8a3a3a', legs: '#6a5a4a' },
+  // Tripo from turnaround B, 23 October 2026. By what is left of her house she breaks down crying
+  // now and then, her hands to her face (Mixamo's "Crying").
+  remedios: { drawn: 74, coat: '#8a3a3a', legs: '#6a5a4a', url: 'gente/3d/remedios/remedios_animado.glb', now: 'llanto' },
   ciriaco: { drawn: 78, coat: '#6a6a4a', legs: '#4a4236' },
   paisano: { drawn: 78, coat: '#9a7a4a', legs: '#3a3a3a', hat: { colour: '#2a2420', tall: 0.07 } },
   chacarero: { drawn: 78, coat: '#7a7a5a', legs: '#4a4236', hat: { colour: '#c8b078', tall: 0.06 } },
