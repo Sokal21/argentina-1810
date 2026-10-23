@@ -31,7 +31,7 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
   // His two cuts at the pace that lands the first when his brain does (frame 18 of 52); his run.
   sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76, blow: { clip: 'tajo', lands: 18 / 52, hit: KINDS.sableador.blow.hit }, run: 'carrera' },
   // A rifleman behind his basket of earth (Tripo from turnaround B, 23 October 2026).
-  // Down on one knee always, his musket in both hands; his shot (tiro_arrodillado.py) goes off at
+  // Walking up with his musket slung; once within his shot, down on one knee, his musket in both hands; his shot (tiro_arrodillado.py) goes off at
   // frame 27 of 50, played so it does when his brain shoots.
   tirador: { url: 'tropa/tirador3d/tirador_animado.glb', drawn: 78, kneels: { clip: 'tiro', shot: 27 / 50, aim: KINDS.tirador.shot.aim } },
   // A head over his men. His blow lands at frame 12 of 58, the halberd's head straight before him (golpe_pesado.py).
@@ -199,13 +199,14 @@ class Figure {
     if (alive(mode) && !alive(this.modeWas ?? 'stand')) { this.blood.clear(this.id); this.buried = false; }
     if (mode === 'dying') m.play('muerte', { once: true, afresh, blend: 0.08 });
     else if (mode === 'gone') m.play('muerte', { once: true });
-    else if (this.look?.kneels) {
+    else if (this.look?.kneels && mode !== 'walk') {
       // On one knee: aiming, his shot played so it goes off when his brain fires; else on guard,
-      // the shot played out to its end (its last frame his guard).
+      // the shot played out to its end after a shot (its last frame his guard), or gone down into
+      // that guard straight from wherever he stood or walked.
       const { clip, shot, aim } = this.look.kneels;
       if (mode === 'aim') m.play(clip, { once: true, pace: (shot * m.seconds(clip)) / aim, afresh, blend: 0.15 });
-      else if (!this.modeWas) m.hold(clip, 1);
-      else m.play(clip, { once: true });
+      else if (this.modeWas === 'aim' || this.modeWas === 'stand') m.play(clip, { once: true });
+      else m.hold(clip, 1, { blend: 0.3 });
     } else if (this.fired !== null) m.play('mosquete_disparo', { once: true, lasts: SHOT, afresh: this.fired === 0, blend: 0.03 });
     else if (mode === 'aim') {
       if (t < DRAW) m.play('mosquete_sacar', { once: true, lasts: DRAW, afresh, blend: 0.06 });
@@ -230,7 +231,7 @@ class Figure {
     // The musket on his back or in his hands, and the sabre put away while he has it up.
     const musket = mode === 'aim' || this.fired !== null || !!this.look?.kneels;
     // One down on one knee never puts his musket away.
-    const inHand = this.look?.kneels ? alive(mode) : mode === 'aim' ? t >= DRAW * DRAWN_AT : this.fired !== null && this.fired < SHOT * SLUNG;
+    const inHand = this.look?.kneels ? alive(mode) && mode !== 'walk' : mode === 'aim' ? t >= DRAW * DRAWN_AT : this.fired !== null && this.fired < SHOT * SLUNG;
     const back = this.body.getObjectByName('mosquete'), hand = this.body.getObjectByName('mosquete_mano'), sabre = this.body.getObjectByName('sable');
     if (back) back.visible = !inHand;
     if (hand) hand.visible = inHand;

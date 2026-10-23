@@ -13,7 +13,7 @@ import { View } from './view';
 // kinds of the king's men with a model of their own, whoever keeps a house), and a model's clips are
 // read off its file, so a new character or a new clip is here as soon as the game has it.
 
-interface Who { name: string; url: string; drawn: number }
+interface Who { name: string; url: string; drawn: number; kneels?: boolean }
 
 /** The kinds of the king's men, named as the game names them. */
 const KIND_NAMES: Record<string, string> = { sargento: 'Sargento', capitan: 'El capitán', sableador: 'Sableador', tirador: 'Tirador' };
@@ -23,7 +23,7 @@ const KEEPER_NAMES: Record<string, string> = { braulio: 'Don Braulio', anselmo: 
 const WHO: Who[] = [
   { name: 'Cabral', url: 'cabral/3d/cabral_animado.glb', drawn: CABRAL_DRESS.drawn },
   { name: 'Realista', url: 'realista/3d/realista_animado.glb', drawn: ROYALIST },
-  ...Object.entries(LOOKS).map(([kind, look]) => ({ name: KIND_NAMES[kind] ?? kind, url: look.url, drawn: look.drawn })),
+  ...Object.entries(LOOKS).map(([kind, look]) => ({ name: KIND_NAMES[kind] ?? kind, url: look.url, drawn: look.drawn, kneels: !!look.kneels })),
   ...Object.values(MODELS).flatMap(b => b.inside?.keepers ?? [])
     .map(k => ({ name: KEEPER_NAMES[k.who] ?? k.who, url: k.url, drawn: k.drawn })),
   // And whoever stands about a map with a model of their own.
@@ -41,7 +41,7 @@ const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   mosquete_sacar: { lasts: DRAW }, mosquete_disparo: { lasts: SHOT },
   granada_sacar: { lasts: DRAW }, granada_lanzar: { lasts: SHOT },
   tajo: { lasts: 0.5 }, 'Realista:tajo': { lasts: 0.8 }, 'Sableador:tajo': { once: true },
-  barrido: { once: true }, grito: { lasts: 2.0 },
+  barrido: { once: true }, grito: { lasts: 2.0 }, tiro: { once: true },
   muerte: { once: true }, rodada_mixamo: { once: true }, beber: { once: true },
 };
 /**
@@ -139,9 +139,10 @@ function play(name: string): void {
 }
 
 /** What each carries, shown as the game shows it for the clip: which musket, the sabre, the grenade. */
-function carried(body: THREE.Object3D): void {
+function carried(w: Who, body: THREE.Object3D): void {
   const musket = clip.startsWith('mosquete'), grenade = clip.startsWith('granada');
-  const inHand = clip === 'mosquete_apuntar' || (clip === 'mosquete_sacar' && into >= DRAW * 0.5) || (clip === 'mosquete_disparo' && into < SHOT * 0.72);
+  // One who kneels to shoot has it in his hands but while he walks up.
+  const inHand = (w.kneels && !clip.startsWith('caminata')) || clip === 'mosquete_apuntar' || (clip === 'mosquete_sacar' && into >= DRAW * 0.5) || (clip === 'mosquete_disparo' && into < SHOT * 0.72);
   const back = body.getObjectByName('mosquete'), hand = body.getObjectByName('mosquete_mano');
   if (back) back.visible = !inHand;
   if (hand) hand.visible = inHand;
@@ -188,7 +189,7 @@ view.renderer.setAnimationLoop(() => {
     if (!it) continue;
     it.motion.update(dt);
     it.body.rotation.y = turn;
-    carried(it.body);
+    carried(w, it.body);
   }
   told.textContent = `${shown.length > 1 ? 'Todos' : shown[0]?.name ?? ''} — ${clip}${paused ? ' (pausa)' : ''}`;
   view.draw();

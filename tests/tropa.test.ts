@@ -37,7 +37,10 @@ describe('the sabre fighter', () => {
 });
 
 describe('the marksman', () => {
-  it('never moves, and shoots from further than a fusilier can', () => {
+  it('walks up until she is within his shot, then stays there and shoots from further than a fusilier can', () => {
+    const far = brain('tirador');
+    run(far, { x: 455, y: 0 }, 2);
+    expect(far.x).toBeGreaterThan(0);
     const b = brain('tirador');
     const deeds = run(b, { x: 400, y: 0 }, 6);
     expect([b.x, b.y]).toEqual([0, 0]);
@@ -116,7 +119,8 @@ describe('how each kind is drawn', () => {
     const { readFileSync } = await import('node:fs');
     for (const [kind, look] of Object.entries(LOOKS)) {
       const k = KINDS[kind as keyof typeof KINDS] as { pace: number; shot?: unknown; blow?: unknown; rally?: unknown };
-      expect(!!look.walk, `${kind} walks`).toBe(k.pace > 0);
+      // The marksman walks only in 3D (three/realista.ts); his sheets are of him on his post.
+      if (kind !== 'tirador') expect(!!look.walk, `${kind} walks`).toBe(k.pace > 0);
       expect(!!look.aim, `${kind} shoots`).toBe(!!k.shot);
       expect(!!look.blow, `${kind} strikes`).toBe(!!k.blow);
       expect(!!look.rally, `${kind} rallies`).toBe(!!k.rally);

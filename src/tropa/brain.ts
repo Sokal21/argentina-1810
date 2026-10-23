@@ -19,6 +19,8 @@ export interface Kind {
   sight: number;
   /** He shoots: from how far, how long he aims (the warning), how long before the shot his aim stops following, how long until he can again, and how high the ball leaves from. */
   shot?: { range: number; aim: number; lock: number; reload: [number, number]; muzzle: number };
+  /** Once whoever he is after is within his shot he walks no more: down on one knee, he stays, and no blow moves him. */
+  stays?: boolean;
   /** He strikes whoever is nearer than `near`: how long the whole blow takes, when in it it lands, how far it reaches, how long he stands before another, and how much life it takes (one if not said). */
   blow?: { near: number; time: number; hit: number; reach: number; rest: number; damage?: number; again?: { hit: number; reach: number } };
   /** He rallies those about him: how often, how long the shout takes, how far it carries, and for how long it quickens them. */
@@ -36,8 +38,8 @@ export const KINDS = {
   // straight before him first (frame 18 of 52), its point 50 off, then a backhand nearer (frame 32);
   // measured on the model.
   sableador: { id: 'sableador', name: 'Sableador', life: 3, girth: 9, pace: 96, sight: 340, blow: { near: 44, time: 2.15, hit: 0.75, reach: 50, rest: 0.4, again: { hit: 1.33, reach: 40 } }, worth: 7, spoils: 4 },
-  // Behind his basket of earth he never moves, and shoots from further and oftener than anyone. Helpless up close.
-  tirador: { id: 'tirador', name: 'Tirador', life: 2, girth: 11, pace: 0, sight: 460, shot: { range: 440, aim: 1.1, lock: 0.3, reload: [1.6, 2.2], muzzle: 22 }, worth: 8, spoils: 5 },
+  // Walks up slowly until whoever he is after is within his shot, then kneels and never moves again; shoots from further and oftener than anyone. Helpless up close.
+  tirador: { id: 'tirador', name: 'Tirador', life: 2, girth: 11, pace: 30, stays: true, sight: 460, shot: { range: 440, aim: 1.1, lock: 0.3, reload: [1.6, 2.2], muzzle: 22 }, worth: 8, spoils: 5 },
   // Slow, hard to bring down, a wide sweep with his halberd, and a shout that quickens his men.
   // His blow is a heavy two-handed one (tools/blender/anims/golpe_pesado.py): long in the coming, to be
   // dodged; it sweeps across before him from his right, its head passing 100 to 110 from him (measured
@@ -145,7 +147,7 @@ export class TroopBrain {
         }
         if (k.rally && this.shout <= 0) { this.enter('rally'); this.done = false; return NOTHING; }
         if (k.shot && far <= k.shot.range && this.reload <= 0) { this.enter('aim'); return NOTHING; }
-        if (!k.pace) { this.enter('stand'); return NOTHING; }
+        if (!k.pace || (k.stays && k.shot && far <= k.shot.range)) { this.enter('stand'); return NOTHING; }
         // One who shoots and is in range comes on slowly while he reloads; anyone else comes straight on.
         const hurt = k.fury && this.life <= this.max / 2 ? k.fury : 1;
         const pace = k.pace * haste * hurt * (k.shot && far <= k.shot.range ? 0.5 : 1);
@@ -203,7 +205,7 @@ export class TroopBrain {
     if (this.life <= 0) { this.enter('dying'); return; }
     // A blow knocks his aim off; one who stays where he is is not moved by it.
     if (this.mode === 'aim') this.enter('stand');
-    if (!this.kind.pace) return;
+    if (!this.kind.pace || this.kind.stays) return;
     const len = Math.hypot(dx, dy) || 1;
     this.move(dx / len * 3, dy / len * 3 / ISO_Y);
   }
