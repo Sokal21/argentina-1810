@@ -86,3 +86,8 @@ material with the texture nearest-filtered, and grows it to the drawn height.
   background at the top-left corner): compare each pixel with the background at its own row, and cut
   at the emptiest columns. **Look at what the texture's colours do**: in 16, Mateo's mud went the red
   of his facings and read as blood; `prepare_rigged.py --colors 24` kept it brown.
+- **One who lies on a bed** (the ensign, 23 October 2026): a bed can be cut out of a room's furniture
+  (`tools/blender/cut_piece.py`, by a box in the model's own units, above its slab); measure its
+  mattress by rays down, grow it so the body lies on it whole, and give the dress `lies`. A lying
+  clip takes `--ground`, and `strip.py` frames it badly (it frames one standing): render it framed
+  to the body's extent instead. The line he says stands over the mattress, not a man's height.

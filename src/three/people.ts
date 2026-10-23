@@ -3,7 +3,7 @@ import type { WorldMap } from '../world/zones';
 import { middle } from '../world/zones';
 import { figure, model, type Dress } from './figure';
 import { Motion } from './motion';
-import { ground } from './space';
+import { ground, UPRIGHT } from './space';
 
 // Those standing about a map: whoever has a model of their own, breathing where they stand; the
 // rest, a figure of a few blocks in something of their colours, until they are modelled. Nobody
@@ -15,7 +15,7 @@ import { ground } from './space';
  * if it has one, plays `now` once now and then (a glance, a sigh) and breathes again; `turned`, how
  * far round from the camera they look across the screen, as a share of a half turn.
  */
-export const DRESSES: Record<string, Dress & { url?: string; idle?: string; now?: string; turned?: number }> = {
+export const DRESSES: Record<string, Dress & { url?: string; idle?: string; now?: string; turned?: number; lies?: Lies }> = {
   braulio: { drawn: 78, coat: '#7a5a3a', legs: '#4a3a2a', hat: { colour: '#3a2e24', tall: 0.08 } },
   anselmo: { drawn: 80, coat: '#5a4636', legs: '#5a4636' },
   tobias: { drawn: 58, coat: '#8a7a5a', legs: '#5a4a36' },
@@ -38,9 +38,25 @@ export const DRESSES: Record<string, Dress & { url?: string; idle?: string; now?
   // Tripo from turnaround A (B had a blot on its profile's shoulder), 23 October 2026; his basin left
   // out, to be held as a thing of its own. He stands praying, his hands joined (Mixamo's "Praying").
   benito: { drawn: 78, coat: '#4a3e34', legs: '#4a3e34', url: 'gente/3d/benito/benito_animado.glb', idle: 'rezando' },
-  alferez: { drawn: 80, coat: '#2c3a6e', legs: '#d9d4c4', trim: '#a3322a', hat: { colour: '#1c1a1e', tall: 0.12 } },
+  // Tripo from turnaround B (in his shirt), 23 October 2026, laid on a cot cut from the chapel's
+  // furniture (tools/blender/cut_piece.py), writhing in his fever (Mixamo's "Writhing In Pain").
+  // The cot grown to 135 (its mattress then 22 high, measured in Blender) so he lies on it whole.
+  alferez: {
+    drawn: 70, coat: '#2c3a6e', legs: '#d9d4c4', trim: '#a3322a', hat: { colour: '#1c1a1e', tall: 0.12 },
+    url: 'gente/3d/alferez/alferez_animado.glb', idle: 'dolor', turned: 0, lies: { bed: 'cosas/3d/catre.glb', grown: 135, top: 22, along: 8 },
+  },
   malherido: { drawn: 80, coat: '#7a2a24', legs: '#d9d4c4', trim: '#e0d8c0' },
 };
+
+/**
+ * A bed one lies on: its model (cut as tools/blender/cut_piece.py cuts, in its own units), grown to
+ * `grown`; how high its mattress stands so grown; and how far along it toward its head they lie.
+ * Its length runs across the screen, the head to the right, as the 2D game draws it.
+ */
+interface Lies { bed: string; grown: number; top: number; along: number }
+
+/** How far over someone's head the line they say stands. */
+const OVER = 24;
 
 /** Seconds between one's `now` and the next: the least, and how much more it may be, at random. */
 const NOW = { least: 6, more: 8 };
@@ -53,6 +69,8 @@ const BREATHE = 'reposo_mixamo';
 export class People {
   readonly group = new THREE.Group();
   private readonly moving: { motion: Motion; at: { x: number; y: number }; idle: string; now?: string; next: number; back?: number }[] = [];
+  /** How high over the ground each stands' line is said, by where they stand on the 2D ground. */
+  private readonly heads: { at: { x: number; y: number }; over: number }[] = [];
 
   constructor(map: WorldMap) {
     for (const { who, plot, faces, inside } of map.people ?? []) {
@@ -65,14 +83,30 @@ export class People {
         body.rotation.y = (faces === 'left' ? -1 : 1) * Math.PI * (dress.turned ?? TURNED);
         this.group.add(body);
       };
+      const { lies } = dress;
+      this.heads.push({ at: { x, y }, over: lies ? lies.top + OVER : dress.drawn * UPRIGHT + OVER });
       if (!dress.url) { stand(figure(dress)); continue; }
-      void model(dress.url, dress.drawn).then(body => {
-        const motion = new Motion(body);
+      void model(dress.url, dress.drawn).then(async loaded => {
+        let body: THREE.Object3D = loaded;
+        // One who lies does on his bed, along it, his head to its head.
+        if (lies) {
+          const bed = await model(lies.bed, lies.grown / UPRIGHT), on = new THREE.Group();
+          loaded.position.set(lies.along, lies.top, 0);
+          loaded.rotation.y = -Math.PI / 2;
+          on.add(bed, loaded);
+          body = on;
+        }
+        const motion = new Motion(loaded);
         motion.play(dress.idle ?? BREATHE);
         this.moving.push({ motion, at: { x, y }, idle: dress.idle ?? BREATHE, now: dress.now, next: NOW.least + Math.random() * NOW.more });
         stand(body);
       });
     }
+  }
+
+  /** How high over the ground the line of whoever stands at this spot of the 2D ground is said, if anyone does. */
+  over(at: { x: number; y: number }): number | undefined {
+    return this.heads.find(h => Math.hypot(h.at.x - at.x, h.at.y - at.y) < 1)?.over;
   }
 
   /** Whoever stands at this spot of the 2D ground has just been come near, and says their one thing: they do what they do now and then, then and there (unless they are doing it already). */

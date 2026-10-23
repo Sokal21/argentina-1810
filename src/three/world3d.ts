@@ -155,9 +155,10 @@ export class World3D {
     // It fades in and out, keeping what it said and where while it fades.
     if (this.said) {
       if (this.sign.textContent !== this.said.text) this.sign.textContent = this.said.text;
-      // Just under the question mark of whoever is in a house (lower over one who sits); over anyone else's head.
+      // Just under the question mark of whoever is in a house (lower over one who sits); over the head of
+      // whoever stands about (lower over one who lies); else as high as a man.
       const { x, y } = this.said.at, near = this.keepers.find(k => Math.hypot(k.x - x, k.y - y) < 1);
-      this.signAt = { at: this.said.at, over: near ? near.over - SIGN_UNDER : 100 * UPRIGHT };
+      this.signAt = { at: this.said.at, over: near ? near.over - SIGN_UNDER : this.people.over(this.said.at) ?? 100 * UPRIGHT };
     }
     this.sign.style.opacity = this.said ? '1' : '0';
   }

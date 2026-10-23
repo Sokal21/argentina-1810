@@ -42,3 +42,4 @@ with `tools/blender/retarget_rot.py`.
 | Rifle Walk.fbx | "Rifle Walk": the tirador walking up with his musket at the ready, all of it, `--gait --feet --twist 1`, then `fusil_en_manos.py ... caminata_fusil` |
 | Orc Idle.fbx | "Orc Idle": the paisano's standing, heavier, his weight shifting, all of it, `--name reposo_orco --feet` |
 | Praying.fbx | "Praying": fray Benito's standing, hands joined at his chest, looped, all of it, `--name rezando --feet` |
+| Writhing In Pain.fbx | "Writhing In Pain": the wounded ensign on his cot, all of it, `--name dolor --ground` (he lies: his lowest point on the ground, then set on the cot's mattress) |
