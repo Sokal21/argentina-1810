@@ -171,6 +171,47 @@ def sabre(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object:
     return blade
 
 
+def pistol(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object:
+    """An officer's flintlock pistol, its barrel 0.14 long, held in a fist by the hand bone: the barrel
+    along the hand (the way the open fingers point) over the thumb, its butt down through the fist.
+    Its length runs along its +X, from the grip in the fist (0) to the muzzle (PISTOL_MUZZLE), its
+    top along +Z, so it is aimed as the musket is (the game finds it by its name, `pistola`)."""
+    parts = []
+    bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.006, depth=0.15, location=(0.055, 0, 0.032), rotation=(0, math.pi / 2, 0))
+    barrel = bpy.context.active_object
+    barrel.name = 'cano_pistola'
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    barrel.data.materials.append(material('hierro', IRON))
+    parts.append(barrel)
+    parts.append(box('caja_pistola', (0.12, 0.014, 0.014), (0.035, 0, 0.022), WOOD, 'madera'))
+    parts.append(box('llave_pistola', (0.026, 0.018, 0.016), (0.0, 0, 0.03), IRON, 'hierro'))
+    # The butt, down through the fist and a little back, capped in brass.
+    parts.append(box('culata_pistola', (0.024, 0.016, 0.07), (-0.008, 0, -0.004), WOOD, 'madera', turn=-0.3))
+    parts.append(box('casquillo', (0.03, 0.02, 0.012), (-0.02, 0, -0.04), BRASS, 'bronce', turn=-0.3))
+    for p in parts:
+        p.select_set(True)
+    bpy.context.view_layer.objects.active = parts[0]
+    bpy.ops.object.join()
+    gun = bpy.context.active_object
+    gun.name = 'pistola'
+    wrist, way, length, palm, _, _ = hand(armature, bone)
+    fist(armature, bone)
+    grip = wrist + way * length * 0.42 + palm * length * 0.18
+    across = way.cross(palm).normalized()
+    thumb = across if across.x > 0 else -across
+    gun.matrix_world = Matrix.Translation(grip) @ Matrix((way, thumb.cross(way), thumb)).transposed().to_4x4()
+    world = gun.matrix_world.copy()
+    gun.parent = armature
+    gun.parent_type = 'BONE'
+    gun.parent_bone = bone
+    gun.matrix_world = world
+    return gun
+
+
+# How far along a pistol its muzzle is, and how high over its middle line (pistol's own units).
+PISTOL_MUZZLE = (0.13, 0.032)
+
+
 # In Blender's linear colour: a dark walnut stock, a blackened barrel.
 WOOD, IRON = (0.16, 0.075, 0.03, 1), (0.08, 0.085, 0.09, 1)
 
