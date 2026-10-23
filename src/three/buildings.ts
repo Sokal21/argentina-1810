@@ -48,9 +48,22 @@ export interface BuildingModel {
      * front), its colour, strength and reach; and the flames that give it, each a small glow there.
      */
     light: { at: [number, number, number]; colour: string; strength: number; reach: number; flames?: [number, number, number][] };
-    /** Who keeps it, standing within: their id (as the story knows them), model, drawn height, and where they stand. */
-    keeper?: { who: string; url: string; drawn: number; at: [number, number] };
+    /** Who keeps it, and whoever else is within, each talked to where they are. */
+    keepers?: Keeper[];
   };
+}
+
+/**
+ * Someone within a building: their id (as the story knows them), model, drawn height and where they
+ * stand. Standing, they breathe and turn toward whoever comes in; one who `sits` plays that clip
+ * instead, facing the camera, never turning (he would turn on his cot), with the sign over him that high.
+ */
+export interface Keeper {
+  who: string;
+  url: string;
+  drawn: number;
+  at: [number, number];
+  sits?: { clip: string; over: number };
 }
 
 export const MODELS: Record<string, BuildingModel> = {
@@ -67,7 +80,7 @@ export const MODELS: Record<string, BuildingModel> = {
       // Its fire, in the middle of the room.
       light: { at: [-58, 110, 0], colour: '#ffae6a', strength: 900, reach: 400 },
       // Don Braulio, by his counter (Tripo from turnaround B, 21 October 2026).
-      keeper: { who: 'braulio', url: 'pulpero/3d/braulio_animado.glb', drawn: 80, at: [-25, -95] },
+      keepers: [{ who: 'braulio', url: 'pulpero/3d/braulio_animado.glb', drawn: 80, at: [-25, -95] }],
     },
   },
   // Tripo from the stone turnaround under clay tiles (the user's pick), 22 October 2026: its door in
@@ -82,7 +95,14 @@ export const MODELS: Record<string, BuildingModel> = {
       // Measured in Blender: the slab's top at 0.13 of its height; its commonest earth at that spot.
       slab: 14.5, earth: [0.3699, 0.4988],
       // Fray Anselmo, in the aisle before his altar (Tripo from turnaround B, 22 October 2026).
-      keeper: { who: 'anselmo', url: 'anselmo/3d/anselmo_animado.glb', drawn: 78, at: [0, -105] },
+      keepers: [
+        { who: 'anselmo', url: 'anselmo/3d/anselmo_animado.glb', drawn: 78, at: [0, -105] },
+        // Tobías, on the edge of the cot nearest the altar on the right, rocking over his knees
+        // (Tripo from turnaround A, Mixamo's "Sitting", 23 October 2026). The cot's top stands 17
+        // over the floor and its front edge at 10 (measured in Blender); his seat, at 0.23 of his
+        // height, is that at 66 drawn; he is set a little within the edge, his hips over the cot.
+        { who: 'tobias', url: 'tobias/3d/tobias_animado.glb', drawn: 66, at: [55, 2], sits: { clip: 'sentado', over: 90 } },
+      ],
       // The altar's candles, at the far end (measured in Blender: the cross's top at the middle,
       // 1.3 of the furniture's height back from its middle; the candles a little over half up it).
       light: {

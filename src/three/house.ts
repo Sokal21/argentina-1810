@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Vec } from '../machi/controller';
 import { ISO_Y } from '../machi/data';
-import type { BuildingModel } from './buildings';
+import type { BuildingModel, Keeper } from './buildings';
 import { asks } from './asks';
 import { model } from './figure';
 import { Motion } from './motion';
@@ -62,7 +62,7 @@ export function shadeRooms(): void {
 }
 /** How far within the front wall's inside face its window reaches. */
 const REVEAL = 16;
-/** The sign over a keeper: how high over the floor, and how near (on the 2D ground) whoever comes must be before it gives way to what F does. */
+/** The sign over a keeper: how high over the floor (standing; one who sits says his own), and how near (on the 2D ground) whoever comes must be before it gives way to what F does. */
 const ASK = { over: 122, near: 110 };
 /** How far round toward the camera a side wall's outside must turn (the sine of its turn) to be cut like the front. */
 const SIDEWAYS = 0.25;
@@ -111,19 +111,19 @@ export class House {
   private readonly undersideCut = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   /** The walls as boxes in the building's frame, which nobody walks through. */
   private readonly walls: { x: number; z: number; hw: number; hd: number }[] = [];
-  /** Who keeps it, standing within, and how they move. */
-  private keeper: { body: THREE.Object3D; motion: Motion; facing: number } | null = null;
+  /** Who is within, and how they move: in the order the building names them. */
+  private readonly people: { spec: Keeper; body: THREE.Object3D; motion: Motion; facing: number }[] = [];
   /**
-   * The sign over their head that they can be talked to, bobbing; and the clock it bobs by. Not in
-   * the house's group but in the view's `over`, whoever draws it adding it there: it is placed in the world.
+   * The sign over each one's head that they can be talked to, bobbing; and the clock they bob by. Not
+   * in the house's group but in the view's `over`, whoever draws it adding them there: they are placed in the world.
    */
-  readonly ask = asks();
+  readonly asks: THREE.Object3D[];
   private time = 0;
 
   constructor(private readonly where: { x: number; y: number; turn: number }, private readonly spec: BuildingModel) {
     this.group.position.copy(ground(where.x, where.y));
     this.group.rotation.y = where.turn;
-    this.ask.visible = false;
+    this.asks = (spec.inside?.keepers ?? []).map(() => Object.assign(asks(), { visible: false }));
     // The camera looks from +Z: a side whose outside turns that way hides the room as the front does.
     const toward = spec.inside?.side ? -Math.sin(where.turn) : 0;
     this.side = toward > SIDEWAYS ? 1 : toward < -SIDEWAYS ? -1 : 0;
@@ -188,13 +188,14 @@ export class House {
       });
     });
     // Always there: its doorway is open, and from outside the room is seen through it, in the dark.
-    // Whoever keeps it, breathing where they stand, turned toward the room.
-    const keeper = inside.keeper;
-    if (keeper) {
-      void model(keeper.url, keeper.drawn).then(body => {
-        body.position.set(keeper.at[0], FLOOR, keeper.at[1]);
-        this.keeper = { body, motion: new Motion(body), facing: 0 };
-        this.keeper.motion.play('reposo_mixamo');
+    // Whoever keeps it, breathing where they stand, turned toward the room; and whoever else is
+    // within, sitting as they sit.
+    for (const spec of inside.keepers ?? []) {
+      void model(spec.url, spec.drawn).then(body => {
+        body.position.set(spec.at[0], FLOOR, spec.at[1]);
+        const one = { spec, body, motion: new Motion(body), facing: 0 };
+        one.motion.play(spec.sits?.clip ?? 'reposo_mixamo');
+        this.people.push(one);
         this.room.add(body);
       });
     }
@@ -270,14 +271,21 @@ export class House {
     if (this.sideFoot) this.sideFoot.visible = k > 0;
   }
 
-  /** Where whoever keeps it stands, on the 2D ground, and who they are. */
-  get keeps(): { who: string; x: number; y: number } | null {
-    const keeper = this.spec.inside?.keeper;
-    if (!keeper) return null;
-    const [lx, lz] = keeper.at, c = Math.cos(this.where.turn), s = Math.sin(this.where.turn);
-    // The building's frame to the ground's: turned about the upright, as the group is.
+  /** Where whoever is within stands, on the 2D ground, and who they are. */
+  get keeps(): { who: string; x: number; y: number }[] {
+    return (this.spec.inside?.keepers ?? []).map(keeper => ({ who: keeper.who, ...this.onGround(keeper.at) }));
+  }
+
+  /** A spot of the building's frame on the 2D ground: turned about the upright, as the group is. */
+  private onGround([lx, lz]: [number, number]): Vec {
+    const c = Math.cos(this.where.turn), s = Math.sin(this.where.turn);
     const dx = lx * c + lz * s, dz = -lx * s + lz * c;
-    return { who: keeper.who, x: this.where.x + dx, y: this.where.y + dz * ISO_Y };
+    return { x: this.where.x + dx, y: this.where.y + dz * ISO_Y };
+  }
+
+  /** How far apart two spots of the 2D ground stand, upright. */
+  private far(a: Vec, b: Vec): number {
+    return Math.hypot(a.x - b.x, (a.y - b.y) / ISO_Y);
   }
 
   /** A spot of the 2D ground in the building's frame. */
@@ -333,18 +341,23 @@ export class House {
       flame.scale.setScalar(FLAME.wide * (0.85 + 0.25 * waver));
     });
     // Whoever keeps it turns toward whoever comes in, and back to the room when they go.
-    if (this.keeper && this.spec.inside?.keeper) {
-      const [lx, lz] = this.spec.inside.keeper.at, p = at && this.within(at) ? this.local(at) : null;
-      const want = p ? Math.atan2(p.x - lx, p.z - lz) : 0;
-      this.keeper.facing += Math.atan2(Math.sin(want - this.keeper.facing), Math.cos(want - this.keeper.facing)) * Math.min(1, dt * 5);
-      this.keeper.body.rotation.y = this.keeper.facing;
-      this.keeper.motion.update(dt);
-      // Their sign, over their head, once whoever comes is within the walls; gone once they are near
-      // enough to talk (the sign of what F does says the rest).
-      const keeps = this.keeps;
-      this.ask.visible = !!at && !!keeps && this.within(at) && Math.hypot(at.x - keeps.x, (at.y - keeps.y) / ISO_Y) > ASK.near;
-      this.room.updateWorldMatrix(true, false);
-      this.ask.position.copy(this.room.localToWorld(new THREE.Vector3(lx, ASK.over + Math.sin(this.time * 3) * 2, lz)));
+    const p = at && this.within(at) ? this.local(at) : null;
+    for (const one of this.people) {
+      const [lx, lz] = one.spec.at;
+      if (!one.spec.sits) {
+        const want = p ? Math.atan2(p.x - lx, p.z - lz) : 0;
+        one.facing += Math.atan2(Math.sin(want - one.facing), Math.cos(want - one.facing)) * Math.min(1, dt * 5);
+        one.body.rotation.y = one.facing;
+      }
+      one.motion.update(dt);
     }
+    // A sign over the head of each who can be talked to, once whoever comes is within the walls;
+    // gone once they are near enough to talk (the sign of what F does says the rest).
+    this.room.updateWorldMatrix(true, false);
+    (this.spec.inside.keepers ?? []).forEach((spec, i) => {
+      const ask = this.asks[i], [lx, lz] = spec.at;
+      ask.visible = !!at && !!p && this.far(at, this.onGround(spec.at)) > ASK.near;
+      if (ask.visible) ask.position.copy(this.room.localToWorld(new THREE.Vector3(lx, (spec.sits?.over ?? ASK.over) + Math.sin(this.time * 3 + i) * 2, lz)));
+    });
   }
 }

@@ -70,7 +70,7 @@ export class World3D {
     this.view.scene.add(country.group, raisePeople(map), this.cabral.group, this.royalists.group, this.marks.group);
     // A sergeant's roar is felt: a faint shake of the camera, its rings leaving his feet.
     this.royalists.shoutFelt = () => this.view.jolt(ROAR.seconds, ROAR.pixels);
-    for (const house of this.houses) this.view.over.add(house.ask);
+    for (const house of this.houses) this.view.over.add(...house.asks);
     this.view.scene.add(roomLight());
     // The blast itself is the 2D game's, which hurts; this only shows the ball and what it raises.
     this.shots = new Shots(this.view.camera, (from, to) => this.strikes(from, to), () => {});
@@ -134,9 +134,9 @@ export class World3D {
     this.view.fury += (rage - this.view.fury) * Math.min(1, dt * 6);
   }
 
-  /** Whoever keeps a house, where they stand in it, on the 2D ground. */
+  /** Whoever is in a house, where they stand in it, on the 2D ground. */
   get keepers(): { who: string; x: number; y: number }[] {
-    return this.houses.flatMap(house => house.keeps ?? []);
+    return this.houses.flatMap(house => house.keeps);
   }
 
   /** What can be done with someone near, said over them (null: nothing), as the 2D game's sign over them. */

@@ -72,3 +72,11 @@ material with the texture nearest-filtered, and grows it to the drawn height.
 - **Its keeper:** a character's turnaround and model as above, rigged (Tripo `animations/rig`,
   `"input": <model task id>`, v1.0, 25), with the shared breathing idle; stood by the counter,
   turning to whoever comes in; talked to with F as in the 2D game, a sign over them.
+- **More than one within, and one who sits** (Tobías, 23 October 2026): a building's `keepers` is a
+  list, each talked to where they are and **each with a question-mark sign of their own** (the user's
+  rule: whoever can be talked to has one). One who `sits` plays that clip, never turns, and has his
+  sign lower. Sat on a cot: measure the cot's top and front edge by casting rays down over the
+  furniture in Blender, measure the clip's seat (the body's lowest point under the hips, a share of
+  his height), and choose his drawn height so the two meet; set him a little within the edge.
+  A clip GLB straight out of `retarget_rot.py` faces +X, so `strip.py` shows it side on: judge
+  which way a clip faces on the joined model (`NAME_animado.glb`), not on the clip's own file.

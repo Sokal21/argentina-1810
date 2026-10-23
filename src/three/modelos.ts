@@ -23,7 +23,7 @@ const WHO: Who[] = [
   { name: 'Cabral', url: 'cabral/3d/cabral_animado.glb', drawn: CABRAL_DRESS.drawn },
   { name: 'Realista', url: 'realista/3d/realista_animado.glb', drawn: ROYALIST },
   ...Object.entries(LOOKS).map(([kind, look]) => ({ name: KIND_NAMES[kind] ?? kind, url: look.url, drawn: look.drawn })),
-  ...Object.values(MODELS).flatMap(b => b.inside?.keeper ? [b.inside.keeper] : [])
+  ...Object.values(MODELS).flatMap(b => b.inside?.keepers ?? [])
     .map(k => ({ name: KEEPER_NAMES[k.who] ?? k.who, url: k.url, drawn: k.drawn })),
 ];
 

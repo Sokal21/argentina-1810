@@ -2386,6 +2386,16 @@
       "asset_id": "ece53e05-353e-42b7-8ef1-a06683579a29",
       "label": "fray Anselmo 3D turnaround B (arms wide, palms open, ragged hem)",
       "file": "assets/anselmo/3d/giro_b.png"
+    },
+    {
+      "asset_id": "1baf9b47-5e83-4cad-978e-5b9002653808",
+      "label": "Tobías 3D turnaround A (chosen: left leg bandaged in every view)",
+      "file": "assets/tobias/3d/giro_a.png"
+    },
+    {
+      "asset_id": "6a77a061-9d38-4d5e-9f01-3215f5afbb95",
+      "label": "Tobías 3D turnaround B (bandage changes leg between views)",
+      "file": "assets/tobias/3d/giro_b.png"
     }
   ]
 }

@@ -30,3 +30,4 @@ with `tools/blender/retarget_rot.py`.
 | Heavy Weapon Swing.fbx | "Heavy Weapon Swing": the sergeant's halberd blow, `--name barrido --feet`, then `tools/blender/anims/golpe_pesado.py` cuts it to frames 19 to 95 (its long sway before it moves left out) and lays the halberd between his hands |
 | Standing Melee Attack Downward.fbx, Great Sword Slash.fbx | tried for the sergeant and left: the first is one-handed (a halberd forced into both hands broke his arms) |
 | Standing Taunt Battlecry.fbx | "Standing Taunt Battlecry": the sergeant's shout, all 55 frames, `--name grito --feet`, then `tools/blender/anims/grito_sargento.py` raises the halberd in his right hand (his arms fling too wide for both) |
+| Sitting.fbx | "Sitting" (sitting on a low edge, rocking over his knees, groaning): Tobías on his cot, all of it, `--name sentado --feet` |
