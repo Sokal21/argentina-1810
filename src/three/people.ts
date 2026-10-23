@@ -25,7 +25,10 @@ export const DRESSES: Record<string, Dress & { url?: string; now?: string; turne
   // Tripo from turnaround B, 23 October 2026. By what is left of her house she breaks down crying
   // now and then, her hands to her face (Mixamo's "Crying").
   remedios: { drawn: 74, coat: '#8a3a3a', legs: '#6a5a4a', url: 'gente/3d/remedios/remedios_animado.glb', now: 'llanto' },
-  ciriaco: { drawn: 78, coat: '#6a6a4a', legs: '#4a4236' },
+  // Tripo from turnaround B (its profile mirrored: drawn facing right, it showed the knife at his
+  // left hip on his right side), 23 October 2026. Now and then he shouts for the Spaniard to be
+  // brought (Mixamo's "Yelling While Standing").
+  ciriaco: { drawn: 78, coat: '#6a6a4a', legs: '#4a4236', url: 'gente/3d/ciriaco/ciriaco_animado.glb', now: 'gritando' },
   paisano: { drawn: 78, coat: '#9a7a4a', legs: '#3a3a3a', hat: { colour: '#2a2420', tall: 0.07 } },
   chacarero: { drawn: 78, coat: '#7a7a5a', legs: '#4a4236', hat: { colour: '#c8b078', tall: 0.06 } },
   benito: { drawn: 78, coat: '#4a3e34', legs: '#4a3e34' },

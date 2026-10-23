@@ -2436,6 +2436,16 @@
       "asset_id": "352095f8-f0e8-4ea0-af17-fb1d8420ce75",
       "label": "Remedios 3D turnaround B (chosen: flat colours)",
       "file": "assets/gente/3d/remedios/giro_b.png"
+    },
+    {
+      "asset_id": "4c64b7bd-23fc-42fc-a779-051e03ead3cd",
+      "label": "Ciriaco 3D turnaround A (banded poncho, knife consistent)",
+      "file": "assets/gente/3d/ciriaco/giro_a.png"
+    },
+    {
+      "asset_id": "8aa1d7ab-26ce-4edd-9fac-551af9d25be5",
+      "label": "Ciriaco 3D turnaround B (chosen; its profile shows the knife on the wrong side, mirrored before Tripo)",
+      "file": "assets/gente/3d/ciriaco/giro_b.png"
     }
   ]
 }
