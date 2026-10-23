@@ -2476,6 +2476,16 @@
       "asset_id": "2d618be8-fa3f-4a54-840c-3711b9d25b0d",
       "label": "fray Benito 3D turnaround B (a dark blot on the profile's shoulder)",
       "file": "assets/gente/3d/benito/giro_b.png"
+    },
+    {
+      "asset_id": "3c2b82ac-4bb8-4828-b51c-ed2b030b6e0e",
+      "label": "alférez herido 3D turnaround A (painted)",
+      "file": "assets/gente/3d/alferez/giro_a.png"
+    },
+    {
+      "asset_id": "30374b39-1ba0-4564-868c-4a60f563ec4d",
+      "label": "alférez herido 3D turnaround B (chosen: flat, arms further out)",
+      "file": "assets/gente/3d/alferez/giro_b.png"
     }
   ]
 }
