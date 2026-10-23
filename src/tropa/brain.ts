@@ -20,7 +20,7 @@ export interface Kind {
   /** He shoots: from how far, how long he aims (the warning), how long before the shot his aim stops following, how long until he can again, and how high the ball leaves from. */
   shot?: { range: number; aim: number; lock: number; reload: [number, number]; muzzle: number };
   /** He strikes whoever is nearer than `near`: how long the whole blow takes, when in it it lands, how far it reaches, how long he stands before another, and how much life it takes (one if not said). */
-  blow?: { near: number; time: number; hit: number; reach: number; rest: number; damage?: number };
+  blow?: { near: number; time: number; hit: number; reach: number; rest: number; damage?: number; again?: { hit: number; reach: number } };
   /** He rallies those about him: how often, how long the shout takes, how far it carries, and for how long it quickens them. */
   rally?: { every: number; time: number; reach: number; lasts: number };
   /** Below half his life he comes on this many times faster. */
@@ -32,7 +32,10 @@ export interface Kind {
 
 export const KINDS = {
   // No musket: he runs at whoever he sees and cuts. Soon down, if he can be caught.
-  sableador: { id: 'sableador', name: 'Sableador', life: 3, girth: 9, pace: 96, sight: 340, blow: { near: 42, time: 0.55, hit: 0.3, reach: 46, rest: 0.7 }, worth: 7, spoils: 4 },
+  // Two cuts at a time (Mixamo's Standing Melee Combo Attack, at its own pace: faster read as frantic):
+  // straight before him first (frame 18 of 52), its point 50 off, then a backhand nearer (frame 32);
+  // measured on the model.
+  sableador: { id: 'sableador', name: 'Sableador', life: 3, girth: 9, pace: 96, sight: 340, blow: { near: 44, time: 2.15, hit: 0.75, reach: 50, rest: 0.4, again: { hit: 1.33, reach: 40 } }, worth: 7, spoils: 4 },
   // Behind his basket of earth he never moves, and shoots from further and oftener than anyone. Helpless up close.
   tirador: { id: 'tirador', name: 'Tirador', life: 2, girth: 11, pace: 0, sight: 460, shot: { range: 440, aim: 1.1, lock: 0.3, reload: [1.6, 2.2], muzzle: 22 }, worth: 8, spoils: 5 },
   // Slow, hard to bring down, a wide sweep with his halberd, and a shout that quickens his men.
@@ -92,6 +95,7 @@ export class TroopBrain {
   private rest = 0;
   private shout: number;
   private done = false;
+  private twice = false;
   private quick = 0;
   private home: Vec;
 
@@ -166,8 +170,14 @@ export class TroopBrain {
         const b = k.blow!;
         if (to && this.t < b.hit * 0.6) this.look(to);
         if (this.t >= b.time) { this.enter('stand'); this.rest = b.rest; }
+        // A second cut, if his blow has one, once the first has landed.
+        if (this.done && b.again && !this.twice && this.t >= b.again.hit) {
+          this.twice = true;
+          return { cut: !!to && far <= b.again.reach };
+        }
         if (this.done || this.t < b.hit) return NOTHING;
         this.done = true;
+        this.twice = false;
         return { cut: !!to && far <= b.reach };
       }
       case 'rally': {

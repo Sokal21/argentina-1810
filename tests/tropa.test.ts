@@ -24,7 +24,15 @@ describe('the sabre fighter', () => {
     const b = brain('sableador');
     for (let t = 0; t < 5 && b.mode !== 'blow'; t += DT) b.update(DT, { x: 30, y: 0 });
     expect(b.mode).toBe('blow');
-    expect(run(b, { x: 300, y: 0 }, 1).filter(d => d.cut !== undefined)).toEqual([{ cut: false }]);
+    // Both cuts of his combo fall on nobody.
+    expect(run(b, { x: 300, y: 0 }, 2).filter(d => d.cut !== undefined)).toEqual([{ cut: false }, { cut: false }]);
+  });
+
+  it('cuts twice in a blow, the second nearer', () => {
+    const b = brain('sableador');
+    for (let t = 0; t < 5 && b.mode !== 'blow'; t += DT) b.update(DT, { x: 30, y: 0 });
+    expect(run(b, { x: 30, y: 0 }, 2).filter(d => d.cut !== undefined)).toEqual([{ cut: true }, { cut: true }]);
+    expect(KINDS.sableador.blow.again.reach).toBeLessThan(KINDS.sableador.blow.reach);
   });
 });
 

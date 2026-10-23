@@ -26,9 +26,10 @@ export const DRAWN = 78;
  * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
  * the pace that lands it when his brain does.
  */
-export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number } }> = {
+export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string }> = {
   // Lean and quick, a little under the fusiliers (Tripo from turnaround A, 23 October 2026).
-  sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76 },
+  // His two cuts at the pace that lands the first when his brain does (frame 18 of 52); his run.
+  sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76, blow: { clip: 'tajo', lands: 18 / 52, hit: KINDS.sableador.blow.hit }, run: 'carrera' },
   // A head over his men. His blow lands at frame 12 of 58, the halberd's head straight before him (golpe_pesado.py).
   sargento: { url: 'tropa/sargento3d/sargento_animado.glb', drawn: 90, blow: { clip: 'barrido', lands: 12 / 58, hit: KINDS.sargento.blow.hit },
     // His shout, played over as long as it takes him (grito_sargento.py, Mixamo's battlecry).
@@ -111,6 +112,8 @@ class Figure {
   private readonly motion: Motion;
   private readonly flash: (amount: number) => void;
   private readonly reach: number;
+  /** How far a stride of his run carries him, played at its own pace: his run is paced by it, so his feet do not slide. */
+  private readonly runReach: number;
   /** The warning at his muzzle while he aims, glow and glint: seen through him too, aiming away, since it is there to be dodged by. */
   readonly warning = new THREE.Group();
   private readonly glow = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -143,6 +146,7 @@ class Figure {
     this.motion = new Motion(this.body);
     this.flash = flashes(this.body);
     this.reach = this.motion.reach('caminata_mixamo', 'L_Foot') * shape.scale.x;
+    this.runReach = look?.run ? this.motion.reach(look.run, 'L_Foot') * shape.scale.x : 0;
     this.warning.add(this.glow, this.halo, this.star);
     this.warning.visible = false;
   }
@@ -207,6 +211,7 @@ class Figure {
       // Rings of red flung out over the ground as he roars, as far as his shout carries.
       if (afresh) this.shouts?.shout(ground(x, y), reach);
     }
+    else if (mode === 'walk' && this.look?.run) m.play(this.look.run, { pace: this.runReach ? Math.max(0.35, this.going / this.runReach) : 1 });
     else if (mode === 'walk') m.play('caminata_mixamo', { pace: this.reach ? Math.max(0.35, this.going / this.reach) : 1 });
     else m.play('reposo_mixamo');
     m.update(dt);
