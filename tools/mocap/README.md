@@ -31,3 +31,4 @@ with `tools/blender/retarget_rot.py`.
 | Standing Melee Attack Downward.fbx, Great Sword Slash.fbx | tried for the sergeant and left: the first is one-handed (a halberd forced into both hands broke his arms) |
 | Standing Taunt Battlecry.fbx | "Standing Taunt Battlecry": the sergeant's shout, all 55 frames, `--name grito --feet`, then `tools/blender/anims/grito_sargento.py` raises the halberd in his right hand (his arms fling too wide for both) |
 | Sitting.fbx | "Sitting" (sitting on a low edge, rocking over his knees, groaning): Tobías on his cot, all of it, `--name sentado --feet` |
+| Look Over Shoulder.fbx | "Look Over Shoulder": Mateo's standing, glancing back as one in hiding, all of it, `--name mirada --feet` |

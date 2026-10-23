@@ -9,13 +9,14 @@ import { ground } from './space';
 // rest, a figure of a few blocks in something of their colours, until they are modelled. Nobody
 // talks to them in 3D: they are only there.
 
-export const DRESSES: Record<string, Dress & { url?: string }> = {
+export const DRESSES: Record<string, Dress & { url?: string; idle?: string }> = {
   braulio: { drawn: 78, coat: '#7a5a3a', legs: '#4a3a2a', hat: { colour: '#3a2e24', tall: 0.08 } },
   anselmo: { drawn: 80, coat: '#5a4636', legs: '#5a4636' },
   tobias: { drawn: 58, coat: '#8a7a5a', legs: '#5a4a36' },
   // Tripo from turnaround A, 23 October 2026; its texture in 24 colours (in 16 the mud on his
-  // knees went the red of his facings, and read as blood).
-  mateo: { drawn: 78, coat: '#a08a5a', legs: '#5a4a36', url: 'mateo/3d/mateo_animado.glb' },
+  // knees went the red of his facings, and read as blood). Standing, he looks back over his
+  // shoulder, as one hiding from those he ran from (Mixamo's "Look Over Shoulder").
+  mateo: { drawn: 78, coat: '#a08a5a', legs: '#5a4a36', url: 'mateo/3d/mateo_animado.glb', idle: 'mirada' },
   remedios: { drawn: 74, coat: '#8a3a3a', legs: '#6a5a4a' },
   ciriaco: { drawn: 78, coat: '#6a6a4a', legs: '#4a4236' },
   paisano: { drawn: 78, coat: '#9a7a4a', legs: '#3a3a3a', hat: { colour: '#2a2420', tall: 0.07 } },
@@ -44,7 +45,7 @@ export class People {
       if (!dress.url) { stand(figure(dress)); continue; }
       void model(dress.url, dress.drawn).then(body => {
         const motion = new Motion(body);
-        motion.play('reposo_mixamo');
+        motion.play(dress.idle ?? 'reposo_mixamo');
         this.moving.push(motion);
         stand(body);
       });
