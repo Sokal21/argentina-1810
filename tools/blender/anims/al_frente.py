@@ -4,10 +4,10 @@ pistol shot (Mixamo's Gunplay, fired one-handed from one knee) and his thrust (M
 knife held point up).
 
     Blender -b --python tools/blender/anims/al_frente.py -- RIG.glb CLIP.glb OUT.glb --prop pistol --aim F
-        [--name tiro] [--stand STAND.glb] [--stand-at 0] [--level-arm yes]
+        [--name tiro] [--hand R] [--stand STAND.glb] [--stand-at 0] [--level-arm yes]
 
 CLIP (and STAND) are clips already on his rig (tools/blender/retarget_rot.py). `--prop` is the
-props.py maker of what he holds, its length along its +X, with its arguments after '@' as
+props.py maker of what he holds (in the hand `--hand`, R or L), its length along its +X, with its arguments after '@' as
 prepare_rigged.py's --carries (sabre@R_Hand@little); give prepare_rigged.py the same. At frame `--aim`:
 - with `--stand`, his hips and legs are that clip's, held at `--stand-at`, every frame, and his upper
   body the capture's, stood up from the waist as straight as he stands (the pistol's man kneels,
@@ -78,7 +78,8 @@ down = pose_of(stand, int(opts.get('--stand-at', 0))) if stand else {}
 first, last = (int(f) for f in clip.frame_range)
 ups = [pose_of(clip, frame) for frame in range(first, last + 1)]
 arm.animation_data.action = None
-waist, wrist, shoulder = bones['Waist'], bones['R_Hand'], bones['R_Upperarm']
+HAND = opts.get('--hand', 'R')
+waist, wrist, shoulder = bones['Waist'], bones[f'{HAND}_Hand'], bones[f'{HAND}_Upperarm']
 # Straight before him and level, on his rig (+X forward, +Z up).
 AHEAD = Vector((1, 0, 0))
 
@@ -102,12 +103,12 @@ def pointing() -> Vector:
 
 
 def arm_way() -> Vector:
-    """The way his right arm points, shoulder to wrist, on his rig."""
+    """The way his arm points, shoulder to wrist, on his rig."""
     return (wrist.head - shoulder.head).normalized()
 
 
 def along_arm() -> Vector:
-    """The way his right arm points, levelled."""
+    """The way his arm points, levelled."""
     way = arm_way()
     return Vector((way.x, way.y, 0)).normalized()
 

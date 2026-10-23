@@ -151,10 +151,10 @@ function carried(w: Who, body: THREE.Object3D): void {
   if (back) back.visible = !inHand;
   if (hand) hand.visible = inHand;
   const sabre = body.getObjectByName('sable');
-  if (sabre) sabre.visible = w.pistol ? clip === 'estocada' : !musket && !grenade;
-  // One with a pistol has it in his hand but while he thrusts with his sabre.
-  const pistol = body.getObjectByName('pistola');
-  if (pistol) pistol.visible = clip !== 'estocada';
+  // One with a pistol has it in his left hand and his sabre in his right, both always.
+  const thrust = body.getObjectByName('sable_estocada');
+  if (sabre) sabre.visible = w.pistol ? clip !== 'estocada' || !thrust : !musket && !grenade;
+  if (thrust) thrust.visible = clip === 'estocada';
   const bomb = body.getObjectByName('granada');
   if (bomb) bomb.visible = clip === 'granada_apuntar' || (clip === 'granada_sacar' && into >= DRAW * 0.36) || (clip === 'granada_lanzar' && into < SHOT * 0.16);
 }

@@ -152,7 +152,8 @@ def sabre(armature: bpy.types.Object, bone: str = 'R_Hand', out: str = 'thumb') 
     bpy.context.view_layer.objects.active = parts[0]
     bpy.ops.object.join()
     blade = bpy.context.active_object
-    blade.name = 'sable'
+    # Held by the little finger's side it is another of his, shown only while he thrusts.
+    blade.name = 'sable' if out == 'thumb' else 'sable_estocada'
 
     # The hand closed round it, and the grip inside the fist: across the palm, a little way in
     # from the wrist, the blade out past the thumb along the way the fist faces.

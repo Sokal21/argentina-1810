@@ -43,11 +43,12 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
     // His shout, played over as long as it takes him (grito_sargento.py, Mixamo's battlecry).
     rally: { clip: 'grito', time: KINDS.sargento.rally.time, reach: KINDS.sargento.rally.reach } },
   // Whoever commands the column, his long cape behind him (Tripo from turnaround C, 23 October 2026);
-  // his plume over the sergeant's head. His pistol in his right hand, his sabre drawn only to thrust
-  // (al_frente.py, both pointing straight before him): the shot goes off at frame 14 of 41, the
-  // thrust lands at frame 9 of 41, each played so it does when his brain has it.
+  // his plume over the sergeant's head. His sabre in his right hand, his pistol in his left. Each
+  // pointing straight before him where it counts (al_frente.py): his thrust (Mixamo's Stabbing) lands
+  // at frame 9 of 41, his shot (Mixamo's Handgun, mirrored for his left hand) goes off at frame 14 of
+  // 49, each played so it does when his brain has it.
   capitan: { url: 'tropa/capitan3d/capitan_animado.glb', drawn: 96, blow: { clip: 'estocada', lands: 9 / 41, hit: KINDS.capitan.blow.hit },
-    pistol: { clip: 'tiro', shot: 14 / 41, aim: KINDS.capitan.shot.aim } },
+    pistol: { clip: 'tiro', shot: 14 / 49, aim: KINDS.capitan.shot.aim } },
 };
 /** Seconds of his aim spent drawing the musket from his back; the rest he holds it levelled. */
 const DRAW = Math.min(0.45, AIM * 0.55);
@@ -266,10 +267,11 @@ class Figure {
     if (back) back.visible = !inHand;
     if (hand) hand.visible = inHand;
     if (sabre) sabre.visible = !musket;
-    // One with a pistol has it in his hand but while he thrusts with his sabre.
-    const pistolHeld = this.body.getObjectByName('pistola');
-    if (pistol && pistolHeld) pistolHeld.visible = mode !== 'blow';
-    if (pistol && sabre) sabre.visible = mode === 'blow';
+    // One with a pistol has it in his left hand and his sabre in his right, both always: the sabre
+    // as it hangs, or as his thrust holds it (by the little finger's side), while he thrusts.
+    const thrust = this.body.getObjectByName('sable_estocada');
+    if (pistol && sabre) sabre.visible = mode !== 'blow' || !thrust;
+    if (pistol && thrust) thrust.visible = mode === 'blow';
     // Struck, he flashes red; quickened by a shout, he throbs a fainter red while it lasts.
     this.clock += dt;
     const throb = who.hasted && alive(mode) ? HASTE.low + (HASTE.high - HASTE.low) * (0.5 + 0.5 * Math.sin(this.clock * HASTE.beat)) : 0;
