@@ -9,14 +9,18 @@ import { ground } from './space';
 // rest, a figure of a few blocks in something of their colours, until they are modelled. Nobody
 // talks to them in 3D: they are only there.
 
-export const DRESSES: Record<string, Dress & { url?: string; idle?: string }> = {
+/**
+ * How each looks: a figure of blocks, or the model at `url`, which breathes where it stands and,
+ * if it has one, plays `now` once now and then (a glance, a sigh) and breathes again.
+ */
+export const DRESSES: Record<string, Dress & { url?: string; now?: string }> = {
   braulio: { drawn: 78, coat: '#7a5a3a', legs: '#4a3a2a', hat: { colour: '#3a2e24', tall: 0.08 } },
   anselmo: { drawn: 80, coat: '#5a4636', legs: '#5a4636' },
   tobias: { drawn: 58, coat: '#8a7a5a', legs: '#5a4a36' },
   // Tripo from turnaround A, 23 October 2026; its texture in 24 colours (in 16 the mud on his
-  // knees went the red of his facings, and read as blood). Standing, he looks back over his
+  // knees went the red of his facings, and read as blood). Now and then he looks back over his
   // shoulder, as one hiding from those he ran from (Mixamo's "Look Over Shoulder").
-  mateo: { drawn: 78, coat: '#a08a5a', legs: '#5a4a36', url: 'mateo/3d/mateo_animado.glb', idle: 'mirada' },
+  mateo: { drawn: 78, coat: '#a08a5a', legs: '#5a4a36', url: 'mateo/3d/mateo_animado.glb', now: 'mirada' },
   remedios: { drawn: 74, coat: '#8a3a3a', legs: '#6a5a4a' },
   ciriaco: { drawn: 78, coat: '#6a6a4a', legs: '#4a4236' },
   paisano: { drawn: 78, coat: '#9a7a4a', legs: '#3a3a3a', hat: { colour: '#2a2420', tall: 0.07 } },
@@ -26,10 +30,15 @@ export const DRESSES: Record<string, Dress & { url?: string; idle?: string }> = 
   malherido: { drawn: 80, coat: '#7a2a24', legs: '#d9d4c4', trim: '#e0d8c0' },
 };
 
+/** Seconds between one's `now` and the next: the least, and how much more it may be, at random. */
+const NOW = { least: 6, more: 8 };
+/** The breathing every model shares. */
+const BREATHE = 'reposo_mixamo';
+
 /** Everyone a map stands about on it, outdoors, where it says. */
 export class People {
   readonly group = new THREE.Group();
-  private readonly moving: Motion[] = [];
+  private readonly moving: { motion: Motion; now?: string; next: number; back?: number }[] = [];
 
   constructor(map: WorldMap) {
     for (const { who, plot, faces, inside } of map.people ?? []) {
@@ -45,14 +54,25 @@ export class People {
       if (!dress.url) { stand(figure(dress)); continue; }
       void model(dress.url, dress.drawn).then(body => {
         const motion = new Motion(body);
-        motion.play(dress.idle ?? 'reposo_mixamo');
-        this.moving.push(motion);
+        motion.play(BREATHE);
+        this.moving.push({ motion, now: dress.now, next: NOW.least + Math.random() * NOW.more });
         stand(body);
       });
     }
   }
 
   update(dt: number): void {
-    for (const motion of this.moving) motion.update(dt);
+    for (const one of this.moving) {
+      // Breathing until it is time for what they do now and then; once it is done, breathing again.
+      if (one.now && (one.next -= dt) <= 0) {
+        one.motion.play(one.now, { once: true, afresh: true, blend: 0.4 });
+        one.next = one.motion.seconds(one.now) + NOW.least + Math.random() * NOW.more;
+        one.back = one.motion.seconds(one.now);
+      } else if (one.back !== undefined && (one.back -= dt) <= 0) {
+        one.motion.play(BREATHE, { blend: 0.4 });
+        one.back = undefined;
+      }
+      one.motion.update(dt);
+    }
   }
 }
