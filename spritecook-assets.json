@@ -2416,6 +2416,16 @@
       "asset_id": "fd4ebbe3-de5d-49e3-b003-ae3ecb9c8e8c",
       "label": "Mateo 3D turnaround B (painted, red turnbacks on the tails)",
       "file": "assets/mateo/3d/giro_b.png"
+    },
+    {
+      "asset_id": "af5a7781-633b-4c2e-8b77-f38376de9e04",
+      "label": "tirador 3D turnaround A (painted, arms nearer)",
+      "file": "assets/tropa/tirador3d/giro_a.png"
+    },
+    {
+      "asset_id": "e3ac038f-d62d-4411-88e7-d3a4afbd0643",
+      "label": "tirador 3D turnaround B (arms wide, flat colours) — chosen",
+      "file": "assets/tropa/tirador3d/giro_b.png"
     }
   ]
 }
