@@ -54,6 +54,8 @@ export interface Spot {
   guarded?: boolean;
   /** What doing it is, to the story. */
   happening: string;
+  /** A fire is lit there by doing it (the rebato's signal fire), and burns from then on. */
+  fire?: boolean;
   /**
    * Doing it is making a stand there: enemies come in waves from a plot, so many at a time,
    * and holding out against the last of them is a happening of its own. Whoever falls can

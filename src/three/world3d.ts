@@ -14,6 +14,7 @@ import { People } from './people';
 import { Royalists, type Royalist } from './realista';
 import { Shots, type Strikes } from './shot';
 import { ground, onTheGround, UPRIGHT } from './space';
+import { Errands } from './errands';
 import { Strewn } from './strewn';
 import { View } from './view';
 import { raiseCountry } from './world';
@@ -51,6 +52,8 @@ export class World3D {
   private readonly people: People;
   /** What lies about on it. */
   private readonly strewn: Strewn;
+  /** What the story has one do about the map: its rings, its bonfires. */
+  private readonly errands: Errands;
   /** The sign over whoever can be talked to, and what it says and over whom. */
   private readonly sign = document.createElement('div');
   private said: { text: string; at: Vec } | null = null;
@@ -75,9 +78,10 @@ export class World3D {
     this.houses = country.houses;
     this.people = new People(map);
     this.strewn = new Strewn(map);
+    this.errands = new Errands(map);
     this.sign.style.cssText = "opacity:0;transition:opacity 0.25s;position:fixed;left:0;top:0;z-index:12;pointer-events:none;width:max-content;max-width:300px;text-align:center;font:16px/1.25 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
     document.body.appendChild(this.sign);
-    this.view.scene.add(country.group, this.people.group, this.strewn.group, this.cabral.group, this.royalists.group, this.marks.group);
+    this.view.scene.add(country.group, this.people.group, this.strewn.group, this.errands.group, this.cabral.group, this.royalists.group, this.marks.group);
     // A sergeant's roar is felt: a faint shake of the camera, its rings leaving his feet.
     this.royalists.shoutFelt = () => this.view.jolt(ROAR.seconds, ROAR.pixels);
     for (const house of this.houses) this.view.over.add(...house.asks);
@@ -138,6 +142,7 @@ export class World3D {
     darkenRooms();
     for (const house of this.houses) house.update(dt, c);
     this.people.update(dt);
+    this.errands.update(dt);
     shadeRooms();
     // His rage, about him and over the whole picture: eased in, and out as it ends.
     const rage = doing.rage ?? 0;
@@ -153,6 +158,26 @@ export class World3D {
   /** It has been picked up: it is gone from the ground. */
   taken(what: string): void {
     this.strewn.taken(what);
+  }
+
+  /** Whether something lying on the map is there just now (what waits on the story is not, until it has happened). */
+  there(what: string, on: boolean): void {
+    this.strewn.there(what, on);
+  }
+
+  /** Whether the ring of a place where something can be done is shown: while it can be. */
+  open(spot: string, on: boolean): void {
+    this.errands.open(spot, on);
+  }
+
+  /** A bonfire built at a place: it stands there from now on. */
+  build(spot: string): void {
+    this.errands.build(spot);
+  }
+
+  /** A bonfire lit at a place. */
+  light(spot: string): void {
+    this.errands.light(spot);
   }
 
   /** Whoever lies abed in a house, where they lie, on the 2D ground. */

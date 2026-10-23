@@ -553,8 +553,9 @@ export class GameScene extends Phaser.Scene {
 
     this.talkers = [];
     {
-      // In 3D nobody outdoors is talked to, nothing lies about to be picked up and nothing is brought
-      // along: those standing about (three/people.ts) only say their one thing as one comes near.
+      // In 3D nobody outdoors is talked to and nothing is brought along yet: those standing about
+      // (three/people.ts) only say their one thing as one comes near. What lies about to be picked up
+      // is what the 3D map draws lying there; the places where something is done are all there.
       const told = this.three ? undefined : this.map;
       // Whoever the map names, each in their plot; on one that names nobody, while developing, the innkeeper, to try things on.
       // Whoever is indoors stands in the room; the rest, on their plot.
@@ -639,14 +640,14 @@ export class GameScene extends Phaser.Scene {
       }
       // Places where something can be done, once: a ring of stones on the ground marks each
       // while it can be, and what was done stands there after.
-      if (told?.spots?.length && !this.textures.exists('spot')) {
+      if (this.map?.spots?.length && !this.textures.exists('spot')) {
         const g = this.make.graphics({}, false);
         g.lineStyle(2, 0x3a3027, 0.9).strokeEllipse(13, 7, 22, 10);
         for (let n = 0; n < 7; n++) g.fillStyle(n % 2 ? 0x8a8478 : 0x6b665c).fillRect(Math.round(13 + Math.cos(n * 0.9) * 11) - 1, Math.round(7 + Math.sin(n * 0.9) * 5) - 1, 3, 2);
         g.generateTexture('spot', 26, 14);
         g.destroy();
       }
-      for (const at of told?.spots ?? []) {
+      for (const at of this.map?.spots ?? []) {
         const { x, y } = middle(at.plot);
         const mark = this.add.image(x, y, 'spot').setOrigin(0.5, 0.5).setDepth(-1e6 + 1.8).setVisible(false);
         const hint = this.add.text(x, y - 30, prompt('F', at.does), {
@@ -722,6 +723,7 @@ export class GameScene extends Phaser.Scene {
             // What was done beforehand counts: fewer come. Whoever commands them comes last, alone.
             const eased = at.stand.eased && this.story?.has(at.stand.eased.given) ? at.stand.eased.waves : at.stand.waves;
             this.battle = { at, waves: new Waves(at.stand.leader ? [...eased, 1] : eased), sent: [] };
+            if (at.fire) this.three?.light(at.id);
             if (at.note) this.board?.say(at.note);
             this.story?.tell(at.happening);
             return;
@@ -731,6 +733,7 @@ export class GameScene extends Phaser.Scene {
           this.talkers = this.talkers.filter(t => t !== near);
           this.beside = undefined;
           // What was done stands there from now on, and is in the way like anything else.
+          if (at.sprite) this.three?.build(at.id);
           if (at.sprite && this.textures.exists(at.sprite)) {
             const done = this.add.image(near.x, near.y, at.sprite).setOrigin(0.5, 1).setDepth(near.y);
             this.sight.add([done]);
@@ -1062,6 +1065,8 @@ export class GameScene extends Phaser.Scene {
       const there = talker.there?.() ?? true;
       talker.take?.drawn.setVisible(there);
       talker.spot?.mark.setVisible(there);
+      if (talker.take) this.three?.there(talker.take.what, there);
+      if (talker.spot) this.three?.open(talker.spot.at.id, there);
       for (const part of talker.figure ?? []) (part as Phaser.GameObjects.Image).setVisible(there);
       if (!there) continue;
       // Something to be brought along is set off from inside its own ring, the one drawn round it; the
@@ -2113,11 +2118,14 @@ export class GameScene extends Phaser.Scene {
       // What was picked up is not lying there any more.
       if (talker.take && has(`tiene:${talker.take.what}`)) {
         talker.take.drawn.destroy();
+        this.three?.taken(talker.take.what);
         talker.hint.destroy();
         this.talkers = this.talkers.filter(t => t !== talker);
       }
-      // What was made somewhere stands there.
+      // What was made somewhere stands there; a fire lit there burns.
       const at = talker.spot?.at;
+      if (at?.sprite && !at.stand && has(at.happening)) this.three?.build(at.id);
+      if (at?.fire && has(at.happening)) this.three?.light(at.id);
       if (at && !at.stand && has(at.happening) && at.sprite && this.textures.exists(at.sprite)) {
         const done = this.add.image(talker.x, talker.y, at.sprite).setOrigin(0.5, 1).setDepth(talker.y);
         this.sight.add([done]);

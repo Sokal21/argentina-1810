@@ -79,7 +79,7 @@ const WARN = { colour: '#ff3424', from: 1.5, to: 3.5, faint: 0.12, full: 0.45, s
 
 /** The glow's picture: a soft round light, white at the heart. */
 let glowing: THREE.Texture | null = null;
-function glow(): THREE.Texture {
+export function glow(): THREE.Texture {
   if (glowing) return glowing;
   const size = 32, canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
