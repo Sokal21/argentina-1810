@@ -62,8 +62,8 @@ export function shadeRooms(): void {
 }
 /** How far within the front wall's inside face its window reaches. */
 const REVEAL = 16;
-/** The sign over a keeper: how high over the floor (standing; one who sits says his own), and how near (on the 2D ground) whoever comes must be before it gives way to what F does. */
-const ASK = { over: 122, near: 110 };
+/** The sign over a keeper: how high over the floor (standing; one who sits says his own), and how near (on the 2D ground) whoever comes must be before it gives way to what F does, and the seconds it takes to fade in or out. */
+const ASK = { over: 122, near: 110, fade: 0.25 };
 /** How far round toward the camera a side wall's outside must turn (the sine of its turn) to be cut like the front. */
 const SIDEWAYS = 0.25;
 /** Where a cut stands when it cuts nothing: far above, or far in front. */
@@ -117,13 +117,18 @@ export class House {
    * The sign over each one's head that they can be talked to, bobbing; and the clock they bob by. Not
    * in the house's group but in the view's `over`, whoever draws it adding them there: they are placed in the world.
    */
-  readonly asks: THREE.Object3D[];
+  readonly asks: THREE.Sprite[];
   private time = 0;
 
   constructor(private readonly where: { x: number; y: number; turn: number }, private readonly spec: BuildingModel) {
     this.group.position.copy(ground(where.x, where.y));
     this.group.rotation.y = where.turn;
-    this.asks = (spec.inside?.keepers ?? []).map(() => Object.assign(asks(), { visible: false }));
+    this.asks = (spec.inside?.keepers ?? []).map(() => {
+      const ask = asks();
+      ask.material.opacity = 0;
+      ask.visible = false;
+      return ask;
+    });
     // The camera looks from +Z: a side whose outside turns that way hides the room as the front does.
     const toward = spec.inside?.side ? -Math.sin(where.turn) : 0;
     this.side = toward > SIDEWAYS ? 1 : toward < -SIDEWAYS ? -1 : 0;
@@ -352,11 +357,14 @@ export class House {
       one.motion.update(dt);
     }
     // A sign over the head of each who can be talked to, once whoever comes is within the walls;
-    // gone once they are near enough to talk (the sign of what F does says the rest).
+    // gone once they are near enough to talk (the sign of what F does says the rest). Faded in and
+    // out, as the sign of what F does is.
     this.room.updateWorldMatrix(true, false);
     (this.spec.inside.keepers ?? []).forEach((spec, i) => {
       const ask = this.asks[i], [lx, lz] = spec.at;
-      ask.visible = !!at && !!p && this.far(at, this.onGround(spec.at)) > ASK.near;
+      const want = at && p && this.far(at, this.onGround(spec.at)) > ASK.near ? 1 : 0, now = ask.material.opacity;
+      ask.material.opacity = want > now ? Math.min(1, now + dt / ASK.fade) : Math.max(0, now - dt / ASK.fade);
+      ask.visible = ask.material.opacity > 0;
       if (ask.visible) ask.position.copy(this.room.localToWorld(new THREE.Vector3(lx, (spec.sits?.over ?? ASK.over) + Math.sin(this.time * 3 + i) * 2, lz)));
     });
   }
