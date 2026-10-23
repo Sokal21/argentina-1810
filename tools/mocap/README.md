@@ -40,3 +40,4 @@ with `tools/blender/retarget_rot.py`.
 | Yelling While Standing.fbx | tried for him and left: it starts and ends bent over |
 | Rifle Idle.fbx | "Rifle Idle": the tirador standing with his musket held low, all of it, `--feet --twist 1`, then `tools/blender/anims/fusil_en_manos.py ... reposo_fusil` lays the musket through both fists |
 | Rifle Walk.fbx | "Rifle Walk": the tirador walking up with his musket at the ready, all of it, `--gait --feet --twist 1`, then `fusil_en_manos.py ... caminata_fusil` |
+| Orc Idle.fbx | "Orc Idle": the paisano's standing, heavier, his weight shifting, all of it, `--name reposo_orco --feet` |

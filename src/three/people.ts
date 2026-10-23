@@ -10,11 +10,12 @@ import { ground } from './space';
 // talks to them in 3D: they are only there.
 
 /**
- * How each looks: a figure of blocks, or the model at `url`, which breathes where it stands and,
+ * How each looks: a figure of blocks, or the model at `url`, which breathes where it stands (or plays
+ * its own `idle`) and,
  * if it has one, plays `now` once now and then (a glance, a sigh) and breathes again; `turned`, how
  * far round from the camera they look across the screen, as a share of a half turn.
  */
-export const DRESSES: Record<string, Dress & { url?: string; now?: string; turned?: number }> = {
+export const DRESSES: Record<string, Dress & { url?: string; idle?: string; now?: string; turned?: number }> = {
   braulio: { drawn: 78, coat: '#7a5a3a', legs: '#4a3a2a', hat: { colour: '#3a2e24', tall: 0.08 } },
   anselmo: { drawn: 80, coat: '#5a4636', legs: '#5a4636' },
   tobias: { drawn: 58, coat: '#8a7a5a', legs: '#5a4a36' },
@@ -29,8 +30,9 @@ export const DRESSES: Record<string, Dress & { url?: string; now?: string; turne
   // left hip on his right side), 23 October 2026. Now and then he shouts for the Spaniard to be
   // brought, arms flung wide (Mixamo's "Yelling").
   ciriaco: { drawn: 78, coat: '#6a6a4a', legs: '#4a4236', url: 'gente/3d/ciriaco/ciriaco_animado.glb', now: 'gritando' },
-  // Tripo from turnaround B (his arms clear of the poncho), 23 October 2026.
-  paisano: { drawn: 78, coat: '#9a7a4a', legs: '#3a3a3a', hat: { colour: '#2a2420', tall: 0.07 }, url: 'gente/3d/paisano/paisano_animado.glb' },
+  // Tripo from turnaround B (his arms clear of the poncho), 23 October 2026. He stands heavier
+  // than the rest, his weight shifting (Mixamo's "Orc Idle").
+  paisano: { drawn: 78, coat: '#9a7a4a', legs: '#3a3a3a', hat: { colour: '#2a2420', tall: 0.07 }, url: 'gente/3d/paisano/paisano_animado.glb', idle: 'reposo_orco' },
   // Tripo from turnaround B, 23 October 2026; his pitchfork left out of it, to be held as a thing of its own.
   chacarero: { drawn: 78, coat: '#7a7a5a', legs: '#4a4236', hat: { colour: '#c8b078', tall: 0.06 }, url: 'gente/3d/chacarero/chacarero_animado.glb' },
   benito: { drawn: 78, coat: '#4a3e34', legs: '#4a3e34' },
@@ -48,7 +50,7 @@ const BREATHE = 'reposo_mixamo';
 /** Everyone a map stands about on it, outdoors, where it says. */
 export class People {
   readonly group = new THREE.Group();
-  private readonly moving: { motion: Motion; at: { x: number; y: number }; now?: string; next: number; back?: number }[] = [];
+  private readonly moving: { motion: Motion; at: { x: number; y: number }; idle: string; now?: string; next: number; back?: number }[] = [];
 
   constructor(map: WorldMap) {
     for (const { who, plot, faces, inside } of map.people ?? []) {
@@ -64,8 +66,8 @@ export class People {
       if (!dress.url) { stand(figure(dress)); continue; }
       void model(dress.url, dress.drawn).then(body => {
         const motion = new Motion(body);
-        motion.play(BREATHE);
-        this.moving.push({ motion, at: { x, y }, now: dress.now, next: NOW.least + Math.random() * NOW.more });
+        motion.play(dress.idle ?? BREATHE);
+        this.moving.push({ motion, at: { x, y }, idle: dress.idle ?? BREATHE, now: dress.now, next: NOW.least + Math.random() * NOW.more });
         stand(body);
       });
     }
@@ -88,7 +90,7 @@ export class People {
       // Breathing until it is time for what they do now and then; once it is done, breathing again.
       if (one.now && (one.next -= dt) <= 0) this.now(one);
       else if (one.back !== undefined && (one.back -= dt) <= 0) {
-        one.motion.play(BREATHE, { blend: 0.4 });
+        one.motion.play(one.idle, { blend: 0.4 });
         one.back = undefined;
       }
       one.motion.update(dt);
