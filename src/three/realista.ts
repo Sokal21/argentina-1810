@@ -22,9 +22,11 @@ const DRAWN = 78;
  * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
  * the pace that lands it when his brain does.
  */
-const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number } }> = {
+const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number } }> = {
   // A head over his men. His blow lands at frame 12 of 58, the halberd's head straight before him (golpe_pesado.py).
-  sargento: { url: 'tropa/sargento3d/sargento_animado.glb', drawn: 90, blow: { clip: 'barrido', lands: 12 / 58, hit: KINDS.sargento.blow.hit } },
+  sargento: { url: 'tropa/sargento3d/sargento_animado.glb', drawn: 90, blow: { clip: 'barrido', lands: 12 / 58, hit: KINDS.sargento.blow.hit },
+    // His shout, played over as long as it takes him (grito_sargento.py, Mixamo's battlecry).
+    rally: { clip: 'grito', time: KINDS.sargento.rally.time } },
 };
 /** Seconds of his aim spent drawing the musket from his back; the rest he holds it levelled. */
 const DRAW = Math.min(0.45, AIM * 0.55);
@@ -189,6 +191,9 @@ class Figure {
       const { clip, lands, hit } = this.look.blow;
       // Eased in from his guard: the clip begins with the weapon already dropped back to be swung.
       m.play(clip, { once: true, pace: (lands * m.seconds(clip)) / hit, afresh, blend: 0.2 });
+    } else if (mode === 'rally' && this.look?.rally) {
+      const { clip, time } = this.look.rally;
+      m.play(clip, { once: true, lasts: time, afresh, blend: 0.2 });
     }
     else if (mode === 'walk') m.play('caminata_mixamo', { pace: this.reach ? Math.max(0.35, this.going / this.reach) : 1 });
     else m.play('reposo_mixamo');
