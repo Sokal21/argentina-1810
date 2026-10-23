@@ -27,6 +27,8 @@ export const DRAWN = 78;
  * the pace that lands it when his brain does.
  */
 export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number } }> = {
+  // Lean and quick, a little under the fusiliers (Tripo from turnaround A, 23 October 2026).
+  sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76 },
   // A head over his men. His blow lands at frame 12 of 58, the halberd's head straight before him (golpe_pesado.py).
   sargento: { url: 'tropa/sargento3d/sargento_animado.glb', drawn: 90, blow: { clip: 'barrido', lands: 12 / 58, hit: KINDS.sargento.blow.hit },
     // His shout, played over as long as it takes him (grito_sargento.py, Mixamo's battlecry).
