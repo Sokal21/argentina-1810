@@ -9,7 +9,7 @@ import * as THREE from 'three';
 /** Puffs: how many are kept, how long one lasts, how big it is born and grows, how fast it rises and drifts, its colours. */
 const PUFF = { kept: 72, life: [0.6, 1.1], from: 3.5, to: 11, rise: [10, 26], drift: 24, colours: ['#a08c64', '#8c7a56', '#b4a07a'], opacity: 0.7 };
 /** The cloud as he pushes off: how many puffs, how long it lasts, how big each is born and grows, how far out and up they go. */
-const CLOUD = { puffs: 12, life: [0.3, 0.45], from: 6, to: 28, out: [40, 90], rise: [15, 40] };
+const CLOUD = { puffs: 16, life: [0.6, 0.85], from: 8, to: 38, out: [40, 90], rise: [15, 40] };
 /** Specks: how many are kept, how long one flies, how fast it is flung out and up, how hard it falls, its size and colours. */
 const SPECK = { kept: 96, life: [0.35, 0.65], out: [30, 90], up: [50, 130], fall: 420, size: 1.3, colours: ['#6e5c3e', '#56462e', '#857150'] };
 
@@ -18,6 +18,9 @@ interface Bit { mesh: THREE.Mesh; t: number; life: number; way: THREE.Vector3; f
 export class Dust {
   readonly group = new THREE.Group();
   private readonly puffs: Bit[] = [];
+  /** The clouds' own puffs: in with the boots' they were taken for those within a few frames. */
+  private readonly clouds: Bit[] = [];
+  private nextCloud = 0;
   private readonly specks: Bit[] = [];
   private nextPuff = 0;
   private nextSpeck = 0;
@@ -33,6 +36,7 @@ export class Dust {
       }
     };
     make(this.puffs, PUFF.kept, puffShape, PUFF.colours, true);
+    make(this.clouds, CLOUD.puffs * 2, puffShape, PUFF.colours, true);
     make(this.specks, SPECK.kept, speckShape, SPECK.colours, false);
   }
 
@@ -68,7 +72,7 @@ export class Dust {
   cloud(at: THREE.Vector3): void {
     const r = (a: number[]) => a[0] + Math.random() * (a[1] - a[0]);
     for (let i = 0; i < CLOUD.puffs; i++) {
-      const p = this.puffs[this.nextPuff++ % this.puffs.length], a = (i / CLOUD.puffs) * Math.PI * 2 + Math.random() * 0.5;
+      const p = this.clouds[this.nextCloud++ % this.clouds.length], a = (i / CLOUD.puffs) * Math.PI * 2 + Math.random() * 0.5;
       p.t = 0;
       p.life = r(CLOUD.life);
       p.floor = at.y;
@@ -82,7 +86,7 @@ export class Dust {
   }
 
   update(dt: number): void {
-    for (const p of this.puffs) {
+    for (const p of [...this.puffs, ...this.clouds]) {
       if (!p.mesh.visible) continue;
       p.t += dt;
       const k = p.t / p.life;
