@@ -136,9 +136,9 @@ function play(name: string): void {
     const t = timing(w, name) ?? {};
     const c = it.motion.has(name) ? name : 'reposo_mixamo';
     it.motion.play(c, { once: !!t.lasts || !!t.once, lasts: t.lasts, afresh: true, blend: 0.12 });
-    // One who holds his musket in both hands lets it fly as he falls, as in the game.
+    // One who holds his musket in both hands lets it fall from them as he falls, as in the game.
     it.flung.back();
-    if (w.kneels && c === 'muerte') it.flung.throw(it.body, it.body.rotation.y);
+    if (w.kneels && c === 'muerte') it.flung.throw(it.body);
   }
 }
 

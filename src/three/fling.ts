@@ -1,61 +1,141 @@
 import * as THREE from 'three';
 
 /**
- * A musket held in both hands flung from them as he falls: thrown up and out to one side, a little
- * ahead (world units a second; thrown back it fell under him, who falls back), turning over as it
- * flies, pulled down so hard, and left lying on the ground where it lands.
+ * A musket let go of as he falls, as a stick of two ends (butt and muzzle) held their length apart:
+ * kept in his hands a moment as he starts to fall, then let go going the way his hands went, pulled
+ * down (world units a second squared: a man is 78 tall), each end bouncing off the ground on its own,
+ * so it tips and clatters over before it lies still.
+ * `hold`: seconds before it leaves his hands; `bounce`: share of its speed an end keeps off the ground;
+ * `rub`: share of its speed along the ground an end keeps at each touch; `rest`: under this speed
+ * (units a second) on the ground it lies still; `lies`: how far over the ground its ends lie;
+ * `length`: from butt to muzzle, in the musket's own units (props.py).
  */
-const FLING = { ahead: 15, side: 65, up: 150, spin: 10, fall: 420, lies: 1 };
+const DROP = { hold: 0.18, fall: 420, bounce: 0.45, rub: 0.6, rest: 4, lies: 1.5, steps: 4, length: 0.62 };
 
-/** One figure's musket, flung from his hands and put back in them; in the game and in the gallery alike. */
+interface Stick {
+  gun: THREE.Object3D;
+  /** Where it was held, to put it back; and what he stands in, where it falls. */
+  held: THREE.Object3D;
+  at: THREE.Matrix4;
+  field: THREE.Object3D;
+  /** Its ends now and a step ago, in the field's space. */
+  ends: [THREE.Vector3, THREE.Vector3];
+  was: [THREE.Vector3, THREE.Vector3];
+  length: number;
+  scale: THREE.Vector3;
+  /** Its top, kept as it turns. */
+  up: THREE.Vector3;
+  /** Seconds since he began to fall; it is out of his hands once past `hold`. */
+  t: number;
+  lying: boolean;
+}
+
+/** One figure's musket, let fall from his hands and put back in them; in the game and in the gallery alike. */
 export class Fling {
-  private flung: { gun: THREE.Object3D; held: THREE.Object3D; at: THREE.Matrix4; way: THREE.Vector3; spin: THREE.Vector3; lying: boolean } | null = null;
+  private stick: Stick | null = null;
 
-  /** `floor` is how high the ground stands under a spot of the 3D world. */
+  /** `floor` is how high the ground stands under a spot of the field. */
   constructor(private readonly floor: (at: THREE.Vector3) => number) {}
 
-  /** The musket, while it is out of his hands. */
+  /** The musket, once out of his hands. */
   get gun(): THREE.Object3D | null {
-    return this.flung?.gun ?? null;
+    return this.stick && this.stick.gun.parent === this.stick.field ? this.stick.gun : null;
   }
 
-  /** His musket let go of as he falls: out of his body into whatever he stands in, thrown up and to one side. */
-  throw(body: THREE.Object3D, facing: number, name = 'mosquete_mano'): void {
+  /** He begins to fall: his musket is let go of in a moment. */
+  throw(body: THREE.Object3D, name = 'mosquete_mano'): void {
     const gun = body.getObjectByName(name), field = body.parent;
-    if (!gun?.parent || !field || this.flung) return;
-    body.updateMatrixWorld(true);
-    const held = gun.parent, at = gun.matrix.clone();
-    field.attach(gun);
-    const ahead = new THREE.Vector3(Math.sin(facing), 0, Math.cos(facing)), side = new THREE.Vector3(ahead.z, 0, -ahead.x);
-    const way = ahead.multiplyScalar(FLING.ahead).addScaledVector(side, (Math.random() < 0.5 ? -1 : 1) * FLING.side * (0.8 + Math.random() * 0.4)).setY(FLING.up);
-    const spin = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize().multiplyScalar(FLING.spin);
-    this.flung = { gun, held, at, way, spin, lying: false };
+    if (!gun?.parent || !field || this.stick) return;
+    const ends = endsOf(gun, field);
+    this.stick = {
+      gun, held: gun.parent, at: gun.matrix.clone(), field, ends, was: [ends[0].clone(), ends[1].clone()],
+      length: ends[0].distanceTo(ends[1]), scale: new THREE.Vector3(), up: new THREE.Vector3(), t: 0, lying: false,
+    };
   }
 
-  /** Flying, until it lies flat on the ground where it came down. */
   update(dt: number): void {
-    const f = this.flung;
-    if (!f || f.lying) return;
-    f.way.y -= FLING.fall * dt;
-    f.gun.position.addScaledVector(f.way, dt);
-    f.gun.rotation.x += f.spin.x * dt;
-    f.gun.rotation.y += f.spin.y * dt;
-    f.gun.rotation.z += f.spin.z * dt;
-    const floor = this.floor(f.gun.position) + FLING.lies;
-    if (f.way.y < 0 && f.gun.position.y <= floor) {
-      f.lying = true;
-      f.gun.position.y = floor;
-      // Flat on the ground, its length level, lying whichever way it fell.
-      f.gun.rotation.set(0, f.gun.rotation.y, 0);
+    const s = this.stick;
+    if (!s || s.lying || dt <= 0) return;
+    s.t += dt;
+    if (s.t < DROP.hold) {
+      // Still in his hands: its ends followed, so it leaves them going as they went.
+      s.was = s.ends;
+      s.ends = endsOf(s.gun, s.field);
+      return;
     }
+    if (s.gun.parent !== s.field) this.free(s, dt);
+    const h = dt / DROP.steps;
+    for (let i = 0; i < DROP.steps; i++) this.step(s, h);
+    this.place(s);
   }
 
   /** Back in his hands, as he is up again (or taken off the field, it with him). */
   back(): void {
-    const f = this.flung;
-    if (!f) return;
-    f.held.add(f.gun);
-    f.at.decompose(f.gun.position, f.gun.quaternion, f.gun.scale);
-    this.flung = null;
+    const s = this.stick;
+    if (!s) return;
+    s.held.add(s.gun);
+    s.at.decompose(s.gun.position, s.gun.quaternion, s.gun.scale);
+    this.stick = null;
   }
+
+  /** Out of his hands into the field, going as his hands went over the last frame. */
+  private free(s: Stick, dt: number): void {
+    const ends = endsOf(s.gun, s.field);
+    // The last frame's way, as a step's: what an end went in `dt`, over the steps `dt` is now taken in.
+    const h = dt / DROP.steps;
+    s.was = [0, 1].map(i => ends[i].clone().sub(ends[i].clone().sub(s.ends[i]).multiplyScalar(h / dt))) as Stick['was'];
+    s.ends = ends;
+    s.length = ends[0].distanceTo(ends[1]);
+    s.field.attach(s.gun);
+    const q = new THREE.Quaternion();
+    s.gun.matrix.decompose(new THREE.Vector3(), q, s.scale);
+    s.up.set(0, 0, 1).applyQuaternion(q);
+  }
+
+  /** One step: each end goes on as it went, pulled down; held their length apart; bounced off the ground. */
+  private step(s: Stick, h: number): void {
+    for (let i = 0; i < 2; i++) {
+      const p = s.ends[i], went = p.clone().sub(s.was[i]);
+      s.was[i].copy(p);
+      p.add(went).y -= DROP.fall * h * h;
+    }
+    const [a, b] = s.ends, apart = b.clone().sub(a), off = (apart.length() - s.length) / 2;
+    apart.normalize().multiplyScalar(off);
+    a.add(apart);
+    b.sub(apart);
+    let still = true;
+    for (let i = 0; i < 2; i++) {
+      const p = s.ends[i], w = s.was[i], floor = this.floor(p) + DROP.lies;
+      if (p.y < floor) {
+        const down = p.y - w.y;
+        p.y = floor;
+        w.y = floor + down * DROP.bounce;
+        w.x = p.x - (p.x - w.x) * DROP.rub;
+        w.z = p.z - (p.z - w.z) * DROP.rub;
+      }
+      if (p.y > floor + 0.5 || p.distanceTo(w) / h > DROP.rest) still = false;
+    }
+    if (still) s.lying = true;
+  }
+
+  /** The musket laid along its ends, its top kept as near as it was. */
+  private place(s: Stick): void {
+    const [a, b] = s.ends, x = b.clone().sub(a).normalize();
+    const z = s.up.clone().addScaledVector(x, -s.up.dot(x));
+    if (z.lengthSq() < 1e-6) z.set(0, 1, 0).addScaledVector(x, -x.y);
+    z.normalize();
+    s.up.copy(z);
+    const turn = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, z.clone().cross(x), z));
+    s.gun.position.copy(a);
+    s.gun.quaternion.copy(turn);
+    s.gun.scale.copy(s.scale);
+  }
+}
+
+/** A musket's butt and muzzle, in `field`'s space. */
+function endsOf(gun: THREE.Object3D, field: THREE.Object3D): [THREE.Vector3, THREE.Vector3] {
+  gun.updateWorldMatrix(true, false);
+  field.updateWorldMatrix(true, false);
+  const toField = field.matrixWorld.clone().invert().multiply(gun.matrixWorld);
+  return [new THREE.Vector3(0, 0, 0).applyMatrix4(toField), new THREE.Vector3(DROP.length, 0, 0).applyMatrix4(toField)];
 }

@@ -198,7 +198,7 @@ class Figure {
     // Falling, his blood flung from his chest; down, pooling under him. Come upon already down
     // (first seen so, or seen again), he is lying there, his blood spread.
     if (mode === 'dying' && afresh) this.blood.splash(this.id, ground(x, y, DRAWN * 0.62 * UPRIGHT));
-    if (mode === 'dying' && afresh && this.look?.kneels) this.flung.throw(this.body, this.facing);
+    if (mode === 'dying' && afresh && this.look?.kneels) this.flung.throw(this.body);
     if (alive(mode) || this.buried) this.flung.back();
     this.flung.update(dt);
     if (mode === 'gone' && afresh && this.modeWas !== 'dying') m.hold('muerte', 1);
