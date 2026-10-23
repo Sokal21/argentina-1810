@@ -1,7 +1,10 @@
 import * as THREE from 'three';
+import { ISO_Y } from '../machi/data';
+import { heightAt } from './space';
 
 // A sergeant's shout seen on the ground: rings of red flung out from his feet one after another as
-// he roars, out to as far as his shout quickens his men (his `rally.reach`), thinning as they go. The
+// he roars, out to as far as his shout quickens his men (his `rally.reach`), thinning as they go,
+// laid over the ground's rise and fall (flat at his feet, a rise hid all of them but an arc). The
 // rings are made once and kept, hidden between shouts: a material made and thrown away each time
 // has its shader built anew, a stutter.
 
@@ -10,22 +13,25 @@ const RINGS = { at: [0.35, 0.6, 0.85], lasts: 0.9, lift: 0.8, colour: '#ff2a1a',
 /** How many shouts can be under way at once. */
 const ROOM = 3;
 
-interface Ring { mesh: THREE.Mesh; t: number; reach: number; wait: number }
+interface Ring { mesh: THREE.Mesh; t: number; reach: number; wait: number; at: THREE.Vector3 }
+/** Each ring's corners, around: inside and out. */
+const SEGMENTS = 64;
 
 export class Shouts {
   readonly group = new THREE.Group();
   private readonly rings: Ring[] = [];
 
   constructor() {
-    const shape = new THREE.RingGeometry(1 - RINGS.width, 1, 64).rotateX(-Math.PI / 2);
     for (let i = 0; i < ROOM * RINGS.at.length; i++) {
+      // Its own corners, raised to the ground under them every frame.
+      const shape = new THREE.RingGeometry(1 - RINGS.width, 1, SEGMENTS, 1).rotateX(-Math.PI / 2);
       const mesh = new THREE.Mesh(shape, new THREE.MeshBasicMaterial({
         color: RINGS.colour, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
       }));
       mesh.visible = false;
       mesh.frustumCulled = false;
       this.group.add(mesh);
-      this.rings.push({ mesh, t: Infinity, reach: 0, wait: 0 });
+      this.rings.push({ mesh, t: Infinity, reach: 0, wait: 0, at: new THREE.Vector3() });
     }
   }
 
@@ -33,7 +39,8 @@ export class Shouts {
   shout(at: THREE.Vector3, reach: number): void {
     for (const wait of RINGS.at) {
       const ring = this.rings.find(r => r.t === Infinity && r.wait <= 0) ?? this.rings[0];
-      ring.mesh.position.copy(at).setY(at.y + RINGS.lift);
+      ring.at.copy(at);
+      ring.mesh.position.set(at.x, 0, at.z);
       // The 2D game's distances along its ground are true ones on the 3D ground: a circle.
       ring.reach = reach;
       ring.wait = wait;
@@ -48,7 +55,15 @@ export class Shouts {
       ring.t += dt;
       const k = Math.min(1, ring.t / RINGS.lasts), eased = 1 - (1 - k) * (1 - k);
       ring.mesh.visible = k < 1;
-      ring.mesh.scale.set(ring.reach * eased, 1, ring.reach * eased);
+      const r = ring.reach * eased;
+      ring.mesh.scale.set(r, 1, r);
+      // Each corner on the ground under it.
+      const corners = ring.mesh.geometry.getAttribute('position') as THREE.BufferAttribute;
+      for (let i = 0; i < corners.count; i++) {
+        const x = ring.at.x + corners.getX(i) * r, z = ring.at.z + corners.getZ(i) * r;
+        corners.setY(i, heightAt(x, z * ISO_Y) + RINGS.lift);
+      }
+      corners.needsUpdate = true;
       (ring.mesh.material as THREE.MeshBasicMaterial).opacity = 0.75 * (1 - k * k);
       if (k >= 1) ring.t = Infinity;
     }
