@@ -29,7 +29,7 @@ export const DRAWN = 78;
  * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
  * the pace that lands it when his brain does.
  */
-export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number }; lunge?: { clip: string; wind: number; lands: number; charge: number; hit: number; dash: number; time: number }; call?: { clip: string; time: number } }> = {
+export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number }; lunge?: { clip: string; wind: number; lands: number; point: number; charge: number; hit: number; dash: number; time: number }; call?: { clip: string; time: number } }> = {
   // Lean and quick, a little under the fusiliers (Tripo from turnaround A, 23 October 2026).
   // His two cuts at the pace that lands the first when his brain does (frame 18 of 52); his run.
   sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76, blow: { clip: 'tajo', lands: 18 / 52, hit: KINDS.sableador.blow.hit }, run: 'carrera' },
@@ -48,12 +48,13 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
   // pointing straight before him where it counts (al_frente.py): his thrust (Mixamo's Stabbing) lands
   // at frame 9 of 41, his shot (Mixamo's Handgun, mirrored for his left hand) goes off at frame 14 of
   // 49, each played so it does when his brain has it. His lunge is the thrust held drawn back (frame
-  // 4) while he gathers himself, then thrown on to land (frame 9) as he reaches her. His shout is
+  // 4) while he gathers himself, his point put out (frame 9) in the last `point` seconds of it, so he
+  // slides in with it already straight before him. His shout is
   // Mixamo's battlecry as it comes, his pistol and sabre flung up with his arms; so is his calling up
   // of his men, without the shout's rings (until a clip of its own is found).
   capitan: { url: 'tropa/capitan3d/capitan_animado.glb', drawn: 96, blow: { clip: 'estocada', lands: 9 / 41, hit: KINDS.capitan.blow.hit },
     pistol: { clip: 'tiro', shot: 14 / 49, aim: KINDS.capitan.shot.aim, after: KINDS.capitan.shot.after! },
-    lunge: { clip: 'estocada', wind: 4 / 41, lands: 9 / 41, ...KINDS.capitan.lunge },
+    lunge: { clip: 'estocada', wind: 4 / 41, lands: 9 / 41, point: 0.15, ...KINDS.capitan.lunge },
     rally: { clip: 'grito', time: KINDS.capitan.rally.time, reach: KINDS.capitan.rally.reach },
     call: { clip: 'grito', time: KINDS.capitan.call.time } },
 };
@@ -259,10 +260,11 @@ class Figure {
       // Eased in from his guard: the clip begins with the weapon already dropped back to be swung.
       m.play(clip, { once: true, pace: (lands * m.seconds(clip)) / hit, afresh, blend: 0.2 });
     } else if (mode === 'lunge' && this.look?.lunge) {
-      // Held drawn back while he gathers himself; then thrown on, to land as he reaches her, and played out.
-      const { clip, wind, lands, charge, hit } = this.look.lunge;
-      if (t < charge) m.hold(clip, wind, { blend: 0.2 });
-      else m.play(clip, { once: true, pace: t < hit ? ((lands - wind) * m.seconds(clip)) / (hit - charge) : 1 });
+      // Held drawn back while he gathers himself, his point put out as he is about to go, held out as he
+      // slides in, and the thrust played out from there once he has reached her.
+      const { clip, wind, lands, point, charge, hit } = this.look.lunge;
+      if (t < hit) m.hold(clip, wind + (lands - wind) * Math.min(1, Math.max(0, (t - charge + point) / point)), { blend: 0.2 });
+      else m.play(clip, { once: true });
       // A cloud as he pushes off; sliding in, each boot tears up the ground behind him; a last burst
       // from each as he stops to thrust.
       if (t >= charge && this.lungedAt < charge) this.dust?.cloud(ground(x, y));
