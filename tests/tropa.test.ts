@@ -84,6 +84,19 @@ describe('the captain', () => {
     expect(run(brain('capitan'), { x: 30, y: 0 }, 2).some(d => d.cut === true)).toBe(true);
   });
 
+  it('stands while he lowers his pistol after a shot, then comes on again', () => {
+    const b = brain('capitan');
+    b.relentless = true;
+    for (let t = 0; t < 5 && b.mode !== 'aim'; t += DT) b.update(DT, { x: 200, y: 0 });
+    const shot = run(b, { x: 200, y: 0 }, KINDS.capitan.shot.aim + 0.1);
+    expect(shot.some(d => d.shot)).toBe(true);
+    const x = b.x;
+    run(b, { x: 200, y: 0 }, KINDS.capitan.shot.after! - 0.15);
+    expect(b.x).toBe(x);
+    run(b, { x: 200, y: 0 }, 0.5);
+    expect(b.x).toBeGreaterThan(x);
+  });
+
   it('comes on faster once he has lost half his life', () => {
     const whole = brain('capitan'), hurt = brain('capitan');
     for (let n = 0; n < 8; n++) hurt.hit(0, 1);

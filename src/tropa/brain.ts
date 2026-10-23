@@ -17,8 +17,8 @@ export interface Kind {
   pace: number;
   /** Further than this he does not notice anyone. */
   sight: number;
-  /** He shoots: from how far, how long he aims (the warning), how long before the shot his aim stops following, how long until he can again, and how high the ball leaves from. */
-  shot?: { range: number; aim: number; lock: number; reload: [number, number]; muzzle: number };
+  /** He shoots: from how far, how long he aims (the warning), how long before the shot his aim stops following, how long until he can again, how high the ball leaves from, and how long he stands after it (lowering his pistol: walking, his feet slid). */
+  shot?: { range: number; aim: number; lock: number; reload: [number, number]; muzzle: number; after?: number };
   /** Once whoever he is after is within his shot he walks no more: down on one knee, he stays, and no blow moves him. */
   stays?: boolean;
   /** He strikes whoever is nearer than `near`: how long the whole blow takes, when in it it lands, how far it reaches, how long he stands before another, and how much life it takes (one if not said). */
@@ -47,7 +47,7 @@ export const KINDS = {
   sargento: { id: 'sargento', name: 'Sargento', life: 8, girth: 11, pace: 30, sight: 320, blow: { near: 95, time: 1.3, hit: 0.5, reach: 110, rest: 0.8, damage: 2 }, rally: { every: 9, time: 2.0, reach: 260, lasts: 5 }, worth: 20, spoils: 12 },
   // Whoever commands the column: a pistol from afar, a long thrust up close, and worse once he is hurt.
   // His thrust takes a second, so his arm is drawn back by its end (Mixamo's Stabbing, al_frente.py).
-  capitan: { id: 'capitan', name: 'El capitán', life: 14, girth: 10, pace: 44, sight: 420, shot: { range: 230, aim: 0.7, lock: 0.2, reload: [2.4, 3.2], muzzle: 34 }, blow: { near: 52, time: 1.0, hit: 0.4, reach: 60, rest: 0.5 }, fury: 1.5, worth: 80, spoils: 60 },
+  capitan: { id: 'capitan', name: 'El capitán', life: 14, girth: 10, pace: 44, sight: 420, shot: { range: 230, aim: 0.7, lock: 0.2, reload: [2.4, 3.2], muzzle: 34, after: 0.8 }, blow: { near: 52, time: 1.0, hit: 0.4, reach: 60, rest: 0.5 }, fury: 1.5, worth: 80, spoils: 60 },
 } satisfies Record<string, Kind>;
 export type KindName = keyof typeof KINDS;
 
@@ -96,6 +96,8 @@ export class TroopBrain {
 
   private reload: number;
   private rest = 0;
+  /** Seconds he still stands after a shot. */
+  private still = 0;
   private shout: number;
   private done = false;
   private twice = false;
@@ -131,6 +133,7 @@ export class TroopBrain {
       this.quick = Math.max(0, this.quick - dt);
       this.reload = Math.max(0, this.reload - dt * haste);
       this.rest = Math.max(0, this.rest - dt);
+      this.still = Math.max(0, this.still - dt);
       this.shout = Math.max(0, this.shout - dt);
       this.provoked = Math.max(0, this.provoked - dt);
     }
@@ -148,7 +151,7 @@ export class TroopBrain {
         }
         if (k.rally && this.shout <= 0) { this.enter('rally'); this.done = false; return NOTHING; }
         if (k.shot && far <= k.shot.range && this.reload <= 0) { this.enter('aim'); return NOTHING; }
-        if (!k.pace || (k.stays && k.shot && far <= k.shot.range)) { this.enter('stand'); return NOTHING; }
+        if (!k.pace || this.still > 0 || (k.stays && k.shot && far <= k.shot.range)) { this.enter('stand'); return NOTHING; }
         // One who shoots and is in range comes on slowly while he reloads; anyone else comes straight on.
         const hurt = k.fury && this.life <= this.max / 2 ? k.fury : 1;
         const pace = k.pace * haste * hurt * (k.shot && far <= k.shot.range ? 0.5 : 1);
@@ -167,6 +170,7 @@ export class TroopBrain {
         if (this.t < s.aim) return NOTHING;
         this.enter('stand');
         this.reload = s.reload[0] + this.rnd() * (s.reload[1] - s.reload[0]);
+        this.still = s.after ?? 0;
         return { shot: { x: this.x, y: this.y, height: s.muzzle, dx: this.dir.x, dy: this.dir.y } };
       }
       case 'blow': {
@@ -305,6 +309,7 @@ export class TroopBrain {
     this.life = this.max;
     this.reload = 0.8 + this.rnd() * 0.8;
     this.rest = 0;
+    this.still = 0;
     this.quick = 0;
     this.enter('stand');
   }

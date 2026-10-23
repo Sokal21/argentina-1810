@@ -28,7 +28,7 @@ export const DRAWN = 78;
  * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
  * the pace that lands it when his brain does.
  */
-export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number } }> = {
+export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number } }> = {
   // Lean and quick, a little under the fusiliers (Tripo from turnaround A, 23 October 2026).
   // His two cuts at the pace that lands the first when his brain does (frame 18 of 52); his run.
   sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76, blow: { clip: 'tajo', lands: 18 / 52, hit: KINDS.sableador.blow.hit }, run: 'carrera' },
@@ -48,7 +48,7 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
   // at frame 9 of 41, his shot (Mixamo's Handgun, mirrored for his left hand) goes off at frame 14 of
   // 49, each played so it does when his brain has it.
   capitan: { url: 'tropa/capitan3d/capitan_animado.glb', drawn: 96, blow: { clip: 'estocada', lands: 9 / 41, hit: KINDS.capitan.blow.hit },
-    pistol: { clip: 'tiro', shot: 14 / 49, aim: KINDS.capitan.shot.aim } },
+    pistol: { clip: 'tiro', shot: 14 / 49, aim: KINDS.capitan.shot.aim, after: KINDS.capitan.shot.after! } },
 };
 /** Seconds of his aim spent drawing the musket from his back; the rest he holds it levelled. */
 const DRAW = Math.min(0.45, AIM * 0.55);
@@ -203,7 +203,7 @@ class Figure {
     const pistol = this.look?.pistol;
     if (pistol && this.modeWas === 'aim' && mode !== 'aim' && alive(mode)) this.smoking = 0;
     else if (this.smoking !== null) this.smoking += dt;
-    if (pistol && this.smoking !== null && (this.smoking >= (1 - pistol.shot) * this.motion.seconds(pistol.clip) || mode === 'aim' || mode === 'blow' || !alive(mode))) this.smoking = null;
+    if (pistol && this.smoking !== null && (this.smoking >= pistol.after || mode === 'aim' || mode === 'blow' || !alive(mode))) this.smoking = null;
     if (mode === 'lower' && this.modeWas === 'aim') this.fired = 0;
     else if (this.fired !== null) this.fired += dt;
     if (this.fired !== null && (this.fired >= SHOT || mode === 'slash' || mode === 'aim' || !alive(mode))) this.fired = null;
@@ -234,10 +234,11 @@ class Figure {
       else m.play(clip, { once: true });
     } else if (this.look?.kneels && mode === 'stand') m.play(this.look.kneels.stand, { blend: 0.3 });
     else if (pistol && (mode === 'aim' || this.smoking !== null)) {
-      // Raising his pistol, played so it goes off when his brain fires; after, played out at its own
-      // pace (drawn up by his face, lowered), whatever he does with his legs.
+      // Raising his pistol, played so it goes off when his brain fires; after, played out (drawn up by
+      // his face, lowered) over as long as his brain has him stand after the shot.
+      const rest = (1 - pistol.shot) * m.seconds(pistol.clip);
       if (mode === 'aim') m.play(pistol.clip, { once: true, pace: (pistol.shot * m.seconds(pistol.clip)) / pistol.aim, afresh, blend: 0.15 });
-      else m.play(pistol.clip, { once: true });
+      else m.play(pistol.clip, { once: true, pace: rest / pistol.after });
     } else if (this.fired !== null) m.play('mosquete_disparo', { once: true, lasts: SHOT, afresh: this.fired === 0, blend: 0.03 });
     else if (mode === 'aim') {
       if (t < DRAW) m.play('mosquete_sacar', { once: true, lasts: DRAW, afresh, blend: 0.06 });
