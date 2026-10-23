@@ -2,44 +2,21 @@ import * as THREE from 'three';
 import { chance } from '../world/chance';
 import { trail } from '../world/trail';
 import { middle, type WorldMap } from '../world/zones';
+import { model } from './figure';
 import { flat } from './paint';
-import { ground } from './space';
+import { ground, UPRIGHT } from './space';
 
 // What lies about on a map, drawn as it lies: the boy's poncho where he fell, to be picked up as in
 // the 2D game, and the trails of blood the 2D game lays (world/trail.ts), mark for mark where it
 // lays them.
 
-/** The poncho's colours, from its 2D drawing: the cloth, its folds, its lighter hem and the blood on it. */
-const CLOTH = ['#8c3b30', '#7a3128', '#a85a48'], BLOOD = '#4a1410';
 /** The trail's two reds, from the 2D game's marks. */
 const MARK = ['#4a1410', '#6b1c16'];
-
-/** A poncho dropped on the ground, crumpled: a cloth of flat faces, raised in a heap where it fell. */
-function poncho(seed: number): THREE.Mesh {
-  const wide = 44, deep = 30, across = 7, down = 5;
-  const sheet = new THREE.PlaneGeometry(wide, deep, across, down).toNonIndexed();
-  sheet.rotateX(-Math.PI / 2);
-  const p = sheet.getAttribute('position') as THREE.BufferAttribute;
-  // Each corner of the grid raised as far as the heap and a little chance say, the same wherever it is met.
-  const height = (x: number, z: number) => {
-    const heap = Math.max(0, 1 - Math.hypot((x + 6) / 16, (z + 4) / 11));
-    return 1 + heap * 9 + chance(Math.round(x * 10), Math.round(z * 10), seed) * 2.5;
-  };
-  for (let i = 0; i < p.count; i++) p.setY(i, height(p.getX(i), p.getZ(i)));
-  // One colour a face, as pixel art is painted: mostly the cloth, darker in its folds, blood about the middle.
-  const colours: number[] = [], c = new THREE.Color();
-  for (let f = 0; f < p.count / 3; f++) {
-    const x = p.getX(f * 3), z = p.getZ(f * 3), roll = chance(f, 0, seed + 1);
-    const bloody = Math.hypot(x - 4, z - 2) < 9 && roll < 0.6;
-    c.set(bloody ? BLOOD : CLOTH[Math.floor(roll * CLOTH.length)]).convertSRGBToLinear();
-    for (let k = 0; k < 3; k++) colours.push(c.r, c.g, c.b);
-  }
-  sheet.setAttribute('color', new THREE.Float32BufferAttribute(colours, 3));
-  sheet.computeVertexNormals();
-  const mesh = new THREE.Mesh(sheet, flat());
-  mesh.castShadow = mesh.receiveShadow = true;
-  return mesh;
-}
+/**
+ * The boy's poncho, crumpled where it fell (Tripo from a picture of it, 23 October 2026; three times
+ * as wide as it is high): drawn so it lies 44 across, about as wide as its 2D drawing.
+ */
+const PONCHO = { url: 'cosas/3d/poncho.glb', drawn: 44 / 3 / UPRIGHT };
 
 /** How high over the ground the sign of what F does stands over something lying there. */
 const OVER = 34;
@@ -53,11 +30,12 @@ export class Strewn {
   constructor(map: WorldMap) {
     for (const { what, plot } of map.things ?? []) {
       if (what !== 'poncho') continue;
-      const { x, y } = middle(plot), cloth = poncho(plot[0] * 31 + plot[1]);
-      cloth.position.copy(ground(x, y));
-      cloth.rotation.y = 0.4;
-      this.group.add(cloth);
-      this.lying.set(what, { body: cloth, x, y });
+      const { x, y } = middle(plot), spot = new THREE.Group();
+      spot.position.copy(ground(x, y));
+      spot.rotation.y = 0.4;
+      this.group.add(spot);
+      this.lying.set(what, { body: spot, x, y });
+      void model(PONCHO.url, PONCHO.drawn).then(cloth => spot.add(cloth));
     }
     this.group.add(...trails(map));
   }

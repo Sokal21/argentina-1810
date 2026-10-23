@@ -2521,6 +2521,16 @@
       "asset_id": "fd3a68bf-1f2a-4780-bd28-ab9c2ebd859e",
       "label": "broken cart wheel B (grass and shadow under it; reference for the wheel built in code, src/three/wheel.ts)",
       "file": "assets/cosas/3d/rueda_b.png"
+    },
+    {
+      "asset_id": "2320a93c-b3e3-4763-9ba1-6dbbcc89f43a",
+      "label": "Tobías's poncho, crumpled, A (chosen: neck slit, stripes, fringe; modelled by Tripo)",
+      "file": "assets/cosas/3d/poncho_a.png"
+    },
+    {
+      "asset_id": "49b7e74f-4e18-4bb2-a71f-29e652422e26",
+      "label": "Tobías's poncho, crumpled, B (heaped, read as a blanket)",
+      "file": "assets/cosas/3d/poncho_b.png"
     }
   ]
 }
