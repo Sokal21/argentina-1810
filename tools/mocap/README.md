@@ -36,4 +36,5 @@ with `tools/blender/retarget_rot.py`.
 | Standing Melee Combo Attack Ver. 3.fbx | "Standing Melee Combo Attack Ver. 3": the sableador's two cuts, all 52 frames at their own pace (faster read as frantic), `--name tajo --feet` |
 | Crying.fbx | "Crying": Remedios breaking down now and then by her burnt house, all of it, `--name llanto --feet` |
 | Gunplay (1).fbx, Gunplay.fbx | "Gunplay" twice: a pistol shot from one knee and a shotgun fired standing. Both retargeted `--twist 1`, then `tools/blender/anims/tiro_arrodillado.py` joins them into the tirador's `tiro`: hips and legs from the kneeling one at its frame 24, waist up from the shotgun frame by frame, the musket laid through both fists |
-| Yelling While Standing.fbx | "Yelling While Standing": ño Ciriaco shouting now and then, all of it, `--name gritando --feet` ("Standing Taunt Battlecry" was tried: a warrior's wide crouch, his feet would slide into it) |
+| Yelling.fbx | "Yelling": ño Ciriaco shouting now and then, arms flung wide, all of it, `--name gritando --feet`; it starts and ends standing straight, so it blends from his breathing |
+| Yelling While Standing.fbx | tried for him and left: it starts and ends bent over |
