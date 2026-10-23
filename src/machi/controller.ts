@@ -48,6 +48,8 @@ export interface Cast {
   /** Direction along the ground; not necessarily unit length. */
   dx: number;
   dy: number;
+  /** How much life it takes from whoever it strikes, if not one. */
+  damage?: number;
 }
 
 /** A blow landing: where it was struck from, which way, and what it covers. */

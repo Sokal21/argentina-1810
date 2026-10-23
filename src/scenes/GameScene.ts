@@ -1029,8 +1029,8 @@ export class GameScene extends Phaser.Scene {
     // A royalist's ball strikes the first time it is seen to touch her, anywhere along the stretch
     // it flew this step; one that does not hurt her (a dodge, the grace after a blow) flies on.
     const torso: Footprint = { x: this.machi.x, y: this.machi.y - TORSO.up, hw: TORSO.w / 2, hh: TORSO.h / 2 };
-    this.shots.sweep(4, (x, y) => {
-      if (!this.vitals.standing || !overlaps({ x, y, hw: 3.5, hh: 3.5 }, torso) || !this.hurt()) return false;
+    this.shots.sweep(4, (x, y, damage) => {
+      if (!this.vitals.standing || !overlaps({ x, y, hw: 3.5, hh: 3.5 }, torso) || !this.hurt(damage)) return false;
       this.three?.wounded(this.machi);
       return true;
     });

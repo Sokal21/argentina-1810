@@ -42,7 +42,7 @@ const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   mosquete_sacar: { lasts: DRAW }, mosquete_disparo: { lasts: SHOT },
   granada_sacar: { lasts: DRAW }, granada_lanzar: { lasts: SHOT },
   tajo: { lasts: 0.5 }, 'Realista:tajo': { lasts: 0.8 }, 'Sableador:tajo': { once: true },
-  barrido: { once: true }, estocada: { once: true }, grito: { lasts: 2.0 }, tiro: { once: true },
+  barrido: { once: true }, estocada: { once: true }, 'El capitán:grito': { lasts: 2.0 }, grito: { lasts: 2.0 }, tiro: { once: true },
   muerte: { once: true }, rodada_mixamo: { once: true }, beber: { once: true },
 };
 /**

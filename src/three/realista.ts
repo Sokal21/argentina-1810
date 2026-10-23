@@ -28,7 +28,7 @@ export const DRAWN = 78;
  * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
  * the pace that lands it when his brain does.
  */
-export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number } }> = {
+export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number }; lunge?: { clip: string; wind: number; lands: number; charge: number; hit: number } }> = {
   // Lean and quick, a little under the fusiliers (Tripo from turnaround A, 23 October 2026).
   // His two cuts at the pace that lands the first when his brain does (frame 18 of 52); his run.
   sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76, blow: { clip: 'tajo', lands: 18 / 52, hit: KINDS.sableador.blow.hit }, run: 'carrera' },
@@ -46,9 +46,13 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
   // his plume over the sergeant's head. His sabre in his right hand, his pistol in his left. Each
   // pointing straight before him where it counts (al_frente.py): his thrust (Mixamo's Stabbing) lands
   // at frame 9 of 41, his shot (Mixamo's Handgun, mirrored for his left hand) goes off at frame 14 of
-  // 49, each played so it does when his brain has it.
+  // 49, each played so it does when his brain has it. His lunge is the thrust held drawn back (frame
+  // 4) while he gathers himself, then thrown on to land (frame 9) as he reaches her. His shout is
+  // Mixamo's battlecry as it comes, his pistol and sabre flung up with his arms.
   capitan: { url: 'tropa/capitan3d/capitan_animado.glb', drawn: 96, blow: { clip: 'estocada', lands: 9 / 41, hit: KINDS.capitan.blow.hit },
-    pistol: { clip: 'tiro', shot: 14 / 49, aim: KINDS.capitan.shot.aim, after: KINDS.capitan.shot.after! } },
+    pistol: { clip: 'tiro', shot: 14 / 49, aim: KINDS.capitan.shot.aim, after: KINDS.capitan.shot.after! },
+    lunge: { clip: 'estocada', wind: 4 / 41, lands: 9 / 41, charge: KINDS.capitan.lunge.charge, hit: KINDS.capitan.lunge.hit },
+    rally: { clip: 'grito', time: KINDS.capitan.rally.time, reach: KINDS.capitan.rally.reach } },
 };
 /** Seconds of his aim spent drawing the musket from his back; the rest he holds it levelled. */
 const DRAW = Math.min(0.45, AIM * 0.55);
@@ -249,6 +253,11 @@ class Figure {
       const { clip, lands, hit } = this.look.blow;
       // Eased in from his guard: the clip begins with the weapon already dropped back to be swung.
       m.play(clip, { once: true, pace: (lands * m.seconds(clip)) / hit, afresh, blend: 0.2 });
+    } else if (mode === 'lunge' && this.look?.lunge) {
+      // Held drawn back while he gathers himself; then thrown on, to land as he reaches her, and played out.
+      const { clip, wind, lands, charge, hit } = this.look.lunge;
+      if (t < charge) m.hold(clip, wind, { blend: 0.2 });
+      else m.play(clip, { once: true, pace: t < hit ? ((lands - wind) * m.seconds(clip)) / (hit - charge) : 1 });
     } else if (mode === 'rally' && this.look?.rally) {
       const { clip, time, reach } = this.look.rally;
       m.play(clip, { once: true, lasts: time, afresh, blend: 0.2 });
@@ -270,9 +279,9 @@ class Figure {
     if (sabre) sabre.visible = !musket;
     // One with a pistol has it in his left hand and his sabre in his right, both always: the sabre
     // as it hangs, or as his thrust holds it (by the little finger's side), while he thrusts.
-    const thrust = this.body.getObjectByName('sable_estocada');
-    if (pistol && sabre) sabre.visible = mode !== 'blow' || !thrust;
-    if (pistol && thrust) thrust.visible = mode === 'blow';
+    const thrust = this.body.getObjectByName('sable_estocada'), thrusting = mode === 'blow' || mode === 'lunge';
+    if (pistol && sabre) sabre.visible = !thrusting || !thrust;
+    if (pistol && thrust) thrust.visible = thrusting;
     // Struck, he flashes red; quickened by a shout, he throbs a fainter red while it lasts.
     this.clock += dt;
     const throb = who.hasted && alive(mode) ? HASTE.low + (HASTE.high - HASTE.low) * (0.5 + 0.5 * Math.sin(this.clock * HASTE.beat)) : 0;
@@ -302,9 +311,11 @@ class Figure {
 
   /** The glow at his muzzle while he aims, growing a little until his aim is fixed; then the glint, until the shot. */
   private warn(who: Royalist, mode: Mode, t: number): void {
-    this.warning.visible = mode === 'aim';
-    if (mode !== 'aim') return;
-    const aim = this.look?.kneels?.aim ?? this.look?.pistol?.aim ?? AIM;
+    // Or, gathering himself to lunge, at his sabre's point until he throws himself on.
+    const lunge = this.look?.lunge, lunging = mode === 'lunge' && !!lunge && t < lunge.charge;
+    this.warning.visible = mode === 'aim' || lunging;
+    if (!this.warning.visible) return;
+    const aim = lunging && lunge ? lunge.charge : this.look?.kneels?.aim ?? this.look?.pistol?.aim ?? AIM;
     const k = Math.min(1, t / (aim - WARN.begins)), left = aim - t;
     this.glow.scale.setScalar(WARN.from + (WARN.to - WARN.from) * k);
     this.glow.material.opacity = WARN.faint + (WARN.full - WARN.faint) * k * k;
@@ -317,7 +328,15 @@ class Figure {
       ray.material.opacity = eased;
       ray.material.rotation = (WARN.begins - left) * WARN.turn / WARN.begins;
     }
-    this.warning.position.copy(this.muzzle(who).tip);
+    this.warning.position.copy(lunging ? this.point() ?? this.muzzle(who).tip : this.muzzle(who).tip);
+  }
+
+  /** Where his sabre's point is, as he holds it to thrust (props.py: its blade 0.31 along it). */
+  private point(): THREE.Vector3 | null {
+    const blade = this.body.getObjectByName('sable_estocada');
+    if (!blade) return null;
+    blade.updateWorldMatrix(true, false);
+    return new THREE.Vector3(0.31, 0, 0).applyMatrix4(blade.matrixWorld);
   }
 
   /** Where his shot leaves from and the way it goes: down his barrel, or from his shoulder the way he faces. */

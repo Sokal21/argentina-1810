@@ -97,9 +97,32 @@ describe('the captain', () => {
     expect(b.x).toBeGreaterThan(x);
   });
 
+  it('lunges from between his shot and his thrust: drawn back a moment, then thrown at her, and it lands', () => {
+    const b = brain('capitan');
+    const l = KINDS.capitan.lunge;
+    b.relentless = true;
+    for (let t = 0; t < 8 && b.mode !== 'lunge'; t += DT) b.update(DT, { x: 120, y: 0 });
+    expect(b.mode).toBe('lunge');
+    const x = b.x;
+    run(b, { x: 120, y: 0 }, l.charge - 0.05);
+    expect(b.x).toBe(x);
+    const deeds = run(b, { x: 120, y: 0 }, l.time - l.charge);
+    expect(b.x).toBeGreaterThan(x + 40);
+    expect(deeds.filter(d => d.cut !== undefined)).toEqual([{ cut: true }]);
+  });
+
+  it('is not moved by a blow, nor put off his aim', () => {
+    const b = brain('capitan');
+    b.relentless = true;
+    for (let t = 0; t < 8 && b.mode !== 'aim'; t += DT) b.update(DT, { x: 220, y: 0 });
+    const x = b.x;
+    b.hit(1, 0);
+    expect([b.mode, b.x]).toEqual(['aim', x]);
+  });
+
   it('comes on faster once he has lost half his life', () => {
     const whole = brain('capitan'), hurt = brain('capitan');
-    for (let n = 0; n < 8; n++) hurt.hit(0, 1);
+    for (let n = 0; n < KINDS.capitan.life / 2; n++) hurt.hit(0, 1);
     whole.relentless = hurt.relentless = true;
     const w0 = whole.x, h0 = hurt.x;
     run(whole, { x: 3000, y: 0 }, 1); run(hurt, { x: 3000, y: 0 }, 1);
@@ -134,9 +157,11 @@ describe('how each kind is drawn', () => {
       const k = KINDS[kind as keyof typeof KINDS] as { pace: number; shot?: unknown; blow?: unknown; rally?: unknown };
       // The marksman walks only in 3D (three/realista.ts); his sheets are of him on his post.
       if (kind !== 'tirador') expect(!!look.walk, `${kind} walks`).toBe(k.pace > 0);
+
       expect(!!look.aim, `${kind} shoots`).toBe(!!k.shot);
       expect(!!look.blow, `${kind} strikes`).toBe(!!k.blow);
-      expect(!!look.rally, `${kind} rallies`).toBe(!!k.rally);
+      // The captain's shout is only in 3D: his sheets are of him marching, firing and thrusting.
+      if (kind !== 'capitan') expect(!!look.rally, `${kind} rallies`).toBe(!!k.rally);
       for (const s of [look.walk, look.aim, look.blow, look.rally, look.death]) {
         if (!s) continue;
         const png = readFileSync(`assets/${s.src}`);

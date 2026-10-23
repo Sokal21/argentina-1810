@@ -141,6 +141,10 @@ export class Trooper {
       case 'blow':
         if (look.blow) { s = look.blow; frame = through(look.blow, b.t / k.blow!.time); }
         break;
+      case 'lunge':
+        // His thrust, held on its first frame while he is drawn back.
+        if (look.blow) { s = look.blow; frame = b.t < k.lunge!.charge ? 0 : through(look.blow, (b.t - k.lunge!.charge) / (k.lunge!.time - k.lunge!.charge)); }
+        break;
       case 'rally':
         if (look.rally) { s = look.rally; frame = through(look.rally, b.t / k.rally!.time); }
         break;

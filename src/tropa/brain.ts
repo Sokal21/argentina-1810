@@ -18,9 +18,18 @@ export interface Kind {
   /** Further than this he does not notice anyone. */
   sight: number;
   /** He shoots: from how far, how long he aims (the warning), how long before the shot his aim stops following, how long until he can again, how high the ball leaves from, and how long he stands after it (lowering his pistol: walking, his feet slid). */
-  shot?: { range: number; aim: number; lock: number; reload: [number, number]; muzzle: number; after?: number };
+  shot?: { range: number; aim: number; lock: number; reload: [number, number]; muzzle: number; after?: number; damage?: number };
   /** Once whoever he is after is within his shot he walks no more: down on one knee, he stays, and no blow moves him. */
   stays?: boolean;
+  /** No blow moves him, nor puts him off his aim. */
+  steady?: boolean;
+  /**
+   * He lunges at whoever is between `from` and `to` off: stands drawn back for `charge` seconds (the
+   * warning), then throws himself `dash` along the ground at her and thrusts, landing at `hit`, as far
+   * as `reach` from where he has got to (stopping short of going through her); done at `time`, and not
+   * again for `every`. It takes as much as his blow.
+   */
+  lunge?: { from: number; to: number; charge: number; dash: number; hit: number; reach: number; time: number; every: number };
   /** He strikes whoever is nearer than `near`: how long the whole blow takes, when in it it lands, how far it reaches, how long he stands before another, and how much life it takes (one if not said). */
   blow?: { near: number; time: number; hit: number; reach: number; rest: number; damage?: number; again?: { hit: number; reach: number } };
   /** He rallies those about him: how often, how long the shout takes, how far it carries, and for how long it quickens them. */
@@ -45,9 +54,18 @@ export const KINDS = {
   // dodged; it sweeps across before him from his right, its head passing 100 to 110 from him (measured
   // on the model: its reach), and takes twice what any other blow or ball takes.
   sargento: { id: 'sargento', name: 'Sargento', life: 8, girth: 11, pace: 30, sight: 320, blow: { near: 95, time: 1.3, hit: 0.5, reach: 110, rest: 0.8, damage: 2 }, rally: { every: 9, time: 2.0, reach: 260, lasts: 5 }, worth: 20, spoils: 12 },
-  // Whoever commands the column: a pistol from afar, a long thrust up close, and worse once he is hurt.
-  // His thrust takes a second, so his arm is drawn back by its end (Mixamo's Stabbing, al_frente.py).
-  capitan: { id: 'capitan', name: 'El capitán', life: 14, girth: 10, pace: 44, sight: 420, shot: { range: 230, aim: 0.7, lock: 0.2, reload: [2.4, 3.2], muzzle: 34, after: 0.8 }, blow: { near: 52, time: 1.0, hit: 0.4, reach: 60, rest: 0.5 }, fury: 1.5, worth: 80, spoils: 60 },
+  // Whoever commands the column, and the hardest of them to bring down: a pistol from afar, a long
+  // thrust up close, a lunge from between the two, a shout that quickens his men as the sergeant's
+  // does; no blow moves him, his ball and his sabre each take twice what others do, and he is worse
+  // once he is hurt. His thrust takes a second, so his arm is drawn back by its end (Mixamo's
+  // Stabbing, al_frente.py); his lunge is that thrust, held drawn back first and thrown forward.
+  capitan: {
+    id: 'capitan', name: 'El capitán', life: 40, girth: 10, pace: 44, sight: 420, steady: true,
+    shot: { range: 230, aim: 0.7, lock: 0.2, reload: [2.4, 3.2], muzzle: 34, after: 0.8, damage: 2 },
+    blow: { near: 52, time: 1.0, hit: 0.4, reach: 60, rest: 0.5, damage: 2 },
+    lunge: { from: 75, to: 160, charge: 0.6, dash: 110, hit: 0.85, reach: 60, time: 1.85, every: 5 },
+    rally: { every: 12, time: 2.0, reach: 260, lasts: 5 }, fury: 1.5, worth: 80, spoils: 60,
+  },
 } satisfies Record<string, Kind>;
 export type KindName = keyof typeof KINDS;
 
@@ -58,11 +76,11 @@ export const RETURNS = 7;   // seconds until one who is not at a post is back
 /** How much faster one who has been rallied walks and reloads. */
 export const QUICKENED = 1.5;
 
-export type Mode = 'stand' | 'walk' | 'aim' | 'blow' | 'rally' | 'dying' | 'gone';
+export type Mode = 'stand' | 'walk' | 'aim' | 'blow' | 'lunge' | 'rally' | 'dying' | 'gone';
 
 /** What a step of his produced. */
 export interface Deed {
-  shot?: { x: number; y: number; height: number; dx: number; dy: number };
+  shot?: { x: number; y: number; height: number; dx: number; dy: number; damage?: number };
   cut?: boolean;
   /** He has shouted: those within this far of him are quickened for so long. */
   rally?: { reach: number; lasts: number };
@@ -98,6 +116,8 @@ export class TroopBrain {
   private rest = 0;
   /** Seconds he still stands after a shot. */
   private still = 0;
+  /** Seconds until he can lunge again. */
+  private lunging = 3;
   private shout: number;
   private done = false;
   private twice = false;
@@ -134,6 +154,7 @@ export class TroopBrain {
       this.reload = Math.max(0, this.reload - dt * haste);
       this.rest = Math.max(0, this.rest - dt);
       this.still = Math.max(0, this.still - dt);
+      this.lunging = Math.max(0, this.lunging - dt);
       this.shout = Math.max(0, this.shout - dt);
       this.provoked = Math.max(0, this.provoked - dt);
     }
@@ -150,6 +171,7 @@ export class TroopBrain {
           return NOTHING;
         }
         if (k.rally && this.shout <= 0) { this.enter('rally'); this.done = false; return NOTHING; }
+        if (k.lunge && this.lunging <= 0 && this.still <= 0 && far >= k.lunge.from && far <= k.lunge.to) { this.enter('lunge'); this.done = false; return NOTHING; }
         if (k.shot && far <= k.shot.range && this.reload <= 0) { this.enter('aim'); return NOTHING; }
         if (!k.pace || this.still > 0 || (k.stays && k.shot && far <= k.shot.range)) { this.enter('stand'); return NOTHING; }
         // One who shoots and is in range comes on slowly while he reloads; anyone else comes straight on.
@@ -171,7 +193,7 @@ export class TroopBrain {
         this.enter('stand');
         this.reload = s.reload[0] + this.rnd() * (s.reload[1] - s.reload[0]);
         this.still = s.after ?? 0;
-        return { shot: { x: this.x, y: this.y, height: s.muzzle, dx: this.dir.x, dy: this.dir.y } };
+        return { shot: { x: this.x, y: this.y, height: s.muzzle, dx: this.dir.x, dy: this.dir.y, damage: s.damage } };
       }
       case 'blow': {
         const b = k.blow!;
@@ -186,6 +208,19 @@ export class TroopBrain {
         this.done = true;
         this.twice = false;
         return { cut: !!to && far <= b.reach };
+      }
+      case 'lunge': {
+        const l = k.lunge!;
+        if (this.t >= l.time) { this.enter('stand'); this.lunging = l.every; return NOTHING; }
+        // Drawn back, following her with his eyes; then thrown at her, no further than his reach short of her.
+        if (this.t < l.charge) { if (to) this.look(to); return NOTHING; }
+        if (this.t < l.hit && (!to || far > l.reach * 0.6)) {
+          const step = dt * l.dash / (l.hit - l.charge);
+          this.move(this.dir.x * step, this.dir.y * step);
+        }
+        if (this.done || this.t < l.hit) return NOTHING;
+        this.done = true;
+        return { cut: !!to && far <= l.reach };
       }
       case 'rally': {
         const r = k.rally!;
@@ -208,7 +243,8 @@ export class TroopBrain {
     if (!this.alive) return;
     this.life -= amount;
     if (this.life <= 0) { this.enter('dying'); return; }
-    // A blow knocks his aim off; one who stays where he is is not moved by it.
+    // A blow knocks his aim off, and moves him; not one who stays where he is, nor one who is steady.
+    if (this.kind.steady) return;
     if (this.mode === 'aim') this.enter('stand');
     if (!this.kind.pace || this.kind.stays) return;
     const len = Math.hypot(dx, dy) || 1;
@@ -310,6 +346,7 @@ export class TroopBrain {
     this.reload = 0.8 + this.rnd() * 0.8;
     this.rest = 0;
     this.still = 0;
+    this.lunging = 3;
     this.quick = 0;
     this.enter('stand');
   }

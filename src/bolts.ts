@@ -58,6 +58,8 @@ interface Bolt {
   age: number;
   /** It struck something and is done, wherever it had got to. */
   spent: boolean;
+  /** How much life it takes. */
+  damage: number;
 }
 
 /** The spells in flight: an orb, the shadow under it and a trail of sparks. */
@@ -107,6 +109,7 @@ export class Bolts {
       z: cast.height,
       age: 0,
       spent: false,
+      damage: cast.damage ?? 1,
     };
     this.live.push(bolt);
     this.bodies.add(spot);
@@ -153,7 +156,7 @@ export class Bolts {
    * stops there and is spent. For bolts too fast to be caught where they
    * happen to stand at the end of a step.
    */
-  sweep(every: number, hit: (x: number, y: number) => boolean): void {
+  sweep(every: number, hit: (x: number, y: number, damage: number) => boolean): void {
     for (const bolt of this.live) {
       if (bolt.spent) continue;
       const to = { x: bolt.x, y: bolt.y - bolt.z };
@@ -162,7 +165,7 @@ export class Bolts {
       for (let i = 1; i <= steps && !bolt.spent; i++) {
         const x = bolt.from.x + (to.x - bolt.from.x) * i / steps;
         const y = bolt.from.y + (to.y - bolt.from.y) * i / steps;
-        if (!hit(x, y)) continue;
+        if (!hit(x, y, bolt.damage)) continue;
         bolt.spent = true;
         // It goes no further than what it struck: its burst is drawn there.
         bolt.x = x;
