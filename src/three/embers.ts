@@ -1,44 +1,31 @@
 import * as THREE from 'three';
 import { chance } from '../world/chance';
 
-// Embers still alight where a house burnt: points of fire among the ash, each brightening and
-// fading in its own slow time, two to four pixels across; and over them a warm glow, wavering. No
-// flames: only what is left smouldering. Set where they are plainly seen (fewer, smaller and laid
-// under the model's own floor, they were not seen at all).
+// Embers still alight where a house burnt: points of fire on what is left of it, among the ash of
+// its floor and along its charred rafters, each brightening and fading in its own slow time, one to
+// two pixels across (at two to four they read too big); and over them a warm glow, wavering. No
+// flames: only what is left smouldering. Each lies on a point of the model itself (`onModel`): laid
+// by guess they were hidden under its floor, or lay out on the open ground.
 
 /** How dim an ember is at its darkest and how bright at its brightest; the seconds of its slowest and quickest breath. */
 const EMBER = { dull: '#7a1a08', hot: '#ffb050', slow: 2.6, quick: 1.1 };
 /** The glow they cast together: its colour, its strength at most, how far it reaches and how high over them it stands. */
 const GLOW = { colour: '#ff7a30', strength: 600, reach: 220, over: 30 };
-/** The share of them lying outside, in the ash at the foot of the front wall, where the camera sees past it. */
-const OUTSIDE = 0.3;
-
 export class Embers {
   readonly group = new THREE.Group();
   private readonly material: THREE.ShaderMaterial;
   private readonly glow = new THREE.PointLight(GLOW.colour, 0, GLOW.reach, 1.6);
   private time = 0;
 
-  /**
-   * `count` embers strewn over a patch `long` by `deep` about the origin (the building's frame), a
-   * little over its floor (`floor` over the ground: a model's own floor stands that high, and they
-   * lay under it); some of them out in the ash at the foot of its front wall, on the ground.
-   */
-  constructor(count: number, long: number, deep: number, floor: number, seed = 1) {
+  /** Embers at these points (the building's frame), each in its own time. */
+  constructor(points: THREE.Vector3[], seed = 1) {
     const at: number[] = [], phase: number[] = [], rate: number[] = [];
-    for (let i = 0; i < count; i++) {
-      const lift = 0.5 + chance(i, 3, seed) * 1.5;
-      if (i < count * OUTSIDE) {
-        // Along the front wall's foot, just out from it.
-        at.push((chance(i, 1, seed) - 0.5) * long * 1.1, lift, deep * (0.62 + chance(i, 2, seed) * 0.12));
-      } else {
-        // Gathered toward the middle, where the roof fell in, thinning out toward the walls.
-        const a = chance(i, 1, seed) * Math.PI * 2, r = Math.sqrt(chance(i, 2, seed)) * 0.5;
-        at.push(Math.cos(a) * r * long, floor + lift, Math.sin(a) * r * deep);
-      }
+    points.forEach((p, i) => {
+      at.push(p.x, p.y + 0.6, p.z);
       phase.push(chance(i, 4, seed) * Math.PI * 2);
       rate.push((Math.PI * 2) / (EMBER.quick + chance(i, 5, seed) * (EMBER.slow - EMBER.quick)));
-    }
+    });
+    const low = points.reduce((m, p) => Math.min(m, p.y), Infinity);
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(at, 3));
     geometry.setAttribute('phase', new THREE.Float32BufferAttribute(phase, 1));
@@ -54,7 +41,7 @@ export class Embers {
           // A slow breath, held dark longer than bright, with a faint flutter on it.
           float b = 0.5 + 0.5 * sin(time * rate + phase);
           heat = pow(b, 2.5) * (0.85 + 0.15 * sin(time * rate * 3.7 + phase * 2.0));
-          gl_PointSize = 2.0 + 2.5 * heat;
+          gl_PointSize = 1.0 + 1.5 * heat;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }`,
       fragmentShader: /* glsl */ `
@@ -69,7 +56,7 @@ export class Embers {
       transparent: true,
     });
     this.group.add(new THREE.Points(geometry, this.material));
-    this.glow.position.y = floor + GLOW.over;
+    this.glow.position.y = (Number.isFinite(low) ? low : 0) + GLOW.over;
     this.group.add(this.glow);
   }
 
@@ -80,4 +67,31 @@ export class Embers {
     const t = this.time;
     this.glow.intensity = GLOW.strength * (0.45 + 0.2 * Math.sin(t * 1.3) + 0.12 * Math.sin(t * 3.1 + 1.7) + 0.06 * Math.sin(t * 7.9));
   }
+}
+
+/**
+ * Points of a model (in `frame`'s coordinates) for embers to lie on: `low` of them on its floor
+ * (between `floor` shares of its height, within `within` of its length and depth from its middle,
+ * inside its walls) and `high` along whatever stands above `roof` of it (the rafters left).
+ */
+export function onModel(shape: THREE.Object3D, frame: THREE.Object3D, tall: number, long: number, deep: number,
+  { low, high, floor, roof, within }: { low: number; high: number; floor: [number, number]; roof: number; within: number }, seed = 1): THREE.Vector3[] {
+  frame.updateWorldMatrix(true, true);
+  const toFrame = frame.matrixWorld.clone().invert(), p = new THREE.Vector3();
+  const floored: THREE.Vector3[] = [], raised: THREE.Vector3[] = [];
+  shape.traverse(node => {
+    if (!(node instanceof THREE.Mesh)) return;
+    const position = node.geometry.getAttribute('position') as THREE.BufferAttribute;
+    const m = toFrame.clone().multiply(node.matrixWorld);
+    for (let i = 0; i < position.count; i++) {
+      p.fromBufferAttribute(position, i).applyMatrix4(m);
+      const share = p.y / tall;
+      if (share >= floor[0] && share <= floor[1] && Math.abs(p.x) < long * within && Math.abs(p.z) < deep * within) floored.push(p.clone());
+      else if (share > roof) raised.push(p.clone());
+    }
+  });
+  // A few of each, drawn by chance, the same each time.
+  const pick = (from: THREE.Vector3[], n: number, k: number) =>
+    from.length ? Array.from({ length: n }, (_, i) => from[Math.floor(chance(i, k, seed) * from.length)]) : [];
+  return [...pick(floored, low, 11), ...pick(raised, high, 12)];
 }

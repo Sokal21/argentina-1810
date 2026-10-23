@@ -3,7 +3,7 @@ import type { Vec } from '../machi/controller';
 import { ISO_Y } from '../machi/data';
 import type { BuildingModel, Keeper } from './buildings';
 import { asks } from './asks';
-import { Embers } from './embers';
+import { Embers, onModel } from './embers';
 import { model } from './figure';
 import { Motion } from './motion';
 import { flat } from './paint';
@@ -125,16 +125,11 @@ export class House {
   readonly asks: THREE.Sprite[];
   private time = 0;
   /** What still smoulders within it, if it burnt. */
-  private readonly embers: Embers | null = null;
+  private embers: Embers | null = null;
 
   constructor(private readonly where: { x: number; y: number; turn: number }, private readonly spec: BuildingModel) {
     this.group.position.copy(ground(where.x, where.y));
     this.group.rotation.y = where.turn;
-    if (spec.embers) {
-      const { count, spread, floor } = spec.embers;
-      this.embers = new Embers(count, spec.long * spec.tall * spread, spec.deep * spec.tall * spread, floor * spec.tall);
-      this.group.add(this.embers.group);
-    }
     this.asks = (spec.inside?.keepers ?? []).map(() => {
       const ask = asks();
       ask.material.opacity = 0;
@@ -147,6 +142,11 @@ export class House {
     const inside = spec.inside;
     void model(spec.url, spec.tall / UPRIGHT).then(shape => {
       this.group.add(shape);
+      // What still smoulders, on the model itself.
+      if (spec.embers) {
+        this.embers = new Embers(onModel(shape, this.group, spec.tall, spec.long * spec.tall, spec.deep * spec.tall, spec.embers));
+        this.group.add(this.embers.group);
+      }
       if (!inside) return;
       const cut = (o: THREE.Object3D, planes: THREE.Plane[]) => o.traverse(node => {
         if (!(node instanceof THREE.Mesh)) return;
