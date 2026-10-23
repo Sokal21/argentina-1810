@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { MODELS } from './buildings';
 import { CABRAL_DRESS, model } from './figure';
+import { Fling } from './fling';
 import { Motion } from './motion';
 import { flat } from './paint';
 import { DRESSES } from './people';
@@ -65,7 +66,7 @@ floor.receiveShadow = true;
 view.scene.add(floor);
 view.follow(new THREE.Vector3(0, 30, 0));
 
-const loaded = new Map<Who, { body: THREE.Group; motion: Motion; clips: string[] }>();
+const loaded = new Map<Who, { body: THREE.Group; motion: Motion; clips: string[]; flung: Fling }>();
 let shown: Who[] = [], clip = 'reposo_mixamo', into = 0, paused = false, turn = 0, pace = 1, loop = true;
 
 const who = document.getElementById('who')!, clipsBar = document.getElementById('clips')!, told = document.getElementById('told')!;
@@ -83,7 +84,7 @@ async function load(w: Who) {
     const body = await model(w.url, w.drawn);
     const clips = body.animations.map(a => a.name);
     clips.sort((a, b) => (FIRST.indexOf(a) + 1 || 99) - (FIRST.indexOf(b) + 1 || 99) || a.localeCompare(b));
-    it = { body, motion: new Motion(body), clips };
+    it = { body, motion: new Motion(body), clips, flung: new Fling(() => 0) };
     loaded.set(w, it);
   }
   return it;
@@ -106,7 +107,7 @@ function length(name: string): number {
 /** Shows one character, or all of them; their clips as buttons. */
 async function show(list: Who[], mark: HTMLButtonElement): Promise<void> {
   for (const b of who.querySelectorAll('button')) b.classList.toggle('on', b === mark);
-  for (const it of loaded.values()) view.scene.remove(it.body);
+  for (const it of loaded.values()) { it.flung.back(); view.scene.remove(it.body); }
   shown = list;
   const all = await Promise.all(list.map(load));
   all.forEach((it, i) => { it.body.position.x = (i - (all.length - 1) / 2) * APART; view.scene.add(it.body); });
@@ -135,6 +136,9 @@ function play(name: string): void {
     const t = timing(w, name) ?? {};
     const c = it.motion.has(name) ? name : 'reposo_mixamo';
     it.motion.play(c, { once: !!t.lasts || !!t.once, lasts: t.lasts, afresh: true, blend: 0.12 });
+    // One who holds his musket in both hands lets it fly as he falls, as in the game.
+    it.flung.back();
+    if (w.kneels && c === 'muerte') it.flung.throw(it.body, it.body.rotation.y);
   }
 }
 
@@ -188,6 +192,7 @@ view.renderer.setAnimationLoop(() => {
     const it = loaded.get(w);
     if (!it) continue;
     it.motion.update(dt);
+    it.flung.update(dt);
     it.body.rotation.y = turn;
     carried(w, it.body);
   }
