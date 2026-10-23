@@ -71,7 +71,7 @@ export class World3D {
     const country = raiseCountry(map);
     this.houses = country.houses;
     this.people = new People(map);
-    this.sign.style.cssText = "opacity:0;transition:opacity 0.25s;position:fixed;left:0;top:0;z-index:12;pointer-events:none;white-space:nowrap;font:16px/1 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
+    this.sign.style.cssText = "opacity:0;transition:opacity 0.25s;position:fixed;left:0;top:0;z-index:12;pointer-events:none;width:max-content;max-width:300px;text-align:center;font:16px/1.25 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
     document.body.appendChild(this.sign);
     this.view.scene.add(country.group, this.people.group, this.cabral.group, this.royalists.group, this.marks.group);
     // A sergeant's roar is felt: a faint shake of the camera, its rings leaving his feet.

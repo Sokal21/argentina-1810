@@ -549,8 +549,8 @@ export class GameScene extends Phaser.Scene {
 
     this.talkers = [];
     {
-      // In 3D nobody is talked to, nothing lies about to be picked up and nothing is brought along:
-      // those standing about are only figures there (three/people.ts).
+      // In 3D nobody outdoors is talked to, nothing lies about to be picked up and nothing is brought
+      // along: those standing about (three/people.ts) only say their one thing as one comes near.
       const told = this.three ? undefined : this.map;
       // Whoever the map names, each in their plot; on one that names nobody, while developing, the innkeeper, to try things on.
       // Whoever is indoors stands in the room; the rest, on their plot.
@@ -578,8 +578,9 @@ export class GameScene extends Phaser.Scene {
         // In 3D they stand at their true size, behind a counter: they are talked to from a little further.
         this.talkers.push({ name: npc.name, npc, x, y, hint, figure: [figure, shade], reach: this.three ? TALK.across : undefined, there: taken?.given ? () => !this.story?.has(taken.given!) : undefined });
       }
-      // Those who are not talked to: what each has to say shows over them when one comes near.
-      for (const { who, plot, faces } of told?.people ?? []) {
+      // Those who are not talked to: what each has to say shows over them when one comes near; in 3D
+      // too, said over their model (or their figure of blocks), as the 2D game says it over their drawing.
+      for (const { who, plot, faces } of this.map?.people ?? []) {
         const one = BYSTANDERS[who];
         if (!one) continue;
         const { x, y } = middle(plot);
