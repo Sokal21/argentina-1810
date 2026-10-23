@@ -2591,6 +2591,16 @@
       "asset_id": "0c27902d-307e-47c7-b91c-f5f1036d8bf0",
       "label": "campanario 3D turnaround, fieldstone and clay tiles, B (gabled roof)",
       "file": "assets/edificios/3d/campanario_piedra_b.png"
+    },
+    {
+      "asset_id": "968c3809-1067-4297-a43c-62a86a80a2ca",
+      "label": "ox 3D turnaround A",
+      "file": "assets/cosas/3d/buey/giro_a.png"
+    },
+    {
+      "asset_id": "48598164-ac31-4ee5-9e5e-11a17daa815e",
+      "label": "ox 3D turnaround B",
+      "file": "assets/cosas/3d/buey/giro_b.png"
     }
   ]
 }
