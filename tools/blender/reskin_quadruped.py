@@ -37,6 +37,21 @@ right2 = edit.new(right1.name.replace('1_Right_Limb_1', '1_Right_Limb_2'))
 right2.head, right2.tail, right2.roll = mirror(left2.head), mirror(left2.tail), -left2.roll
 right2.parent = right1
 right2.use_connect = True
+# Each hind leg's bones laid as a cow's hind leg runs, not in Tripo's straight line from hip to hoof
+# (its hock unbent, the bull's walk carried over left it near straight all through): from the hip, the
+# stifle a little ahead and down, the hock well behind and lower, the cannon down to the hoof. The
+# shape is the bull's (Quaternius's) at rest, shares of the hip's height over the hoof: ahead, down.
+HIND = [(0.11, 0.35), (-0.21, 0.67), (-0.165, 1.0)]
+for side in ('Left', 'Right'):
+    chain = [edit[name(f'1_{side}_Limb_{i}')] for i in range(3)]
+    hip, foot = chain[0].head.copy(), chain[2].tail.copy()
+    drop = hip.z - foot.z
+    joints = [hip] + [hip.__class__((hip.x + ahead * drop, hip.y + (foot.y - hip.y) * down, hip.z - down * drop)) for ahead, down in HIND]
+    for bone, (a, b) in zip(chain, zip(joints, joints[1:])):
+        bone.use_connect = False
+        bone.head, bone.tail = a, b
+    for bone in chain[1:]:
+        bone.use_connect = True
 bpy.ops.object.mode_set(mode='OBJECT')
 
 # Every weight off, and the skin bound again by Blender's. By heat, it found nothing on the ox as it is
