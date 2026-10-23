@@ -3,7 +3,7 @@ by hand, where Tripo's own (preset:quadruped:walk) folded the hind legs flat und
 
     Blender -b --python tools/blender/quadruped_retarget.py -- OX_RIG.glb BULL.fbx CLIP OUT.glb [--name caminata]
 
-The two skeletons are nothing alike (Tripo's 20 bones, the hind right leg a bone short; the bull's 56),
+The two skeletons are nothing alike (Tripo's 21, once reskin_quadruped.py has given the hind right leg the bone it lacked; the bull's 56),
 so it is not turns that are carried over but ways: each chain of the ox (each leg, the back, the neck
 and head) is laid along the matching chain of the bull, its joints at the same shares of its length,
 and each of its bones is turned from its own rest by the turn that takes the bull's matching stretch
@@ -27,7 +27,7 @@ CHAINS = {
     'front_left': (['0_Left_Limb_0', '0_Left_Limb_1', '0_Left_Limb_2', '0_Left_Limb_3'], ['FrontUpperLeg.L', 'FrontLowerLeg.L', 'FrontLowerLeg.L:tail']),
     'front_right': (['0_Right_Limb_0', '0_Right_Limb_1', '0_Right_Limb_2', '0_Right_Limb_3'], ['FrontUpperLeg.R', 'FrontLowerLeg.R', 'FrontLowerLeg.R:tail']),
     'hind_left': (['1_Left_Limb_0', '1_Left_Limb_1', '1_Left_Limb_2'], ['BackLeg.L', 'BackUpperLeg.L', 'BackLowerLeg.L', 'BackLowerLeg.L:tail']),
-    'hind_right': (['1_Right_Limb_0', '1_Right_Limb_1'], ['BackLeg.R', 'BackUpperLeg.R', 'BackLowerLeg.R', 'BackLowerLeg.R:tail']),
+    'hind_right': (['1_Right_Limb_0', '1_Right_Limb_1', '1_Right_Limb_2'], ['BackLeg.R', 'BackUpperLeg.R', 'BackLowerLeg.R', 'BackLowerLeg.R:tail']),
     'back': (['Spine_0', 'Spine_1', 'Spine_2'], ['Back', 'Torso', 'Torso2', 'Torso3:tail']),
     'head': (['Head_0', 'Head_1', 'Head_2'], ['Neck1', 'Neck2', 'Neck3', 'Head', 'Head:tail']),
 }
