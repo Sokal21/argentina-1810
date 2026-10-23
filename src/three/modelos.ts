@@ -32,13 +32,16 @@ const WHO: Who[] = [
 
 /**
  * How the game times a clip, where it does not play it at its own pace: over so long (`lasts`),
- * or once and held on its last frame (`once`). Any clip not here loops at its own pace.
+ * or once and held on its last frame (`once`). Any clip not here loops at its own pace. A name is
+ * shared by clips of different characters (Cabral's cut and the sableador's two are both `tajo`):
+ * one for a character alone is written `Name:clip`, and is looked for first.
  */
 const DRAW = 0.45, SHOT = 0.8;
 const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   mosquete_sacar: { lasts: DRAW }, mosquete_disparo: { lasts: SHOT },
   granada_sacar: { lasts: DRAW }, granada_lanzar: { lasts: SHOT },
-  tajo: { lasts: 0.5 }, barrido: { once: true }, grito: { lasts: 2.0 },
+  tajo: { lasts: 0.5 }, 'Realista:tajo': { lasts: 0.8 }, 'Sableador:tajo': { once: true },
+  barrido: { once: true }, grito: { lasts: 2.0 },
   muerte: { once: true }, rodada_mixamo: { once: true }, beber: { once: true },
 };
 /**
@@ -86,9 +89,15 @@ async function load(w: Who) {
   return it;
 }
 
-/** How long a clip runs as the game plays it, in seconds. */
+/** How the game times a clip for a character. */
+function timing(w: Who, name: string): { lasts?: number; once?: boolean } | undefined {
+  return TIMING[`${w.name}:${name}`] ?? TIMING[name];
+}
+
+/** How long a clip runs as the game plays it, in seconds (for the first shown that has it). */
 function length(name: string): number {
-  const t = TIMING[name];
+  const w = shown.find(x => loaded.get(x)?.motion.has(name));
+  const t = w ? timing(w, name) : undefined;
   if (t?.lasts) return t.lasts;
   for (const w of shown) { const it = loaded.get(w); if (it?.motion.has(name)) return it.motion.seconds(name); }
   return 2;
@@ -120,10 +129,10 @@ async function show(list: Who[], mark: HTMLButtonElement): Promise<void> {
 function play(name: string): void {
   clip = name;
   into = 0;
-  const t = TIMING[name] ?? {};
   for (const w of shown) {
     const it = loaded.get(w);
     if (!it) continue;
+    const t = timing(w, name) ?? {};
     const c = it.motion.has(name) ? name : 'reposo_mixamo';
     it.motion.play(c, { once: !!t.lasts || !!t.once, lasts: t.lasts, afresh: true, blend: 0.12 });
   }
@@ -172,8 +181,8 @@ view.renderer.setAnimationLoop(() => {
   last = now;
   into += dt;
   // A clip played once starts over after a moment held on its end, while "repetir" is on.
-  const t = TIMING[clip];
-  if (loop && t && into > length(clip) + 0.8) play(clip);
+  const once = shown.some(w => timing(w, clip));
+  if (loop && once && into > length(clip) + 0.8) play(clip);
   for (const w of shown) {
     const it = loaded.get(w);
     if (!it) continue;
