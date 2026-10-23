@@ -21,6 +21,8 @@ import { ground, UPRIGHT } from './space';
 const LIFT = 0.3, LOW = 0.22;
 /** How far in from a wall whoever walks is kept (half how wide they stand). */
 const KEEP = 7;
+/** How high the room's floor stands over the ground it is on: as low as can be without the ground showing through it (at a unit it hid the soles of whoever walked in). */
+const FLOOR = 0.1;
 /**
  * What stands in a room is not walked through either: its ground is cut into squares this wide, and
  * a square is taken where any of it stands higher than this over the floor (an ankle: a bench's
@@ -159,7 +161,7 @@ export class House {
     const { long, deep, thick } = inside.walls;
     // The floor, out under the walls (within them it left the ground showing at their foot).
     const floor = new THREE.Mesh(new THREE.BoxGeometry(long, 1, deep), flat(inside.floor));
-    floor.position.y = 0.5;
+    floor.position.y = FLOOR - 0.5;
     floor.receiveShadow = true;
     this.room.add(floor);
     // The walls nobody walks through: the back and the two ends; the front either side of the door.
@@ -174,7 +176,7 @@ export class House {
     // the rest of the floor painted with that slab's own earth.
     void model(inside.furniture, inside.scale / UPRIGHT).then(shape => {
       shape.rotation.y = inside.turn;
-      shape.position.set(inside.at[0], 1 - inside.slab, inside.at[1]);
+      shape.position.set(inside.at[0], FLOOR - inside.slab, inside.at[1]);
       this.room.add(shape);
       this.block(shape);
       shape.traverse(node => {
@@ -190,7 +192,7 @@ export class House {
     const keeper = inside.keeper;
     if (keeper) {
       void model(keeper.url, keeper.drawn).then(body => {
-        body.position.set(keeper.at[0], 1, keeper.at[1]);
+        body.position.set(keeper.at[0], FLOOR, keeper.at[1]);
         this.keeper = { body, motion: new Motion(body), facing: 0 };
         this.keeper.motion.play('reposo_mixamo');
         this.room.add(body);
@@ -217,7 +219,7 @@ export class House {
       const toRoomFromMesh = toRoom.clone().multiply(node.matrixWorld);
       for (let i = 0; i < position.count; i++) {
         p.fromBufferAttribute(position, i).applyMatrix4(toRoomFromMesh);
-        if (p.y > 1 + BLOCK.over) taken.add(`${Math.floor(p.x / BLOCK.cell)},${Math.floor(p.z / BLOCK.cell)}`);
+        if (p.y > FLOOR + BLOCK.over) taken.add(`${Math.floor(p.x / BLOCK.cell)},${Math.floor(p.z / BLOCK.cell)}`);
       }
     });
     const seen = new Set<string>();
