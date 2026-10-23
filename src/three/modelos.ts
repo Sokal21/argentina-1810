@@ -34,6 +34,8 @@ const WHO: Who[] = [
   // The ox that is to draw the carts, while its walk is being judged (not in the game yet): 72 to
   // the tips of its horns, a little under Cabral.
   { name: 'Buey', url: 'cosas/3d/buey/buey_animado.glb', drawn: 72 },
+  // And Quaternius's bull (CC0, his Ultimate Animated Animal Pack), coloured as the ox, to set beside it.
+  { name: 'Toro (Quaternius)', url: 'cosas/3d/buey/toro_animado.glb', drawn: 72 },
 ];
 
 /**
