@@ -4,6 +4,7 @@ import { middle } from '../world/zones';
 import { MODELS } from './buildings';
 import { figure, model, type Dress } from './figure';
 import { Motion } from './motion';
+import { brokenWheel } from './wheel';
 import { ground, UPRIGHT } from './space';
 
 // Those standing about a map: whoever has a model of their own, breathing where they stand; the
@@ -16,7 +17,7 @@ import { ground, UPRIGHT } from './space';
  * if it has one, plays `now` once now and then (a glance, a sigh) and breathes again; `turned`, how
  * far round from the camera they look across the screen, as a share of a half turn.
  */
-export const DRESSES: Record<string, Dress & { url?: string; idle?: string; now?: string; turned?: number }> = {
+export const DRESSES: Record<string, Dress & { url?: string; idle?: string; now?: string; turned?: number; against?: Against }> = {
   braulio: { drawn: 78, coat: '#7a5a3a', legs: '#4a3a2a', hat: { colour: '#3a2e24', tall: 0.08 } },
   anselmo: { drawn: 80, coat: '#5a4636', legs: '#5a4636' },
   tobias: { drawn: 58, coat: '#8a7a5a', legs: '#5a4a36' },
@@ -41,8 +42,22 @@ export const DRESSES: Record<string, Dress & { url?: string; idle?: string; now?
   benito: { drawn: 78, coat: '#4a3e34', legs: '#4a3e34', url: 'gente/3d/benito/benito_animado.glb', idle: 'rezando' },
   // He lies abed in the chapel instead (`abed` in buildings.ts): his model is there.
   alferez: { drawn: 80, coat: '#2c3a6e', legs: '#d9d4c4', trim: '#a3322a', hat: { colour: '#1c1a1e', tall: 0.12 } },
-  malherido: { drawn: 80, coat: '#7a2a24', legs: '#d9d4c4', trim: '#e0d8c0' },
+  // Tripo from turnaround A, 23 October 2026: lying where he fell, gasping (Mixamo's "Laying
+  // Moaning"), his upper body raised from the waist (tools/blender/lean_up.py, 60°) so he lies back
+  // against a cart's wheel come off (src/three/wheel.ts), as the 2D game draws him. Raised so, his
+  // back reaches 27 behind him at 80 drawn, at its height: the wheel, leant back, stood 12 behind
+  // him, meets it there (measured in Blender; at 30 it stood a hand's breadth off).
+  malherido: {
+    drawn: 80, coat: '#7a2a24', legs: '#d9d4c4', trim: '#e0d8c0',
+    url: 'gente/3d/malherido/malherido_animado.glb', idle: 'jadeo', turned: 0.12, against: { wheel: 27, behind: 12, down: 3 },
+  },
 };
+
+/**
+ * A broken cart wheel one lies back against: how big round, how far behind them it stands, and how
+ * far they are let down (raised from the waist, they no longer touch the ground at its lowest).
+ */
+interface Against { wheel: number; behind: number; down: number }
 
 /** How far over someone's head the line they say stands. */
 const OVER = 24;
@@ -74,10 +89,19 @@ export class People {
       };
       // Whoever lies abed in a house is there, not here.
       if (Object.values(MODELS).some(b => b.inside?.abed?.some(one => one.who === who))) continue;
-      this.heads.push({ at: { x, y }, over: dress.drawn * UPRIGHT + OVER });
+      this.heads.push({ at: { x, y }, over: (dress.against ? 0.55 : 1) * dress.drawn * UPRIGHT + OVER });
       if (!dress.url) { stand(figure(dress)); continue; }
-      void model(dress.url, dress.drawn).then(body => {
-        const motion = new Motion(body);
+      void model(dress.url, dress.drawn).then(loaded => {
+        let body: THREE.Object3D = loaded;
+        // One who lies back against a wheel does so with it behind him.
+        if (dress.against) {
+          const { wheel, behind, down } = dress.against, by = new THREE.Group(), round = brokenWheel(wheel);
+          round.position.z = -behind;
+          loaded.position.y = -down;
+          by.add(round, loaded);
+          body = by;
+        }
+        const motion = new Motion(loaded);
         motion.play(dress.idle ?? BREATHE);
         this.moving.push({ motion, at: { x, y }, idle: dress.idle ?? BREATHE, now: dress.now, next: NOW.least + Math.random() * NOW.more });
         stand(body);
