@@ -170,6 +170,16 @@ export class World3D {
     this.errands.open(spot, on);
   }
 
+  /** One led along by the hero: where they are on the 2D ground. */
+  lead(who: string, at: Vec): void {
+    this.people.lead(who, at);
+  }
+
+  /** Whether this one stands about the map as a model of their own, to be led along. */
+  leads(who: string): boolean {
+    return this.people.has(who);
+  }
+
   /** A bonfire built at a place: it stands there from now on. */
   build(spot: string): void {
     this.errands.build(spot);

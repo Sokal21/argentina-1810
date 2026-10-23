@@ -9,7 +9,8 @@ import { ground, UPRIGHT } from './space';
 
 // Those standing about a map: whoever has a model of their own, breathing where they stand; the
 // rest, a figure of a few blocks in something of their colours, until they are modelled. Nobody
-// talks to them in 3D: they are only there.
+// talks to them in 3D: they are only there. One the hero leads somewhere (Mateo, to the well) walks
+// along where the 2D game has them, turned the way they go.
 
 /**
  * How each looks: a figure of blocks, or the model at `url`, which breathes where it stands (or plays
@@ -66,13 +67,13 @@ const OVER = 24;
 const NOW = { least: 6, more: 8 };
 /** How far round from the camera they look across the screen, unless they say: a share of a half turn. */
 const TURNED = 0.35;
-/** The breathing every model shares. */
-const BREATHE = 'reposo_mixamo';
+/** The breathing every model shares; and the walk, for one who is led along. */
+const BREATHE = 'reposo_mixamo', WALK = 'caminata_mixamo';
 
 /** Everyone a map stands about on it, outdoors, where it says. */
 export class People {
   readonly group = new THREE.Group();
-  private readonly moving: { motion: Motion; at: { x: number; y: number }; idle: string; still: boolean; now?: string; next: number; back?: number }[] = [];
+  private readonly moving: { who: string; body: THREE.Object3D; motion: Motion; reach: number; at: { x: number; y: number }; idle: string; still: boolean; now?: string; next: number; back?: number; led?: { to: THREE.Vector3; going: number }; walking?: boolean }[] = [];
   /** How high over the ground each stands' line is said, by where they stand on the 2D ground. */
   private readonly heads: { at: { x: number; y: number }; over: number }[] = [];
 
@@ -102,7 +103,8 @@ export class People {
           body = by;
         }
         const motion = new Motion(loaded);
-        const one = { motion, at: { x, y }, idle: dress.idle ?? BREATHE, still: !!dress.still, now: dress.now, next: NOW.least + Math.random() * NOW.more };
+        const reach = motion.reach(WALK, 'L_Foot') * loaded.scale.x;
+        const one = { who, body, motion, reach, at: { x, y }, idle: dress.idle ?? BREATHE, still: !!dress.still, now: dress.now, next: NOW.least + Math.random() * NOW.more };
         this.rest(one);
         this.moving.push(one);
         stand(body);
@@ -133,9 +135,43 @@ export class People {
     one.back = one.motion.seconds(one.now!);
   }
 
+  /**
+   * One led along by the hero: where they are now on the 2D ground. They walk there at the pace that
+   * keeps their feet from sliding, turned the way they go, and breathe again where they stop; what
+   * they do now and then waits while they are led.
+   */
+  lead(who: string, at: { x: number; y: number }): void {
+    const one = this.moving.find(m => m.who === who);
+    if (!one) return;
+    one.led ??= { to: one.body.position.clone(), going: 0 };
+    one.led.to.copy(ground(at.x, at.y));
+    one.at = { x: at.x, y: at.y };
+  }
+
+  /** Whether this one has a model of their own here, to be led along. */
+  has(who: string): boolean {
+    return !!DRESSES[who]?.url;
+  }
+
+  /** One led along, brought to where the hero has them: walking while they go, breathing where they stop. */
+  private walk(one: People['moving'][number], dt: number): void {
+    const led = one.led!, way = led.to.clone().sub(one.body.position).setY(0), far = way.length();
+    if (far > 0.01) one.body.rotation.y = Math.atan2(way.x, way.z);
+    one.body.position.copy(led.to);
+    // How fast they go, eased so a halting step does not flicker between walking and standing.
+    led.going += (far / Math.max(dt, 1e-3) - led.going) * Math.min(1, dt * 8);
+    const walking = led.going > 8;
+    if (walking) one.motion.play(WALK, { pace: one.reach ? Math.max(0.35, led.going / one.reach) : 1, blend: 0.2 });
+    else if (one.walking) this.rest(one, 0.25);
+    one.walking = walking;
+    one.back = undefined;
+    one.motion.update(dt);
+  }
+
   update(dt: number): void {
     for (const one of this.moving) {
       // Breathing until it is time for what they do now and then; once it is done, breathing again.
+      if (one.led) { this.walk(one, dt); continue; }
       if (one.now && (one.next -= dt) <= 0) this.now(one);
       else if (one.back !== undefined && (one.back -= dt) <= 0) {
         this.rest(one);

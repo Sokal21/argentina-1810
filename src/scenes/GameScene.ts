@@ -616,9 +616,10 @@ export class GameScene extends Phaser.Scene {
         // What waits on something having happened is not there until it has.
         this.talkers.push({ name: thing.name, x, y, hint, take: { what, drawn }, there: given ? () => !!this.story?.has(given) : undefined });
       }
-      // What is to be brought somewhere waits where the map says, once there is reason to take it.
+      // What is to be brought somewhere waits where the map says, once there is reason to take it. In
+      // 3D, whoever walks there as a model of their own (Mateo); the carts are not modelled yet.
       this.led = [];
-      for (const at of told?.charges ?? []) {
+      for (const at of (this.three ? this.map?.charges?.filter(c => !c.drives && c.who && this.three!.leads(c.who)) : told?.charges) ?? []) {
         if (!this.textures.exists(at.sprite)) continue;
         const { x, y } = middle(at.from);
         const drawn = this.add.sprite(x, y, at.sprite).setOrigin(0.5, 1).setDepth(y).setVisible(false).setScale(at.scale ?? 1);
@@ -1091,6 +1092,7 @@ export class GameScene extends Phaser.Scene {
       drawn.setVisible(charge.going || waiting || arrived);
       // Standing where it waits or where it was brought, it stands as it stands still.
       if (!charge.going && (waiting || arrived)) this.pose(charge, false, false);
+      if (!charge.going && arrived && at.who) this.three?.lead(at.who, body);
       bar.setVisible(charge.going && body.life < body.max);
       // Waiting to be set off, its ring shows how near one has to come to do it.
       if (!charge.going && waiting && at.drives) this.showOrder(charge, drawn.displayHeight, dt);
@@ -1116,6 +1118,7 @@ export class GameScene extends Phaser.Scene {
         if (charge.turning > 0.35) { charge.sideways = across; charge.turning = 0; }
       }
       this.pose(charge, body.moving, mirrored);
+      if (at.who) this.three?.lead(at.who, body);
       bar.setPosition(Math.round(body.x), Math.round(body.y) - drawn.displayHeight - 4).setSize(24 * body.life / body.max, 3);
       const to = middle(at.to);
       if (body.lost) this.lose(charge, `${at.name}: se perdió por el camino. Hay que volver a buscarla.`);
