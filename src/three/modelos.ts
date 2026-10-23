@@ -31,6 +31,9 @@ const WHO: Who[] = [
     .map(k => ({ name: KEEPER_NAMES[k.who] ?? k.who, url: k.url, drawn: k.drawn })),
   // And whoever stands about a map with a model of their own.
   ...Object.entries(DRESSES).flatMap(([who, d]) => d.url ? [{ name: KEEPER_NAMES[who] ?? who, url: d.url, drawn: d.drawn }] : []),
+  // The ox that is to draw the carts, while its walk is being judged (not in the game yet): 72 to
+  // the tips of its horns, a little under Cabral.
+  { name: 'Buey', url: 'cosas/3d/buey/buey_animado.glb', drawn: 72 },
 ];
 
 /**
