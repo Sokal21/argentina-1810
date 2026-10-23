@@ -100,6 +100,11 @@ export class Realista {
     return this.flash;
   }
 
+  /** Whether a sergeant's shout has quickened him just now. */
+  get hasted(): boolean {
+    return this.brain.quick > 0;
+  }
+
   /** How strongly he smoulders, from 0 to 1, while he is on fire. */
   set burning(amount: number) {
     if (this.fx) this.fx.burn = amount;

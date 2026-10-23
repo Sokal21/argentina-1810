@@ -57,6 +57,8 @@ export class Trooper {
   /** What his brain is doing, for whoever draws him in 3D; and how red he is flashing, struck (0 to 1). */
   get mind(): Readonly<TroopBrain> { return this.brain; }
   get hurt(): number { return Math.min(1, this.flash / FLASH); }
+  /** Whether a sergeant's shout has quickened him just now. */
+  get hasted(): boolean { return this.brain.hurried; }
   /** His look in 3D: his kind. */
   get look3d(): string { return this.kind; }
   set burning(amount: number) { if (this.fx) this.fx.burn = amount; }

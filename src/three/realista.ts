@@ -16,6 +16,9 @@ import { along, ground, heading, UPRIGHT } from './space';
 
 type Mode = RealistaMode | TroopMode;
 
+/** How red one quickened by a sergeant's shout throbs, at its faintest and its strongest (a blow is 1), and how fast (radians a second). */
+const HASTE = { low: 0.08, high: 0.38, beat: 9 };
+
 /** How tall he is drawn, beside Cabral's 82: a little smaller, as in the 2D game. */
 export const DRAWN = 78;
 /**
@@ -95,6 +98,8 @@ export interface Royalist {
   readonly hurt: number;
   /** Another kind than the fusilier, drawn as LOOKS has him. */
   readonly look3d?: string;
+  /** Quickened by a sergeant's shout just now: he throbs red while it lasts. */
+  readonly hasted?: boolean;
 }
 
 let loading: Promise<THREE.Group> | null = null;
@@ -122,6 +127,8 @@ class Figure {
   private fired: number | null = null;
   private modeWas: Mode | null = null;
   private resting = false;
+  /** Seconds he has been drawn, for his throbbing while quickened. */
+  private clock = Math.random() * 10;
   /** Taken off the field, fallen: not drawn, nor his blood, until he is up again. */
   private buried = false;
   /** Which he is, to his blood. */
@@ -209,7 +216,10 @@ class Figure {
     if (back) back.visible = !inHand;
     if (hand) hand.visible = inHand;
     if (sabre) sabre.visible = !musket;
-    this.flash(who.hurt);
+    // Struck, he flashes red; quickened by a shout, he throbs a fainter red while it lasts.
+    this.clock += dt;
+    const throb = who.hasted && alive(mode) ? HASTE.low + (HASTE.high - HASTE.low) * (0.5 + 0.5 * Math.sin(this.clock * HASTE.beat)) : 0;
+    this.flash(Math.max(who.hurt, throb));
     this.body.visible = !this.buried;
     this.body.position.copy(ground(x, y));
     this.body.rotation.y = this.facing;
