@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { WorldMap } from '../world/zones';
 import { middle } from '../world/zones';
+import { asks } from './asks';
 import { MODELS } from './buildings';
 import { figure, model, type Dress } from './figure';
 import { Motion } from './motion';
@@ -9,8 +10,9 @@ import { ground, UPRIGHT } from './space';
 
 // Those standing about a map: whoever has a model of their own, breathing where they stand; the
 // rest, a figure of a few blocks in something of their colours, until they are modelled. Nobody
-// talks to them in 3D: they are only there. One the hero leads somewhere (Mateo, to the well) walks
-// along where the 2D game has them, turned the way they go.
+// talks to them in 3D but whoever the game says may be (Mateo), each with a sign over them while they
+// may be. One the hero leads somewhere (Mateo, to the well) walks along where the 2D game has them,
+// turned the way they go.
 
 /**
  * How each looks: a figure of blocks, or the model at `url`, which breathes where it stands (or plays
@@ -62,6 +64,8 @@ interface Against { wheel: number; behind: number; down: number }
 
 /** How far over someone's head the line they say stands. */
 const OVER = 24;
+/** The sign over one who can be talked to: how far over their head, how near whoever comes is when it goes, how long it fades. */
+const ASK = { over: 16, near: 110, fade: 0.25 };
 
 /** Seconds between one's `now` and the next: the least, and how much more it may be, at random. */
 const NOW = { least: 6, more: 8 };
@@ -74,6 +78,9 @@ const BREATHE = 'reposo_mixamo', WALK = 'caminata_mixamo';
 export class People {
   readonly group = new THREE.Group();
   private readonly moving: { who: string; body: THREE.Object3D; motion: Motion; reach: number; at: { x: number; y: number }; idle: string; still: boolean; now?: string; next: number; back?: number; led?: { to: THREE.Vector3; going: number }; walking?: boolean }[] = [];
+  /** The sign over each who can be talked to, by who they are: shown while the game says they may be. */
+  readonly signs = new Map<string, { sign: THREE.Sprite; asking: boolean; over: number }>();
+  private time = 0;
   /** How high over the ground each stands' line is said, by where they stand on the 2D ground. */
   private readonly heads: { at: { x: number; y: number }; over: number }[] = [];
 
@@ -91,6 +98,10 @@ export class People {
       // Whoever lies abed in a house is there, not here.
       if (Object.values(MODELS).some(b => b.inside?.abed?.some(one => one.who === who))) continue;
       this.heads.push({ at: { x, y }, over: (dress.against ? 0.55 : 1) * dress.drawn * UPRIGHT + OVER });
+      const sign = asks();
+      sign.visible = false;
+      sign.material.opacity = 0;
+      this.signs.set(who, { sign, asking: false, over: dress.drawn * UPRIGHT + ASK.over });
       if (!dress.url) { stand(figure(dress)); continue; }
       void model(dress.url, dress.drawn).then(loaded => {
         let body: THREE.Object3D = loaded;
@@ -148,6 +159,12 @@ export class People {
     one.at = { x: at.x, y: at.y };
   }
 
+  /** Whether this one may be talked to just now: a sign over them says so. */
+  asking(who: string, on: boolean): void {
+    const one = this.signs.get(who);
+    if (one) one.asking = on;
+  }
+
   /** Whether this one has a model of their own here, to be led along. */
   has(who: string): boolean {
     return !!DRESSES[who]?.url;
@@ -168,7 +185,18 @@ export class People {
     one.motion.update(dt);
   }
 
-  update(dt: number): void {
+  update(dt: number, near?: { x: number; y: number }): void {
+    this.time += dt;
+    // The sign over each who may be talked to, faded in and out; gone once whoever comes is near
+    // enough to talk (the sign of what F does says the rest).
+    for (const [who, one] of this.signs) {
+      const stands = this.moving.find(m => m.who === who);
+      const at = stands?.at, far = at && near ? Math.hypot(at.x - near.x, (at.y - near.y) * 2) : Infinity;
+      const want = one.asking && stands && far > ASK.near ? 1 : 0, now = one.sign.material.opacity;
+      one.sign.material.opacity = want > now ? Math.min(1, now + dt / ASK.fade) : Math.max(0, now - dt / ASK.fade);
+      one.sign.visible = one.sign.material.opacity > 0;
+      if (one.sign.visible && stands) one.sign.position.copy(stands.body.position).setY(stands.body.position.y + one.over + Math.sin(this.time * 3) * 2);
+    }
     for (const one of this.moving) {
       // Breathing until it is time for what they do now and then; once it is done, breathing again.
       if (one.led) { this.walk(one, dt); continue; }

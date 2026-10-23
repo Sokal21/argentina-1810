@@ -557,14 +557,17 @@ export class GameScene extends Phaser.Scene {
 
     this.talkers = [];
     {
-      // In 3D nobody outdoors is talked to and nothing is brought along yet: those standing about
-      // (three/people.ts) only say their one thing as one comes near. What lies about to be picked up
+      // In 3D only whoever outdoors has a model of their own is talked to (Mateo), and only they and
+      // nothing else are brought along: the rest standing about (three/people.ts) only say their one thing. What lies about to be picked up
       // is what the 3D map draws lying there; the places where something is done are all there.
       const told = this.three ? undefined : this.map;
       // Whoever the map names, each in their plot; on one that names nobody, while developing, the innkeeper, to try things on.
       // Whoever is indoors stands in the room; the rest, on their plot.
       // In 3D, only those who stand there as models of their own: whoever keeps a house, where they stand in it.
-      const named = (this.three ? this.three.keepers.map(k => ({ npc: PEOPLE[k.who], x: k.x, y: k.y, left: false })).filter(p => p.npc)
+      const named = (this.three ? [
+        ...this.three.keepers.map(k => ({ npc: PEOPLE[k.who], x: k.x, y: k.y, left: false })),
+        ...(this.map?.people ?? []).filter(p => !p.inside && this.three!.leads(p.who)).map(p => ({ npc: PEOPLE[p.who], ...middle(p.plot), left: p.faces === 'left' })),
+      ].filter(p => p.npc)
         : this.map?.people?.map(({ who, plot, faces, inside }) => ({ npc: PEOPLE[who], ...(inside && this.indoors?.spot(inside.building, inside.at) || middle(plot)), left: faces === 'left' })).filter(p => p.npc))
         ?? (import.meta.env.DEV ? [{ npc: BRAULIO, x: this.start.x + TALK.trial[0], y: this.start.y + TALK.trial[1], left: false }] : []);
       for (const { npc, x, y, left } of named) {
@@ -1073,6 +1076,7 @@ export class GameScene extends Phaser.Scene {
       if (talker.take) this.three?.there(talker.take.what, there);
       if (talker.spot) this.three?.open(talker.spot.at.id, there);
       for (const part of talker.figure ?? []) (part as Phaser.GameObjects.Image).setVisible(there);
+      if (talker.npc) this.three?.asking(talker.npc.id, there);
       if (!there) continue;
       // Something to be brought along is set off from inside its own ring, the one drawn round it; the
       // rest are as near as they are.

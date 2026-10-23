@@ -85,6 +85,7 @@ export class World3D {
     // A sergeant's roar is felt: a faint shake of the camera, its rings leaving his feet.
     this.royalists.shoutFelt = () => this.view.jolt(ROAR.seconds, ROAR.pixels);
     for (const house of this.houses) this.view.over.add(...house.asks);
+    for (const { sign } of this.people.signs.values()) this.view.over.add(sign);
     this.view.scene.add(roomLight());
     // The blast itself is the 2D game's, which hurts; this only shows the ball and what it raises.
     this.shots = new Shots(this.view.camera, (from, to) => this.strikes(from, to), () => {});
@@ -141,7 +142,7 @@ export class World3D {
     // A house he is within has its roof lifted off.
     darkenRooms();
     for (const house of this.houses) house.update(dt, c);
-    this.people.update(dt);
+    this.people.update(dt, c);
     this.errands.update(dt);
     shadeRooms();
     // His rage, about him and over the whole picture: eased in, and out as it ends.
@@ -173,6 +174,11 @@ export class World3D {
   /** One led along by the hero: where they are on the 2D ground. */
   lead(who: string, at: Vec): void {
     this.people.lead(who, at);
+  }
+
+  /** Whether this one, standing about the map, may be talked to just now: a sign over them says so. */
+  asking(who: string, on: boolean): void {
+    this.people.asking(who, on);
   }
 
   /** Whether this one stands about the map as a model of their own, to be led along. */
