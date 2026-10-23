@@ -2486,6 +2486,21 @@
       "asset_id": "30374b39-1ba0-4564-868c-4a60f563ec4d",
       "label": "alférez herido 3D turnaround B (chosen: flat, arms further out)",
       "file": "assets/gente/3d/alferez/giro_b.png"
+    },
+    {
+      "asset_id": "dfab08b9-47b2-4398-b20e-0c77915d7a6b",
+      "label": "capitán 3D turnaround A (cape in front and 3/4 only)",
+      "file": "assets/tropa/capitan3d/giro_a.png"
+    },
+    {
+      "asset_id": "f5e043f0-dddf-42bc-8010-439cf6acb1b8",
+      "label": "capitán 3D turnaround B (cape in front, side, 3/4; none from behind)",
+      "file": "assets/tropa/capitan3d/giro_b.png"
+    },
+    {
+      "asset_id": "d345cf0c-0f4c-47dd-ae20-ff19be63f95d",
+      "label": "capitán 3D turnaround C (B redrawn, the long cape in all four views) — chosen",
+      "file": "assets/tropa/capitan3d/giro_c.png"
     }
   ]
 }
