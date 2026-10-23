@@ -24,6 +24,8 @@ import { raiseCountry } from './world';
 // One for each map, kept between games: a WebGL canvas is not to be made afresh every time.
 
 const made = new Map<WorldMap, World3D>();
+/** A sergeant's roar felt: how long the camera shakes, and how far (a blow landing is ~2). */
+const ROAR = { seconds: 0.45, pixels: 1 };
 
 export class World3D {
   readonly view: View;
@@ -66,6 +68,8 @@ export class World3D {
     this.sign.style.cssText = "position:fixed;left:0;top:0;z-index:12;pointer-events:none;white-space:nowrap;font:16px/1 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
     document.body.appendChild(this.sign);
     this.view.scene.add(country.group, raisePeople(map), this.cabral.group, this.royalists.group, this.marks.group);
+    // A sergeant's roar is felt: a faint shake of the camera, its rings leaving his feet.
+    this.royalists.shoutFelt = () => this.view.jolt(ROAR.seconds, ROAR.pixels);
     for (const house of this.houses) this.view.over.add(house.ask);
     this.view.scene.add(roomLight());
     // The blast itself is the 2D game's, which hurts; this only shows the ball and what it raises.

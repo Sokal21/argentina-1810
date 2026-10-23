@@ -13,13 +13,15 @@ const RINGS = { at: [0.35, 0.6, 0.85], lasts: 0.9, lift: 0.8, colour: '#ff2a1a',
 /** How many shouts can be under way at once. */
 const ROOM = 3;
 
-interface Ring { mesh: THREE.Mesh; t: number; reach: number; wait: number; at: THREE.Vector3 }
+interface Ring { mesh: THREE.Mesh; t: number; reach: number; wait: number; at: THREE.Vector3; first: boolean }
 /** Each ring's corners, around: inside and out. */
 const SEGMENTS = 64;
 
 export class Shouts {
   readonly group = new THREE.Group();
   private readonly rings: Ring[] = [];
+  /** Felt as the first ring leaves, his roar at its loudest: whoever plays the camera shakes it. */
+  felt: (at: THREE.Vector3) => void = () => {};
 
   constructor() {
     for (let i = 0; i < ROOM * RINGS.at.length; i++) {
@@ -31,19 +33,20 @@ export class Shouts {
       mesh.visible = false;
       mesh.frustumCulled = false;
       this.group.add(mesh);
-      this.rings.push({ mesh, t: Infinity, reach: 0, wait: 0, at: new THREE.Vector3() });
+      this.rings.push({ mesh, t: Infinity, reach: 0, wait: 0, at: new THREE.Vector3(), first: false });
     }
   }
 
   /** A shout begins at a spot of the 3D ground, carrying `reach` along the 2D game's ground. */
   shout(at: THREE.Vector3, reach: number): void {
-    for (const wait of RINGS.at) {
+    for (const [n, wait] of RINGS.at.entries()) {
       const ring = this.rings.find(r => r.t === Infinity && r.wait <= 0) ?? this.rings[0];
       ring.at.copy(at);
       ring.mesh.position.set(at.x, 0, at.z);
       // The 2D game's distances along its ground are true ones on the 3D ground: a circle.
       ring.reach = reach;
       ring.wait = wait;
+      ring.first = n === 0;
       ring.t = 0;
     }
   }
@@ -52,6 +55,7 @@ export class Shouts {
     for (const ring of this.rings) {
       if (ring.t === Infinity) continue;
       if (ring.wait > 0) { ring.wait -= dt; ring.mesh.visible = false; continue; }
+      if (ring.t === 0 && ring.first) this.felt(ring.at);
       ring.t += dt;
       const k = Math.min(1, ring.t / RINGS.lasts), eased = 1 - (1 - k) * (1 - k);
       ring.mesh.visible = k < 1;

@@ -283,8 +283,9 @@ export class Royalists {
   private readonly figures = new Map<Royalist, Figure>();
   /** The blood of those fallen. */
   private readonly blood = new Blood();
-  /** A sergeant's shout, on the ground. */
+  /** A sergeant's shout, on the ground; and felt, as it is loudest (the camera shaken). */
   private readonly shouts = new Shouts();
+  set shoutFelt(felt: (at: THREE.Vector3) => void) { this.shouts.felt = felt; }
 
   constructor() {
     this.group.add(this.blood.group, this.shouts.group);
