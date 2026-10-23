@@ -31,11 +31,10 @@ const WHO: Who[] = [
     .map(k => ({ name: KEEPER_NAMES[k.who] ?? k.who, url: k.url, drawn: k.drawn })),
   // And whoever stands about a map with a model of their own.
   ...Object.entries(DRESSES).flatMap(([who, d]) => d.url ? [{ name: KEEPER_NAMES[who] ?? who, url: d.url, drawn: d.drawn }] : []),
-  // The ox that is to draw the carts, while its walk is being judged (not in the game yet): 72 to
-  // the tips of its horns, a little under Cabral.
+  // The ox that is to draw the carts (not in the game yet): 72 to the tips of its horns, a little
+  // under Cabral. Its walk, standing and grazing are Quaternius's bull's (CC0), put on Tripo's rig of
+  // it (tools/blender/quadruped_retarget.py): Tripo's own walk folded its hind legs under its belly.
   { name: 'Buey', url: 'cosas/3d/buey/buey_animado.glb', drawn: 72 },
-  // And Quaternius's bull (CC0, his Ultimate Animated Animal Pack), coloured as the ox, to set beside it.
-  { name: 'Toro (Quaternius)', url: 'cosas/3d/buey/toro_animado.glb', drawn: 72 },
 ];
 
 /**
