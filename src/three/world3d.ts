@@ -215,6 +215,12 @@ export class World3D {
     if (muzzle) this.volleys.fire(muzzle.tip, new THREE.Vector3(dir.x, 0, dir.y).normalize());
   }
 
+  /** Whether a spot of the 2D game's ground is in sight, as the camera now stands (`past`: the share of the view beyond its edges counted in). */
+  sees(at: Vec, past = 0): boolean {
+    const p = ground(at.x, at.y).project(this.view.camera);
+    return Math.abs(p.x) <= 1 + past && Math.abs(p.y) <= 1 + past;
+  }
+
   /** A fallen royalist is taken off the field where he lies, he and his blood. */
   bury(who: Royalist): void {
     this.royalists.bury(who);

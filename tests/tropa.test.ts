@@ -4,7 +4,7 @@ import { DYING, KINDS, QUICKENED, TroopBrain, type Deed } from '../src/tropa/bra
 const DT = 0.02;
 const run = (b: TroopBrain, her: { x: number; y: number } | null, seconds: number): Deed[] => {
   const deeds: Deed[] = [];
-  for (let t = 0; t < seconds; t += DT) { const d = b.update(DT, her); if (d.shot || d.cut !== undefined || d.rally) deeds.push(d); }
+  for (let t = 0; t < seconds; t += DT) { const d = b.update(DT, her); if (d.shot || d.cut !== undefined || d.rally || d.call) deeds.push(d); }
   return deeds;
 };
 const brain = (kind: keyof typeof KINDS, x = 0) => new TroopBrain(KINDS[kind], x, 0, () => 0.5);
@@ -109,6 +109,17 @@ describe('the captain', () => {
     const deeds = run(b, { x: 120, y: 0 }, l.time - l.charge);
     expect(b.x).toBeGreaterThan(x + 40);
     expect(deeds.filter(d => d.cut !== undefined)).toEqual([{ cut: true }]);
+  });
+
+  it('calls up more of his men a while after he has seen her, and again now and then', () => {
+    const b = brain('capitan');
+    const c = KINDS.capitan.call;
+    b.relentless = true;
+    const at: number[] = [];
+    for (let t = 0; t < 40; t += DT) if (b.update(DT, { x: 2000, y: 0 }).call) at.push(t);
+    expect(at.length).toBeGreaterThanOrEqual(2);
+    expect(at[0]).toBeGreaterThan(c.first);
+    for (let i = 1; i < at.length; i++) expect(at[i] - at[i - 1]).toBeGreaterThan(c.every);
   });
 
   it('is not moved by a blow, nor put off his aim', () => {

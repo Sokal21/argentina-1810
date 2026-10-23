@@ -30,6 +30,12 @@ export interface Kind {
    * again for `every`. It takes as much as his blow.
    */
   lunge?: { from: number; to: number; charge: number; dash: number; hit: number; reach: number; time: number; every: number };
+  /**
+   * He calls up more of his men, his sabre raised: first `first` seconds after he has seen her, then
+   * every `every`; it takes `time`, and they are called at `at` of it, `many` at a time, never more
+   * than `most` of those he called standing at once (the field keeps count).
+   */
+  call?: { first: number; every: number; time: number; at: number; many: number; most: number };
   /** He strikes whoever is nearer than `near`: how long the whole blow takes, when in it it lands, how far it reaches, how long he stands before another, and how much life it takes (one if not said). */
   blow?: { near: number; time: number; hit: number; reach: number; rest: number; damage?: number; again?: { hit: number; reach: number } };
   /** He rallies those about him: how often, how long the shout takes, how far it carries, and for how long it quickens them. */
@@ -56,15 +62,16 @@ export const KINDS = {
   sargento: { id: 'sargento', name: 'Sargento', life: 8, girth: 11, pace: 30, sight: 320, blow: { near: 95, time: 1.3, hit: 0.5, reach: 110, rest: 0.8, damage: 2 }, rally: { every: 9, time: 2.0, reach: 260, lasts: 5 }, worth: 20, spoils: 12 },
   // Whoever commands the column, and the hardest of them to bring down: a pistol from afar, a long
   // thrust up close, a lunge from between the two, a shout that quickens his men as the sergeant's
-  // does; no blow moves him, his ball and his sabre each take twice what others do, and he is worse
-  // once he is hurt. His thrust takes a second, so his arm is drawn back by its end (Mixamo's
+  // does, and more of his men called up now and again, his sabre raised; no blow moves him, his ball
+  // and his sabre each take twice what others do, and he is worse once he is hurt. His thrust takes a second, so his arm is drawn back by its end (Mixamo's
   // Stabbing, al_frente.py); his lunge is that thrust, held drawn back first and thrown forward.
   capitan: {
     id: 'capitan', name: 'El capitán', life: 40, girth: 10, pace: 44, sight: 420, steady: true,
     shot: { range: 230, aim: 0.7, lock: 0.2, reload: [2.4, 3.2], muzzle: 34, after: 0.8, damage: 2 },
     blow: { near: 52, time: 1.0, hit: 0.4, reach: 60, rest: 0.5, damage: 2 },
     lunge: { from: 75, to: 160, charge: 0.6, dash: 110, hit: 0.85, reach: 60, time: 1.85, every: 5 },
-    rally: { every: 12, time: 2.0, reach: 260, lasts: 5 }, fury: 1.5, worth: 80, spoils: 60,
+    rally: { every: 12, time: 2.0, reach: 260, lasts: 5 }, call: { first: 8, every: 18, time: 2.0, at: 0.6, many: 2, most: 4 },
+    fury: 1.5, worth: 80, spoils: 60,
   },
 } satisfies Record<string, Kind>;
 export type KindName = keyof typeof KINDS;
@@ -76,7 +83,7 @@ export const RETURNS = 7;   // seconds until one who is not at a post is back
 /** How much faster one who has been rallied walks and reloads. */
 export const QUICKENED = 1.5;
 
-export type Mode = 'stand' | 'walk' | 'aim' | 'blow' | 'lunge' | 'rally' | 'dying' | 'gone';
+export type Mode = 'stand' | 'walk' | 'aim' | 'blow' | 'lunge' | 'rally' | 'call' | 'dying' | 'gone';
 
 /** What a step of his produced. */
 export interface Deed {
@@ -84,6 +91,8 @@ export interface Deed {
   cut?: boolean;
   /** He has shouted: those within this far of him are quickened for so long. */
   rally?: { reach: number; lasts: number };
+  /** He has called up more of his men: so many, so long as no more than `most` he called are standing. */
+  call?: { many: number; most: number };
 }
 
 const NOTHING: Deed = {};
@@ -118,6 +127,8 @@ export class TroopBrain {
   private still = 0;
   /** Seconds until he can lunge again. */
   private lunging = 3;
+  /** Seconds until he calls up more of his men, counted while he has someone to fight. */
+  private calling = 0;
   private shout: number;
   private done = false;
   private twice = false;
@@ -132,6 +143,7 @@ export class TroopBrain {
     // Neither shot nor shout comes the moment he is first seen.
     this.reload = 0.8 + this.rnd() * 0.8;
     this.shout = 2 + this.rnd() * 3;
+    this.calling = kind.call?.first ?? 0;
   }
 
   get alive(): boolean {
@@ -166,6 +178,8 @@ export class TroopBrain {
       case 'walk': {
         if (!to || (far > k.sight && !this.relentless && this.provoked <= 0)) { this.enter('stand'); return NOTHING; }
         this.look(to);
+        this.calling -= dt;
+        if (k.call && this.calling <= 0 && this.still <= 0) { this.enter('call'); this.done = false; return NOTHING; }
         if (k.blow && far < k.blow.near) {
           if (this.rest <= 0) { this.enter('blow'); this.done = false; } else this.enter('stand');
           return NOTHING;
@@ -221,6 +235,13 @@ export class TroopBrain {
         if (this.done || this.t < l.hit) return NOTHING;
         this.done = true;
         return { cut: !!to && far <= l.reach };
+      }
+      case 'call': {
+        const c = k.call!;
+        if (this.t >= c.time) { this.enter('stand'); this.calling = c.every; }
+        if (this.done || this.t < c.time * c.at) return NOTHING;
+        this.done = true;
+        return { call: { many: c.many, most: c.most } };
       }
       case 'rally': {
         const r = k.rally!;
@@ -347,6 +368,7 @@ export class TroopBrain {
     this.rest = 0;
     this.still = 0;
     this.lunging = 3;
+    this.calling = this.kind.call?.first ?? 0;
     this.quick = 0;
     this.enter('stand');
   }

@@ -80,6 +80,8 @@ const PAD_THROW = 2 / 3;
 // does not stand in one knot where a single swing takes them all. And the turn from one soldier's side
 // of the hero to the next, so that sides never repeat.
 const SPACE = 34, PARTING = 90, GOLDEN = Math.PI * (3 - Math.sqrt(5));
+/** A captain's men come in from out of sight, so far past the edge of what is seen; and from no further than this from the hero. */
+const CALLED_PAST = 40, CALLED_MOST = 700;
 const KEEP = 4;
 // A soldier struck comes after the hero for this many seconds, and so does any of his own this near.
 const PROVOKED = 12, ALARM = 260;
@@ -278,6 +280,8 @@ export class GameScene extends Phaser.Scene {
   private raiders = new WeakSet<Soldier>();
   /** How many soldiers have been stood on the map, to give each a side of his own. */
   private enlisted = 0;
+  /** Those each captain has called up, to keep their count. */
+  private readonly called = new Map<Trooper, Soldier[]>();
   /** The buildings that are drawn, and going into them. */
   private indoors?: Indoors;
   /** How far the world reaches, in sprite pixels. */
@@ -984,6 +988,9 @@ export class GameScene extends Phaser.Scene {
       }
       if (deed.cut && prey) { prey.body.strike(); this.sparks.emitParticleAt(prey.body.x, prey.body.y - 20, 6); }
       else if (deed.cut && !drawn) this.hurt(realista instanceof Trooper ? realista.brain.kind.blow?.damage ?? 1 : 1);
+      // A captain calls up more of his men.
+      const call = (deed as { call?: { many: number; most: number } }).call;
+      if (call && realista instanceof Trooper) this.reinforce(realista, call);
       // A sergeant's shout quickens whoever of his own is within hearing.
       const rally = (deed as { rally?: { reach: number; lasts: number } }).rally;
       if (rally) {
@@ -1929,6 +1936,39 @@ export class GameScene extends Phaser.Scene {
       if (far < least) { least = far; found = c; }
     }
     return found;
+  }
+
+  /**
+   * More of his men called up by one who commands: as many as he calls, so long as no more than he
+   * may have of those he called are standing. They come from behind him, out past him from the hero,
+   * from just out of sight (seen appearing, they popped up), abreast a few paces apart, and come
+   * straight on; with no post, they are taken off the field once left far behind.
+   */
+  private reinforce(caller: Trooper, call: { many: number; most: number }): void {
+    const standing = (this.called.get(caller) ?? []).filter(s => s.alive);
+    const coming = Math.min(call.many, call.most - standing.length);
+    const bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
+    const at = caller.ground, dx = at.x - this.machi.x, dy = (at.y - this.machi.y) / ISO_Y, far = Math.hypot(dx, dy) || 1;
+    const out = { x: dx / far, y: dy / far };
+    // Out along that way until past the edge of what is seen (in 3D, what its camera sees).
+    const view = this.cameras.main.worldView;
+    const sees = (d: number) => {
+      const spot = { x: this.machi.x + out.x * d, y: this.machi.y + out.y * d * ISO_Y };
+      return this.three ? this.three.sees(spot) : view.contains(spot.x, spot.y);
+    };
+    let from = far;
+    while (from < CALLED_MOST && sees(from - CALLED_PAST)) from += 10;
+    for (let n = 0; n < coming; n++) {
+      const side = (n - (coming - 1) / 2) * 46;
+      let x = this.machi.x + out.x * from - out.y * side, y = this.machi.y + (out.y * from + out.x * side) * ISO_Y;
+      // Where that is no ground to stand on, beside him.
+      if (!this.walkable(x, y)) { x = at.x - out.y * side; y = at.y + out.x * side * ISO_Y; }
+      const soldier = this.enlist(undefined, x, y, bounds).sent(this.walkable);
+      this.realistas.push(soldier);
+      standing.push(soldier);
+      this.physics.add.overlap(this.bolts.bodies, soldier.zone, this.struck);
+    }
+    this.called.set(caller, standing);
   }
 
   // One of the king's men of a kind, by its name: a fusilier, unless it is one of the others.

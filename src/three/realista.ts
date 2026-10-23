@@ -28,7 +28,7 @@ export const DRAWN = 78;
  * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
  * the pace that lands it when his brain does.
  */
-export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number }; lunge?: { clip: string; wind: number; lands: number; charge: number; hit: number } }> = {
+export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number }; lunge?: { clip: string; wind: number; lands: number; charge: number; hit: number }; call?: { clip: string; time: number } }> = {
   // Lean and quick, a little under the fusiliers (Tripo from turnaround A, 23 October 2026).
   // His two cuts at the pace that lands the first when his brain does (frame 18 of 52); his run.
   sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76, blow: { clip: 'tajo', lands: 18 / 52, hit: KINDS.sableador.blow.hit }, run: 'carrera' },
@@ -48,11 +48,13 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
   // at frame 9 of 41, his shot (Mixamo's Handgun, mirrored for his left hand) goes off at frame 14 of
   // 49, each played so it does when his brain has it. His lunge is the thrust held drawn back (frame
   // 4) while he gathers himself, then thrown on to land (frame 9) as he reaches her. His shout is
-  // Mixamo's battlecry as it comes, his pistol and sabre flung up with his arms.
+  // Mixamo's battlecry as it comes, his pistol and sabre flung up with his arms; so is his calling up
+  // of his men, without the shout's rings (until a clip of its own is found).
   capitan: { url: 'tropa/capitan3d/capitan_animado.glb', drawn: 96, blow: { clip: 'estocada', lands: 9 / 41, hit: KINDS.capitan.blow.hit },
     pistol: { clip: 'tiro', shot: 14 / 49, aim: KINDS.capitan.shot.aim, after: KINDS.capitan.shot.after! },
     lunge: { clip: 'estocada', wind: 4 / 41, lands: 9 / 41, charge: KINDS.capitan.lunge.charge, hit: KINDS.capitan.lunge.hit },
-    rally: { clip: 'grito', time: KINDS.capitan.rally.time, reach: KINDS.capitan.rally.reach } },
+    rally: { clip: 'grito', time: KINDS.capitan.rally.time, reach: KINDS.capitan.rally.reach },
+    call: { clip: 'grito', time: KINDS.capitan.call.time } },
 };
 /** Seconds of his aim spent drawing the musket from his back; the rest he holds it levelled. */
 const DRAW = Math.min(0.45, AIM * 0.55);
@@ -258,7 +260,8 @@ class Figure {
       const { clip, wind, lands, charge, hit } = this.look.lunge;
       if (t < charge) m.hold(clip, wind, { blend: 0.2 });
       else m.play(clip, { once: true, pace: t < hit ? ((lands - wind) * m.seconds(clip)) / (hit - charge) : 1 });
-    } else if (mode === 'rally' && this.look?.rally) {
+    } else if (mode === 'call' && this.look?.call) m.play(this.look.call.clip, { once: true, lasts: this.look.call.time, afresh, blend: 0.2 });
+    else if (mode === 'rally' && this.look?.rally) {
       const { clip, time, reach } = this.look.rally;
       m.play(clip, { once: true, lasts: time, afresh, blend: 0.2 });
       // Rings of red flung out over the ground as he roars, as far as his shout carries.
