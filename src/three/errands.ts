@@ -1,15 +1,17 @@
 import * as THREE from 'three';
 import { chance } from '../world/chance';
 import { middle, type WorldMap } from '../world/zones';
-import { flat } from './paint';
+import { flat, joined, part, placed } from './paint';
 import { glow } from './realista';
 import { ground } from './space';
+import { brokenWheel } from './wheel';
 
 // What the story has one do about the map, drawn in 3D as the 2D game draws it: a ring of stones on
 // the ground where something can be done (a stand made, a bell lowered, a fire built) while it can be;
 // a bonfire standing where one was built, its sticks leant together over straw as the 2D drawing has
 // them; and fire on it once it is lit, flames and a glow (no light of its own: a light added to the
-// scene has every shader built anew, a stutter).
+// scene has every shader built anew, a stutter). And what makes some places, made by hand: the
+// village's well, the cannon overturned where the boy fell.
 
 /** The ring: how wide, how many stones, their sizes and greys. */
 const RING = { radius: 20, stones: 10, size: [4, 6.5], greys: ['#b4aea2', '#8a8478', '#cfc9bc'] };
@@ -26,6 +28,15 @@ export class Errands {
   private clock = 0;
 
   constructor(map: WorldMap) {
+    for (const { plot, thing } of map.objectives) {
+      if (!thing) continue;
+      const made = thing === 'pozo' ? well() : cannon();
+      // The well a little bigger than built: beside Cabral it read as a pot.
+      if (thing === 'pozo') made.scale.setScalar(1.3);
+      const { x, y } = middle(plot);
+      made.position.copy(ground(x, y));
+      this.group.add(made);
+    }
     for (const spot of map.spots ?? []) {
       const { x, y } = middle(spot.plot);
       // Two spots at one place (the ford, alone and with the village) share it: each its own ring.
@@ -133,4 +144,44 @@ function flames(seed: string): NonNullable<Place['flames']> {
   halo.position.y = 24;
   group.add(halo);
   return { group, tongues, halo };
+}
+
+/** The village's well: a low round curb of stones, two posts and a crossbar over it, a rope down to a bucket on its edge. */
+function well(): THREE.Object3D {
+  const stone = ['#9a9488', '#7e786c', '#b0aa9c'], pieces: THREE.BufferGeometry[] = [];
+  // The curb, in courses of blocks round its mouth.
+  for (let course = 0; course < 3; course++) {
+    for (let n = 0; n < 12; n++) {
+      const a = (n + course * 0.5) / 12 * Math.PI * 2;
+      pieces.push(part(placed(new THREE.BoxGeometry(8, 5, 6), [Math.cos(a) * 15, 2.5 + course * 5, Math.sin(a) * 15], [0, -a, 0]), stone[(n + course) % 3]));
+    }
+  }
+  // Its mouth, dark.
+  pieces.push(part(placed(new THREE.CylinderGeometry(12, 12, 1, 12), [0, 12, 0]), '#14110e'));
+  // Two posts, the crossbar, the rope, the bucket hung on the edge.
+  for (const side of [-1, 1]) pieces.push(part(placed(new THREE.BoxGeometry(3, 34, 3), [side * 17, 17, 0]), '#4a3a28'));
+  pieces.push(part(placed(new THREE.CylinderGeometry(1.6, 1.6, 38, 6), [0, 32, 0], [0, 0, Math.PI / 2]), '#5e4a32'));
+  pieces.push(part(placed(new THREE.CylinderGeometry(0.4, 0.4, 14, 4), [3, 25, 0]), '#b09a6a'));
+  pieces.push(part(placed(new THREE.CylinderGeometry(3.2, 2.6, 5, 8), [3, 16, 0]), '#5a4630'));
+  const mesh = new THREE.Mesh(joined(pieces), flat());
+  mesh.castShadow = mesh.receiveShadow = true;
+  return mesh;
+}
+
+/** A field gun overturned: its barrel fallen on the ground, its carriage on its side, a wheel come off beside it. */
+function cannon(): THREE.Object3D {
+  const pieces: THREE.BufferGeometry[] = [];
+  // The barrel, thick at its breech, lying across; a ring at its muzzle.
+  pieces.push(part(placed(new THREE.CylinderGeometry(4, 6, 52, 10), [0, 5.5, 0], [0, 0.4, Math.PI / 2]), '#2e3236'));
+  pieces.push(part(placed(new THREE.CylinderGeometry(5, 5, 3, 10), [-24, 5, -10], [0, 0.4, Math.PI / 2]), '#262a2e'));
+  // The carriage, its two cheeks and the trail, on its side behind.
+  pieces.push(part(placed(new THREE.BoxGeometry(46, 12, 4), [8, 6, 16], [0.2, -0.3, Math.PI / 2 - 0.2]), '#5a4630'));
+  pieces.push(part(placed(new THREE.BoxGeometry(40, 4, 14), [12, 2, 18], [0, -0.3, 0]), '#4a3a28'));
+  const mesh = new THREE.Mesh(joined(pieces), flat());
+  mesh.castShadow = mesh.receiveShadow = true;
+  const group = new THREE.Group(), wheel = brokenWheel(18, 1.35);
+  wheel.position.set(-14, 0, 22);
+  wheel.rotation.y = 0.9;
+  group.add(mesh, wheel);
+  return group;
 }

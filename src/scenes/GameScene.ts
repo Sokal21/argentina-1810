@@ -80,6 +80,8 @@ const PAD_THROW = 2 / 3;
 // does not stand in one knot where a single swing takes them all. And the turn from one soldier's side
 // of the hero to the next, so that sides never repeat.
 const SPACE = 34, PARTING = 90, GOLDEN = Math.PI * (3 - Math.sqrt(5));
+/** The ground what a place is made of by hand takes up, in 3D (three/errands.ts). */
+const MADE = { pozo: { hw: 23, hh: 10 }, canon: { hw: 28, hh: 10 } };
 /** A captain's men come in from out of sight, so far past the edge of what is seen; and from no further than this from the hero. */
 const CALLED_PAST = 40, CALLED_MOST = 700;
 const KEEP = 4;
@@ -380,6 +382,8 @@ export class GameScene extends Phaser.Scene {
     if (this.map) layGround(this, this.map);
     else this.drawGround();
     this.built = this.map ? raiseBuildings(this, this.map) : [];
+    // In 3D what a place is made of by hand (a well, a cannon: three/errands.ts) is in the way as well.
+    if (this.three) for (const { plot, thing } of this.map?.objectives ?? []) if (thing) this.built.push({ ...middle(plot), ...MADE[thing] });
     // How one goes into a building is still being tried: ?entrar=directo, or by default through a fade.
     const entering = new URLSearchParams(location.search).get('entrar') === 'directo' ? 'directo' : 'fundido';
     this.indoors = this.map ? new Indoors(this, this.map, entering as Entering) : undefined;

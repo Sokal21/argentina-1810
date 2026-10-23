@@ -36,6 +36,8 @@ export interface Objective {
   plot: [number, number];
   /** What stands there and makes the place, by the name of the plant: the one thing on a map put where it is. */
   stands?: string;
+  /** Something made by hand that makes the place, drawn in 3D (three/errands.ts): a well, an overturned cannon. */
+  thing?: 'pozo' | 'canon';
 }
 
 /** Somewhere on a map where something can be done, once: a bell to bring down, a fire to build. */
