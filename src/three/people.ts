@@ -36,8 +36,8 @@ export const DRESSES: Record<string, Dress & { url?: string; idle?: string; now?
   // Tripo from turnaround B, 23 October 2026; his pitchfork left out of it, to be held as a thing of its own.
   chacarero: { drawn: 78, coat: '#7a7a5a', legs: '#4a4236', hat: { colour: '#c8b078', tall: 0.06 }, url: 'gente/3d/chacarero/chacarero_animado.glb' },
   // Tripo from turnaround A (B had a blot on its profile's shoulder), 23 October 2026; his basin left
-  // out, to be held as a thing of its own.
-  benito: { drawn: 78, coat: '#4a3e34', legs: '#4a3e34', url: 'gente/3d/benito/benito_animado.glb' },
+  // out, to be held as a thing of its own. He stands praying, his hands joined (Mixamo's "Praying").
+  benito: { drawn: 78, coat: '#4a3e34', legs: '#4a3e34', url: 'gente/3d/benito/benito_animado.glb', idle: 'rezando' },
   alferez: { drawn: 80, coat: '#2c3a6e', legs: '#d9d4c4', trim: '#a3322a', hat: { colour: '#1c1a1e', tall: 0.12 } },
   malherido: { drawn: 80, coat: '#7a2a24', legs: '#d9d4c4', trim: '#e0d8c0' },
 };
