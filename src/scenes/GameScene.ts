@@ -597,8 +597,9 @@ export class GameScene extends Phaser.Scene {
         }).setOrigin(0.5, 1).setDepth(1e6).setResolution(ZOOM * window.devicePixelRatio).setVisible(false).setAlpha(0);
         this.talkers.push({ name: one.name, x, y, hint, says: () => this.saying(one) });
       }
-      // What lies about to be picked up: it is taken by coming to it and saying so.
-      for (const { what, plot, given } of told?.things ?? []) {
+      // What lies about to be picked up: it is taken by coming to it and saying so; in 3D, whatever
+      // the 3D map draws lying there.
+      for (const { what, plot, given } of (this.three ? this.map?.things?.filter(t => this.three!.lies(t.what)) : told?.things) ?? []) {
         const thing = THINGS[what];
         if (!thing || !this.textures.exists(thing.sprite)) continue;
         const { x, y } = middle(plot);
@@ -692,6 +693,7 @@ export class GameScene extends Phaser.Scene {
         if (near.take) {
           // Picked up: it is gone from the ground, and the story knows he has it.
           near.take.drawn.destroy();
+          this.three?.taken(near.take.what);
           near.hint.destroy();
           this.talkers = this.talkers.filter(t => t !== near);
           this.beside = undefined;

@@ -5,9 +5,9 @@ import { middle, type WorldMap } from '../world/zones';
 import { flat } from './paint';
 import { ground } from './space';
 
-// What lies about on a map, drawn as it lies: the boy's poncho where he fell, and the trails of
-// blood the 2D game lays (world/trail.ts), mark for mark where it lays them. Nothing here is
-// picked up in 3D: it is only there to be seen.
+// What lies about on a map, drawn as it lies: the boy's poncho where he fell, to be picked up as in
+// the 2D game, and the trails of blood the 2D game lays (world/trail.ts), mark for mark where it
+// lays them.
 
 /** The poncho's colours, from its 2D drawing: the cloth, its folds, its lighter hem and the blood on it. */
 const CLOTH = ['#8c3b30', '#7a3128', '#a85a48'], BLOOD = '#4a1410';
@@ -41,19 +41,50 @@ function poncho(seed: number): THREE.Mesh {
   return mesh;
 }
 
+/** How high over the ground the sign of what F does stands over something lying there. */
+const OVER = 34;
+
 /** Everything a map has lying about, and its trails. */
-export function strewn(map: WorldMap): THREE.Group {
-  const group = new THREE.Group();
-  for (const { what, plot } of map.things ?? []) {
-    if (what !== 'poncho') continue;
-    const { x, y } = middle(plot), cloth = poncho(plot[0] * 31 + plot[1]);
-    cloth.position.copy(ground(x, y));
-    cloth.rotation.y = 0.4;
-    group.add(cloth);
+export class Strewn {
+  readonly group = new THREE.Group();
+  /** What lies where, drawn: by what it is. */
+  private readonly lying = new Map<string, { body: THREE.Object3D; x: number; y: number }>();
+
+  constructor(map: WorldMap) {
+    for (const { what, plot } of map.things ?? []) {
+      if (what !== 'poncho') continue;
+      const { x, y } = middle(plot), cloth = poncho(plot[0] * 31 + plot[1]);
+      cloth.position.copy(ground(x, y));
+      cloth.rotation.y = 0.4;
+      this.group.add(cloth);
+      this.lying.set(what, { body: cloth, x, y });
+    }
+    this.group.add(...trails(map));
   }
-  // The trails: a flat blot of blood a mark, as big as the 2D game draws it, lying on the ground.
+
+  /** Whether this thing is drawn lying here, to be picked up. */
+  lies(what: string): boolean {
+    return this.lying.has(what);
+  }
+
+  /** Picked up: it is gone from the ground. */
+  taken(what: string): void {
+    const one = this.lying.get(what);
+    if (one) one.body.visible = false;
+  }
+
+  /** How high the sign over whatever lies at this spot of the 2D ground stands, if anything does. */
+  over(at: { x: number; y: number }): number | undefined {
+    for (const one of this.lying.values()) if (one.body.visible && Math.hypot(one.x - at.x, one.y - at.y) < 1) return OVER;
+    return undefined;
+  }
+}
+
+/** A map's trails: a flat blot of blood a mark, as big as the 2D game draws it, lying on the ground. */
+function trails(map: WorldMap): THREE.Object3D[] {
   const marks = (map.trails ?? []).flatMap(({ from, to }) => trail(map, from, to));
-  if (marks.length) {
+  if (!marks.length) return [];
+  {
     const blot = new THREE.CircleGeometry(5, 7).rotateX(-Math.PI / 2);
     // White, so each mark's own colour is the colour it is drawn.
     const drawn = new THREE.InstancedMesh(blot, flat('#ffffff'), marks.length);
@@ -68,7 +99,6 @@ export function strewn(map: WorldMap): THREE.Group {
       drawn.setColorAt(i, c.set(MARK[i % 2]));
     });
     drawn.receiveShadow = true;
-    group.add(drawn);
+    return [drawn];
   }
-  return group;
 }

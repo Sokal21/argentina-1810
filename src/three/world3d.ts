@@ -14,7 +14,7 @@ import { People } from './people';
 import { Royalists, type Royalist } from './realista';
 import { Shots, type Strikes } from './shot';
 import { ground, onTheGround, UPRIGHT } from './space';
-import { strewn } from './strewn';
+import { Strewn } from './strewn';
 import { View } from './view';
 import { raiseCountry } from './world';
 
@@ -49,6 +49,8 @@ export class World3D {
   private readonly houses: House[];
   /** Those standing about the map, outdoors. */
   private readonly people: People;
+  /** What lies about on it. */
+  private readonly strewn: Strewn;
   /** The sign over whoever can be talked to, and what it says and over whom. */
   private readonly sign = document.createElement('div');
   private said: { text: string; at: Vec } | null = null;
@@ -72,9 +74,10 @@ export class World3D {
     const country = raiseCountry(map);
     this.houses = country.houses;
     this.people = new People(map);
+    this.strewn = new Strewn(map);
     this.sign.style.cssText = "opacity:0;transition:opacity 0.25s;position:fixed;left:0;top:0;z-index:12;pointer-events:none;width:max-content;max-width:300px;text-align:center;font:16px/1.25 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
     document.body.appendChild(this.sign);
-    this.view.scene.add(country.group, this.people.group, strewn(map), this.cabral.group, this.royalists.group, this.marks.group);
+    this.view.scene.add(country.group, this.people.group, this.strewn.group, this.cabral.group, this.royalists.group, this.marks.group);
     // A sergeant's roar is felt: a faint shake of the camera, its rings leaving his feet.
     this.royalists.shoutFelt = () => this.view.jolt(ROAR.seconds, ROAR.pixels);
     for (const house of this.houses) this.view.over.add(...house.asks);
@@ -142,6 +145,16 @@ export class World3D {
     this.view.fury += (rage - this.view.fury) * Math.min(1, dt * 6);
   }
 
+  /** Whether this thing is drawn lying on the map, to be picked up. */
+  lies(what: string): boolean {
+    return this.strewn.lies(what);
+  }
+
+  /** It has been picked up: it is gone from the ground. */
+  taken(what: string): void {
+    this.strewn.taken(what);
+  }
+
   /** Whoever lies abed in a house, where they lie, on the 2D ground. */
   get abed(): { who: string; x: number; y: number; over: number }[] {
     return this.houses.flatMap(house => house.abed);
@@ -164,7 +177,7 @@ export class World3D {
       // Just under the question mark of whoever is in a house (lower over one who sits); over the head of
       // whoever stands about (lower over one who lies); else as high as a man.
       const { x, y } = this.said.at, near = [...this.keepers, ...this.abed].find(k => Math.hypot(k.x - x, k.y - y) < 1);
-      this.signAt = { at: this.said.at, over: near ? near.over - SIGN_UNDER : this.people.over(this.said.at) ?? 100 * UPRIGHT };
+      this.signAt = { at: this.said.at, over: near ? near.over - SIGN_UNDER : this.people.over(this.said.at) ?? this.strewn.over(this.said.at) ?? 100 * UPRIGHT };
     }
     this.sign.style.opacity = this.said ? '1' : '0';
   }
