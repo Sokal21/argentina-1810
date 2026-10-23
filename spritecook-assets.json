@@ -2501,6 +2501,26 @@
       "asset_id": "d345cf0c-0f4c-47dd-ae20-ff19be63f95d",
       "label": "capitán 3D turnaround C (B redrawn, the long cape in all four views) — chosen",
       "file": "assets/tropa/capitan3d/giro_c.png"
+    },
+    {
+      "asset_id": "f7fa7884-c309-4a6d-9967-00804e4f894e",
+      "label": "realista malherido 3D turnaround A (chosen)",
+      "file": "assets/gente/3d/malherido/giro_a.png"
+    },
+    {
+      "asset_id": "eef52f1e-fdde-4b5b-a490-62281cbf15e4",
+      "label": "realista malherido 3D turnaround B",
+      "file": "assets/gente/3d/malherido/giro_b.png"
+    },
+    {
+      "asset_id": "7e5bc348-5d58-4ae1-9268-59f7b657ebc7",
+      "label": "broken cart wheel A (came back pixel art, on ground; unused)",
+      "file": "assets/cosas/3d/rueda_a.png"
+    },
+    {
+      "asset_id": "fd3a68bf-1f2a-4780-bd28-ab9c2ebd859e",
+      "label": "broken cart wheel B (grass and shadow under it; reference for the wheel built in code, src/three/wheel.ts)",
+      "file": "assets/cosas/3d/rueda_b.png"
     }
   ]
 }
