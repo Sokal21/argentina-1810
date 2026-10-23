@@ -32,10 +32,8 @@ const WHO: Who[] = [
   // And whoever stands about a map with a model of their own.
   ...Object.entries(DRESSES).flatMap(([who, d]) => d.url ? [{ name: KEEPER_NAMES[who] ?? who, url: d.url, drawn: d.drawn }] : []),
   // The ox that is to draw the carts (not in the game yet): 72 to the tips of its horns, a little
-  // under Cabral. Its walk, standing and grazing are Quaternius's bull's (CC0), put on Tripo's rig of
-  // it (tools/blender/quadruped_retarget.py): Tripo's own walk folded its hind legs under its belly.
-  // Its skin bound again by Blender (tools/blender/reskin_quadruped.py): as Tripo bound it, its hind
-  // legs did not bend and grazing dragged its chest in.
+  // under Cabral. Tripo's model on Quaternius's bull's skeleton (CC0, tools/blender/fit_to_bull.py),
+  // playing the bull's own clips: carried over onto Tripo's own rig, its walk came out strange.
   { name: 'Buey', url: 'cosas/3d/buey/buey_animado.glb', drawn: 72 },
 ];
 
