@@ -18,8 +18,8 @@ export interface BuildingModel {
   /** Its length and depth, as shares of its height (the model's own proportions). */
   long: number;
   deep: number;
-  /** Embers still alight within it, if it burnt: how many, over what share of its length and depth. */
-  embers?: { count: number; spread: number };
+  /** Embers still alight within it, if it burnt: how many, over what share of its length and depth, and how high its own floor stands (a share of its height). */
+  embers?: { count: number; spread: number; floor: number };
   /** The room within it, gone into without a cut (house.ts), in the building's own frame. */
   inside?: {
     /** Its walls, where the model's are (measured below its eaves): length, depth, height, thickness. */
@@ -92,8 +92,9 @@ export const MODELS: Record<string, BuildingModel> = {
   // anvil and trough (sheet A); 200 tall, its eaves at about 90.
   'La fragua': { url: 'edificios/3d/fragua.glb', tall: 200, drawing: [172, 158], long: 1.766, deep: 1.062 },
   // The burnt rancho, its thatch gone to charred rafters (sheet B, its ground line painted out); its
-  // door, 0.4 of it, a man high at 200.
-  'El rancho quemado': { url: 'edificios/3d/rancho.glb', tall: 200, drawing: [236, 178], long: 1.27, deep: 1.176, embers: { count: 46, spread: 0.7 } },
+  // door, 0.4 of it, a man high at 200. Its floor stands at 0.07 to 0.11 of it (rays down in Blender):
+  // its embers lie on that.
+  'El rancho quemado': { url: 'edificios/3d/rancho.glb', tall: 200, drawing: [236, 178], long: 1.27, deep: 1.176, embers: { count: 110, spread: 0.7, floor: 0.1 } },
   // The tapera: roofless walls, one gable standing (sheet A). As deep as it is long on the model, so
   // kept low (140) to stand within the patch its drawing takes.
   'La tapera': { url: 'edificios/3d/tapera.glb', tall: 140, drawing: [270, 188], long: 2.046, deep: 2.058 },

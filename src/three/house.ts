@@ -131,8 +131,8 @@ export class House {
     this.group.position.copy(ground(where.x, where.y));
     this.group.rotation.y = where.turn;
     if (spec.embers) {
-      const { count, spread } = spec.embers;
-      this.embers = new Embers(count, spec.long * spec.tall * spread, spec.deep * spec.tall * spread);
+      const { count, spread, floor } = spec.embers;
+      this.embers = new Embers(count, spec.long * spec.tall * spread, spec.deep * spec.tall * spread, floor * spec.tall);
       this.group.add(this.embers.group);
     }
     this.asks = (spec.inside?.keepers ?? []).map(() => {
