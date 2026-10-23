@@ -2466,6 +2466,16 @@
       "asset_id": "ea8bd3e7-d4f1-4f35-a231-48c03133f388",
       "label": "chacarero 3D turnaround B (chosen: arms further out)",
       "file": "assets/gente/3d/chacarero/giro_b.png"
+    },
+    {
+      "asset_id": "5f2b613e-a10c-48aa-ba02-041d875fb80f",
+      "label": "fray Benito 3D turnaround A (chosen)",
+      "file": "assets/gente/3d/benito/giro_a.png"
+    },
+    {
+      "asset_id": "2d618be8-fa3f-4a54-840c-3711b9d25b0d",
+      "label": "fray Benito 3D turnaround B (a dark blot on the profile's shoulder)",
+      "file": "assets/gente/3d/benito/giro_b.png"
     }
   ]
 }
