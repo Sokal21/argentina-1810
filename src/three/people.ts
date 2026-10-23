@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { WorldMap } from '../world/zones';
 import { middle } from '../world/zones';
+import { MODELS } from './buildings';
 import { figure, model, type Dress } from './figure';
 import { Motion } from './motion';
 import { ground, UPRIGHT } from './space';
@@ -15,7 +16,7 @@ import { ground, UPRIGHT } from './space';
  * if it has one, plays `now` once now and then (a glance, a sigh) and breathes again; `turned`, how
  * far round from the camera they look across the screen, as a share of a half turn.
  */
-export const DRESSES: Record<string, Dress & { url?: string; idle?: string; now?: string; turned?: number; lies?: Lies }> = {
+export const DRESSES: Record<string, Dress & { url?: string; idle?: string; now?: string; turned?: number }> = {
   braulio: { drawn: 78, coat: '#7a5a3a', legs: '#4a3a2a', hat: { colour: '#3a2e24', tall: 0.08 } },
   anselmo: { drawn: 80, coat: '#5a4636', legs: '#5a4636' },
   tobias: { drawn: 58, coat: '#8a7a5a', legs: '#5a4a36' },
@@ -38,22 +39,10 @@ export const DRESSES: Record<string, Dress & { url?: string; idle?: string; now?
   // Tripo from turnaround A (B had a blot on its profile's shoulder), 23 October 2026; his basin left
   // out, to be held as a thing of its own. He stands praying, his hands joined (Mixamo's "Praying").
   benito: { drawn: 78, coat: '#4a3e34', legs: '#4a3e34', url: 'gente/3d/benito/benito_animado.glb', idle: 'rezando' },
-  // Tripo from turnaround B (in his shirt), 23 October 2026, laid on a cot cut from the chapel's
-  // furniture (tools/blender/cut_piece.py), writhing in his fever (Mixamo's "Writhing In Pain").
-  // The cot grown to 135 (its mattress then 22 high, measured in Blender) so he lies on it whole.
-  alferez: {
-    drawn: 70, coat: '#2c3a6e', legs: '#d9d4c4', trim: '#a3322a', hat: { colour: '#1c1a1e', tall: 0.12 },
-    url: 'gente/3d/alferez/alferez_animado.glb', idle: 'dolor', turned: 0, lies: { bed: 'cosas/3d/catre.glb', grown: 135, top: 22, along: 8 },
-  },
+  // He lies abed in the chapel instead (`abed` in buildings.ts): his model is there.
+  alferez: { drawn: 80, coat: '#2c3a6e', legs: '#d9d4c4', trim: '#a3322a', hat: { colour: '#1c1a1e', tall: 0.12 } },
   malherido: { drawn: 80, coat: '#7a2a24', legs: '#d9d4c4', trim: '#e0d8c0' },
 };
-
-/**
- * A bed one lies on: its model (cut as tools/blender/cut_piece.py cuts, in its own units), grown to
- * `grown`; how high its mattress stands so grown; and how far along it toward its head they lie.
- * Its length runs across the screen, the head to the right, as the 2D game draws it.
- */
-interface Lies { bed: string; grown: number; top: number; along: number }
 
 /** How far over someone's head the line they say stands. */
 const OVER = 24;
@@ -83,20 +72,12 @@ export class People {
         body.rotation.y = (faces === 'left' ? -1 : 1) * Math.PI * (dress.turned ?? TURNED);
         this.group.add(body);
       };
-      const { lies } = dress;
-      this.heads.push({ at: { x, y }, over: lies ? lies.top + OVER : dress.drawn * UPRIGHT + OVER });
+      // Whoever lies abed in a house is there, not here.
+      if (Object.values(MODELS).some(b => b.inside?.abed?.some(one => one.who === who))) continue;
+      this.heads.push({ at: { x, y }, over: dress.drawn * UPRIGHT + OVER });
       if (!dress.url) { stand(figure(dress)); continue; }
-      void model(dress.url, dress.drawn).then(async loaded => {
-        let body: THREE.Object3D = loaded;
-        // One who lies does on his bed, along it, his head to its head.
-        if (lies) {
-          const bed = await model(lies.bed, lies.grown / UPRIGHT), on = new THREE.Group();
-          loaded.position.set(lies.along, lies.top, 0);
-          loaded.rotation.y = -Math.PI / 2;
-          on.add(bed, loaded);
-          body = on;
-        }
-        const motion = new Motion(loaded);
+      void model(dress.url, dress.drawn).then(body => {
+        const motion = new Motion(body);
         motion.play(dress.idle ?? BREATHE);
         this.moving.push({ motion, at: { x, y }, idle: dress.idle ?? BREATHE, now: dress.now, next: NOW.least + Math.random() * NOW.more });
         stand(body);

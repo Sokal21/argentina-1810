@@ -583,7 +583,8 @@ export class GameScene extends Phaser.Scene {
       for (const { who, plot, faces } of this.map?.people ?? []) {
         const one = BYSTANDERS[who];
         if (!one) continue;
-        const { x, y } = middle(plot);
+        // In 3D one who lies abed in a house is heard there.
+        const { x, y } = this.three?.abed.find(a => a.who === who) ?? middle(plot);
         const drawn = !!one.sprite && this.textures.exists(one.sprite);
         const figure = this.stand(x, y, drawn ? one.sprite! : TALK.standIn, one.idle, faces === 'left');
         // Their size is that of their one drawing, whatever frame they are shown in.

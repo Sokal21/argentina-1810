@@ -141,6 +141,11 @@ export class World3D {
     this.view.fury += (rage - this.view.fury) * Math.min(1, dt * 6);
   }
 
+  /** Whoever lies abed in a house, where they lie, on the 2D ground. */
+  get abed(): { who: string; x: number; y: number; over: number }[] {
+    return this.houses.flatMap(house => house.abed);
+  }
+
   /** Whoever is in a house, where they stand in it, on the 2D ground. */
   get keepers(): { who: string; x: number; y: number; over: number }[] {
     return this.houses.flatMap(house => house.keeps);
@@ -157,7 +162,7 @@ export class World3D {
       if (this.sign.textContent !== this.said.text) this.sign.textContent = this.said.text;
       // Just under the question mark of whoever is in a house (lower over one who sits); over the head of
       // whoever stands about (lower over one who lies); else as high as a man.
-      const { x, y } = this.said.at, near = this.keepers.find(k => Math.hypot(k.x - x, k.y - y) < 1);
+      const { x, y } = this.said.at, near = [...this.keepers, ...this.abed].find(k => Math.hypot(k.x - x, k.y - y) < 1);
       this.signAt = { at: this.said.at, over: near ? near.over - SIGN_UNDER : this.people.over(this.said.at) ?? 100 * UPRIGHT };
     }
     this.sign.style.opacity = this.said ? '1' : '0';

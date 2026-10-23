@@ -50,6 +50,8 @@ export interface BuildingModel {
     light: { at: [number, number, number]; colour: string; strength: number; reach: number; flames?: [number, number, number][] };
     /** Who keeps it, and whoever else is within, each talked to where they are. */
     keepers?: Keeper[];
+    /** Whoever lies abed within, not talked to: they only say their one thing as one comes near. */
+    abed?: Abed[];
   };
 }
 
@@ -64,6 +66,20 @@ export interface Keeper {
   drawn: number;
   at: [number, number];
   sits?: { clip: string; over: number };
+}
+
+/**
+ * Someone lying on a bed of the room's furniture: their id (as the story knows them), model, drawn
+ * height, where they lie (the middle of the bed, in the building's frame), how high its mattress
+ * stands over the floor, and what they do there. They lie along the room's length, head to the right.
+ */
+export interface Abed {
+  who: string;
+  url: string;
+  drawn: number;
+  at: [number, number];
+  top: number;
+  clip: string;
 }
 
 export const MODELS: Record<string, BuildingModel> = {
@@ -103,6 +119,11 @@ export const MODELS: Record<string, BuildingModel> = {
         // height, is that at 66 drawn; he is set a little within the edge, his hips over the cot.
         { who: 'tobias', url: 'tobias/3d/tobias_animado.glb', drawn: 66, at: [55, 2], sits: { clip: 'sentado', over: 90 } },
       ],
+      // The wounded ensign, writhing in his fever on the third cot on the right, nearer the door, away
+      // from Tobías (Tripo from turnaround B, Mixamo's "Writhing In Pain", 23 October 2026). The cot runs
+      // from 26 to 94 along and 72 to 104 out, its pillow at the right, its mattress 18 over the floor
+      // (measured in Blender); at 66 drawn he is as long as it, set a little toward its head.
+      abed: [{ who: 'alferez', url: 'gente/3d/alferez/alferez_animado.glb', drawn: 66, at: [64, 88], top: 18, clip: 'dolor' }],
       // The altar's candles, at the far end (measured in Blender: the cross's top at the middle,
       // 1.3 of the furniture's height back from its middle; the candles a little over half up it).
       light: {

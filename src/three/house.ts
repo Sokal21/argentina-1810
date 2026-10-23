@@ -19,6 +19,8 @@ import { ground, UPRIGHT } from './space';
 
 /** Seconds the roof takes to lift off or come back; how high the front wall's foot stands while inside, as a share of the walls. */
 const LIFT = 0.3, LOW = 0.22;
+/** How far over the mattress the line of one who lies abed stands. */
+const ABED_OVER = 40;
 /** How far in from a wall whoever walks is kept (half how wide they stand). */
 const KEEP = 7;
 /** How high the room's floor stands over the ground it is on: as low as can be without the ground showing through it (at a unit it hid the soles of whoever walked in). */
@@ -113,6 +115,8 @@ export class House {
   private readonly walls: { x: number; z: number; hw: number; hd: number }[] = [];
   /** Who is within, and how they move: in the order the building names them. */
   private readonly people: { spec: Keeper; body: THREE.Object3D; motion: Motion; facing: number }[] = [];
+  /** How whoever lies abed within moves. */
+  private readonly lying: Motion[] = [];
   /**
    * The sign over each one's head that they can be talked to, bobbing; and the clock they bob by. Not
    * in the house's group but in the view's `over`, whoever draws it adding them there: they are placed in the world.
@@ -204,6 +208,17 @@ export class House {
         this.room.add(body);
       });
     }
+    // Whoever lies abed, along the bed, as they do there.
+    for (const spec of inside.abed ?? []) {
+      void model(spec.url, spec.drawn).then(body => {
+        body.position.set(spec.at[0], FLOOR + spec.top, spec.at[1]);
+        body.rotation.y = -Math.PI / 2;
+        const motion = new Motion(body);
+        motion.play(spec.clip);
+        this.lying.push(motion);
+        this.room.add(body);
+      });
+    }
     const { flames } = inside.light;
     for (const spot of flames ?? []) {
       const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow(), color: FLAME.colour, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
@@ -281,6 +296,11 @@ export class House {
     return (this.spec.inside?.keepers ?? []).map(keeper => ({ who: keeper.who, ...this.onGround(keeper.at), over: keeper.sits?.over ?? ASK.over }));
   }
 
+  /** Where whoever lies abed within lies, on the 2D ground, who they are, and how high their line stands over the floor. */
+  get abed(): { who: string; x: number; y: number; over: number }[] {
+    return (this.spec.inside?.abed ?? []).map(one => ({ who: one.who, ...this.onGround(one.at), over: one.top + ABED_OVER }));
+  }
+
   /** A spot of the building's frame on the 2D ground: turned about the upright, as the group is. */
   private onGround([lx, lz]: [number, number]): Vec {
     const c = Math.cos(this.where.turn), s = Math.sin(this.where.turn);
@@ -346,6 +366,7 @@ export class House {
       flame.scale.setScalar(FLAME.wide * (0.85 + 0.25 * waver));
     });
     // Whoever keeps it turns toward whoever comes in, and back to the room when they go.
+    for (const motion of this.lying) motion.update(dt);
     const p = at && this.within(at) ? this.local(at) : null;
     for (const one of this.people) {
       const [lx, lz] = one.spec.at;
