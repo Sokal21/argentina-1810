@@ -83,6 +83,21 @@ export interface Abed {
 }
 
 export const MODELS: Record<string, BuildingModel> = {
+  // The four with nothing within, 23 October 2026, each Tripo from a turnaround of its 2D concept:
+  // their length and depth as shares of their height measured on the model (Blender). Their heights
+  // are chosen so what can be walked under or through lets Cabral (82) by.
+  // The forge in fieldstone under clay tiles, as the user asked, its front open on its hearth,
+  // anvil and trough (sheet A); 200 tall, its eaves at about 90.
+  'La fragua': { url: 'edificios/3d/fragua.glb', tall: 200, drawing: [172, 158], long: 1.766, deep: 1.062 },
+  // The burnt rancho, its thatch gone to charred rafters (sheet B, its ground line painted out); its
+  // door, 0.4 of it, a man high at 200.
+  'El rancho quemado': { url: 'edificios/3d/rancho.glb', tall: 200, drawing: [236, 178], long: 1.27, deep: 1.176 },
+  // The tapera: roofless walls, one gable standing (sheet A). As deep as it is long on the model, so
+  // kept low (140) to stand within the patch its drawing takes.
+  'La tapera': { url: 'edificios/3d/tapera.glb', tall: 140, drawing: [270, 188], long: 2.046, deep: 2.058 },
+  // The bell tower in fieldstone under a hipped tile roof, its bell in an open belfry (sheet A),
+  // taller than the chapel, as its drawing is.
+  'El campanario': { url: 'edificios/3d/campanario.glb', tall: 330, drawing: [163, 313], long: 0.39, deep: 0.388 },
   // Tripo from turnaround B (assets/edificios/3d), 20 October 2026.
   'La posada': {
     url: 'edificios/3d/posada.glb', tall: 230, drawing: [358, 250], long: 1.906, deep: 1.458,

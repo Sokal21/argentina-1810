@@ -2531,6 +2531,66 @@
       "asset_id": "49b7e74f-4e18-4bb2-a71f-29e652422e26",
       "label": "Tobías's poncho, crumpled, B (heaped, read as a blanket)",
       "file": "assets/cosas/3d/poncho_b.png"
+    },
+    {
+      "asset_id": "9afbcf79-e9fb-4ea5-a097-680a0647b84d",
+      "label": "fragua 3D turnaround A (thatch; redone in stone)",
+      "file": "assets/edificios/3d/fragua_giro_a.png"
+    },
+    {
+      "asset_id": "0f9c8569-aae4-4809-98cb-7f250419a440",
+      "label": "fragua 3D turnaround B (thatch, small, ground line)",
+      "file": "assets/edificios/3d/fragua_giro_b.png"
+    },
+    {
+      "asset_id": "de3d6e47-56db-4f05-a8f8-d8f3b0e176ec",
+      "label": "rancho quemado 3D turnaround A (its side view kept its thatch)",
+      "file": "assets/edificios/3d/rancho_giro_a.png"
+    },
+    {
+      "asset_id": "9fa72a0b-8973-4a71-a7f9-9253ee37a68c",
+      "label": "rancho quemado 3D turnaround B (chosen)",
+      "file": "assets/edificios/3d/rancho_giro_b.png"
+    },
+    {
+      "asset_id": "679db7e3-61b4-4187-b031-c765fc8f0b04",
+      "label": "tapera 3D turnaround A (chosen, two by two grid)",
+      "file": "assets/edificios/3d/tapera_giro_a.png"
+    },
+    {
+      "asset_id": "02e4901c-1671-4f60-98f4-0e5c8ec3b959",
+      "label": "tapera 3D turnaround B (text written on it)",
+      "file": "assets/edificios/3d/tapera_giro_b.png"
+    },
+    {
+      "asset_id": "7d87359b-9c5a-4f3b-9beb-feb02b834cb4",
+      "label": "campanario 3D turnaround A (timber; redone in stone)",
+      "file": "assets/edificios/3d/campanario_giro_a.png"
+    },
+    {
+      "asset_id": "913f6a47-9ee2-45be-978c-92b1770b8baf",
+      "label": "campanario 3D turnaround B (timber, ladder changes side)",
+      "file": "assets/edificios/3d/campanario_giro_b.png"
+    },
+    {
+      "asset_id": "dda630cf-445e-4a6e-9d1e-eadbf0e326c5",
+      "label": "fragua 3D turnaround, fieldstone and clay tiles, A (chosen)",
+      "file": "assets/edificios/3d/fragua_piedra_a.png"
+    },
+    {
+      "asset_id": "7f107655-1716-433a-98e9-24fe53df12ec",
+      "label": "fragua 3D turnaround, fieldstone and clay tiles, B (timber gable)",
+      "file": "assets/edificios/3d/fragua_piedra_b.png"
+    },
+    {
+      "asset_id": "5c0101e4-38b3-43b4-940f-738d26b149b7",
+      "label": "campanario 3D turnaround, fieldstone and clay tiles, A (chosen, hipped roof)",
+      "file": "assets/edificios/3d/campanario_piedra_a.png"
+    },
+    {
+      "asset_id": "0c27902d-307e-47c7-b91c-f5f1036d8bf0",
+      "label": "campanario 3D turnaround, fieldstone and clay tiles, B (gabled roof)",
+      "file": "assets/edificios/3d/campanario_piedra_b.png"
     }
   ]
 }

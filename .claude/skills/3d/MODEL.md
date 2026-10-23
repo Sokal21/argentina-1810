@@ -91,3 +91,10 @@ material with the texture nearest-filtered, and grows it to the drawn height.
   the bed's extent and mattress by rays down over the furniture. A lying clip takes `--ground`, and
   `strip.py` frames it badly (it frames one standing): render it framed to the body instead. A bed
   can also be cut out of furniture as a model of its own (`tools/blender/cut_piece.py`).
+- **Buildings with nothing within** (the forge, the burnt rancho, the tapera, the bell tower, 23 October
+  2026): an entry in `MODELS` is all they need (url, true height, drawing size, `long`/`deep` from
+  the model's box). Make what is walked under or through let Cabral (82) by; check the neighbours'
+  spacing on the plots before choosing a height. Sheets come in a row or a two by two grid, often with
+  a ground line: `tools/no_ground_line.py` then `tools/cut_views.py` (row or grid). The user asked for
+  fieldstone and clay tiles on the forge and the bell tower: regenerate with the chosen sheet as
+  reference and the chapel's stone sheet as style.
