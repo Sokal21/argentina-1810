@@ -183,7 +183,15 @@ function lunge(l: NonNullable<Who['lunge']>, it: { body: THREE.Group; motion: Mo
   it.body.position.set(it.home + at.x, 0, at.z);
   // Followed as he goes, when he is shown alone: he slides further than the view.
   if (shown.length === 1) view.follow(new THREE.Vector3(it.body.position.x, shown[0].drawn * 0.5, it.body.position.z));
-  if (dt > 0 && into >= l.charge && into < l.hit + 0.08) dust.kick(it.body.position.clone(), ahead.clone().negate(), into >= l.hit ? 2 : 1);
+  // A cloud as he pushes off; sliding in, each boot tears up the ground behind him.
+  if (dt > 0 && into - dt < l.charge && into >= l.charge) dust.cloud(it.body.position.clone());
+  if (dt > 0 && into >= l.charge && into < l.hit + 0.08) {
+    it.body.updateMatrixWorld(true);
+    for (const name of ['L_Foot', 'R_Foot']) {
+      const foot = it.body.getObjectByName(name)?.getWorldPosition(new THREE.Vector3()).setY(0);
+      if (foot) dust.kick(foot, ahead.clone().negate(), into >= l.hit ? 1.2 : 0.6);
+    }
+  }
 }
 
 // The list: each alone, and all together.

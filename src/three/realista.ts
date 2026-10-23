@@ -156,6 +156,8 @@ class Figure {
   private resting = false;
   /** One who kneels to shoot (his look's `kneels`): down on his knee, from his first aim until he walks. */
   private down = false;
+  /** How far into his lunge he was last frame: to see the moment he pushes off. */
+  private lungedAt = Infinity;
   /** Seconds since his pistol went off, while its clip plays out (one with a pistol, his look's `pistol`). */
   private smoking: number | null = null;
   /** His musket flung from his hands as he falls, for one who holds it in both. */
@@ -261,10 +263,13 @@ class Figure {
       const { clip, wind, lands, charge, hit } = this.look.lunge;
       if (t < charge) m.hold(clip, wind, { blend: 0.2 });
       else m.play(clip, { once: true, pace: t < hit ? ((lands - wind) * m.seconds(clip)) / (hit - charge) : 1 });
-      // Sliding in, his boots tear up the ground behind him; a last burst as he stops to thrust.
+      // A cloud as he pushes off; sliding in, each boot tears up the ground behind him; a last burst
+      // from each as he stops to thrust.
+      if (t >= charge && this.lungedAt < charge) this.dust?.cloud(ground(x, y));
+      this.lungedAt = t;
       if (t >= charge && t < hit + 0.08 && this.going > 20) {
         const back = new THREE.Vector3(-Math.sin(this.facing), 0, -Math.cos(this.facing));
-        this.dust?.kick(ground(x, y), back, t >= hit ? 2 : 1);
+        for (const foot of this.feet()) this.dust?.kick(foot, back, t >= hit ? 1.2 : 0.6);
       }
     } else if (mode === 'call' && this.look?.call) m.play(this.look.call.clip, { once: true, lasts: this.look.call.time, afresh, blend: 0.2 });
     else if (mode === 'rally' && this.look?.rally) {
@@ -308,6 +313,17 @@ class Figure {
     this.body.visible = false;
     this.blood.clear(this.id);
     this.flung.back();
+  }
+
+  /** Where his boots are, on the ground under them. */
+  private feet(): THREE.Vector3[] {
+    this.body.updateMatrixWorld(true);
+    return ['L_Foot', 'R_Foot'].flatMap(name => {
+      const bone = this.body.getObjectByName(name);
+      if (!bone) return [];
+      const at = bone.getWorldPosition(new THREE.Vector3());
+      return [at.setY(this.body.position.y)];
+    });
   }
 
   /** Where his hips are, as he lies: his blood pools there, not at his feet. */

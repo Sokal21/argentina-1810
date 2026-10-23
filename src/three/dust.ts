@@ -2,15 +2,18 @@ import * as THREE from 'three';
 
 // Dust kicked up off the ground: soft puffs of earth that rise a little, swell and fade, and specks of
 // grit flung up that fall back. Raised where a man's boots tear at the ground (the captain sliding in
-// on his lunge). Both are kept, a fixed number of each, hidden until wanted: a material made and
+// on his lunge, from under each boot); and a cloud thrown up as he pushes off, that swells big at once
+// and is gone as quickly. Both are kept, a fixed number of each, hidden until wanted: a material made and
 // thrown away each time has its shader built anew, a stutter.
 
 /** Puffs: how many are kept, how long one lasts, how big it is born and grows, how fast it rises and drifts, its colours. */
 const PUFF = { kept: 72, life: [0.6, 1.1], from: 3.5, to: 11, rise: [10, 26], drift: 24, colours: ['#a08c64', '#8c7a56', '#b4a07a'], opacity: 0.7 };
+/** The cloud as he pushes off: how many puffs, how long it lasts, how big each is born and grows, how far out and up they go. */
+const CLOUD = { puffs: 12, life: [0.3, 0.45], from: 6, to: 28, out: [40, 90], rise: [15, 40] };
 /** Specks: how many are kept, how long one flies, how fast it is flung out and up, how hard it falls, its size and colours. */
 const SPECK = { kept: 96, life: [0.35, 0.65], out: [30, 90], up: [50, 130], fall: 420, size: 1.3, colours: ['#6e5c3e', '#56462e', '#857150'] };
 
-interface Bit { mesh: THREE.Mesh; t: number; life: number; way: THREE.Vector3; floor: number }
+interface Bit { mesh: THREE.Mesh; t: number; life: number; way: THREE.Vector3; floor: number; from: number; to: number }
 
 export class Dust {
   readonly group = new THREE.Group();
@@ -26,7 +29,7 @@ export class Dust {
         const mesh = new THREE.Mesh(shape, new THREE.MeshLambertMaterial({ color: colours[i % colours.length], transparent, depthWrite: !transparent }));
         mesh.visible = false;
         this.group.add(mesh);
-        into.push({ mesh, t: 0, life: 0, way: new THREE.Vector3(), floor: 0 });
+        into.push({ mesh, t: 0, life: 0, way: new THREE.Vector3(), floor: 0, from: 0, to: 0 });
       }
     };
     make(this.puffs, PUFF.kept, puffShape, PUFF.colours, true);
@@ -42,6 +45,8 @@ export class Dust {
       p.t = 0;
       p.life = r(PUFF.life);
       p.floor = at.y;
+      p.from = PUFF.from;
+      p.to = PUFF.to;
       p.mesh.position.copy(at).addScaledVector(side, (Math.random() - 0.5) * 8);
       p.way.copy(away).multiplyScalar(PUFF.drift * Math.random()).addScaledVector(side, (Math.random() - 0.5) * PUFF.drift).setY(r(PUFF.rise));
       p.mesh.rotation.set(Math.random() * 6, Math.random() * 6, 0);
@@ -59,6 +64,23 @@ export class Dust {
     }
   }
 
+  /** Throws up a cloud at a spot of the 3D ground: big at once, out all round and up, gone as quickly. */
+  cloud(at: THREE.Vector3): void {
+    const r = (a: number[]) => a[0] + Math.random() * (a[1] - a[0]);
+    for (let i = 0; i < CLOUD.puffs; i++) {
+      const p = this.puffs[this.nextPuff++ % this.puffs.length], a = (i / CLOUD.puffs) * Math.PI * 2 + Math.random() * 0.5;
+      p.t = 0;
+      p.life = r(CLOUD.life);
+      p.floor = at.y;
+      p.from = CLOUD.from;
+      p.to = CLOUD.to;
+      p.mesh.position.copy(at).add(new THREE.Vector3(Math.cos(a) * 4, 2, Math.sin(a) * 4));
+      p.way.set(Math.cos(a), 0, Math.sin(a)).multiplyScalar(r(CLOUD.out)).setY(r(CLOUD.rise));
+      p.mesh.rotation.set(Math.random() * 6, Math.random() * 6, 0);
+      p.mesh.visible = true;
+    }
+  }
+
   update(dt: number): void {
     for (const p of this.puffs) {
       if (!p.mesh.visible) continue;
@@ -67,7 +89,7 @@ export class Dust {
       if (k >= 1) { p.mesh.visible = false; continue; }
       p.mesh.position.addScaledVector(p.way, dt);
       p.way.multiplyScalar(1 - Math.min(1, dt * 3));
-      p.mesh.scale.setScalar(PUFF.from + (PUFF.to - PUFF.from) * (1 - (1 - k) * (1 - k)));
+      p.mesh.scale.setScalar(p.from + (p.to - p.from) * (1 - (1 - k) * (1 - k)));
       (p.mesh.material as THREE.MeshLambertMaterial).opacity = PUFF.opacity * (1 - k) * (1 - k);
     }
     for (const s of this.specks) {
