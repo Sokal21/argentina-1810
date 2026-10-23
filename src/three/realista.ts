@@ -42,6 +42,9 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
   sargento: { url: 'tropa/sargento3d/sargento_animado.glb', drawn: 90, blow: { clip: 'barrido', lands: 12 / 58, hit: KINDS.sargento.blow.hit },
     // His shout, played over as long as it takes him (grito_sargento.py, Mixamo's battlecry).
     rally: { clip: 'grito', time: KINDS.sargento.rally.time, reach: KINDS.sargento.rally.reach } },
+  // Whoever commands the column, his long cape behind him (Tripo from turnaround C, 23 October 2026);
+  // his plume over the sergeant's head. Not yet in the game in 3D (GameScene's IN_3D): his pistol and thrust are still to come.
+  capitan: { url: 'tropa/capitan3d/capitan_animado.glb', drawn: 96 },
 };
 /** Seconds of his aim spent drawing the musket from his back; the rest he holds it levelled. */
 const DRAW = Math.min(0.45, AIM * 0.55);
