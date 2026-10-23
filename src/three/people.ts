@@ -13,11 +13,11 @@ import { ground, UPRIGHT } from './space';
 
 /**
  * How each looks: a figure of blocks, or the model at `url`, which breathes where it stands (or plays
- * its own `idle`) and,
+ * its own `idle`, or holds its first pose, if `still`) and,
  * if it has one, plays `now` once now and then (a glance, a sigh) and breathes again; `turned`, how
  * far round from the camera they look across the screen, as a share of a half turn.
  */
-export const DRESSES: Record<string, Dress & { url?: string; idle?: string; now?: string; turned?: number; against?: Against }> = {
+export const DRESSES: Record<string, Dress & { url?: string; idle?: string; still?: boolean; now?: string; turned?: number; against?: Against }> = {
   braulio: { drawn: 78, coat: '#7a5a3a', legs: '#4a3a2a', hat: { colour: '#3a2e24', tall: 0.08 } },
   anselmo: { drawn: 80, coat: '#5a4636', legs: '#5a4636' },
   tobias: { drawn: 58, coat: '#8a7a5a', legs: '#5a4a36' },
@@ -43,13 +43,13 @@ export const DRESSES: Record<string, Dress & { url?: string; idle?: string; now?
   // He lies abed in the chapel instead (`abed` in buildings.ts): his model is there.
   alferez: { drawn: 80, coat: '#2c3a6e', legs: '#d9d4c4', trim: '#a3322a', hat: { colour: '#1c1a1e', tall: 0.12 } },
   // Tripo from turnaround A, 23 October 2026: lying where he fell, gasping (Mixamo's "Laying
-  // Moaning"), his upper body raised from the waist (tools/blender/lean_up.py, 60°) so he lies back
+  // Moaning", lying still in its first pose and only now and then gasping through it), his upper body raised from the waist (tools/blender/lean_up.py, 60°) so he lies back
   // against a cart's wheel come off (src/three/wheel.ts), as the 2D game draws him. Raised so, his
   // back reaches 27 behind him at 80 drawn, at its height: the wheel, leant back, stood 12 behind
   // him, meets it there (measured in Blender; at 30 it stood a hand's breadth off).
   malherido: {
     drawn: 80, coat: '#7a2a24', legs: '#d9d4c4', trim: '#e0d8c0',
-    url: 'gente/3d/malherido/malherido_animado.glb', idle: 'jadeo', turned: 0.12, against: { wheel: 27, behind: 12, down: 3 },
+    url: 'gente/3d/malherido/malherido_animado.glb', idle: 'jadeo', still: true, now: 'jadeo', turned: 0.12, against: { wheel: 27, behind: 12, down: 3 },
   },
 };
 
@@ -72,7 +72,7 @@ const BREATHE = 'reposo_mixamo';
 /** Everyone a map stands about on it, outdoors, where it says. */
 export class People {
   readonly group = new THREE.Group();
-  private readonly moving: { motion: Motion; at: { x: number; y: number }; idle: string; now?: string; next: number; back?: number }[] = [];
+  private readonly moving: { motion: Motion; at: { x: number; y: number }; idle: string; still: boolean; now?: string; next: number; back?: number }[] = [];
   /** How high over the ground each stands' line is said, by where they stand on the 2D ground. */
   private readonly heads: { at: { x: number; y: number }; over: number }[] = [];
 
@@ -102,11 +102,18 @@ export class People {
           body = by;
         }
         const motion = new Motion(loaded);
-        motion.play(dress.idle ?? BREATHE);
-        this.moving.push({ motion, at: { x, y }, idle: dress.idle ?? BREATHE, now: dress.now, next: NOW.least + Math.random() * NOW.more });
+        const one = { motion, at: { x, y }, idle: dress.idle ?? BREATHE, still: !!dress.still, now: dress.now, next: NOW.least + Math.random() * NOW.more };
+        this.rest(one);
+        this.moving.push(one);
         stand(body);
       });
     }
+  }
+
+  /** Back to how they stand when doing nothing: their idle, or its first pose held. */
+  private rest(one: People['moving'][number], blend = 0.4): void {
+    if (one.still) one.motion.hold(one.idle, 0);
+    else one.motion.play(one.idle, { blend });
   }
 
   /** How high over the ground the line of whoever stands at this spot of the 2D ground is said, if anyone does. */
@@ -131,7 +138,7 @@ export class People {
       // Breathing until it is time for what they do now and then; once it is done, breathing again.
       if (one.now && (one.next -= dt) <= 0) this.now(one);
       else if (one.back !== undefined && (one.back -= dt) <= 0) {
-        one.motion.play(one.idle, { blend: 0.4 });
+        this.rest(one);
         one.back = undefined;
       }
       one.motion.update(dt);
