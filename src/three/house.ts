@@ -3,6 +3,7 @@ import type { Vec } from '../machi/controller';
 import { ISO_Y } from '../machi/data';
 import type { BuildingModel, Keeper } from './buildings';
 import { asks } from './asks';
+import { Embers } from './embers';
 import { model } from './figure';
 import { Motion } from './motion';
 import { flat } from './paint';
@@ -123,10 +124,17 @@ export class House {
    */
   readonly asks: THREE.Sprite[];
   private time = 0;
+  /** What still smoulders within it, if it burnt. */
+  private readonly embers: Embers | null = null;
 
   constructor(private readonly where: { x: number; y: number; turn: number }, private readonly spec: BuildingModel) {
     this.group.position.copy(ground(where.x, where.y));
     this.group.rotation.y = where.turn;
+    if (spec.embers) {
+      const { count, spread } = spec.embers;
+      this.embers = new Embers(count, spec.long * spec.tall * spread, spec.deep * spec.tall * spread);
+      this.group.add(this.embers.group);
+    }
     this.asks = (spec.inside?.keepers ?? []).map(() => {
       const ask = asks();
       ask.material.opacity = 0;
@@ -343,6 +351,7 @@ export class House {
 
   /** Shows it as whoever is played has it: from outside, or from within its walls with its roof lifted off. */
   update(dt: number, at: Vec | null): void {
+    this.embers?.update(dt);
     if (!this.spec.inside) return;
     const want = at && this.within(at) ? 1 : 0;
     if (this.lifted !== want) {
