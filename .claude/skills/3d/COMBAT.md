@@ -23,6 +23,12 @@ What makes a blow and an aim read in the 3D game. Code in `src/three/`. All appr
   aberration, and red edges throbbing with a heartbeat. Lights for effects are kept in the scene and
   dimmed, never added and removed: that rebuilds every material, a stutter.
 
+- **A sergeant's shout** (`shout.ts`, approved 23 October 2026): a burst ring (thick, bright,
+  0.34 s) and two echoes (thinner, ~1 s), each born bright red and thinning to a duller red, their
+  edge in trembling peaks drawn anew each shout, laid on the ground's relief corner by corner (flat,
+  a rise hid all but an arc), out to his shout's reach; a faint camera shake (0.45 s, a pixel) with
+  the burst. Those it quickens throb a faint red (a third of a blow's) while it lasts.
+
 ## Tuning through the panel
 
 Every number the user may want to feel out goes in `Look` (`look.ts`) with a control in
