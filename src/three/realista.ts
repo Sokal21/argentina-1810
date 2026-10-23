@@ -16,13 +16,13 @@ import { along, ground, heading, UPRIGHT } from './space';
 type Mode = RealistaMode | TroopMode;
 
 /** How tall he is drawn, beside Cabral's 82: a little smaller, as in the 2D game. */
-const DRAWN = 78;
+export const DRAWN = 78;
 /**
  * The other kinds drawn in 3D, by their kind: their model and how tall it is drawn; for one who
  * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
  * the pace that lands it when his brain does.
  */
-const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number } }> = {
+export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number } }> = {
   // A head over his men. His blow lands at frame 12 of 58, the halberd's head straight before him (golpe_pesado.py).
   sargento: { url: 'tropa/sargento3d/sargento_animado.glb', drawn: 90, blow: { clip: 'barrido', lands: 12 / 58, hit: KINDS.sargento.blow.hit },
     // His shout, played over as long as it takes him (grito_sargento.py, Mixamo's battlecry).

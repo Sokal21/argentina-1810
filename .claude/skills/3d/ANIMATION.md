@@ -159,10 +159,14 @@ whole list (the last command in git history has it).
   and close ups of the hands at the moments they move most. Eight frames of forty hid frames plainly
   broken, which the user found.
 
-- **`modelos.html`** (`src/three/modelos.ts`): every model side by side in the game's look, each
-  clip played as the game times it, muskets and sabre shown as the game shows them; one clip
-  alone, turned, slowed, paused. Show the user this rather than strips: strips draw both muskets
-  and the sabre at once, which the user took for a fault. A new character goes in `WHO`.
+- **`modelos.html`** (`src/three/modelos.ts`): each character chosen from a list, or all of them
+  side by side; every clip of its file as a button (those the game plays first, the rest dimmed),
+  played as the game times it (`TIMING`), what it carries shown as the game shows it; turned,
+  slowed, paused. Show the user this rather than strips. **It keeps itself up to date**: whoever
+  is listed comes from the game's registers (Cabral, the fusilier, `LOOKS` in `realista.ts`, each
+  building's keeper in `MODELS`), a model's clips from its file, and "played by the game" from the
+  clip's name written in quotes in `src/three`. Only a clip the game times specially needs a line in
+  `TIMING`, and a new kind of character a name in `KIND_NAMES` / `KEEPER_NAMES`.
 
 - `tools/blender/strip.py MODEL.glb ACTION DIR --turn DEG --frames N`, `tools/strip_sheet.py`:
   frames from the game's camera. Measure what can be measured (angles, heights, lowest point)
