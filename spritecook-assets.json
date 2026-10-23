@@ -2446,6 +2446,26 @@
       "asset_id": "8aa1d7ab-26ce-4edd-9fac-551af9d25be5",
       "label": "Ciriaco 3D turnaround B (chosen; its profile shows the knife on the wrong side, mirrored before Tripo)",
       "file": "assets/gente/3d/ciriaco/giro_b.png"
+    },
+    {
+      "asset_id": "91d3af3f-ffbf-424e-b6a9-a2c2309112fc",
+      "label": "paisano 3D turnaround A (arms under the poncho)",
+      "file": "assets/gente/3d/paisano/giro_a.png"
+    },
+    {
+      "asset_id": "83a1521d-f636-4be9-a667-50129e6adea6",
+      "label": "paisano 3D turnaround B (chosen: arms clear of the poncho)",
+      "file": "assets/gente/3d/paisano/giro_b.png"
+    },
+    {
+      "asset_id": "bcf41167-7d9a-4efb-91c9-8d8bf261dce9",
+      "label": "chacarero 3D turnaround A",
+      "file": "assets/gente/3d/chacarero/giro_a.png"
+    },
+    {
+      "asset_id": "ea8bd3e7-d4f1-4f35-a231-48c03133f388",
+      "label": "chacarero 3D turnaround B (chosen: arms further out)",
+      "file": "assets/gente/3d/chacarero/giro_b.png"
     }
   ]
 }
