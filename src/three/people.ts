@@ -11,16 +11,17 @@ import { ground } from './space';
 
 /**
  * How each looks: a figure of blocks, or the model at `url`, which breathes where it stands and,
- * if it has one, plays `now` once now and then (a glance, a sigh) and breathes again.
+ * if it has one, plays `now` once now and then (a glance, a sigh) and breathes again; `turned`, how
+ * far round from the camera they look across the screen, as a share of a half turn.
  */
-export const DRESSES: Record<string, Dress & { url?: string; now?: string }> = {
+export const DRESSES: Record<string, Dress & { url?: string; now?: string; turned?: number }> = {
   braulio: { drawn: 78, coat: '#7a5a3a', legs: '#4a3a2a', hat: { colour: '#3a2e24', tall: 0.08 } },
   anselmo: { drawn: 80, coat: '#5a4636', legs: '#5a4636' },
   tobias: { drawn: 58, coat: '#8a7a5a', legs: '#5a4a36' },
   // Tripo from turnaround A, 23 October 2026; its texture in 24 colours (in 16 the mud on his
   // knees went the red of his facings, and read as blood). Now and then he looks back over his
   // shoulder, as one hiding from those he ran from (Mixamo's "Look Over Shoulder").
-  mateo: { drawn: 78, coat: '#a08a5a', legs: '#5a4a36', url: 'mateo/3d/mateo_animado.glb', now: 'mirada' },
+  mateo: { drawn: 78, coat: '#a08a5a', legs: '#5a4a36', url: 'mateo/3d/mateo_animado.glb', now: 'mirada', turned: 0.2 },
   remedios: { drawn: 74, coat: '#8a3a3a', legs: '#6a5a4a' },
   ciriaco: { drawn: 78, coat: '#6a6a4a', legs: '#4a4236' },
   paisano: { drawn: 78, coat: '#9a7a4a', legs: '#3a3a3a', hat: { colour: '#2a2420', tall: 0.07 } },
@@ -32,6 +33,8 @@ export const DRESSES: Record<string, Dress & { url?: string; now?: string }> = {
 
 /** Seconds between one's `now` and the next: the least, and how much more it may be, at random. */
 const NOW = { least: 6, more: 8 };
+/** How far round from the camera they look across the screen, unless they say: a share of a half turn. */
+const TURNED = 0.35;
 /** The breathing every model shares. */
 const BREATHE = 'reposo_mixamo';
 
@@ -48,7 +51,7 @@ export class People {
       // They look across the screen the way they are said to, a little toward whoever comes.
       const stand = (body: THREE.Object3D) => {
         body.position.copy(ground(x, y));
-        body.rotation.y = (faces === 'left' ? -1 : 1) * Math.PI * 0.35;
+        body.rotation.y = (faces === 'left' ? -1 : 1) * Math.PI * (dress.turned ?? TURNED);
         this.group.add(body);
       };
       if (!dress.url) { stand(figure(dress)); continue; }
