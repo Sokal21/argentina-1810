@@ -7,15 +7,15 @@ import type { Hero } from './data';
 // far and no further, however long is spent in it.
 
 /** What a point can be put into. */
-export type Stat = 'basic' | 'first' | 'second' | 'speed' | 'life' | 'flow' | 'ultimate';
-export const STATS: Stat[] = ['basic', 'first', 'second', 'speed', 'life', 'flow', 'ultimate'];
+export type Stat = 'basic' | 'first' | 'second' | 'life' | 'flow' | 'ultimate';
+export const STATS: Stat[] = ['basic', 'first', 'second', 'life', 'flow', 'ultimate'];
 
 /**
  * How much each point adds, as a share of what it was to begin with. Levels come seldom, so a
  * point has to be felt: one in life is a whole blow more that can be taken, and two in the
  * basic attack bring a soldier down in a blow less.
  */
-export const STEP: Record<Stat, number> = { basic: 0.2, first: 0.25, second: 0.25, speed: 0.06, life: 0.2, flow: 0.2, ultimate: 0.25 };
+export const STEP: Record<Stat, number> = { basic: 0.2, first: 0.25, second: 0.25, life: 0.2, flow: 0.2, ultimate: 0.25 };
 
 /** A point may go to their greatest power once for every this many levels. */
 export const EVERY = 5;
@@ -32,7 +32,6 @@ export const NAMES: Record<Hero, Record<Stat, { name: string; does: string }>> =
     basic: { name: 'Sable', does: 'más daño en cada sablazo' },
     first: { name: 'Tiro de mosquete', does: 'más daño del disparo' },
     second: { name: 'Granada', does: 'más daño de la granada y de su fuego' },
-    speed: { name: 'Paso', does: 'camina más rápido' },
     life: { name: 'Vida', does: 'aguanta más golpes' },
     flow: { name: 'Furia', does: 'junta furia más rápido' },
     ultimate: { name: 'Furia desatada', does: 'dura más' },
@@ -41,7 +40,6 @@ export const NAMES: Record<Hero, Record<Stat, { name: string; does: string }>> =
     basic: { name: 'Hechizo', does: 'más daño en cada hechizo' },
     first: { name: 'Rayo del Pillán', does: 'más daño del rayo' },
     second: { name: 'Lawen', does: 'cura más' },
-    speed: { name: 'Paso', does: 'camina más rápido' },
     life: { name: 'Vida', does: 'aguanta más golpes' },
     flow: { name: 'Maná', does: 'recupera maná más rápido' },
     ultimate: { name: 'Nahuel', does: 'se queda más tiempo' },
@@ -60,7 +58,7 @@ export class Growth {
   xp = 0;
   /** Points not yet put into anything. */
   points = 0;
-  readonly spent: Record<Stat, number> = { basic: 0, first: 0, second: 0, speed: 0, life: 0, flow: 0, ultimate: 0 };
+  readonly spent: Record<Stat, number> = { basic: 0, first: 0, second: 0, life: 0, flow: 0, ultimate: 0 };
 
   /** How far toward the next level, from 0 up to 1. */
   get share(): number {

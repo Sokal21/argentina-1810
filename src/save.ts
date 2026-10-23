@@ -64,7 +64,11 @@ export function regrow(growth: Growth, saved: Saved['growth']): void {
   growth.level = saved.level;
   growth.xp = saved.xp;
   growth.points = saved.points;
-  Object.assign(growth.spent, saved.spent);
+  // Points put into what can no longer be grown (the pace, taken out) are given back to be put elsewhere.
+  for (const [stat, points] of Object.entries(saved.spent) as [string, number][]) {
+    if (stat in growth.spent) growth.spent[stat as Stat] = points;
+    else growth.points += points;
+  }
 }
 
 export function ownedOf(pack: Pack): Saved['pack'] {

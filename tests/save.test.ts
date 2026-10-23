@@ -34,6 +34,14 @@ it('keeps how far a hero has grown and what they own, and gives it back as it wa
   expect(mine.bag.otra).toBeUndefined();
 });
 
+it('gives back as points to put elsewhere those a hero had put into the pace, which is no longer grown', () => {
+  const again = new Growth();
+  regrow(again, { level: 4, xp: 10, points: 1, spent: { basic: 1, first: 0, second: 0, speed: 2, life: 0, flow: 0, ultimate: 0 } as never });
+  expect(again.points).toBe(3);
+  expect(again.spent.basic).toBe(1);
+  expect('speed' in again.spent).toBe(false);
+});
+
 it('keeps a conversation where it was left', () => {
   const npc = Object.values(PEOPLE)[0];
   const talk = new Talk(npc, 'cabral', async () => ({ says: '', trust: 0 }) as never);

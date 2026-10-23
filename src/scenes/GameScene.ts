@@ -883,7 +883,7 @@ export class GameScene extends Phaser.Scene {
       backing = !!steer && len > 0 && (goes.x * steer.x + goes.y * steer.y) / len < STEER.runAhead;
     } else this.machi.steer = null;
     const running = this.stamina.update(dt, standing && !this.machi.isDashing && !backing && (this.keys.running || touch.run || pad.run), this.machi.isMoving);
-    this.machi.pace = tune.speed * this.growth.gives('speed') * (this.wrath.active ? RAGE.pace : 1) * (running ? RUN : 1);
+    this.machi.pace = tune.speed * (this.wrath.active ? RAGE.pace : 1) * (running ? RUN : 1);
     this.machi.haste = this.wrath.active ? RAGE.haste : 1;
     const from = { x: this.machi.x, y: this.machi.y };
     // A dodge is paid for when it begins, once: a press the hero could not act on costs nothing.
