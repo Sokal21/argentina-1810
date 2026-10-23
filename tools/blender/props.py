@@ -139,9 +139,11 @@ def fist(armature: bpy.types.Object, bone: str = 'R_Hand') -> None:
     body.data.update()
 
 
-def sabre(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object:
+def sabre(armature: bpy.types.Object, bone: str = 'R_Hand', out: str = 'thumb') -> bpy.types.Object:
     """A light cavalry sabre, slightly curved, its blade 0.3 long, held in a fist by the hand bone:
-    in the rest pose the blade runs forward from the hand and a little down."""
+    in the rest pose the blade runs forward from the hand and a little down. `out`: the side of the
+    fist the blade leaves by, the thumb's, or the little finger's for a capture whose hand holds a
+    knife point down (Mixamo's Stabbing, the captain's thrust)."""
     parts = [curved_blade()]
     parts.append(box('guarda', (0.012, 0.01, 0.05), (0.024, 0, -0.012), BRASS, 'bronce'))
     parts.append(box('puño', (0.04, 0.012, 0.014), (0, 0, 0), GRIP, 'puño'))
@@ -158,7 +160,7 @@ def sabre(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object:
     fist(armature, bone)
     grip = wrist + way * length * 0.42 + palm * length * 0.18
     across = way.cross(palm).normalized()      # the way out of the fist past the thumb
-    forward = (across if across.x > 0 else -across)
+    forward = (across if across.x > 0 else -across) * (1 if out == 'thumb' else -1)
     # The blade's breadth lies along the fingers, its edge toward the knuckles, as in a hammer grip.
     breadth = (way - forward * way.dot(forward)).normalized()
     frame = Matrix((forward, breadth.cross(forward), breadth)).transposed().to_4x4()

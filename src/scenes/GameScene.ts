@@ -73,7 +73,7 @@ const ZOOM = 1.5;
 // the way points, and how long an arm let go is kept up waiting to go off.
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
 /** The kinds of the king's men that have a model in 3D (three/realista.ts, LOOKS). */
-const IN_3D = new Set(['sargento', 'sableador', 'tirador']);
+const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan']);
 /** With the gamepad a grenade lands this share of its reach straight ahead. */
 const PAD_THROW = 2 / 3;
 // Soldiers are kept this far apart on the ground, easing apart at this many of it a second: a squad
@@ -1804,14 +1804,14 @@ export class GameScene extends Phaser.Scene {
   };
 
   /** For trying things out: one more enemy, a little way off from the hero. */
-  spawn(kind: 'realista' | 'sargento' | 'sableador' | 'tirador' | 'chonchon' | 'cubo'): void {
+  spawn(kind: 'realista' | 'sargento' | 'sableador' | 'tirador' | 'capitan' | 'chonchon' | 'cubo'): void {
     const angle = Math.random() * Math.PI * 2;
     const x = Phaser.Math.Clamp(this.machi.x + Math.cos(angle) * 150, 30, this.size.width - 30);
     const y = Phaser.Math.Clamp(this.machi.y + Math.sin(angle) * 150 * ISO_Y, FRAME, this.size.height - 20);
     const bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
     let foe: Foe;
     if (kind === 'realista') this.realistas.push(foe = new Realista(this, x, y, bounds));
-    else if (kind === 'sargento' || kind === 'sableador' || kind === 'tirador') this.realistas.push(foe = new Trooper(this, kind, x, y));
+    else if (kind === 'sargento' || kind === 'sableador' || kind === 'tirador' || kind === 'capitan') this.realistas.push(foe = new Trooper(this, kind, x, y));
     else if (kind === 'chonchon') this.chonchones.push(foe = new Chonchon(this, x, y, bounds));
     else this.enemies.push(foe = new Enemy(this, x, y));
     this.physics.add.overlap(this.bolts.bodies, foe.zone, this.struck);

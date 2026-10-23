@@ -46,7 +46,8 @@ export const KINDS = {
   // on the model: its reach), and takes twice what any other blow or ball takes.
   sargento: { id: 'sargento', name: 'Sargento', life: 8, girth: 11, pace: 30, sight: 320, blow: { near: 95, time: 1.3, hit: 0.5, reach: 110, rest: 0.8, damage: 2 }, rally: { every: 9, time: 2.0, reach: 260, lasts: 5 }, worth: 20, spoils: 12 },
   // Whoever commands the column: a pistol from afar, a long thrust up close, and worse once he is hurt.
-  capitan: { id: 'capitan', name: 'El capitán', life: 14, girth: 10, pace: 44, sight: 420, shot: { range: 230, aim: 0.7, lock: 0.2, reload: [2.4, 3.2], muzzle: 34 }, blow: { near: 52, time: 0.7, hit: 0.4, reach: 60, rest: 0.5 }, fury: 1.5, worth: 80, spoils: 60 },
+  // His thrust takes a second, so his arm is drawn back by its end (Mixamo's Stabbing, al_frente.py).
+  capitan: { id: 'capitan', name: 'El capitán', life: 14, girth: 10, pace: 44, sight: 420, shot: { range: 230, aim: 0.7, lock: 0.2, reload: [2.4, 3.2], muzzle: 34 }, blow: { near: 52, time: 1.0, hit: 0.4, reach: 60, rest: 0.5 }, fury: 1.5, worth: 80, spoils: 60 },
 } satisfies Record<string, Kind>;
 export type KindName = keyof typeof KINDS;
 

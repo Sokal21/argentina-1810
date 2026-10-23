@@ -14,7 +14,7 @@ import { View } from './view';
 // kinds of the king's men with a model of their own, whoever keeps a house), and a model's clips are
 // read off its file, so a new character or a new clip is here as soon as the game has it.
 
-interface Who { name: string; url: string; drawn: number; kneels?: boolean }
+interface Who { name: string; url: string; drawn: number; kneels?: boolean; pistol?: boolean }
 
 /** The kinds of the king's men, named as the game names them. */
 const KIND_NAMES: Record<string, string> = { sargento: 'Sargento', capitan: 'El capitán', sableador: 'Sableador', tirador: 'Tirador' };
@@ -24,7 +24,7 @@ const KEEPER_NAMES: Record<string, string> = { braulio: 'Don Braulio', anselmo: 
 const WHO: Who[] = [
   { name: 'Cabral', url: 'cabral/3d/cabral_animado.glb', drawn: CABRAL_DRESS.drawn },
   { name: 'Realista', url: 'realista/3d/realista_animado.glb', drawn: ROYALIST },
-  ...Object.entries(LOOKS).map(([kind, look]) => ({ name: KIND_NAMES[kind] ?? kind, url: look.url, drawn: look.drawn, kneels: !!look.kneels })),
+  ...Object.entries(LOOKS).map(([kind, look]) => ({ name: KIND_NAMES[kind] ?? kind, url: look.url, drawn: look.drawn, kneels: !!look.kneels, pistol: !!look.pistol })),
   ...Object.values(MODELS).flatMap(b => b.inside?.keepers ?? [])
     .map(k => ({ name: KEEPER_NAMES[k.who] ?? k.who, url: k.url, drawn: k.drawn })),
   // And whoever stands about a map with a model of their own.
@@ -42,7 +42,7 @@ const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   mosquete_sacar: { lasts: DRAW }, mosquete_disparo: { lasts: SHOT },
   granada_sacar: { lasts: DRAW }, granada_lanzar: { lasts: SHOT },
   tajo: { lasts: 0.5 }, 'Realista:tajo': { lasts: 0.8 }, 'Sableador:tajo': { once: true },
-  barrido: { once: true }, grito: { lasts: 2.0 }, tiro: { once: true },
+  barrido: { once: true }, estocada: { once: true }, grito: { lasts: 2.0 }, tiro: { once: true },
   muerte: { once: true }, rodada_mixamo: { once: true }, beber: { once: true },
 };
 /**
@@ -151,7 +151,10 @@ function carried(w: Who, body: THREE.Object3D): void {
   if (back) back.visible = !inHand;
   if (hand) hand.visible = inHand;
   const sabre = body.getObjectByName('sable');
-  if (sabre) sabre.visible = !musket && !grenade;
+  if (sabre) sabre.visible = w.pistol ? clip === 'estocada' : !musket && !grenade;
+  // One with a pistol has it in his hand but while he thrusts with his sabre.
+  const pistol = body.getObjectByName('pistola');
+  if (pistol) pistol.visible = clip !== 'estocada';
   const bomb = body.getObjectByName('granada');
   if (bomb) bomb.visible = clip === 'granada_apuntar' || (clip === 'granada_sacar' && into >= DRAW * 0.36) || (clip === 'granada_lanzar' && into < SHOT * 0.16);
 }

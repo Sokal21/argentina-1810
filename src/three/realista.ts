@@ -28,7 +28,7 @@ export const DRAWN = 78;
  * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
  * the pace that lands it when his brain does.
  */
-export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string } }> = {
+export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number } }> = {
   // Lean and quick, a little under the fusiliers (Tripo from turnaround A, 23 October 2026).
   // His two cuts at the pace that lands the first when his brain does (frame 18 of 52); his run.
   sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76, blow: { clip: 'tajo', lands: 18 / 52, hit: KINDS.sableador.blow.hit }, run: 'carrera' },
@@ -43,8 +43,11 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
     // His shout, played over as long as it takes him (grito_sargento.py, Mixamo's battlecry).
     rally: { clip: 'grito', time: KINDS.sargento.rally.time, reach: KINDS.sargento.rally.reach } },
   // Whoever commands the column, his long cape behind him (Tripo from turnaround C, 23 October 2026);
-  // his plume over the sergeant's head. Not yet in the game in 3D (GameScene's IN_3D): his pistol and thrust are still to come.
-  capitan: { url: 'tropa/capitan3d/capitan_animado.glb', drawn: 96 },
+  // his plume over the sergeant's head. His pistol in his right hand, his sabre drawn only to thrust
+  // (al_frente.py, both pointing straight before him): the shot goes off at frame 14 of 41, the
+  // thrust lands at frame 9 of 41, each played so it does when his brain has it.
+  capitan: { url: 'tropa/capitan3d/capitan_animado.glb', drawn: 96, blow: { clip: 'estocada', lands: 9 / 41, hit: KINDS.capitan.blow.hit },
+    pistol: { clip: 'tiro', shot: 14 / 41, aim: KINDS.capitan.shot.aim } },
 };
 /** Seconds of his aim spent drawing the musket from his back; the rest he holds it levelled. */
 const DRAW = Math.min(0.45, AIM * 0.55);
@@ -145,6 +148,8 @@ class Figure {
   private resting = false;
   /** One who kneels to shoot (his look's `kneels`): down on his knee, from his first aim until he walks. */
   private down = false;
+  /** Seconds since his pistol went off, while its clip plays out (one with a pistol, his look's `pistol`). */
+  private smoking: number | null = null;
   /** His musket flung from his hands as he falls, for one who holds it in both. */
   private readonly flung = new Fling(at => heightAt(at.x, at.z * ISO_Y));
   /** Seconds he has been drawn, for his throbbing while quickened. */
@@ -194,6 +199,10 @@ class Figure {
       const turn = Math.atan2(Math.sin(want - this.facing), Math.cos(want - this.facing));
       this.facing += turn * Math.min(1, dt * TURN);
     }
+    const pistol = this.look?.pistol;
+    if (pistol && this.modeWas === 'aim' && mode !== 'aim' && alive(mode)) this.smoking = 0;
+    else if (this.smoking !== null) this.smoking += dt;
+    if (pistol && this.smoking !== null && (this.smoking >= (1 - pistol.shot) * this.motion.seconds(pistol.clip) || mode === 'aim' || mode === 'blow' || !alive(mode))) this.smoking = null;
     if (mode === 'lower' && this.modeWas === 'aim') this.fired = 0;
     else if (this.fired !== null) this.fired += dt;
     if (this.fired !== null && (this.fired >= SHOT || mode === 'slash' || mode === 'aim' || !alive(mode))) this.fired = null;
@@ -223,7 +232,12 @@ class Figure {
       if (mode === 'aim') m.play(clip, { once: true, pace: (shot * m.seconds(clip)) / aim, afresh, blend: 0.15 });
       else m.play(clip, { once: true });
     } else if (this.look?.kneels && mode === 'stand') m.play(this.look.kneels.stand, { blend: 0.3 });
-    else if (this.fired !== null) m.play('mosquete_disparo', { once: true, lasts: SHOT, afresh: this.fired === 0, blend: 0.03 });
+    else if (pistol && (mode === 'aim' || this.smoking !== null)) {
+      // Raising his pistol, played so it goes off when his brain fires; after, played out at its own
+      // pace (drawn up by his face, lowered), whatever he does with his legs.
+      if (mode === 'aim') m.play(pistol.clip, { once: true, pace: (pistol.shot * m.seconds(pistol.clip)) / pistol.aim, afresh, blend: 0.15 });
+      else m.play(pistol.clip, { once: true });
+    } else if (this.fired !== null) m.play('mosquete_disparo', { once: true, lasts: SHOT, afresh: this.fired === 0, blend: 0.03 });
     else if (mode === 'aim') {
       if (t < DRAW) m.play('mosquete_sacar', { once: true, lasts: DRAW, afresh, blend: 0.06 });
       else m.play('mosquete_apuntar', { blend: 0.05 });
@@ -252,6 +266,10 @@ class Figure {
     if (back) back.visible = !inHand;
     if (hand) hand.visible = inHand;
     if (sabre) sabre.visible = !musket;
+    // One with a pistol has it in his hand but while he thrusts with his sabre.
+    const pistolHeld = this.body.getObjectByName('pistola');
+    if (pistol && pistolHeld) pistolHeld.visible = mode !== 'blow';
+    if (pistol && sabre) sabre.visible = mode === 'blow';
     // Struck, he flashes red; quickened by a shout, he throbs a fainter red while it lasts.
     this.clock += dt;
     const throb = who.hasted && alive(mode) ? HASTE.low + (HASTE.high - HASTE.low) * (0.5 + 0.5 * Math.sin(this.clock * HASTE.beat)) : 0;
@@ -283,7 +301,7 @@ class Figure {
   private warn(who: Royalist, mode: Mode, t: number): void {
     this.warning.visible = mode === 'aim';
     if (mode !== 'aim') return;
-    const aim = this.look?.kneels?.aim ?? AIM;
+    const aim = this.look?.kneels?.aim ?? this.look?.pistol?.aim ?? AIM;
     const k = Math.min(1, t / (aim - WARN.begins)), left = aim - t;
     this.glow.scale.setScalar(WARN.from + (WARN.to - WARN.from) * k);
     this.glow.material.opacity = WARN.faint + (WARN.full - WARN.faint) * k * k;
@@ -302,11 +320,21 @@ class Figure {
   /** Where his shot leaves from and the way it goes: down his barrel, or from his shoulder the way he faces. */
   muzzle(who: Royalist): { tip: THREE.Vector3; way: THREE.Vector3 } {
     this.body.updateMatrixWorld(true);
-    const barrel = barrelOf(this.body);
+    const barrel = barrelOf(this.body) ?? pistolOf(this.body);
     if (barrel) return barrel;
     const { x, y, dir } = who.mind;
     return { tip: ground(x, y, MUZZLE * UPRIGHT), way: new THREE.Vector3(dir.x, 0, dir.y).normalize() };
   }
+}
+
+/** Where a pistol's muzzle is, in its own units (props.py's PISTOL_MUZZLE), and the way it points, levelled. */
+const PISTOL_MUZZLE = new THREE.Vector3(0.13, 0, 0.032);
+function pistolOf(body: THREE.Object3D): { tip: THREE.Vector3; way: THREE.Vector3 } | null {
+  const gun = body.getObjectByName('pistola');
+  if (!gun?.visible) return null;
+  gun.updateWorldMatrix(true, false);
+  const along = new THREE.Vector3(1, 0, 0).transformDirection(gun.matrixWorld);
+  return { tip: PISTOL_MUZZLE.clone().applyMatrix4(gun.matrixWorld), way: new THREE.Vector3(along.x, 0, along.z).normalize() };
 }
 
 function alive(mode: Mode): boolean {
