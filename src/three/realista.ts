@@ -3,6 +3,7 @@ import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { AIM, MUZZLE, SLASH_TIME, type Mode as RealistaMode } from '../realista/brain';
 import { KINDS, type Mode as TroopMode } from '../tropa/brain';
 import { Blood } from './blood';
+import { Shouts } from './shout';
 import { barrelOf } from './cabral';
 import { flashes, model } from './figure';
 import { Motion } from './motion';
@@ -22,11 +23,11 @@ export const DRAWN = 78;
  * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
  * the pace that lands it when his brain does.
  */
-export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number } }> = {
+export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number } }> = {
   // A head over his men. His blow lands at frame 12 of 58, the halberd's head straight before him (golpe_pesado.py).
   sargento: { url: 'tropa/sargento3d/sargento_animado.glb', drawn: 90, blow: { clip: 'barrido', lands: 12 / 58, hit: KINDS.sargento.blow.hit },
     // His shout, played over as long as it takes him (grito_sargento.py, Mixamo's battlecry).
-    rally: { clip: 'grito', time: KINDS.sargento.rally.time } },
+    rally: { clip: 'grito', time: KINDS.sargento.rally.time, reach: KINDS.sargento.rally.reach } },
 };
 /** Seconds of his aim spent drawing the musket from his back; the rest he holds it levelled. */
 const DRAW = Math.min(0.45, AIM * 0.55);
@@ -127,7 +128,7 @@ class Figure {
   private static count = 0;
   private readonly id = Figure.count++;
 
-  constructor(shape: THREE.Group, private readonly blood: Blood, private readonly look?: (typeof LOOKS)[string]) {
+  constructor(shape: THREE.Group, private readonly blood: Blood, private readonly look?: (typeof LOOKS)[string], private readonly shouts?: Shouts) {
     this.body = clone(shape) as THREE.Group;
     this.body.animations = shape.animations;
     this.motion = new Motion(this.body);
@@ -192,8 +193,10 @@ class Figure {
       // Eased in from his guard: the clip begins with the weapon already dropped back to be swung.
       m.play(clip, { once: true, pace: (lands * m.seconds(clip)) / hit, afresh, blend: 0.2 });
     } else if (mode === 'rally' && this.look?.rally) {
-      const { clip, time } = this.look.rally;
+      const { clip, time, reach } = this.look.rally;
       m.play(clip, { once: true, lasts: time, afresh, blend: 0.2 });
+      // Rings of red flung out over the ground as he roars, as far as his shout carries.
+      if (afresh) this.shouts?.shout(ground(x, y), reach);
     }
     else if (mode === 'walk') m.play('caminata_mixamo', { pace: this.reach ? Math.max(0.35, this.going / this.reach) : 1 });
     else m.play('reposo_mixamo');
@@ -270,9 +273,11 @@ export class Royalists {
   private readonly figures = new Map<Royalist, Figure>();
   /** The blood of those fallen. */
   private readonly blood = new Blood();
+  /** A sergeant's shout, on the ground. */
+  private readonly shouts = new Shouts();
 
   constructor() {
-    this.group.add(this.blood.group);
+    this.group.add(this.blood.group, this.shouts.group);
     loading ??= model('realista/3d/realista_animado.glb', DRAWN);
     void loading.then(shape => { this.shape = shape; });
     for (const [kind, look] of Object.entries(LOOKS)) void model(look.url, look.drawn).then(shape => { this.shapes.set(kind, shape); });
@@ -286,6 +291,7 @@ export class Royalists {
    */
   update(dt: number, everyone: readonly Royalist[], seen: (x: number, y: number) => boolean = () => true): void {
     this.blood.update(dt);
+    this.shouts.update(dt);
     if (!this.shape) return;
     for (const [who, figure] of this.figures) {
       if (everyone.includes(who)) continue;
@@ -300,7 +306,7 @@ export class Royalists {
         const shape = kind ? this.shapes.get(kind) : this.shape;
         // Not loaded yet: drawn once it is.
         if (!shape) continue;
-        figure = new Figure(shape, this.blood, kind ? LOOKS[kind] : undefined);
+        figure = new Figure(shape, this.blood, kind ? LOOKS[kind] : undefined, this.shouts);
         this.figures.set(who, figure);
         this.group.add(figure.body, figure.warning);
       }
