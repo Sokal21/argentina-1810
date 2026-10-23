@@ -3,6 +3,7 @@ import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { AIM, MUZZLE, SLASH_TIME, type Mode as RealistaMode } from '../realista/brain';
 import { KINDS, type Mode as TroopMode } from '../tropa/brain';
 import { Blood } from './blood';
+import { Dust } from './dust';
 import { Shouts } from './shout';
 import { barrelOf } from './cabral';
 import { flashes, model } from './figure';
@@ -28,7 +29,7 @@ export const DRAWN = 78;
  * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
  * the pace that lands it when his brain does.
  */
-export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number }; lunge?: { clip: string; wind: number; lands: number; charge: number; hit: number }; call?: { clip: string; time: number } }> = {
+export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number }; lunge?: { clip: string; wind: number; lands: number; charge: number; hit: number; dash: number; time: number }; call?: { clip: string; time: number } }> = {
   // Lean and quick, a little under the fusiliers (Tripo from turnaround A, 23 October 2026).
   // His two cuts at the pace that lands the first when his brain does (frame 18 of 52); his run.
   sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76, blow: { clip: 'tajo', lands: 18 / 52, hit: KINDS.sableador.blow.hit }, run: 'carrera' },
@@ -52,7 +53,7 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
   // of his men, without the shout's rings (until a clip of its own is found).
   capitan: { url: 'tropa/capitan3d/capitan_animado.glb', drawn: 96, blow: { clip: 'estocada', lands: 9 / 41, hit: KINDS.capitan.blow.hit },
     pistol: { clip: 'tiro', shot: 14 / 49, aim: KINDS.capitan.shot.aim, after: KINDS.capitan.shot.after! },
-    lunge: { clip: 'estocada', wind: 4 / 41, lands: 9 / 41, charge: KINDS.capitan.lunge.charge, hit: KINDS.capitan.lunge.hit },
+    lunge: { clip: 'estocada', wind: 4 / 41, lands: 9 / 41, ...KINDS.capitan.lunge },
     rally: { clip: 'grito', time: KINDS.capitan.rally.time, reach: KINDS.capitan.rally.reach },
     call: { clip: 'grito', time: KINDS.capitan.call.time } },
 };
@@ -167,7 +168,7 @@ class Figure {
   private static count = 0;
   private readonly id = Figure.count++;
 
-  constructor(shape: THREE.Group, private readonly blood: Blood, private readonly look?: (typeof LOOKS)[string], private readonly shouts?: Shouts) {
+  constructor(shape: THREE.Group, private readonly blood: Blood, private readonly look?: (typeof LOOKS)[string], private readonly shouts?: Shouts, private readonly dust?: Dust) {
     this.body = clone(shape) as THREE.Group;
     this.body.animations = shape.animations;
     this.motion = new Motion(this.body);
@@ -260,6 +261,11 @@ class Figure {
       const { clip, wind, lands, charge, hit } = this.look.lunge;
       if (t < charge) m.hold(clip, wind, { blend: 0.2 });
       else m.play(clip, { once: true, pace: t < hit ? ((lands - wind) * m.seconds(clip)) / (hit - charge) : 1 });
+      // Sliding in, his boots tear up the ground behind him; a last burst as he stops to thrust.
+      if (t >= charge && t < hit + 0.08 && this.going > 20) {
+        const back = new THREE.Vector3(-Math.sin(this.facing), 0, -Math.cos(this.facing));
+        this.dust?.kick(ground(x, y), back, t >= hit ? 2 : 1);
+      }
     } else if (mode === 'call' && this.look?.call) m.play(this.look.call.clip, { once: true, lasts: this.look.call.time, afresh, blend: 0.2 });
     else if (mode === 'rally' && this.look?.rally) {
       const { clip, time, reach } = this.look.rally;
@@ -377,10 +383,12 @@ export class Royalists {
   private readonly blood = new Blood();
   /** A sergeant's shout, on the ground; and felt, as it is loudest (the camera shaken). */
   private readonly shouts = new Shouts();
+  /** Dust kicked up off the ground. */
+  private readonly dust = new Dust();
   set shoutFelt(felt: (at: THREE.Vector3) => void) { this.shouts.felt = felt; }
 
   constructor() {
-    this.group.add(this.blood.group, this.shouts.group);
+    this.group.add(this.blood.group, this.shouts.group, this.dust.group);
     loading ??= model('realista/3d/realista_animado.glb', DRAWN);
     void loading.then(shape => { this.shape = shape; });
     for (const [kind, look] of Object.entries(LOOKS)) void model(look.url, look.drawn).then(shape => { this.shapes.set(kind, shape); });
@@ -395,6 +403,7 @@ export class Royalists {
   update(dt: number, everyone: readonly Royalist[], seen: (x: number, y: number) => boolean = () => true): void {
     this.blood.update(dt);
     this.shouts.update(dt);
+    this.dust.update(dt);
     if (!this.shape) return;
     for (const [who, figure] of this.figures) {
       if (everyone.includes(who)) continue;
@@ -409,7 +418,7 @@ export class Royalists {
         const shape = kind ? this.shapes.get(kind) : this.shape;
         // Not loaded yet: drawn once it is.
         if (!shape) continue;
-        figure = new Figure(shape, this.blood, kind ? LOOKS[kind] : undefined, this.shouts);
+        figure = new Figure(shape, this.blood, kind ? LOOKS[kind] : undefined, this.shouts, this.dust);
         this.figures.set(who, figure);
         this.group.add(figure.body, figure.warning);
       }

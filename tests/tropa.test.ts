@@ -101,12 +101,12 @@ describe('the captain', () => {
     const b = brain('capitan');
     const l = KINDS.capitan.lunge;
     b.relentless = true;
-    for (let t = 0; t < 8 && b.mode !== 'lunge'; t += DT) b.update(DT, { x: 120, y: 0 });
+    for (let t = 0; t < 8 && b.mode !== 'lunge'; t += DT) b.update(DT, { x: 200, y: 0 });
     expect(b.mode).toBe('lunge');
     const x = b.x;
-    run(b, { x: 120, y: 0 }, l.charge - 0.05);
+    run(b, { x: 200, y: 0 }, l.charge - 0.05);
     expect(b.x).toBe(x);
-    const deeds = run(b, { x: 120, y: 0 }, l.time - l.charge);
+    const deeds = run(b, { x: 200, y: 0 }, l.time - l.charge);
     expect(b.x).toBeGreaterThan(x + 40);
     expect(deeds.filter(d => d.cut !== undefined)).toEqual([{ cut: true }]);
   });

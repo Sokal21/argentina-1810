@@ -69,7 +69,7 @@ export const KINDS = {
     id: 'capitan', name: 'El capitán', life: 40, girth: 10, pace: 44, sight: 420, steady: true,
     shot: { range: 230, aim: 0.7, lock: 0.2, reload: [2.4, 3.2], muzzle: 34, after: 0.8, damage: 2 },
     blow: { near: 52, time: 1.0, hit: 0.4, reach: 60, rest: 0.5, damage: 2 },
-    lunge: { from: 75, to: 160, charge: 0.6, dash: 110, hit: 0.85, reach: 60, time: 1.85, every: 5 },
+    lunge: { from: 90, to: 220, charge: 0.6, dash: 170, hit: 0.95, reach: 60, time: 1.95, every: 5 },
     rally: { every: 12, time: 2.0, reach: 260, lasts: 5 }, call: { first: 8, every: 18, time: 2.0, at: 0.6, many: 2, most: 4 },
     fury: 1.5, worth: 80, spoils: 60,
   },
