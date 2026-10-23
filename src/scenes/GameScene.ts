@@ -73,7 +73,7 @@ const ZOOM = 1.5;
 // the way points, and how long an arm let go is kept up waiting to go off.
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
 /** The kinds of the king's men that have a model in 3D (three/realista.ts, LOOKS). */
-const IN_3D = new Set(['sargento', 'sableador']);
+const IN_3D = new Set(['sargento', 'sableador', 'tirador']);
 /** With the gamepad a grenade lands this share of its reach straight ahead. */
 const PAD_THROW = 2 / 3;
 // Soldiers are kept this far apart on the ground, easing apart at this many of it a second: a squad
@@ -976,7 +976,7 @@ export class GameScene extends Phaser.Scene {
       if (realista.alive) awake.push(realista);
       if (deed.shot) {
         this.shots.spawn(deed.shot);
-        if (realista instanceof Realista) this.three?.volley(realista);
+        if (realista instanceof Realista || IN_3D.has(realista.kind)) this.three?.volley(realista);
       }
       if (deed.cut && prey) { prey.body.strike(); this.sparks.emitParticleAt(prey.body.x, prey.body.y - 20, 6); }
       else if (deed.cut && !drawn) this.hurt(realista instanceof Trooper ? realista.brain.kind.blow?.damage ?? 1 : 1);
@@ -1802,14 +1802,14 @@ export class GameScene extends Phaser.Scene {
   };
 
   /** For trying things out: one more enemy, a little way off from the hero. */
-  spawn(kind: 'realista' | 'sargento' | 'sableador' | 'chonchon' | 'cubo'): void {
+  spawn(kind: 'realista' | 'sargento' | 'sableador' | 'tirador' | 'chonchon' | 'cubo'): void {
     const angle = Math.random() * Math.PI * 2;
     const x = Phaser.Math.Clamp(this.machi.x + Math.cos(angle) * 150, 30, this.size.width - 30);
     const y = Phaser.Math.Clamp(this.machi.y + Math.sin(angle) * 150 * ISO_Y, FRAME, this.size.height - 20);
     const bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
     let foe: Foe;
     if (kind === 'realista') this.realistas.push(foe = new Realista(this, x, y, bounds));
-    else if (kind === 'sargento' || kind === 'sableador') this.realistas.push(foe = new Trooper(this, kind, x, y));
+    else if (kind === 'sargento' || kind === 'sableador' || kind === 'tirador') this.realistas.push(foe = new Trooper(this, kind, x, y));
     else if (kind === 'chonchon') this.chonchones.push(foe = new Chonchon(this, x, y, bounds));
     else this.enemies.push(foe = new Enemy(this, x, y));
     this.physics.add.overlap(this.bolts.bodies, foe.zone, this.struck);

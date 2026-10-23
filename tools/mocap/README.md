@@ -35,3 +35,4 @@ with `tools/blender/retarget_rot.py`.
 | Slow Run.fbx | "Slow Run": the sableador's run, its 15-frame cycle, `--name carrera --gait --feet`, paced by its stride in the game |
 | Standing Melee Combo Attack Ver. 3.fbx | "Standing Melee Combo Attack Ver. 3": the sableador's two cuts, all 52 frames at their own pace (faster read as frantic), `--name tajo --feet` |
 | Crying.fbx | "Crying": Remedios breaking down now and then by her burnt house, all of it, `--name llanto --feet` |
+| Gunplay (1).fbx, Gunplay.fbx | "Gunplay" twice: a pistol shot from one knee and a shotgun fired standing. Both retargeted `--twist 1`, then `tools/blender/anims/tiro_arrodillado.py` joins them into the tirador's `tiro`: hips and legs from the kneeling one at its frame 24, waist up from the shotgun frame by frame, the musket laid through both fists |

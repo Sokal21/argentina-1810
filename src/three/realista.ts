@@ -26,12 +26,14 @@ export const DRAWN = 78;
  * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
  * the pace that lands it when his brain does.
  */
-export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string }> = {
+export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number } }> = {
   // Lean and quick, a little under the fusiliers (Tripo from turnaround A, 23 October 2026).
   // His two cuts at the pace that lands the first when his brain does (frame 18 of 52); his run.
   sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76, blow: { clip: 'tajo', lands: 18 / 52, hit: KINDS.sableador.blow.hit }, run: 'carrera' },
   // A rifleman behind his basket of earth (Tripo from turnaround B, 23 October 2026).
-  tirador: { url: 'tropa/tirador3d/tirador_animado.glb', drawn: 78 },
+  // Down on one knee always, his musket in both hands; his shot (tiro_arrodillado.py) goes off at
+  // frame 27 of 50, played so it does when his brain shoots.
+  tirador: { url: 'tropa/tirador3d/tirador_animado.glb', drawn: 78, kneels: { clip: 'tiro', shot: 27 / 50, aim: KINDS.tirador.shot.aim } },
   // A head over his men. His blow lands at frame 12 of 58, the halberd's head straight before him (golpe_pesado.py).
   sargento: { url: 'tropa/sargento3d/sargento_animado.glb', drawn: 90, blow: { clip: 'barrido', lands: 12 / 58, hit: KINDS.sargento.blow.hit },
     // His shout, played over as long as it takes him (grito_sargento.py, Mixamo's battlecry).
@@ -197,7 +199,14 @@ class Figure {
     if (alive(mode) && !alive(this.modeWas ?? 'stand')) { this.blood.clear(this.id); this.buried = false; }
     if (mode === 'dying') m.play('muerte', { once: true, afresh, blend: 0.08 });
     else if (mode === 'gone') m.play('muerte', { once: true });
-    else if (this.fired !== null) m.play('mosquete_disparo', { once: true, lasts: SHOT, afresh: this.fired === 0, blend: 0.03 });
+    else if (this.look?.kneels) {
+      // On one knee: aiming, his shot played so it goes off when his brain fires; else on guard,
+      // the shot played out to its end (its last frame his guard).
+      const { clip, shot, aim } = this.look.kneels;
+      if (mode === 'aim') m.play(clip, { once: true, pace: (shot * m.seconds(clip)) / aim, afresh, blend: 0.15 });
+      else if (!this.modeWas) m.hold(clip, 1);
+      else m.play(clip, { once: true });
+    } else if (this.fired !== null) m.play('mosquete_disparo', { once: true, lasts: SHOT, afresh: this.fired === 0, blend: 0.03 });
     else if (mode === 'aim') {
       if (t < DRAW) m.play('mosquete_sacar', { once: true, lasts: DRAW, afresh, blend: 0.06 });
       else m.play('mosquete_apuntar', { blend: 0.05 });
@@ -219,8 +228,9 @@ class Figure {
     m.update(dt);
     this.modeWas = mode;
     // The musket on his back or in his hands, and the sabre put away while he has it up.
-    const musket = mode === 'aim' || this.fired !== null;
-    const inHand = mode === 'aim' ? t >= DRAW * DRAWN_AT : this.fired !== null && this.fired < SHOT * SLUNG;
+    const musket = mode === 'aim' || this.fired !== null || !!this.look?.kneels;
+    // One down on one knee never puts his musket away.
+    const inHand = this.look?.kneels ? alive(mode) : mode === 'aim' ? t >= DRAW * DRAWN_AT : this.fired !== null && this.fired < SHOT * SLUNG;
     const back = this.body.getObjectByName('mosquete'), hand = this.body.getObjectByName('mosquete_mano'), sabre = this.body.getObjectByName('sable');
     if (back) back.visible = !inHand;
     if (hand) hand.visible = inHand;
@@ -254,7 +264,8 @@ class Figure {
   private warn(who: Royalist, mode: Mode, t: number): void {
     this.warning.visible = mode === 'aim';
     if (mode !== 'aim') return;
-    const k = Math.min(1, t / (AIM - WARN.begins)), left = AIM - t;
+    const aim = this.look?.kneels?.aim ?? AIM;
+    const k = Math.min(1, t / (aim - WARN.begins)), left = aim - t;
     this.glow.scale.setScalar(WARN.from + (WARN.to - WARN.from) * k);
     this.glow.material.opacity = WARN.faint + (WARN.full - WARN.faint) * k * k;
     // Swelling to its height a little before the shot, then gone by it.

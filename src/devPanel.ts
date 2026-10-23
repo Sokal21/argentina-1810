@@ -145,6 +145,7 @@ export function mountDevPanel(game: Phaser.Game): void {
   button(foes, '+ Realista', s => s.spawn('realista'));
   button(foes, '+ Sargento', s => s.spawn('sargento'));
   button(foes, '+ Sableador', s => s.spawn('sableador'));
+  button(foes, '+ Tirador', s => s.spawn('tirador'));
   button(foes, '+ Chonchón', s => s.spawn('chonchon'));
   button(foes, '+ Cubo', s => s.spawn('cubo'));
 

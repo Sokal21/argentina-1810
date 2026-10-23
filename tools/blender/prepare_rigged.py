@@ -69,8 +69,11 @@ for bone in armature.pose.bones:
 bpy.context.view_layer.update()
 
 # What it carries, placed in the rig's own axes before it is turned.
+# A prop may be given its arguments after '@': musket_in_hand@tiro@30 sets the musket in his hands
+# as he stands in the clip 'tiro' at frame 30.
 for prop in filter(None, opts.get('--carries', '').split(',')):
-    getattr(props, prop)(armature)
+    name, *given = prop.split('@')
+    getattr(props, name)(armature, *[int(g) if g.isdigit() else g for g in given])
 
 # Blender is Z up and Y back: glTF's +X forward is Blender's +X; +Z, the target, is Blender's -Y.
 TURN = {'+x': -90, '-x': 90, '+z': 0, '-z': 180}[FRONT]

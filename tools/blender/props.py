@@ -404,3 +404,32 @@ def halberd(armature: bpy.types.Object, bone: str = 'R_Hand', action: str = 'rep
         p.matrix_basis = Matrix.Identity(4)
     bpy.context.view_layer.update()
     return pole
+
+
+def musket_in_fists(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object:
+    """A musket held in both fists, its stock in the right a little way up from the butt: set by the
+    rest pose alone (so whoever sets it again sets it the same), and laid every frame by the clip's
+    script along the line from the right fist through the left (tools/blender/anims/tiro_arrodillado.py).
+    The game shows it, and hides the one on his back, while he is down to shoot."""
+    for side in ('R_Hand', 'L_Hand'):
+        if (armature.name, side) not in OPEN_HANDS:
+            OPEN_HANDS[(armature.name, side)] = hand(armature, side)[:4]
+        fist(armature, side)
+    gun = musket(armature)
+    gun.name = 'mosquete_mano'
+    gun.parent = None
+    wrist, way, length, palm = OPEN_HANDS[(armature.name, bone)]
+    grip = wrist + way * length * 0.42 + palm * length * 0.18
+    along = way.cross(palm).normalized()
+    up = palm.cross(along).normalized()
+    gun.matrix_world = Matrix.Translation(grip - along * HELD_AT) @ Matrix((along, up.cross(along), up)).transposed().to_4x4()
+    world = gun.matrix_world.copy()
+    gun.parent = armature
+    gun.parent_type = 'BONE'
+    gun.parent_bone = bone
+    gun.matrix_world = world
+    return gun
+
+
+# How far up a musket from its butt the right fist holds it (the wrist of the stock).
+HELD_AT = 0.13
