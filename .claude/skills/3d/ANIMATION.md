@@ -110,6 +110,26 @@ as far as his shoulder stands from Cabral's, each foot's as far as his ankle (th
 shoulders stand higher, and he held the musket at his chest otherwise). Cabral's own clips come
 out byte for byte the same. Re-run a character's hand-keyed clips whenever Cabral's script changes.
 
+## A weapon in both hands (the sergeant's halberd, 22–23 October 2026)
+
+- **Take a capture made for it.** A one-handed axe blow (Mixamo "Standing Melee Attack Downward")
+  forced into both hands broke his arms however it was mended: the whole body is built for the free
+  hand. "Heavy Weapon Swing" holds both hands on the weapon all through, and needed almost nothing.
+- **Cut a capture's idle where it is stillest** (measure the hands' speed frame by frame), and its
+  slow wind-up too if the blow comes too late (`golpe_pesado.py`, FROM/TO).
+- **Lay the weapon through both fists' middles** (`props.held_at`), not the wrists: on the wrists
+  the lower hand was half off the shaft. Close the second hand as well (`fist`).
+- **Turn it about its shaft so the edge leads** where the head is going, smoothed over frames; say
+  which end is the head by a firm rule (down at the blow), not by "ahead", which flipped it.
+- **Keep it off the ground**: raise it about the right fist where the head would go through.
+- **Stand and walk with it as the blow ends** (`guardia.py`): the arms re-reach every frame of the
+  breathing and the walk so the guard is the blow's last frame; no jerk either way.
+- **A pose the hands cannot share** (a battlecry, arms flung wide): one hand lets go and the other
+  brandishes it (`grito_sargento.py`).
+- **Make the game's blow land where it is seen**: measure the head's place every frame on the model
+  (distance from him, frame) and set the brain's `hit` and `reach` from it; play the clip at the pace
+  that lands it when the brain does (`LOOKS` in `src/three/realista.ts`).
+
 ## The game's model
 
 `prepare_rigged.py OUT MAIN.glb CLIPS... --front +x --carries sabre,musket,musket_in_hand` joins
@@ -134,6 +154,10 @@ whole list (the last command in git history has it).
   angle, and is turned so **the barrel's line**, not his middle, meets the pointer.
 
 ## Checking
+
+- **Look at every frame before saying it is done**: a strip of all of them from the game's camera,
+  and close ups of the hands at the moments they move most. Eight frames of forty hid frames plainly
+  broken, which the user found.
 
 - **`modelos.html`** (`src/three/modelos.ts`): every model side by side in the game's look, each
   clip played as the game times it, muskets and sabre shown as the game shows them; one clip

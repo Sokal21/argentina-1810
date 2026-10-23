@@ -3,6 +3,11 @@
 From the turnaround's cut views to a GLB standing in the game. Approved for Cabral on
 17 October 2026 ("ahí se ve ideal"): `assets/cabral/3d/cabral.glb`.
 
+## The turnaround's cut
+`tools/cut_turnaround.py` fails when a ground line joins the figures (one connected part): cut at the
+emptiest columns between them instead, paint the line out, and look at the four squares. SpriteCook
+now gives 1K only on this account (2K needs a higher plan): 1376×768 is enough to cut.
+
 ## Generating it: Tripo
 `python3 tools/tripo.py multiview OUT_DIR BODY front=… right=… back=…`
 - The key is in `~/.tripo_key`; the script reads it and never prints it. The endpoint is the
@@ -53,6 +58,17 @@ material with the texture nearest-filtered, and grows it to the drawn height.
   (measured by the faces of its side walls), not its box, before cutting the door. A long side wall
   that faces the camera hides the room as the front does: `side: true` cuts it down too, and the
   lean-to with it.
+- **A model's own floor** (La capilla, 23 October 2026): Tripo may give a building a slab of floor a
+  few units over the ground; within the walls it hid the boots of whoever walked in, its underside too
+  (the room's materials are drawn from both sides). Take it out with `tools/blender/cut_floor.py`,
+  bounded **inside** the walls (wider, it took the walls' foot too). Find such things by casting a ray
+  down over a foot in the game, not by face centres in Blender: a few big faces have their centres far off.
+- **What stands in a room is not walked through:** `House.block` finds the furniture's footprint from
+  its own geometry as it loads (above an ankle over the floor), squares that touch as one box. Legs
+  hidden in a cot read as sunk in the floor.
+- **Light within:** each room's `light` (its fire, its candles, a glow per flame), one room light for
+  all of them, moved to whichever is gone into and casting shadows only while lit; the house casts its
+  whole shadow, roof and all, though the roof is lifted, so the moon does not get in.
 - **Its keeper:** a character's turnaround and model as above, rigged (Tripo `animations/rig`,
   `"input": <model task id>`, v1.0, 25), with the shared breathing idle; stood by the counter,
   turning to whoever comes in; talked to with F as in the 2D game, a sign over them.
