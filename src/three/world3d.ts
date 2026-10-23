@@ -190,8 +190,9 @@ export class World3D {
 
   /** A royalist's goes off. */
   volley(who: Royalist): void {
-    const muzzle = this.royalists.muzzle(who);
-    if (muzzle) this.volleys.fire(muzzle.tip, muzzle.way);
+    // From his muzzle, along the 2D game's ball (the one that hurts): level, the way he faces.
+    const muzzle = this.royalists.muzzle(who), { dir } = who.mind;
+    if (muzzle) this.volleys.fire(muzzle.tip, new THREE.Vector3(dir.x, 0, dir.y).normalize());
   }
 
   /** A fallen royalist is taken off the field where he lies, he and his blood. */

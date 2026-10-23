@@ -7,7 +7,8 @@ import { Shouts } from './shout';
 import { barrelOf } from './cabral';
 import { flashes, model } from './figure';
 import { Motion } from './motion';
-import { along, ground, heading, UPRIGHT } from './space';
+import { ISO_Y } from '../machi/data';
+import { along, ground, heading, heightAt, UPRIGHT } from './space';
 
 // The royalist fusilier in 3D, shown doing whatever his brain is doing (realista/brain.ts): standing,
 // marching, drawing the musket and aiming, the shot, the sabre, falling. His model is Cabral's
@@ -49,6 +50,12 @@ const SHOT = 0.8;
 const DRAWN_AT = 0.67, SLUNG = 0.63;
 /** How fast he turns, per second; how quickly how fast he is taken to go follows how fast he goes. */
 const TURN = 10, SETTLE = 10;
+/**
+ * A musket held in both hands flung from them as he falls: thrown up and out to one side, a little
+ * ahead (world units a second; thrown back it fell under him, who falls back), turning over as it
+ * flies, pulled down so hard, and left lying on the ground where it lands.
+ */
+const FLING = { ahead: 15, side: 65, up: 150, spin: 10, fall: 420, lies: 1 };
 /**
  * The warning at his muzzle, to dodge by: a faint red glow that grows a little while he aims, and
  * just before the shot a glint, a red star of four rays along the diagonals, that swells to its
@@ -140,6 +147,8 @@ class Figure {
   private resting = false;
   /** One who kneels to shoot (his look's `kneels`): down on his knee, from his first aim until he walks. */
   private down = false;
+  /** His musket flung from his hands as he fell: where it was held (to put it back when he is up again), and how it flies until it lies. */
+  private flung: { gun: THREE.Object3D; held: THREE.Object3D; at: THREE.Matrix4; way: THREE.Vector3; spin: THREE.Vector3; lying: boolean } | null = null;
   /** Seconds he has been drawn, for his throbbing while quickened. */
   private clock = Math.random() * 10;
   /** Taken off the field, fallen: not drawn, nor his blood, until he is up again. */
@@ -165,6 +174,7 @@ class Figure {
    */
   rest(who: Royalist): void {
     this.body.visible = this.warning.visible = false;
+    if (this.flung) this.flung.gun.visible = false;
     this.resting = true;
     if (alive(who.mind.mode) && this.modeWas && !alive(this.modeWas)) {
       this.blood.clear(this.id);
@@ -193,6 +203,9 @@ class Figure {
     // Falling, his blood flung from his chest; down, pooling under him. Come upon already down
     // (first seen so, or seen again), he is lying there, his blood spread.
     if (mode === 'dying' && afresh) this.blood.splash(this.id, ground(x, y, DRAWN * 0.62 * UPRIGHT));
+    if (mode === 'dying' && afresh && this.look?.kneels) this.fling();
+    if (alive(mode) || this.buried) this.unfling();
+    this.flies(dt);
     if (mode === 'gone' && afresh && this.modeWas !== 'dying') m.hold('muerte', 1);
     if (mode === 'gone' && afresh && !this.buried) {
       m.update(0);
@@ -246,6 +259,7 @@ class Figure {
     const throb = who.hasted && alive(mode) ? HASTE.low + (HASTE.high - HASTE.low) * (0.5 + 0.5 * Math.sin(this.clock * HASTE.beat)) : 0;
     this.flash(Math.max(who.hurt, throb));
     this.body.visible = !this.buried;
+    if (this.flung) this.flung.gun.visible = true;
     this.body.position.copy(ground(x, y));
     this.body.rotation.y = this.facing;
     this.warn(who, mode, t);
@@ -256,6 +270,47 @@ class Figure {
     this.buried = true;
     this.body.visible = false;
     this.blood.clear(this.id);
+    this.unfling();
+  }
+
+  /** His musket let go of as he falls: thrown up and out to one side, turning over. */
+  private fling(): void {
+    const gun = this.body.getObjectByName('mosquete_mano'), field = this.body.parent;
+    if (!gun?.parent || !field || this.flung) return;
+    this.body.updateMatrixWorld(true);
+    const held = gun.parent, at = gun.matrix.clone();
+    field.attach(gun);
+    const ahead = new THREE.Vector3(Math.sin(this.facing), 0, Math.cos(this.facing)), side = new THREE.Vector3(ahead.z, 0, -ahead.x);
+    const way = ahead.multiplyScalar(FLING.ahead).addScaledVector(side, (Math.random() < 0.5 ? -1 : 1) * FLING.side * (0.8 + Math.random() * 0.4)).setY(FLING.up);
+    const spin = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize().multiplyScalar(FLING.spin);
+    this.flung = { gun, held, at, way, spin, lying: false };
+  }
+
+  /** His musket flying, until it lies flat on the ground where it came down. */
+  private flies(dt: number): void {
+    const f = this.flung;
+    if (!f || f.lying) return;
+    f.way.y -= FLING.fall * dt;
+    f.gun.position.addScaledVector(f.way, dt);
+    f.gun.rotation.x += f.spin.x * dt;
+    f.gun.rotation.y += f.spin.y * dt;
+    f.gun.rotation.z += f.spin.z * dt;
+    const floor = heightAt(f.gun.position.x, f.gun.position.z * ISO_Y) + FLING.lies;
+    if (f.way.y < 0 && f.gun.position.y <= floor) {
+      f.lying = true;
+      f.gun.position.y = floor;
+      // Flat on the ground, its length level, lying whichever way it fell.
+      f.gun.rotation.set(0, f.gun.rotation.y, 0);
+    }
+  }
+
+  /** His musket back in his hands, as he is up again (or taken off the field, it with him). */
+  private unfling(): void {
+    const f = this.flung;
+    if (!f) return;
+    f.held.add(f.gun);
+    f.at.decompose(f.gun.position, f.gun.quaternion, f.gun.scale);
+    this.flung = null;
   }
 
   /** Where his hips are, as he lies: his blood pools there, not at his feet. */
