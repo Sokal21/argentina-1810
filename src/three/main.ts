@@ -16,7 +16,7 @@ import { GrenadeMarks, Grenades, within } from './grenade';
 import { GRENADE } from '../machi/grenade';
 import { CABRAL_DRESS } from './figure';
 import { sunCursor } from './cursor';
-import { raisePeople } from './people';
+import { People } from './people';
 import { mountHud, type Readings } from './hud';
 import { ground, onTheGround, UPRIGHT } from './space';
 import { mountPanel } from './panel';
@@ -39,7 +39,8 @@ const country = raiseCountry(map);
 view.scene.add(country.group);
 for (const house of country.houses) view.over.add(...house.asks);
 
-view.scene.add(raisePeople(map));
+const people = new People(map);
+view.scene.add(people.group);
 
 // A practice dummy a few steps from where he arrives, to try his blows on.
 const dummy = new Dummy(middle(map.start).x + PLOT_W * 1.6, middle(map.start).y - PLOT_H * 0.3);
@@ -221,6 +222,7 @@ function advance(dt: number): void {
   for (const taken of country.feet) Object.assign(cabral, pushOut({ x: cabral.x, y: cabral.y, ...FEET }, taken));
   Object.assign(cabral, walk(map, from, cabral));
   // Into a house only by its door; and seen from within once inside.
+  people.update(dt);
   for (const house of country.houses) {
     Object.assign(cabral, house.hold(from, cabral));
     house.update(dt, cabral);

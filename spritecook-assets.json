@@ -2396,6 +2396,26 @@
       "asset_id": "6a77a061-9d38-4d5e-9f01-3215f5afbb95",
       "label": "Tobías 3D turnaround B (bandage changes leg between views)",
       "file": "assets/tobias/3d/giro_b.png"
+    },
+    {
+      "asset_id": "4b52826f-af41-4303-8fd6-9aff7194cb2e",
+      "label": "sableador 3D turnaround A (arms wide, cap flopping behind) — chosen",
+      "file": "assets/tropa/sableador3d/giro_a.png"
+    },
+    {
+      "asset_id": "25d42649-0869-44c3-9398-65ee22ee4e46",
+      "label": "sableador 3D turnaround B (arms nearer the body)",
+      "file": "assets/tropa/sableador3d/giro_b.png"
+    },
+    {
+      "asset_id": "012dc716-906b-4c2f-8330-768730f97597",
+      "label": "Mateo 3D turnaround A (chosen: flat colours)",
+      "file": "assets/mateo/3d/giro_a.png"
+    },
+    {
+      "asset_id": "fd4ebbe3-de5d-49e3-b003-ae3ecb9c8e8c",
+      "label": "Mateo 3D turnaround B (painted, red turnbacks on the tails)",
+      "file": "assets/mateo/3d/giro_b.png"
     }
   ]
 }

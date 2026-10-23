@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { extent, faults, letterAt, middle, PLOT_H, PLOT_W, zoneAt, type WorldMap } from '../world/zones';
-import { raisePeople } from '../three/people';
+import { People } from '../three/people';
 import { ground, onTheGround } from '../three/space';
 import { View } from '../three/view';
 import { raiseCountry } from '../three/world';
@@ -25,7 +25,8 @@ const { width, height } = extent(map);
 
 const view = new View(document.getElementById('world')!);
 const country = raiseCountry(map);
-const people = raisePeople(map);
+// Stood still here: the viewer has no clock to breathe them by.
+const people = new People(map).group;
 view.scene.add(country.group, people);
 /** Plants, fences and buildings, shown and hidden together with T. */
 const standing = country.group.children.filter(o => o instanceof THREE.InstancedMesh || (o instanceof THREE.Mesh && !(o.geometry instanceof THREE.PlaneGeometry)));

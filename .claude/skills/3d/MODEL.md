@@ -80,3 +80,9 @@ material with the texture nearest-filtered, and grows it to the drawn height.
   his height), and choose his drawn height so the two meet; set him a little within the edge.
   A clip GLB straight out of `retarget_rot.py` faces +X, so `strip.py` shows it side on: judge
   which way a clip faces on the joined model (`NAME_animado.glb`), not on the clip's own file.
+- **Outdoors** (Mateo, 23 October 2026): one standing about a map gets `url` in his dress in
+  `src/three/people.ts` (`People`), and breathes where his plot is, turned as the map says.
+- A sheet whose grey **darkens downward** joins its figures for `cut_turnaround.py` (it reads the
+  background at the top-left corner): compare each pixel with the background at its own row, and cut
+  at the emptiest columns. **Look at what the texture's colours do**: in 16, Mateo's mud went the red
+  of his facings and read as blood; `prepare_rigged.py --colors 24` kept it brown.

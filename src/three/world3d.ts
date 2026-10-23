@@ -10,7 +10,7 @@ import { Fury } from './fury';
 import { darkenRooms, roomLight, shadeRooms, type House } from './house';
 import { Mendings } from './mend';
 import { mountPanel } from './panel';
-import { raisePeople } from './people';
+import { People } from './people';
 import { Royalists, type Royalist } from './realista';
 import { Shots, type Strikes } from './shot';
 import { ground, onTheGround, UPRIGHT } from './space';
@@ -46,6 +46,8 @@ export class World3D {
   private readonly fury = new Fury();
   /** The houses gone into without a cut. */
   private readonly houses: House[];
+  /** Those standing about the map, outdoors. */
+  private readonly people: People;
   /** The sign over whoever can be talked to, and what it says and over whom. */
   private readonly sign = document.createElement('div');
   private said: { text: string; at: Vec } | null = null;
@@ -68,9 +70,10 @@ export class World3D {
     if (import.meta.env.DEV) mountPanel(this.view, { key: 'KeyL', hidden: true });
     const country = raiseCountry(map);
     this.houses = country.houses;
+    this.people = new People(map);
     this.sign.style.cssText = "opacity:0;transition:opacity 0.25s;position:fixed;left:0;top:0;z-index:12;pointer-events:none;white-space:nowrap;font:16px/1 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
     document.body.appendChild(this.sign);
-    this.view.scene.add(country.group, raisePeople(map), this.cabral.group, this.royalists.group, this.marks.group);
+    this.view.scene.add(country.group, this.people.group, this.cabral.group, this.royalists.group, this.marks.group);
     // A sergeant's roar is felt: a faint shake of the camera, its rings leaving his feet.
     this.royalists.shoutFelt = () => this.view.jolt(ROAR.seconds, ROAR.pixels);
     for (const house of this.houses) this.view.over.add(...house.asks);
@@ -130,6 +133,7 @@ export class World3D {
     // A house he is within has its roof lifted off.
     darkenRooms();
     for (const house of this.houses) house.update(dt, c);
+    this.people.update(dt);
     shadeRooms();
     // His rage, about him and over the whole picture: eased in, and out as it ends.
     const rage = doing.rage ?? 0;
