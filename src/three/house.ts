@@ -14,13 +14,19 @@ import { ground, UPRIGHT } from './space';
 // its foot, door and all, and, where it is asked for, so is a side wall that faces the camera too,
 // with whatever stands beyond it (a lean-to); stepping out, they come back. So the walls seen from within are the very
 // walls seen from without, plaster, stains and all (plain walls of its own looked another house).
-// Within them: a floor, and what stands in the room. Everything is laid out in the building's own
+// Within them: a floor, and what stands in the room, which is not walked through. Everything is laid out in the building's own
 // frame: x along its length, z out of its front, y up.
 
 /** Seconds the roof takes to lift off or come back; how high the front wall's foot stands while inside, as a share of the walls. */
 const LIFT = 0.3, LOW = 0.22;
 /** How far in from a wall whoever walks is kept (half how wide they stand). */
 const KEEP = 7;
+/**
+ * What stands in a room is not walked through either: its ground is cut into squares this wide, and
+ * a square is taken where any of it stands higher than this over the floor (an ankle: a bench's
+ * seat, a cot, an altar); the squares that touch are one block, kept as the box round them.
+ */
+const BLOCK = { cell: 8, over: 6 };
 /** Its flames' glows: how wide, and their colour. */
 const FLAME = { wide: 7, colour: '#ffcf80' };
 /** The room light's shadow: its picture's size, and how far it is drawn off what casts it. */
@@ -170,6 +176,7 @@ export class House {
       shape.rotation.y = inside.turn;
       shape.position.set(inside.at[0], 1 - inside.slab, inside.at[1]);
       this.room.add(shape);
+      this.block(shape);
       shape.traverse(node => {
         if (!(node instanceof THREE.Mesh)) return;
         const uv = floor.geometry.getAttribute('uv') as THREE.BufferAttribute;
@@ -198,6 +205,38 @@ export class House {
       this.room.add(flame);
     }
     this.group.add(this.room);
+  }
+
+  /** Takes what stands in the room as walls too: the boxes round where it stands above the floor. */
+  private block(shape: THREE.Object3D): void {
+    this.room.updateWorldMatrix(true, true);
+    const toRoom = this.room.matrixWorld.clone().invert(), p = new THREE.Vector3(), taken = new Set<string>();
+    shape.traverse(node => {
+      if (!(node instanceof THREE.Mesh)) return;
+      const position = node.geometry.getAttribute('position') as THREE.BufferAttribute;
+      const toRoomFromMesh = toRoom.clone().multiply(node.matrixWorld);
+      for (let i = 0; i < position.count; i++) {
+        p.fromBufferAttribute(position, i).applyMatrix4(toRoomFromMesh);
+        if (p.y > 1 + BLOCK.over) taken.add(`${Math.floor(p.x / BLOCK.cell)},${Math.floor(p.z / BLOCK.cell)}`);
+      }
+    });
+    const seen = new Set<string>();
+    for (const start of taken) {
+      if (seen.has(start)) continue;
+      const stack = [start];
+      seen.add(start);
+      let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+      while (stack.length) {
+        const [x, z] = stack.pop()!.split(',').map(Number);
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z);
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const next = `${x + dx},${z + dz}`;
+          if (taken.has(next) && !seen.has(next)) { seen.add(next); stack.push(next); }
+        }
+      }
+      const c = BLOCK.cell;
+      this.walls.push({ x: ((x0 + x1 + 1) * c) / 2, z: ((z0 + z1 + 1) * c) / 2, hw: ((x1 - x0 + 1) * c) / 2, hd: ((z1 - z0 + 1) * c) / 2 });
+    }
   }
 
   /** Puts the cuts where the roof has lifted to, in the world. */
