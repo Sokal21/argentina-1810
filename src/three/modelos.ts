@@ -3,6 +3,7 @@ import { MODELS } from './buildings';
 import { CABRAL_DRESS, model } from './figure';
 import { Motion } from './motion';
 import { flat } from './paint';
+import { DRESSES } from './people';
 import { DRAWN as ROYALIST, LOOKS } from './realista';
 import { View } from './view';
 
@@ -16,7 +17,7 @@ interface Who { name: string; url: string; drawn: number }
 
 /** The kinds of the king's men, named as the game names them. */
 const KIND_NAMES: Record<string, string> = { sargento: 'Sargento', capitan: 'El capitán', sableador: 'Sableador', tirador: 'Tirador' };
-/** Whoever keeps a house, named as the story names them. */
+/** Whoever keeps a house or stands about a map, named as the story names them. */
 const KEEPER_NAMES: Record<string, string> = { braulio: 'Don Braulio', anselmo: 'Fray Anselmo', tobias: 'Tobías', mateo: 'Mateo' };
 
 const WHO: Who[] = [
@@ -25,6 +26,8 @@ const WHO: Who[] = [
   ...Object.entries(LOOKS).map(([kind, look]) => ({ name: KIND_NAMES[kind] ?? kind, url: look.url, drawn: look.drawn })),
   ...Object.values(MODELS).flatMap(b => b.inside?.keepers ?? [])
     .map(k => ({ name: KEEPER_NAMES[k.who] ?? k.who, url: k.url, drawn: k.drawn })),
+  // And whoever stands about a map with a model of their own.
+  ...Object.entries(DRESSES).flatMap(([who, d]) => d.url ? [{ name: KEEPER_NAMES[who] ?? who, url: d.url, drawn: d.drawn }] : []),
 ];
 
 /**

@@ -9,7 +9,7 @@ import { ground } from './space';
 // rest, a figure of a few blocks in something of their colours, until they are modelled. Nobody
 // talks to them in 3D: they are only there.
 
-const DRESSES: Record<string, Dress & { url?: string }> = {
+export const DRESSES: Record<string, Dress & { url?: string }> = {
   braulio: { drawn: 78, coat: '#7a5a3a', legs: '#4a3a2a', hat: { colour: '#3a2e24', tall: 0.08 } },
   anselmo: { drawn: 80, coat: '#5a4636', legs: '#5a4636' },
   tobias: { drawn: 58, coat: '#8a7a5a', legs: '#5a4a36' },
