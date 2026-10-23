@@ -140,15 +140,17 @@ export function mountDevPanel(game: Phaser.Game): void {
   panel.appendChild(told);
   gear.addEventListener('click', list);
 
+  // Any kind chosen from the list, put in with +, as many times as it is pressed.
   heading('Enemigos');
+  const FOES: [Parameters<GameScene['spawn']>[0], string][] = [
+    ['realista', 'Realista'], ['sargento', 'Sargento'], ['sableador', 'Sableador'], ['tirador', 'Tirador'],
+    ['capitan', 'Capitán'], ['chonchon', 'Chonchón'], ['cubo', 'Cubo'],
+  ];
   const foes = row();
-  button(foes, '+ Realista', s => s.spawn('realista'));
-  button(foes, '+ Sargento', s => s.spawn('sargento'));
-  button(foes, '+ Sableador', s => s.spawn('sableador'));
-  button(foes, '+ Tirador', s => s.spawn('tirador'));
-  button(foes, '+ Capitán', s => s.spawn('capitan'));
-  button(foes, '+ Chonchón', s => s.spawn('chonchon'));
-  button(foes, '+ Cubo', s => s.spawn('cubo'));
+  const foe = Object.assign(document.createElement('select'), { style: 'flex:1;font:inherit;background:#2a231c;color:#e6d8b8;border:1px solid #5a4a38;padding:3px' });
+  for (const [kind, name] of FOES) foe.appendChild(Object.assign(document.createElement('option'), { value: kind, textContent: name }));
+  foes.appendChild(foe);
+  button(foes, '+', s => s.spawn(foe.value as (typeof FOES)[number][0]));
 
   heading('Personaje');
   const hero = row();
