@@ -4,9 +4,10 @@ import { CABRAL_DRESS, model } from './figure';
 import { Fling } from './fling';
 import { Motion } from './motion';
 import { flat } from './paint';
-import { Dust } from './dust';
 import { DRESSES } from './people';
-import { DRAWN as ROYALIST, LOOKS } from './realista';
+import { KINDS, TroopBrain } from '../tropa/brain';
+import { DRAWN as ROYALIST, LOOKS, Royalists, type Royalist } from './realista';
+import { ISO_Y } from '../machi/data';
 import { View } from './view';
 
 // Every character's model with each of its clips, to judge them without playing the game: chosen one
@@ -55,18 +56,22 @@ const CODE = Object.entries(import.meta.glob('./**/*.ts', { query: '?raw', impor
   .filter(([path]) => !path.endsWith('modelos.ts')).map(([, text]) => text).join('\n');
 const used = (name: string) => CODE.includes(`'${name}'`);
 /**
- * A move the game makes of a clip and his going, shown as a clip of its own: the captain's lunge, his
- * thrust held drawn back, then thrown on as he slides in (dust kicked up), as realista.ts plays it.
+ * A move the game makes of a clip and his going, shown as a clip of its own: the captain's lunge. Not
+ * acted out here but played by the game itself: his own brain (tropa/brain.ts) lunging at Cabral
+ * standing `LUNGE_FROM` off, and his figure as the game draws it (three/realista.ts), so its charge,
+ * its red glint, its slide (stopping short of him), its dust and its thrust are the game's own.
  */
-const LUNGE = 'estocada_a_fondo';
+const LUNGE = 'estocada_a_fondo', LUNGE_FROM = 180;
 /** The clips a character stands and walks with, listed first. */
 const FIRST = ['reposo_mixamo', 'caminata_mixamo', 'caminata_atras'];
 /** How far apart they stand when all are shown, in world units. */
 const APART = 70;
 
 const view = new View(document.getElementById('world')!);
-const dust = new Dust();
-view.scene.add(dust.group);
+/** The game's own royalists, for a move shown as the game plays it. */
+const game = new Royalists();
+view.scene.add(game.group);
+let played: { who: Royalist & { mind: TroopBrain }; target: { x: number; y: number }; over: number } | null = null;
 view.apply({ ...view.look, far: 0.6 });
 const floor = new THREE.Mesh(new THREE.PlaneGeometry(900, 500), flat('#8a7a50'));
 floor.rotation.x = -Math.PI / 2;
@@ -138,6 +143,7 @@ async function show(list: Who[], mark: HTMLButtonElement): Promise<void> {
 }
 
 function play(name: string): void {
+  leave();
   clip = name;
   into = 0;
   for (const w of shown) {
@@ -147,7 +153,7 @@ function play(name: string): void {
     it.body.position.x = it.home;
     it.body.position.z = 0;
     if (shown.length === 1) view.follow(new THREE.Vector3(0, w.drawn * 0.5, 0));
-    if (name === LUNGE && w.lunge) continue;
+    if (name === LUNGE && w.lunge) { act(it.body); continue; }
     const c = it.motion.has(name) ? name : 'reposo_mixamo';
     it.motion.play(c, { once: !!t.lasts || !!t.once, lasts: t.lasts, afresh: true, blend: 0.12 });
     // One who holds his musket in both hands lets it fall from them as he falls, as in the game.
@@ -173,25 +179,50 @@ function carried(w: Who, body: THREE.Object3D): void {
   if (bomb) bomb.visible = clip === 'granada_apuntar' || (clip === 'granada_sacar' && into >= DRAW * 0.36) || (clip === 'granada_lanzar' && into < SHOT * 0.16);
 }
 
-/** The lunge as the game plays it: held drawn back, then thrown on, sliding forward the way he faces from behind where he stood, dust kicked up. */
-function lunge(l: NonNullable<Who['lunge']>, it: { body: THREE.Group; motion: Motion; home: number }, dt: number): void {
-  const m = it.motion, ahead = new THREE.Vector3(Math.sin(turn), 0, Math.cos(turn));
-  if (into < l.charge) m.hold(l.clip, l.wind, { blend: 0.2 });
-  else m.play(l.clip, { once: true, pace: into < l.hit ? ((l.lands - l.wind) * m.seconds(l.clip)) / (l.hit - l.charge) : 1 });
-  const share = Math.min(1, Math.max(0, (into - l.charge) / (l.hit - l.charge)));
-  const at = ahead.clone().multiplyScalar(l.dash * (share - 0.5));
-  it.body.position.set(it.home + at.x, 0, at.z);
-  // Followed as he goes, when he is shown alone: he slides further than the view.
-  if (shown.length === 1) view.follow(new THREE.Vector3(it.body.position.x, shown[0].drawn * 0.5, it.body.position.z));
-  // A cloud as he pushes off; sliding in, each boot tears up the ground behind him.
-  if (dt > 0 && into - dt < l.charge && into >= l.charge) dust.cloud(it.body.position.clone());
-  if (dt > 0 && into >= l.charge && into < l.hit + 0.08) {
-    it.body.updateMatrixWorld(true);
-    for (const name of ['L_Foot', 'R_Foot']) {
-      const foot = it.body.getObjectByName(name)?.getWorldPosition(new THREE.Vector3()).setY(0);
-      if (foot) dust.kick(foot, ahead.clone().negate(), into >= l.hit ? 1.2 : 0.6);
-    }
-  }
+/**
+ * The lunge as the game plays it: the captain's brain set on Cabral standing off before him (the way
+ * "giro" turns him), only his lunge ready (his shout, his shot and his call put off), stepped each
+ * frame and drawn by the game's own figure; and over again a moment after it is done.
+ */
+function act(body: THREE.Group): void {
+  body.visible = false;
+  const cabral = WHO[0];
+  const brain = new TroopBrain(KINDS.capitan, 0, 0);
+  const put = brain as unknown as Record<string, number>;
+  put.lunging = 0;
+  put.shout = put.reload = put.calling = 99;
+  brain.relentless = true;
+  const target = { x: Math.sin(turn) * LUNGE_FROM, y: Math.cos(turn) * LUNGE_FROM * ISO_Y };
+  played = { who: { mind: brain, hurt: 0, look3d: 'capitan' }, target, over: 0 };
+  // Cabral standing where he is lunged at, facing him.
+  void load(cabral).then(it => {
+    if (!played) return;
+    it.body.position.set(target.x, 0, target.y / ISO_Y);
+    it.body.rotation.y = turn + Math.PI;
+    it.motion.play('reposo_mixamo');
+    view.scene.add(it.body);
+  });
+}
+
+/** Steps the move played by the game: its brain and its figure; the view following him. */
+function step(dt: number): void {
+  if (!played) return;
+  const { who, target } = played;
+  if (dt > 0) who.mind.update(dt, target);
+  game.update(dt, [who]);
+  if (who.mind.mode !== 'lunge' && who.mind.t > 0.05) played.over += dt;
+  if (played.over > 1.2) { const it = loaded.get(shown[0]); if (it) act(it.body); }
+  if (shown.length === 1) view.follow(new THREE.Vector3(who.mind.x, shown[0].drawn * 0.5, who.mind.y / ISO_Y));
+}
+
+/** Leaves the move played by the game: the captain and Cabral as the gallery shows them again. */
+function leave(): void {
+  if (!played) return;
+  played = null;
+  game.update(0, []);
+  const cabral = loaded.get(WHO[0]);
+  if (cabral && !shown.includes(WHO[0])) view.scene.remove(cabral.body);
+  for (const w of shown) { const it = loaded.get(w); if (it) it.body.visible = true; }
 }
 
 // The list: each alone, and all together.
@@ -224,18 +255,17 @@ view.renderer.setAnimationLoop(() => {
   last = now;
   into += dt;
   // A clip played once starts over after a moment held on its end, while "repetir" is on.
-  const once = clip === LUNGE || shown.some(w => timing(w, clip));
+  const once = clip !== LUNGE && shown.some(w => timing(w, clip));
   if (loop && once && into > length(clip) + 0.8) play(clip);
   for (const w of shown) {
     const it = loaded.get(w);
     if (!it) continue;
-    if (clip === LUNGE && w.lunge) lunge(w.lunge, it, dt);
     it.motion.update(dt);
     it.flung.update(dt);
     it.body.rotation.y = turn;
     carried(w, it.body);
   }
-  dust.update(dt);
+  step(dt);
   told.textContent = `${shown.length > 1 ? 'Todos' : shown[0]?.name ?? ''} — ${clip}${paused ? ' (pausa)' : ''}`;
   view.draw();
 });
