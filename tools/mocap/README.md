@@ -38,3 +38,5 @@ with `tools/blender/retarget_rot.py`.
 | Gunplay (1).fbx, Gunplay.fbx | "Gunplay" twice: a pistol shot from one knee and a shotgun fired standing. Both retargeted `--twist 1`, then `tools/blender/anims/tiro_arrodillado.py` joins them into the tirador's `tiro`: hips and legs from the kneeling one at its frame 24, waist up from the shotgun frame by frame, the musket laid through both fists |
 | Yelling.fbx | "Yelling": ño Ciriaco shouting now and then, arms flung wide, all of it, `--name gritando --feet`; it starts and ends standing straight, so it blends from his breathing |
 | Yelling While Standing.fbx | tried for him and left: it starts and ends bent over |
+| Rifle Idle.fbx | "Rifle Idle": the tirador standing with his musket held low, all of it, `--feet --twist 1`, then `tools/blender/anims/fusil_en_manos.py ... reposo_fusil` lays the musket through both fists |
+| Rifle Walk.fbx | "Rifle Walk": the tirador walking up with his musket at the ready, all of it, `--gait --feet --twist 1`, then `fusil_en_manos.py ... caminata_fusil` |

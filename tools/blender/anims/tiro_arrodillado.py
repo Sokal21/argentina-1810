@@ -14,12 +14,10 @@ import os
 import sys
 
 import bpy
-from mathutils import Matrix
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import props  # noqa: E402
 from keyframes import Rig  # noqa: E402
-from mathutils import Vector  # noqa: E402
 
 args = sys.argv[sys.argv.index('--') + 1:]
 opts = dict(zip(args[4::2], args[5::2]))
@@ -67,19 +65,8 @@ for n, up in enumerate(ups):
     for pb in bones:
         pb.matrix_basis = (down if pb.name in LOWER else up)[pb.name]
     bpy.context.view_layer.update()
-    # The musket from the right fist through the left, its top up: the right hand turned about its wrist so.
-    hand = bones['R_Hand']
-    local = arm.matrix_world.inverted()
-    for _ in range(4):
-        right, left = props.held_at(arm, 'R_Hand'), props.held_at(arm, 'L_Hand')
-        x = (left - right).normalized()
-        z = (Vector((0, 0, 1)) - x * x.z).normalized()
-        target = Matrix((x, z.cross(x), z)).transposed()
-        now = (local.to_3x3() @ gun.matrix_world.to_3x3()).normalized()
-        q = (target @ now.inverted()).to_quaternion()
-        head = hand.matrix.to_translation()
-        hand.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ hand.matrix
-        bpy.context.view_layer.update()
+    # The musket from the right fist through the left, its top up.
+    props.lay_in_fists(arm, gun)
     for pb in bones:
         pb.keyframe_insert('rotation_quaternion', frame=n)
         pb.keyframe_insert('location', frame=n)

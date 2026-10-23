@@ -431,5 +431,23 @@ def musket_in_fists(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.typ
     return gun
 
 
+def lay_in_fists(armature: bpy.types.Object, gun: bpy.types.Object, up: Vector = Vector((0, 0, 1))) -> None:
+    """Lays a musket in the fists (musket_in_fists) as the arms stand now: along the line from the
+    right fist through the left, its top towards `up`, by turning the right hand about its wrist.
+    Called on every frame, before it is keyed."""
+    hand_bone = armature.pose.bones['R_Hand']
+    local = armature.matrix_world.inverted()
+    for _ in range(4):
+        right, left = held_at(armature, 'R_Hand'), held_at(armature, 'L_Hand')
+        x = (left - right).normalized()
+        z = (up - x * x.dot(up)).normalized()
+        target = Matrix((x, z.cross(x), z)).transposed()
+        now = (local.to_3x3() @ gun.matrix_world.to_3x3()).normalized()
+        q = (target @ now.inverted()).to_quaternion()
+        head = hand_bone.matrix.to_translation()
+        hand_bone.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ hand_bone.matrix
+        bpy.context.view_layer.update()
+
+
 # How far up a musket from its butt the right fist holds it (the wrist of the stock).
 HELD_AT = 0.13

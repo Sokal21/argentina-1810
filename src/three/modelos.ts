@@ -141,8 +141,8 @@ function play(name: string): void {
 /** What each carries, shown as the game shows it for the clip: which musket, the sabre, the grenade. */
 function carried(w: Who, body: THREE.Object3D): void {
   const musket = clip.startsWith('mosquete'), grenade = clip.startsWith('granada');
-  // One who kneels to shoot has it in his hands but while he walks up.
-  const inHand = (w.kneels && !clip.startsWith('caminata')) || clip === 'mosquete_apuntar' || (clip === 'mosquete_sacar' && into >= DRAW * 0.5) || (clip === 'mosquete_disparo' && into < SHOT * 0.72);
+  // One who kneels to shoot has it always in his hands.
+  const inHand = w.kneels || clip === 'mosquete_apuntar' || (clip === 'mosquete_sacar' && into >= DRAW * 0.5) || (clip === 'mosquete_disparo' && into < SHOT * 0.72);
   const back = body.getObjectByName('mosquete'), hand = body.getObjectByName('mosquete_mano');
   if (back) back.visible = !inHand;
   if (hand) hand.visible = inHand;
