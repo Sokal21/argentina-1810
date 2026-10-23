@@ -1,7 +1,7 @@
 """The rifleman's shot, on one knee: two Mixamo captures joined, the kneeling of one (a pistol shot
 from one knee) under the shoulders of the other (a shotgun fired standing, violently). Every frame
 his hips and legs are the kneeling capture's, held at one steady frame of it, and his waist, spine,
-neck, head and arms are the shotgun's at that frame; so he stays down behind his basket while his
+neck, head and arms are the shotgun's at that frame; so he stays down on one knee while his
 body raises the gun, aims and takes the kick.
 
     Blender -b --python tools/blender/anims/tiro_arrodillado.py -- RIG.glb KNEEL.glb SHOT.glb OUT.glb [--kneel 24] [--aim 27]

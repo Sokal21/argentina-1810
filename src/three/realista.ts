@@ -32,7 +32,7 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
   // Lean and quick, a little under the fusiliers (Tripo from turnaround A, 23 October 2026).
   // His two cuts at the pace that lands the first when his brain does (frame 18 of 52); his run.
   sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76, blow: { clip: 'tajo', lands: 18 / 52, hit: KINDS.sableador.blow.hit }, run: 'carrera' },
-  // A rifleman behind his basket of earth (Tripo from turnaround B, 23 October 2026).
+  // A rifleman (Tripo from turnaround B, 23 October 2026); in 3D without the basket of earth of his 2D drawing.
   // His musket always in both hands (fusil_en_manos.py): standing with it held low until he has
   // anyone in his shot, walking up with it at the ready; once he has aimed, down on one knee until he
   // walks again. His shot (tiro_arrodillado.py) goes off at frame 27 of 50, played so it does when
