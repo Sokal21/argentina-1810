@@ -157,6 +157,21 @@ out byte for byte the same. Re-run a character's hand-keyed clips whenever Cabra
 - **Feet that slide**: a clip played while the brain walks him (the pistol lowered after the shot)
   slid; the brain stands him for as long (`shot.after`) and the clip is played over that time.
 
+## An animal (the ox, 23–24 October 2026)
+
+- **Tripo rigs a quadruped** (`animations/rig`, `rig_type: quadruped`, model v3.0; run the free
+  `animations/rig-check` first), but its walk (`preset:quadruped:walk`) folded the hind legs flat, and
+  its skin weights were bad (thighs on the hip bone, the neck on the head's last bone, a hind leg a
+  bone short). The user: "horrible".
+- **Carrying a hand-made walk over onto Tripo's rig** (`quadruped_retarget.py`, `reskin_quadruped.py`)
+  never bent the hind legs right, however mended: its bones lie straight, a cow's leg does not.
+- **What worked:** our model put on the skeleton of an animal already animated by hand, its clips
+  played untouched: `tools/blender/fit_to_bull.py` (Quaternius's bull, CC0, quaternius.com's Ultimate
+  Animated Animal Pack, downloaded by the user into `tools/mocap/`). Bones moved into our mesh's legs,
+  skin weighed by heat on a merged copy. "Quedó bastante bien, aceptable" (the user).
+- Heat weighting fails on a mesh under about a unit across: weigh a copy scaled up and give the weights back.
+- Never hold `bpy` bone objects across an edit-mode switch: keep their names (they read garbage after).
+
 ## The game's model
 
 `prepare_rigged.py OUT MAIN.glb CLIPS... --front +x --carries sabre,musket,musket_in_hand` joins
