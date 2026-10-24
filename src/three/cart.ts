@@ -84,8 +84,11 @@ export class Cart {
       this.grazing.push(0);
       this.next.push(GRAZE.least + Math.random() * GRAZE.more);
     }
-    // Measured at the hoof: at the knee it was a third of the stride, and they walked three times too fast.
-    this.stride = this.oxen[0]?.reach('Walk', 'FrontLowerLeg.L_end') * ox.scale.x || 1;
+    // Measured at the hoof, by the name three.js gives the bone (it takes the '.' out of 'FrontLowerLeg.L_end':
+    // asked by the file's name, nothing was found, the stride fell back to 1 and they walked forty times too fast).
+    const reach = this.oxen[0] ? this.oxen[0].reach('Walk', 'FrontLowerLegL_end') * ox.scale.x : 0;
+    if (!reach) console.warn('[cart] the oxen\'s stride was not measured: their walk will not keep pace');
+    this.stride = reach || OX.drawn * UPRIGHT;
     if (this.bell) this.group.add(bell(h));
     this.group.traverse(o => { if (o instanceof THREE.Mesh) o.castShadow = o.receiveShadow = true; });
     this.ready = true;
