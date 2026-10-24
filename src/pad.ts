@@ -3,12 +3,12 @@ import type Phaser from 'phaser';
 // Playing with a gamepad (an Xbox one, or any the browser maps the standard way): the left stick
 // walks, and the hero always faces the way it is pushed; nothing is aimed with the other stick,
 // which in this view made walking impossible. What is let fly goes straight ahead, with no help to
-// aim: the musket down the way he faces, the grenade two thirds of its reach ahead. Its buttons
+// aim: the musket down the way he faces, the grenade as far as it reaches ahead. Its buttons
 // press the keyboard's keys, which the game already knows, so nothing of the game is told apart:
 //
 //   left stick  walk                 L3          run, until the stick is let go
-//   RT          sabre (with LT held: fire the musket)
-//   LT held     the musket up        RB held     a grenade ready; let go, it is thrown
+//   RT          sabre (with LT held: fire the musket; with RB held: throw the grenade)
+//   LT held     the musket up        RB held     a grenade ready (let go, it is put away)
 //   B           dodge                A           talk, do, take what is offered
 //   X           drink                ↑           rage (in a talk, the choices)
 //   ←           the shop, by a seller            ≡ pause      ⧉ the hero's page
@@ -34,7 +34,6 @@ const A = 0, B = 1, X = 2, RB = 5, LT = 6, RT = 7, VIEW = 8, MENU = 9, L3 = 10, 
 /** How little of a stick's push is taken as none; how far a stick goes to be a step in a menu, and how soon one held steps again (ms). */
 const SLACK = 0.25, STEP = 0.6, AGAIN = 260;
 /** After a grenade's button is let go: how long the attack is pressed for the game to see it, and the grenade still held for the throw to be made (ms). */
-const PULL = 150, THROWN = 900;
 /**
  * The old numbers of the keys it presses: Phaser knows a key by its number, which a key pressed by
  * script does not carry unless it is given one (what reads keys by their names takes them as they are).
@@ -131,7 +130,7 @@ export function mountPad(game: Phaser.Game): void {
     key(code, down);
   };
   const letGo = () => { for (const code of [...holding]) hold(code, false); };
-  let thrown = 0, pulled = 0, chosen: HTMLElement | null = null, chosenAt = 0;
+  let chosen: HTMLElement | null = null, chosenAt = 0;
   /** When each way of stepping last stepped (a held stick steps again after a while), by its first button. */
   const stepped: Record<number, number> = {};
 
@@ -140,7 +139,7 @@ export function mountPad(game: Phaser.Game): void {
     if (!gp) return;
     const now = performance.now();
     const down = gp.buttons.map(b => b.pressed || b.value > 0.5);
-    const press = (i: number) => !!down[i] && !was[i], release = (i: number) => !down[i] && !!was[i];
+    const press = (i: number) => !!down[i] && !was[i];
     let [x, y] = [gp.axes[0] ?? 0, gp.axes[1] ?? 0];
     const far = Math.hypot(x, y);
     if (far > 1) { x /= far; y /= far; }
@@ -213,12 +212,10 @@ export function mountPad(game: Phaser.Game): void {
     if (press(LEFT)) tap('KeyT');
     if (press(MENU)) tap('Escape');
     if (press(VIEW)) tap('KeyI');
-    hold('Space', !!down[RT] || now < pulled);
+    hold('Space', !!down[RT]);
     hold('KeyQ', !!down[LT]);
-    // The grenade: held, it is ready; let go, it is thrown (the attack, while it is still held a moment).
-    if (press(RB)) { thrown = 0; hold('KeyE', true); }
-    if (release(RB) && holding.has('KeyE')) { pulled = now + PULL; thrown = now + THROWN; }
-    if (thrown && now >= thrown) { thrown = 0; hold('KeyE', false); }
+    // The grenade, as the musket: held, it is ready, and the trigger throws it; let go, it is put away.
+    hold('KeyE', !!down[RB]);
     was = down;
   });
   // A gamepad gone: whatever it held is let go.
