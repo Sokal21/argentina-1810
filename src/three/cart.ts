@@ -84,7 +84,8 @@ export class Cart {
       this.grazing.push(0);
       this.next.push(GRAZE.least + Math.random() * GRAZE.more);
     }
-    this.stride = this.oxen[0]?.reach('Walk', 'FrontLowerLeg.L') * ox.scale.x || 1;
+    // Measured at the hoof: at the knee it was a third of the stride, and they walked three times too fast.
+    this.stride = this.oxen[0]?.reach('Walk', 'FrontLowerLeg.L_end') * ox.scale.x || 1;
     if (this.bell) this.group.add(bell(h));
     this.group.traverse(o => { if (o instanceof THREE.Mesh) o.castShadow = o.receiveShadow = true; });
     this.ready = true;
