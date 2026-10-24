@@ -168,6 +168,8 @@ function paintGround(map: WorldMap, terrain: Terrain): THREE.Group {
       shape.computeBoundingSphere();
       const piece = new THREE.Mesh(shape, material);
       piece.receiveShadow = true;
+      // The ground hides nobody: on a slope boots sink a hair into it, and lit red all the while.
+      piece.renderOrder = UNHIDING;
       ground.add(piece);
     }
   }
@@ -239,6 +241,8 @@ float noise2(vec2 p) {
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.set(width / 2, WATER_LEVEL, depth / 2);
   mesh.receiveShadow = true;
+  // Nor does the water (wading, his legs are in it).
+  mesh.renderOrder = UNHIDING;
   // The ripples go on by themselves.
   mesh.onBeforeRender = () => { uniforms.time.value = performance.now() / 1000; };
   return mesh;

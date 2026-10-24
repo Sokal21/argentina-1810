@@ -12,7 +12,7 @@ const SEEN = new THREE.MeshBasicMaterial({ color: '#c8281e', depthFunc: THREE.Gr
 /** The order things are drawn in: scenery (0), the twins, then whoever they belong to. */
 const TWIN = 1, FIGURE = 2;
 /**
- * What hides nobody: grass, low plants, fences. Drawn after the twins, so they are not yet there to be
+ * What hides nobody: the ground and water, grass, low plants, fences. Drawn after the twins, so they are not yet there to be
  * seen through (in front of anyone's feet, the grass lit them red all the while).
  */
 export const UNHIDING = 3;

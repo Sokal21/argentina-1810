@@ -8,6 +8,7 @@ import { Shouts } from './shout';
 import { barrelOf } from './cabral';
 import { flashes, model } from './figure';
 import { Fling } from './fling';
+import { seenThrough } from './xray';
 import { Motion } from './motion';
 import { ISO_Y } from '../machi/data';
 import { along, ground, heading, heightAt, UPRIGHT } from './space';
@@ -176,6 +177,8 @@ class Figure {
     this.body.animations = shape.animations;
     this.motion = new Motion(this.body);
     this.flash = flashes(this.body);
+    // Seen through whatever hides him, in red: behind a tree or a house he is not to be lost.
+    seenThrough(this.body);
     this.reach = this.motion.reach('caminata_mixamo', 'L_Foot') * shape.scale.x;
     this.runReach = look?.run ? this.motion.reach(look.run, 'L_Foot') * shape.scale.x : 0;
     this.warning.add(this.glow, this.halo, this.star);
