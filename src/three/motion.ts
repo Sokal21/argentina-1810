@@ -90,6 +90,11 @@ export class Motion {
     if (this.name === name && this.playing && clip) this.playing.time = Math.max(0, Math.min(1, share)) * clip.duration;
   }
 
+  /** Moves the clip playing on by so many seconds: two of one kind side by side, not in step. */
+  shift(seconds: number): void {
+    if (this.playing) this.playing.time = (this.playing.time + seconds) % this.playing.getClip().duration;
+  }
+
   update(dt: number): void {
     this.mixer.update(dt);
   }

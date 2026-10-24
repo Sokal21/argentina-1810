@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { SHOT } from '../bolts';
 import type { MachiController, Vec } from '../machi/controller';
-import type { WorldMap } from '../world/zones';
+import { middle, type WorldMap } from '../world/zones';
 import { AimMarks } from './aim';
 import { CabralFigure, THROWN, type Doing } from './cabral';
 import { GrenadeMarks, Grenades } from './grenade';
@@ -32,6 +32,11 @@ const ROAR = { seconds: 0.45, pixels: 1 };
 /** How far under someone's question mark the sign of what F does stands (it was 100 high over everyone, 7 under a standing keeper's). */
 const SIGN_UNDER = 7;
 
+/**
+ * The two carts left behind the chapel: how far to either side of their spot across the screen, how
+ * far down it, which way they look (toward the camera). One behind the other, they hid each other.
+ */
+const PARKED = { apart: 48, down: 10, facing: 0.25 };
 /** How fast an ox cart turns toward where it heads, a share of the way a second. */
 const CART_TURN = 2.5;
 
@@ -83,6 +88,16 @@ export class World3D {
     this.people = new People(map);
     this.strewn = new Strewn(map);
     this.errands = new Errands(map);
+    // Behind the chapel, the friars' two carts left standing, unyoked, side by side (the hostages' way out).
+    const parked = map.spots?.find(s => s.id === 'carretas');
+    if (parked) {
+      const { x, y } = middle(parked.plot);
+      for (const side of [-1, 1]) {
+        const cart = new Cart(false, false);
+        this.view.scene.add(cart.group);
+        void cart.loaded.then(() => cart.update(0, ground(x + side * PARKED.apart, y + PARKED.down), PARKED.facing));
+      }
+    }
     this.sign.style.cssText = "opacity:0;transition:opacity 0.25s;position:fixed;left:0;top:0;z-index:12;pointer-events:none;width:max-content;max-width:300px;text-align:center;font:16px/1.25 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
     document.body.appendChild(this.sign);
     this.view.scene.add(country.group, this.people.group, this.strewn.group, this.errands.group, this.cabral.group, this.royalists.group, this.marks.group);

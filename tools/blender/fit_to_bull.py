@@ -12,6 +12,7 @@ bound to them by Blender, and its clips kept untouched: they are turns of those 
 - The skin is weighed by heat on a copy with its doubled vertices merged (Tripo doubles them along its
   texture's seams: weighed apart, the skin cracks open there), given back from the copy's nearest;
   small loose pieces (horns, eyes) go whole with the nearest of the body.
+- Its tail's bones are laid down the ox's own tail, its middle found at each height.
 - Only the bones' keys are kept in the clips (each also keys the whole armature, in the FBX's units).
 OUT goes to prepare_rigged.py (front +z: it looks along glTF's +Z already).
 """
@@ -126,6 +127,24 @@ for b in edit:
             found = leg_middle(p, side, front)
             if found:
                 setattr(b, end, inv @ found)
+# The tail's bones down the ox's own tail (where the bull's lie, its tail flew about anyhow, and held
+# by the back its tuft caught on the hind legs): its middle at so many heights, from its root by the
+# rump down to its tuft, found among the ox's corners behind its rump and near its middle line.
+rump = max(p.y for p in verts if p.z > ox_back * 0.6)
+tail = [p for p in verts if p.y > rump - length * 0.03 and abs(p.x) < (ohi.x - olo.x) * 0.07]
+if tail:
+    top, bottom = max(p.z for p in tail), min(p.z for p in tail)
+    chain = [edit[f'Tail{n}'] for n in range(1, 8)]
+    marks = []
+    for k in range(len(chain) + 1):
+        z = top + (bottom - top) * k / len(chain)
+        near = [p for p in tail if abs(p.z - z) < length * 0.025] or tail
+        marks.append(Vector((sum(p.x for p in near) / len(near), sum(p.y for p in near) / len(near), z)))
+    for bone, a, b in zip(chain, marks, marks[1:]):
+        bone.head, bone.tail = inv @ a, inv @ b
+    end = edit.get('Tail7_end')
+    if end:
+        end.head, end.tail = inv @ marks[-1], inv @ (marks[-1] + Vector((0, 0, -length * 0.02)))
 # Whole again: each child's head where its parent's tail now is.
 for b in edit:
     if b.parent and (b.head - b.parent.tail).length < 0.35 * s:
@@ -181,6 +200,9 @@ whole = KDTree(len(islands[0]))
 for i in islands[0]:
     whole.insert(ox.data.vertices[i].co, i)
 whole.balance()
+# Small loose pieces low down, by the legs, are no part of the ox (splinters Tripo left): taken off.
+low = ox_back * 0.5
+splinters = [i for island in islands[1:] if len(island) < 40 and max(ox.data.vertices[i].co.z for i in island) < low for i in island]
 for island in islands[1:]:
     if len(island) > len(islands[0]) * 0.05:
         continue
@@ -194,6 +216,14 @@ for name in names:
 for i, ws in weights.items():
     for name, w in ws.items():
         ox.vertex_groups[name].add([i], w, 'REPLACE')
+if splinters:
+    gone = bmesh.new()
+    gone.from_mesh(ox.data)
+    gone.verts.ensure_lookup_table()
+    bmesh.ops.delete(gone, geom=[gone.verts[i] for i in splinters], context='VERTS')
+    gone.to_mesh(ox.data)
+    gone.free()
+print('splinters taken off', len(splinters))
 ox.parent = arm
 ox.modifiers.new('Armature', 'ARMATURE').object = arm
 print('held', {g.name: sum(1 for v in ox.data.vertices if any(x.group == g.index and x.weight > 0.5 for x in v.groups)) for g in ox.vertex_groups})
