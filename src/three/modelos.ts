@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { MODELS } from './buildings';
+import { Cart } from './cart';
 import { CABRAL_DRESS, model } from './figure';
 import { Fling } from './fling';
 import { Motion } from './motion';
@@ -16,7 +17,7 @@ import { View } from './view';
 // kinds of the king's men with a model of their own, whoever keeps a house), and a model's clips are
 // read off its file, so a new character or a new clip is here as soon as the game has it.
 
-interface Who { name: string; url: string; drawn: number; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge'] }
+interface Who { name: string; url: string; drawn: number; cart?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge'] }
 
 /** The kinds of the king's men, named as the game names them. */
 const KIND_NAMES: Record<string, string> = { sargento: 'Sargento', capitan: 'El capitán', sableador: 'Sableador', tirador: 'Tirador' };
@@ -35,6 +36,9 @@ const WHO: Who[] = [
   // under Cabral. Tripo's model on Quaternius's bull's skeleton (CC0, tools/blender/fit_to_bull.py),
   // playing the bull's own clips: carried over onto Tripo's own rig, its walk came out strange.
   { name: 'Buey', url: 'cosas/3d/buey/buey_animado.glb', drawn: 72 },
+  // The ox cart whole, as the game draws it (three/cart.ts): going, its wheels rolling and its oxen
+  // walking, in place; or standing, its oxen breathing and grazing now and then.
+  { name: 'Carreta', url: '', drawn: 110, cart: true },
 ];
 
 /**
@@ -68,6 +72,8 @@ const used = (name: string) => CODE.includes(`'${name}'`);
 const LUNGE = 'estocada_a_fondo', LUNGE_FROM = 180;
 /** The clips a character stands and walks with, listed first. */
 const FIRST = ['reposo_mixamo', 'caminata_mixamo', 'caminata_atras'];
+/** How fast the cart goes in the gallery, world units a second (the 2D game's carts go 40 to 46). */
+const CART_PACE = 44;
 /** How far apart they stand when all are shown, in world units. */
 const APART = 70;
 
@@ -95,7 +101,29 @@ function button(parent: HTMLElement, text: string, act: () => void): HTMLButtonE
   return b;
 }
 
+/** The cart, played as the game plays it: going (in place: it is brought back each frame) or standing. */
+async function loadCart(w: Who) {
+  const cart = new Cart();
+  await cart.loaded;
+  let going = false, ahead = 0;
+  const motion = {
+    play: (name: string) => { going = name === 'anda'; },
+    has: (name: string) => name === 'anda' || name === 'quieta',
+    seconds: () => 3,
+    update: (dt: number) => {
+      if (going) ahead += dt * CART_PACE;
+      const home = cart.group.position.x;
+      cart.update(dt, new THREE.Vector3(Math.sin(turn) * ahead, 0, Math.cos(turn) * ahead), turn);
+      cart.group.position.set(home, 0, 0);
+    },
+  } as unknown as Motion;
+  const it = { body: cart.group, motion, clips: ['anda', 'quieta'], flung: new Fling(() => 0), home: 0 };
+  loaded.set(w, it);
+  return it;
+}
+
 async function load(w: Who) {
+  if (w.cart && !loaded.has(w)) return loadCart(w);
   let it = loaded.get(w);
   if (!it) {
     const body = await model(w.url, w.drawn);
