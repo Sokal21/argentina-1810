@@ -6,6 +6,7 @@ import { MODELS } from './buildings';
 import { figure, model, type Dress } from './figure';
 import { Motion } from './motion';
 import { brokenWheel } from './wheel';
+import { seenThrough } from './xray';
 import { ground, UPRIGHT } from './space';
 
 // Those standing about a map: whoever has a model of their own, breathing where they stand; the
@@ -154,6 +155,8 @@ export class People {
   lead(who: string, at: { x: number; y: number }): void {
     const one = this.moving.find(m => m.who === who);
     if (!one) return;
+    // Led along, seen through whatever hides them, in red.
+    if (!one.led) seenThrough(one.body);
     one.led ??= { to: one.body.position.clone(), going: 0 };
     one.led.to.copy(ground(at.x, at.y));
     one.at = { x: at.x, y: at.y };

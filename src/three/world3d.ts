@@ -16,6 +16,7 @@ import { Shots, type Strikes } from './shot';
 import { ground, heading, onTheGround, UPRIGHT } from './space';
 import { Cart } from './cart';
 import { Errands } from './errands';
+import { seenThrough } from './xray';
 import { Strewn } from './strewn';
 import { View } from './view';
 import { raiseCountry } from './world';
@@ -37,6 +38,8 @@ const SIGN_UNDER = 7;
  * far down it, which way they look (toward the camera). One behind the other, they hid each other.
  */
 const PARKED = { apart: 48, down: 10, facing: 0.25 };
+/** The life bar over what is brought along: how wide and tall, in world units. */
+const LIFE = { wide: 40, tall: 4 };
 /** How fast an ox cart turns toward where it heads, a share of the way a second. */
 const CART_TURN = 2.5;
 
@@ -200,7 +203,10 @@ export class World3D {
   carted(id: string, dt: number, at: Vec | null, toward: Vec): void {
     let one = this.carts.get(id);
     if (!one && at) {
-      one = { cart: new Cart(id === 'campana'), facing: heading(toward.x, toward.y) };
+      const cart = new Cart(id === 'campana');
+      // Seen through whatever hides it, in red.
+      void cart.loaded.then(() => seenThrough(cart.group));
+      one = { cart, facing: heading(toward.x, toward.y) };
       this.carts.set(id, one);
       this.view.scene.add(one.cart.group);
     }
@@ -210,6 +216,38 @@ export class World3D {
     const want = heading(toward.x, toward.y), turn = Math.atan2(Math.sin(want - one.facing), Math.cos(want - one.facing));
     one.facing += turn * Math.min(1, dt * CART_TURN);
     one.cart.update(dt, ground(at.x, at.y), one.facing);
+  }
+
+  /** The life left of what is brought along, by its charge: a bar over it, drawn over everything. */
+  private readonly bars = new Map<string, { back: THREE.Sprite; fill: THREE.Sprite }>();
+
+  /**
+   * What is brought along, this step: where it is on the 2D ground, how high over it the bar stands (as drawn heights are),
+   * and the share of its life it has (the bar shown while it has lost any; null: not shown).
+   */
+  life(id: string, at: Vec | null, over: number, share: number | null): void {
+    let bar = this.bars.get(id);
+    if (!bar) {
+      const make = (colour: string, order: number) => {
+        const s = new THREE.Sprite(new THREE.SpriteMaterial({ color: colour, depthTest: false, depthWrite: false }));
+        s.center.set(0, 0.5);
+        s.renderOrder = order;
+        this.view.over.add(s);
+        return s;
+      };
+      bar = { back: make('#1c1410', 30), fill: make('#d23c2a', 31) };
+      this.bars.set(id, bar);
+    }
+    const shown = !!at && share !== null && share < 1;
+    bar.back.visible = bar.fill.visible = shown;
+    if (!shown) return;
+    // Over a cart's hide, where it is drawn; over anyone else's head.
+    const cart = this.carts.get(id)?.cart;
+    const p = cart?.ready ? cart.top() : ground(at.x, at.y, over * UPRIGHT), w = LIFE.wide;
+    bar.back.position.copy(p).add(new THREE.Vector3(-w / 2 - 1, 0, 0));
+    bar.back.scale.set(w + 2, LIFE.tall + 2, 1);
+    bar.fill.position.copy(p).add(new THREE.Vector3(-w / 2, 0, 0));
+    bar.fill.scale.set(Math.max(0.01, w * share), LIFE.tall, 1);
   }
 
   /** One led along by the hero: where they are on the 2D ground. */

@@ -4,6 +4,7 @@ import { ISO_Y, KITS } from '../machi/data';
 import { MUSKET } from '../machi/musket';
 import { RAGE } from '../machi/rage';
 import { CABRAL_DRESS, figure, flashes, model } from './figure';
+import { seenThrough } from './xray';
 import { Motion } from './motion';
 import mixamoTravel from './rolls/rodada_mixamo.json';
 import { along, ground, heading, UPRIGHT } from './space';
@@ -154,6 +155,8 @@ export class CabralFigure {
       this.shaped = loaded;
       this.motion = new Motion(loaded);
       this.flash = flashes(loaded);
+      // Seen through whatever hides him, in red.
+      seenThrough(loaded);
       // The arc his sabre leaves as he cuts, from just past the guard to the point.
       const blade = loaded.getObjectByName('sable');
       if (blade) {

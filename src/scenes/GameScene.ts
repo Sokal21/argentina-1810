@@ -80,6 +80,8 @@ const PAD_THROW = 2 / 3;
 // does not stand in one knot where a single swing takes them all. And the turn from one soldier's side
 // of the hero to the next, so that sides never repeat.
 const SPACE = 34, PARTING = 90, GOLDEN = Math.PI * (3 - Math.sqrt(5));
+/** How high over the ground the life bar of what is brought along stands, in 3D: over a cart's hide, over a man's head. */
+const LIFE_OVER = { cart: 135, walker: 100 };
 /** The ground what a place is made of by hand takes up, in 3D (three/errands.ts). */
 const MADE = { pozo: { hw: 23, hh: 10 }, canon: { hw: 28, hh: 10 } };
 /** A captain's men come in from out of sight, so far past the edge of what is seen; and from no further than this from the hero. */
@@ -1099,6 +1101,8 @@ export class GameScene extends Phaser.Scene {
       // Once it has arrived it stays where it was brought.
       drawn.setVisible(charge.going || waiting || arrived);
       if (at.drives) this.three?.carted(at.id, dt, charge.going || waiting || arrived ? body : null, body.heading);
+      // In 3D its life over it too, while it goes and has lost any: over the cart's hide, or a head.
+      this.three?.life(at.id, charge.going ? body : null, at.drives ? LIFE_OVER.cart : LIFE_OVER.walker, body.life / body.max);
       // Standing where it waits or where it was brought, it stands as it stands still.
       if (!charge.going && (waiting || arrived)) this.pose(charge, false, false);
       if (!charge.going && arrived && at.who) this.three?.lead(at.who, body);

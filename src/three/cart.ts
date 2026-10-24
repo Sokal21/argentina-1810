@@ -51,6 +51,13 @@ export class Cart {
     this.loading = this.load();
   }
 
+  /** Just over its hide, in the world: where a bar over it goes. */
+  top(): THREE.Vector3 {
+    const h = CART.drawn * UPRIGHT;
+    // The model is centred on its whole length, pole and yoke too: its hide stands a third of its height behind that.
+    return this.group.localToWorld(new THREE.Vector3(0, h * 1.08, -(ON.middle + 0.33) * h));
+  }
+
   /** Once it is all loaded. */
   get loaded(): Promise<void> {
     return this.loading;
