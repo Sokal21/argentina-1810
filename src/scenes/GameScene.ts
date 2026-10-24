@@ -76,6 +76,8 @@ const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
 const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan']);
 /** With the gamepad a grenade lands this share of its reach straight ahead: all of it, as the musket aims. */
 const PAD_THROW = 1;
+/** With the gamepad, how fast the stick moves where a grenade held ready is to land, world units a second. */
+const PAD_AIM = 260;
 // Soldiers are kept this far apart on the ground, easing apart at this many of it a second: a squad
 // does not stand in one knot where a single swing takes them all. And the turn from one soldier's side
 // of the hero to the next, so that sides never repeat.
@@ -218,6 +220,8 @@ export class GameScene extends Phaser.Scene {
   private heading: Vec = { x: 0, y: 1 };
   private pointed: Vec = { x: 0, y: 0 };
   private loosing: Arm | null = null;
+  /** With the gamepad, where a grenade held ready is to land, from the hero (on the 2D ground); moved by the stick. */
+  private padAim: Vec | null = null;
   /** Where the hero last stood on their feet, which is where a game left is taken up; and seconds until it is next kept. */
   private stood?: Vec;
   private keeping = 0;
@@ -1278,7 +1282,8 @@ export class GameScene extends Phaser.Scene {
       : held.musket ? 'musket' : held.grenade ? 'grenade' : null;
     if (want && !this.machi.isDashing) {
       // With the gamepad the musket aims as far as its ball carries, where its line ends.
-      const pointer = this.pointing(want === 'musket' ? (pad.on ? BALL.range : MUSKET_AIMS) : GRENADE.range, want === 'grenade' ? PAD_THROW : 1);
+      const pointer = pad.on && want === 'grenade' && this.padAim ? this.pointed = { x: this.machi.x + this.padAim.x, y: this.machi.y + this.padAim.y }
+        : this.pointing(want === 'musket' ? (pad.on ? BALL.range : MUSKET_AIMS) : GRENADE.range, want === 'grenade' ? PAD_THROW : 1);
       // A ball flies at the height of the barrel: by touch or the gamepad it is pointed along the ground, and goes level.
       if ((touch.on || pad.on) && want === 'musket') pointer.y -= MUSKET.height;
       this.machi.shoulder(pointer, want);
@@ -1681,6 +1686,24 @@ export class GameScene extends Phaser.Scene {
   // goes straight ahead, with no help to aim.
   private byPad(input: MachiInput): MachiInput {
     const { stick } = pad;
+    // A grenade held ready: the stick moves where it is to land, within its reach, and he stands.
+    if (this.readying === 'grenade') {
+      const dt = this.game.loop.delta / 1000, at = this.padAim ??= { x: this.heading.x * GRENADE.range, y: this.heading.y * GRENADE.range * ISO_Y };
+      if (stick) {
+        at.x += stick.x * PAD_AIM * dt;
+        at.y += stick.y * PAD_AIM * dt;
+        // Never past its reach, along the ground.
+        const far = Math.hypot(at.x, at.y / ISO_Y);
+        if (far > GRENADE.range) { at.x *= GRENADE.range / far; at.y *= GRENADE.range / far; }
+      }
+      // Turned to it.
+      const far = Math.hypot(at.x, at.y / ISO_Y);
+      if (far > 1) this.heading = { x: at.x / far, y: at.y / ISO_Y / far };
+      input.move = undefined;
+      if (input.attack) input.aim = this.heading;
+      return input;
+    }
+    this.padAim = null;
     if (stick) {
       // The stick is pushed the way the hero should be seen to go; the ground is foreshortened.
       const far = Math.hypot(stick.x, stick.y / ISO_Y) || 1;

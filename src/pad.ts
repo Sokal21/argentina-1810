@@ -8,7 +8,8 @@ import type Phaser from 'phaser';
 //
 //   left stick  walk                 L3          run, until the stick is let go
 //   RT          sabre (with LT held: fire the musket; with RB held: throw the grenade)
-//   LT held     the musket up        RB held     a grenade ready (let go, it is put away)
+//   LT held     the musket up        RB held     a grenade ready: the stick moves where it lands,
+//                                                within its reach, and he stands (let go, it is put away)
 //   B           dodge                A           talk, do, take what is offered
 //   X           drink                ↑           rage (in a talk, the choices)
 //   ←           the shop, by a seller            ≡ pause      ⧉ the hero's page
