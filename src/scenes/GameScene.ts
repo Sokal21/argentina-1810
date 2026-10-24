@@ -1277,7 +1277,8 @@ export class GameScene extends Phaser.Scene {
     const want: Arm | null = this.readying && held[this.readying] ? this.readying
       : held.musket ? 'musket' : held.grenade ? 'grenade' : null;
     if (want && !this.machi.isDashing) {
-      const pointer = this.pointing(want === 'musket' ? MUSKET_AIMS : GRENADE.range, want === 'grenade' ? PAD_THROW : 1);
+      // With the gamepad the musket aims as far as its ball carries, where its line ends.
+      const pointer = this.pointing(want === 'musket' ? (pad.on ? BALL.range : MUSKET_AIMS) : GRENADE.range, want === 'grenade' ? PAD_THROW : 1);
       // A ball flies at the height of the barrel: by touch or the gamepad it is pointed along the ground, and goes level.
       if ((touch.on || pad.on) && want === 'musket') pointer.y -= MUSKET.height;
       this.machi.shoulder(pointer, want);

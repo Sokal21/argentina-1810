@@ -6,7 +6,8 @@ import { ground } from './space';
 // What the 2D game draws while the musket is up, stood in 3D: the line of the shot, from the
 // barrel out as far as a ball carries, and the ring of the blast round the spot aimed at, a true
 // circle on the ground (the 2D game's ellipse is that circle foreshortened). Amber when it can be
-// fired, dull when it cannot.
+// fired, dull when it cannot. Drawn over everything: flat on the ground's lie at the spot, a rise or
+// dip under it hid part of it.
 
 export const READY = new THREE.Color('#ffb45a'), SPENT = new THREE.Color('#8a8478');
 /** How far above the ground the ring is drawn, so it lies over the ground's own pixels. */
@@ -19,14 +20,14 @@ export class AimMarks {
   private readonly ring: THREE.LineLoop;
 
   constructor() {
-    const lineMaterial = new THREE.LineBasicMaterial({ color: READY, transparent: true, opacity: 0.5, depthWrite: false });
+    const lineMaterial = new THREE.LineBasicMaterial({ color: READY, transparent: true, opacity: 0.5, depthWrite: false, depthTest: false });
     this.line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), lineMaterial);
     const points = Array.from({ length: SEGMENTS }, (_, i) => {
       const a = (i / SEGMENTS) * Math.PI * 2;
       return new THREE.Vector3(Math.cos(a) * MUSKET.radius, 0, Math.sin(a) * MUSKET.radius);
     });
     this.ring = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points),
-      new THREE.LineBasicMaterial({ color: READY, transparent: true, opacity: 0.9, depthWrite: false }));
+      new THREE.LineBasicMaterial({ color: READY, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false }));
     this.line.frustumCulled = this.ring.frustumCulled = false;
     this.group.add(this.line, this.ring);
     this.group.visible = false;

@@ -26,7 +26,8 @@ const FIRE = {
   embers: 26, emberColour: '#ffb060', scorch: '#2a2018', fadeOut: 1,
 };
 
-/** The marks of the throw: the reach round him, faint, and the patch it would land on, filled. */
+/** The marks of the throw: the reach round him, faint, and the patch it would land on, filled. Drawn
+ * over everything: flat at the ground's lie where each stands, a rise under it cut it off. */
 export class GrenadeMarks {
   readonly group = new THREE.Group();
   private readonly reach: THREE.LineLoop;
@@ -40,14 +41,14 @@ export class GrenadeMarks {
         return new THREE.Vector3(Math.cos(a) * radius, 0, Math.sin(a) * radius);
       });
       const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points),
-        new THREE.LineBasicMaterial({ color: READY, transparent: true, opacity, depthWrite: false }));
+        new THREE.LineBasicMaterial({ color: READY, transparent: true, opacity, depthWrite: false, depthTest: false }));
       line.frustumCulled = false;
       return line;
     };
     this.reach = loop(GRENADE.range, 0.35);
     this.edge = loop(GRENADE.radius, 0.9);
     this.patch = new THREE.Mesh(new THREE.CircleGeometry(GRENADE.radius, 40),
-      new THREE.MeshBasicMaterial({ color: READY, transparent: true, opacity: 0.14, depthWrite: false }));
+      new THREE.MeshBasicMaterial({ color: READY, transparent: true, opacity: 0.14, depthWrite: false, depthTest: false }));
     this.patch.rotation.x = -Math.PI / 2;
     this.group.add(this.reach, this.edge, this.patch);
     this.group.visible = false;
