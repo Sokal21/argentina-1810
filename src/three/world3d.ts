@@ -91,12 +91,15 @@ export class World3D {
     this.people = new People(map);
     this.strewn = new Strewn(map);
     this.errands = new Errands(map);
-    // Behind the chapel, the friars' two carts left standing, unyoked, side by side (the hostages' way out).
+    // Behind the chapel, the friars' two carts left standing, unyoked, side by side (the hostages' way
+    // out): there only once there is reason for them to be (`parked`).
     const parked = map.spots?.find(s => s.id === 'carretas');
     if (parked) {
       const { x, y } = middle(parked.plot);
       for (const side of [-1, 1]) {
         const cart = new Cart(false, false);
+        cart.group.visible = false;
+        this.parkedCarts.push(cart);
         this.view.scene.add(cart.group);
         void cart.loaded.then(() => cart.update(0, ground(x + side * PARKED.apart, y + PARKED.down), PARKED.facing));
       }
@@ -216,6 +219,14 @@ export class World3D {
     const want = heading(toward.x, toward.y), turn = Math.atan2(Math.sin(want - one.facing), Math.cos(want - one.facing));
     one.facing += turn * Math.min(1, dt * CART_TURN);
     one.cart.update(dt, ground(at.x, at.y), one.facing);
+  }
+
+  /** The friars' carts behind the chapel. */
+  private readonly parkedCarts: Cart[] = [];
+
+  /** Whether the friars' carts stand behind the chapel: once whoever asks about them has asked. */
+  parked(on: boolean): void {
+    for (const cart of this.parkedCarts) cart.group.visible = on;
   }
 
   /** The life left of what is brought along, by its charge: a bar over it, drawn over everything. */

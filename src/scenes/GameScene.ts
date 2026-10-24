@@ -1077,6 +1077,8 @@ export class GameScene extends Phaser.Scene {
       talker.spot?.mark.setVisible(there);
       if (talker.take) this.three?.there(talker.take.what, there);
       if (talker.spot) this.three?.open(talker.spot.at.id, there);
+      // The friars' carts stand there once the hostages have been asked about, and stay.
+      if (talker.spot?.at.id === 'carretas') this.three?.parked(!!this.story?.has(talker.spot.at.given ?? ''));
       for (const part of talker.figure ?? []) (part as Phaser.GameObjects.Image).setVisible(there);
       if (talker.npc) this.three?.asking(talker.npc.id, there);
       if (!there) continue;
