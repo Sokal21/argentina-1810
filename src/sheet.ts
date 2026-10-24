@@ -5,6 +5,7 @@ import { ITEMS, PLACES, type Place } from './machi/pack';
 import { PEOPLE } from './npc/people';
 import type { GameScene } from './scenes/GameScene';
 import { NAMED, THINGS } from './story/things';
+import { pad } from './pad';
 import { FACTS } from './story/vado';
 import { feeling, renown } from './story/standing';
 import { key, touch } from './touch';
@@ -56,13 +57,15 @@ const STYLE = `
     background: var(--plus) 0 0 / 200% 100% no-repeat; image-rendering: pixelated;
   }
   #sheet .stat button[disabled] { visibility: hidden; }
-  #sheet .stat button:hover, #sheet .stat button:focus-visible { background-position: 100% 0; }
+  /* Chosen with the gamepad, what can be pressed looks as pointed at, and needs no outline of its own. */
+  #sheet .stat button:hover, #sheet .stat button:focus-visible, #sheet .stat button.pad-chosen { background-position: 100% 0; }
+  #sheet .stat button.pad-chosen, #sheet .square.pad-chosen, #sheet .tabs button.pad-chosen { outline: none !important; }
   #sheet .stat button:active { transform: translate(1px, 1px); }
   #sheet img { image-rendering: pixelated; }
   #sheet .tabs { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid var(--faint); }
   #sheet .tabs button { all: unset; cursor: pointer; color: var(--faint); }
   #sheet .tabs button.on { color: var(--accent); }
-  #sheet .tabs button:hover { color: var(--ink); }
+  #sheet .tabs button:hover, #sheet .tabs button.pad-chosen { color: var(--ink); }
   #sheet .gold { display: flex; align-items: center; gap: 4px; margin-left: auto; color: var(--ink); }
   #sheet .squares { display: grid; grid-template-columns: repeat(4, calc(22px * var(--kk))); gap: calc(2px * var(--kk)); margin-top: 3px; }
   #sheet .square {
@@ -70,7 +73,7 @@ const STYLE = `
     background: var(--square) 0 0 / 200% 100% no-repeat; image-rendering: pixelated;
   }
   #sheet .square.full { cursor: pointer; }
-  #sheet .square:hover, #sheet .square:focus-visible { background-position: 100% 0; }
+  #sheet .square:hover, #sheet .square:focus-visible, #sheet .square.pad-chosen { background-position: 100% 0; }
   #sheet .square .letter { color: var(--faint); opacity: .7; }
   #sheet .square .n { position: absolute; right: calc(2px * var(--kk)); bottom: 0; line-height: 1; color: var(--good); }
   /* What is pointed at, on a small board of its own beside it. */
@@ -133,6 +136,9 @@ export function mountSheet(game: Phaser.Game): void {
       const does = stat === 'ultimate' && growth.spent.ultimate >= growth.greatest ? `${names[stat].does} (un punto cada cinco niveles)` : names[stat].does;
       add.addEventListener('mousedown', e => e.preventDefault());
       add.addEventListener('click', () => { if (s.spend(stat)) draw(); });
+      // With the gamepad there is no pointing either: choosing it says what it does below the book.
+      add.addEventListener('mouseenter', () => { if (pad.on) asked.textContent = `${names[stat].name}: ${does}`; });
+      add.addEventListener('mouseleave', () => { if (pad.on) asked.textContent = said; });
       // What a point in it does is told to whoever points at it: there is no room to write it out.
       const name = el('span', {}, names[stat].name);
       // By touch there is no pointing: touching its name says it below the book.
@@ -242,9 +248,10 @@ export function mountSheet(game: Phaser.Game): void {
     // Below the book: what was last asked about, the way to its other page, and the way out.
     const turn = el('button', { className: 'turn', textContent: leaf ? '‹ Personaje' : 'Bolsa y cuaderno ›' });
     turn.addEventListener('click', () => { leaf = leaf ? 0 : 1; picked = undefined; draw(); });
+    const asked = el('span', { className: 'foot said' }, said);
     root.replaceChildren(book,
-      ...(said ? [el('span', { className: 'foot said' }, said)] : []),
-      el('div', { className: 'ways' }, ...(single ? [turn] : []), touch.on ? leave : el('span', { className: 'foot' }, 'I para volver')));
+      ...(said || pad.on ? [asked] : []),
+      el('div', { className: 'ways' }, ...(single ? [turn] : []), touch.on ? leave : el('span', { className: 'foot' }, pad.on ? 'Ⓑ para volver' : 'I para volver')));
   };
   addEventListener('resize', () => { if (open) draw(); });
 

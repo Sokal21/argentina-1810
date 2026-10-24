@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import { ITEMS, PLACES } from './machi/pack';
 import type { Npc } from './npc/npc';
+import { pad } from './pad';
 import type { GameScene } from './scenes/GameScene';
 import { key, touch } from './touch';
 
@@ -39,7 +40,9 @@ const STYLE = `
     background: url(hud/casilla.png) 0 0 / 200% 100% no-repeat; image-rendering: pixelated;
   }
   #shop .cell.full { cursor: pointer; }
-  #shop .cell.full:hover, #shop .cell.full:focus-visible { background-position: 100% 0; }
+  /* Chosen with the gamepad, it looks as pointed at, and needs no outline of its own. */
+  #shop .cell.full:hover, #shop .cell.full:focus-visible, #shop .cell.full.pad-chosen { background-position: 100% 0; }
+  #shop .cell.pad-chosen { outline: none !important; }
   #shop .cell.dear img { filter: saturate(.3) brightness(.6); }
   #shop .cell.had img { opacity: .45; }
   #shop .cell .n { position: absolute; right: calc(4px * var(--k)); bottom: calc(2px * var(--k)); font-size: 21px; line-height: 1; color: #8fd18a; }
@@ -96,7 +99,7 @@ export function mountShop(game: Phaser.Game): void {
     // In whole pixels of its own where it can be; on a screen too narrow for two to each, as wide as the screen.
     const k = room >= 2 ? Math.floor(room) : Math.max(1, room);
     const narrow = k < 2;
-    const how = touch.on ? 'Tocá algo para verlo, y de nuevo para comprarlo.' : 'Señalá algo para verlo, clic para comprarlo.';
+    const how = touch.on ? 'Tocá algo para verlo, y de nuevo para comprarlo.' : pad.on ? 'Elegí algo para verlo, Ⓐ para comprarlo.' : 'Señalá algo para verlo, clic para comprarlo.';
     const part = (name: string, at: { x: number; y: number; w: number; h: number }, ...kids: (Node | string)[]) =>
       el('div', { className: `part ${name}`, style: `left:${at.x * k}px;top:${at.y * k}px;width:${at.w * k}px;height:${at.h * k}px` } as never, ...kids);
     const coin = () => pic('cosas/moneda_chica.png', Math.min(k, 2));
@@ -150,7 +153,7 @@ export function mountShop(game: Phaser.Game): void {
         part('grid', CASE.back, ...cells),
         plank, board),
       ...(narrow && !told ? [el('span', { className: 'foot how' }, how)] : []),
-      touch.on ? leave : el('span', { className: 'foot' }, 'T para volver'));
+      touch.on ? leave : el('span', { className: 'foot' }, pad.on ? 'Ⓑ para volver' : 'T para volver'));
     // What was touched is still shown once the case is set out again.
     const again = picked ? cells[stock.findIndex(item => item.id === picked)] : undefined;
     if (again) tip(picked, again);

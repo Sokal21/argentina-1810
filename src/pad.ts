@@ -13,8 +13,9 @@ import type Phaser from 'phaser';
 //   X           drink                ↑           rage (in a talk, the choices)
 //   ←           the shop, by a seller            ≡ pause      ⧉ the hero's page
 //
-// In a talk, the shop or the pause, the cross (or the stick) goes through what can be chosen, A
-// chooses it and B leaves. In the menus before the game, ← → choose and A goes on. Any real key or
+// In a talk, the shop, the hero's page or the pause, the cross (or the stick) goes to whatever can
+// be chosen the way it is pushed (a slider's ← → move it), what is chosen looks as the mouse over it
+// would have it, A chooses it and B leaves. In the menus before the game, ← → choose and A goes on. Any real key or
 // mouse movement takes the game back to the keyboard and the mouse.
 
 type Vec = { x: number; y: number };
@@ -72,9 +73,9 @@ function first(): Gamepad | null {
   return all.find(g => g?.mapping === 'standard') ?? all.find(g => !!g) ?? null;
 }
 
-/** Where something can be chosen over the game, if anywhere is: a talk, the shop, the pause. */
+/** Where something can be chosen over the game, if anywhere is: a talk, the shop, the hero's page, the pause. */
 function chooser(): HTMLElement | null {
-  for (const id of ['dialog', 'shop', 'pause']) {
+  for (const id of ['dialog', 'shop', 'sheet', 'pause']) {
     const el = document.getElementById(id);
     if (el && !el.hidden) return el;
   }
@@ -91,6 +92,24 @@ function greet(): void {
   const toast = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'pad-toast', textContent: 'Joystick conectado · ≡ para ver los controles' }));
   setTimeout(() => { toast.hidden = true; }, 4500);
   setTimeout(() => toast.remove(), 5200);
+}
+
+/**
+ * Of what can be chosen, the nearest the way pushed from what is chosen, on screen: within the
+ * half-plane that way, the nearer and the straighter the better. None, if nothing lies that way.
+ */
+function toward(from: HTMLElement, can: HTMLElement[], dx: number, dy: number): HTMLElement | null {
+  const mid = (el: HTMLElement) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+  const at = mid(from);
+  let best: HTMLElement | null = null, least = Infinity;
+  for (const el of can) {
+    if (el === from) continue;
+    const p = mid(el), along = (p.x - at.x) * dx + (p.y - at.y) * dy, aside = Math.abs((p.x - at.x) * dy - (p.y - at.y) * dx);
+    if (along < 1) continue;
+    const score = along + aside * 3;
+    if (score < least) { least = score; best = el; }
+  }
+  return best;
 }
 
 /** Starts listening to the gamepad, for as long as the game runs. */
@@ -112,7 +131,9 @@ export function mountPad(game: Phaser.Game): void {
     key(code, down);
   };
   const letGo = () => { for (const code of [...holding]) hold(code, false); };
-  let thrown = 0, pulled = 0, stepped = 0, chosen: HTMLElement | null = null;
+  let thrown = 0, pulled = 0, chosen: HTMLElement | null = null, chosenAt = 0;
+  /** When each way of stepping last stepped (a held stick steps again after a while), by its first button. */
+  const stepped: Record<number, number> = {};
 
   game.events.on('prestep', () => {
     const gp = first();
@@ -130,10 +151,10 @@ export function mountPad(game: Phaser.Game): void {
     // A step through a list: the cross, or the stick pushed well over, again while held.
     const stepping = (minus: number, plus: number, axis: number) => {
       const way = press(minus) ? -1 : press(plus) ? 1 : 0;
-      if (way) { stepped = now; return way; }
+      if (way) { stepped[minus] = now; return way; }
       const pushed = Math.abs(axis) > STEP ? Math.sign(axis) : 0;
-      if (pushed && now - stepped > AGAIN) { stepped = now; return pushed; }
-      if (!pushed && !down[minus] && !down[plus] && Math.abs(axis) < SLACK) stepped = 0;
+      if (pushed && now - (stepped[minus] ?? 0) > AGAIN) { stepped[minus] = now; return pushed; }
+      if (!pushed && !down[minus] && !down[plus] && Math.abs(axis) < SLACK) stepped[minus] = 0;
       return 0;
     };
 
@@ -144,17 +165,30 @@ export function mountPad(game: Phaser.Game): void {
       pad.stick = null;
       pad.run = false;
       const can = [...over.querySelectorAll<HTMLElement>('button, input[type=range]')].filter(b => b.offsetParent && !(b as HTMLButtonElement).disabled);
-      if (!chosen || !can.includes(chosen)) chosen = can[0] ?? null;
-      const way = stepping(UP, DOWN, y);
-      if (way && can.length) chosen = can[(can.indexOf(chosen!) + way + can.length) % can.length];
+      const before = chosen;
+      // Drawn again (something bought, a point given), it is chosen where it was.
+      if (!chosen || !can.includes(chosen)) chosen = can[Math.min(chosenAt, can.length - 1)] ?? null;
+      const along = stepping(UP, DOWN, y), across = stepping(LEFT, RIGHT, x);
+      if (chosen instanceof HTMLInputElement && across) {
+        if (across > 0) chosen.stepUp(5); else chosen.stepDown(5);
+        chosen.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if (chosen && (along || across)) chosen = toward(chosen, can, across, along) ?? chosen;
+      if (chosen !== before) {
+        // As the mouse would: off what was chosen, onto what is.
+        if (before?.isConnected) before.dispatchEvent(new MouseEvent('mouseleave'));
+        chosen?.dispatchEvent(new MouseEvent('mouseenter'));
+      }
+      chosenAt = chosen ? can.indexOf(chosen) : 0;
       for (const b of can) b.classList.toggle('pad-chosen', b === chosen);
       if (press(A) && chosen) chosen.click();
       if (press(B) || press(MENU)) key('Escape');
+      if (press(VIEW) && over.id === 'sheet') key('KeyI');
       was = down;
       return;
     }
     chosen?.classList.remove('pad-chosen');
     chosen = null;
+    chosenAt = 0;
 
     if (!game.scene.isActive('game')) {
       // The menus before the game: ← → choose, A goes on.
