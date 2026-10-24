@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Footprint } from '../world/footprint';
 import { SHOT } from '../bolts';
 import type { MachiController, Vec } from '../machi/controller';
 import { middle, type WorldMap } from '../world/zones';
@@ -61,6 +62,8 @@ export class World3D {
   private readonly fury = new Fury();
   /** The houses gone into without a cut. */
   private readonly houses: House[];
+  /** The ground its plants take up, as they stand in 3D: walked round. */
+  readonly plants: Footprint[];
   /** Those standing about the map, outdoors. */
   private readonly people: People;
   /** What lies about on it. */
@@ -89,6 +92,7 @@ export class World3D {
     if (import.meta.env.DEV) mountPanel(this.view, { key: 'KeyL', hidden: true });
     const country = raiseCountry(map);
     this.houses = country.houses;
+    this.plants = country.plants;
     this.people = new People(map);
     this.strewn = new Strewn(map);
     this.errands = new Errands(map);

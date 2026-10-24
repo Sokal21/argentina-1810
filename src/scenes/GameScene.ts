@@ -409,7 +409,8 @@ export class GameScene extends Phaser.Scene {
     // The grass and the water are only seen: the 3D world has its own.
     this.meadow = this.map?.bare && !this.three ? new Meadow(this, this.map.ground) : undefined;
     this.water = this.map?.bare && !this.three ? new Water(this, this.map) : undefined;
-    this.built.push(...(this.country?.feet ?? []));
+    // In 3D, the plants as they stand there: an ombú stands round its middle.
+    this.built.push(...(this.three?.plants ?? this.country?.feet ?? []));
 
     this.machi = this.enter(this.hero, this.start);
     this.keys = new Keys();

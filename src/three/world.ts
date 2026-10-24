@@ -53,6 +53,8 @@ export interface Country3D {
   group: THREE.Group;
   /** The ground taken up by whatever stands where people walk: plants in the way and buildings. */
   feet: Footprint[];
+  /** Of those, the plants'. */
+  plants: Footprint[];
   /** The lie of the land: everything put on the map stands on it. */
   terrain: Terrain;
   /** The buildings with models of their own, gone into without a cut. */
@@ -78,7 +80,7 @@ export function raiseCountry(map: WorldMap): Country3D {
   const built = raiseBuildings(map);
   group.add(...built.meshes);
   feet.push(...built.taken);
-  return { group, feet, terrain, houses: built.houses };
+  return { group, feet, terrain, houses: built.houses, plants: taken };
 }
 
 function paintGround(map: WorldMap, terrain: Terrain): THREE.Group {
@@ -325,9 +327,14 @@ function inPatches<T extends { x: number; y: number }>(things: T[]): T[][] {
  * at size 1, as their shapes were: the ombú, Tripo from four views of turnaround A (its front, back,
  * and its three-quarter view for either side: the side view came back narrow), 24 October 2026.
  */
-const MODELLED: Record<string, { url: string; drawn: number }> = {
-  ombu: { url: 'campo/3d/ombu.glb', drawn: 125 },
-  ombu_chico: { url: 'campo/3d/ombu.glb', drawn: 125 },
+/**
+ * How far round the ombú's middle nobody walks, as a share of its height: its trunk and the thick foot
+ * of its roots (measured in Blender: the trunk 0.13 across from its middle, the roots' foot 0.3 to 0.4).
+ */
+const OMBU_TRUNK = 0.3;
+const MODELLED: Record<string, { url: string; drawn: number; trunk: number }> = {
+  ombu: { url: 'campo/3d/ombu.glb', drawn: 125, trunk: OMBU_TRUNK },
+  ombu_chico: { url: 'campo/3d/ombu.glb', drawn: 125, trunk: OMBU_TRUNK },
 };
 
 /** The plants that hide whoever is behind them, so that they are shown in red through them. */
@@ -339,7 +346,13 @@ function plantPlants(map: WorldMap): { meshes: THREE.Object3D[]; taken: Footprin
   for (const plant of plantCountry(map)) {
     const size = plant.size * (GROWN[plant.kind] ?? 1);
     byKind.set(plant.kind, [...(byKind.get(plant.kind) ?? []), { ...plant, size }]);
-    if (plant.inTheWay) {
+    const modelled = MODELLED[plant.kind];
+    if (plant.inTheWay && modelled) {
+      // A model stands round its middle, which the 2D drawing's foot (behind it, and narrower) did
+      // not: walked round its trunk.
+      const r = modelled.trunk * modelled.drawn * UPRIGHT * size;
+      taken.push({ x: plant.x, y: plant.y, hw: r, hh: r * ISO_Y });
+    } else if (plant.inTheWay) {
       // As the 2D game reckons it, so that the same plants are walked round.
       const foot = FEET[plant.kind] ?? FOOT, hh = foot.hh * size;
       taken.push({ x: plant.x, y: plant.y - hh, hw: foot.hw * size, hh });
