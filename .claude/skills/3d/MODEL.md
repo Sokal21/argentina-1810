@@ -98,3 +98,10 @@ material with the texture nearest-filtered, and grows it to the drawn height.
   a ground line: `tools/no_ground_line.py` then `tools/cut_views.py` (row or grid). The user asked for
   fieldstone and clay tiles on the forge and the bell tower: regenerate with the chosen sheet as
   reference and the chapel's stone sheet as style.
+- **A tree** (the ombú, 24 October 2026): the turnaround's side view always comes back narrow (0.6 to
+  0.7 of the front), even when told the tree is as wide every way. Tripo from the front alone made it
+  as shallow (guessing its depth); stretching that in Blender stretched the leaves and looked wrong;
+  the front put in for the sides left a lump hanging at the diagonals. What worked: multiview with the
+  front, the back, and the **three-quarter view for one side and mirrored for the other**. Measure each
+  view's width before Tripo. A plant with a model is in `MODELLED` (`src/three/world.ts`), instanced
+  per patch from the model's meshes, as tall at size 1 as its shapes were.

@@ -2616,6 +2616,26 @@
       "asset_id": "f0f1b352-9ba7-4ceb-a8f2-8fbdcea2a7c2",
       "label": "ox cart 3D turnaround C (B with the yoke)",
       "file": "assets/cosas/3d/carreta/giro_c.png"
+    },
+    {
+      "asset_id": "ce07fe8a-4cb2-48fe-9be0-a0b758d101b3",
+      "label": "ombú 3D turnaround A (from concept 8; its side view narrow, flat)",
+      "file": "assets/campo/3d/ombu_giro_a.png"
+    },
+    {
+      "asset_id": "05d420e3-7668-4e93-ba42-d62e81ad999c",
+      "label": "ombú 3D turnaround B (teal; its side view narrow: Tripo from its front alone, and with its front for the sides, came out wrong)",
+      "file": "assets/campo/3d/ombu_giro_b.png"
+    },
+    {
+      "asset_id": "b213ae20-822f-49e6-8590-8f1a07eb3d79",
+      "label": "ombú 3D turnaround, as wide every way, A (chosen: front, back and three-quarter for both sides; its side view still narrow)",
+      "file": "assets/campo/3d/ombu_ancho_a.png"
+    },
+    {
+      "asset_id": "6edabbed-10dc-4109-b706-689880b85a4e",
+      "label": "ombú 3D turnaround, as wide every way, B (its side view still narrow)",
+      "file": "assets/campo/3d/ombu_ancho_b.png"
     }
   ]
 }

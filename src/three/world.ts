@@ -13,6 +13,7 @@ import { ground, standOn, UPRIGHT } from './space';
 import { LOOK, sunWay } from './look';
 import { growMeadow } from './meadow';
 import { MODELS, placed as standing } from './buildings';
+import { model } from './figure';
 import { House } from './house';
 import { CELL, clouds, heightPicture, shapeTerrain, swell, WATER_LEVEL, type Terrain } from './terrain';
 
@@ -302,16 +303,6 @@ function plantShape(kind: string): THREE.BufferGeometry | undefined {
       }
       return joined(pieces);
     }
-    case 'ombu':
-    case 'ombu_chico': {
-      const h = tall(125);
-      return joined([
-        part(placed(new THREE.CylinderGeometry(14, 24, h * 0.5, 7), [0, h * 0.25, 0]), '#6b5a4a'),
-        part(placed(new THREE.CylinderGeometry(30, 34, 6, 7), [0, 3, 0]), '#5f5040'),
-        part(placed(new THREE.IcosahedronGeometry(70, 1), [0, h * 0.7, 0], [0, 0, 0], [1, 0.55, 0.85]), '#4b6a32'),
-        part(placed(new THREE.IcosahedronGeometry(40), [35, h * 0.6, 20], [0, 0, 0], [1, 0.6, 1]), '#557638'),
-      ]);
-    }
   }
   return undefined;
 }
@@ -329,10 +320,20 @@ function inPatches<T extends { x: number; y: number }>(things: T[]): T[][] {
   return [...patches.values()];
 }
 
+/**
+ * The plants drawn as models of their own rather than of a few shapes, and how tall they are drawn
+ * at size 1, as their shapes were: the ombú, Tripo from four views of turnaround A (its front, back,
+ * and its three-quarter view for either side: the side view came back narrow), 24 October 2026.
+ */
+const MODELLED: Record<string, { url: string; drawn: number }> = {
+  ombu: { url: 'campo/3d/ombu.glb', drawn: 125 },
+  ombu_chico: { url: 'campo/3d/ombu.glb', drawn: 125 },
+};
+
 /** The plants that hide whoever is behind them, so that they are shown in red through them. */
 const TREES = new Set(['tala', 'ombu', 'ombu_chico']);
 
-function plantPlants(map: WorldMap): { meshes: THREE.InstancedMesh[]; taken: Footprint[] } {
+function plantPlants(map: WorldMap): { meshes: THREE.Object3D[]; taken: Footprint[] } {
   const byKind = new Map<string, ReturnType<typeof plantCountry>>();
   const taken: Footprint[] = [];
   for (const plant of plantCountry(map)) {
@@ -345,9 +346,14 @@ function plantPlants(map: WorldMap): { meshes: THREE.InstancedMesh[]; taken: Foo
     }
   }
   const material = flat();
-  const meshes: THREE.InstancedMesh[] = [];
+  const meshes: THREE.Object3D[] = [];
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), tint = new THREE.Color();
   for (const [kind, all] of byKind) {
+    const modelled = MODELLED[kind];
+    if (modelled) {
+      meshes.push(...inPatches(all).map(plants => plantModels(kind, modelled, plants)));
+      continue;
+    }
     const shape = plantShape(kind);
     if (!shape) continue;
     for (const plants of inPatches(all)) {
@@ -368,6 +374,34 @@ function plantPlants(map: WorldMap): { meshes: THREE.InstancedMesh[]; taken: Foo
     }
   }
   return { meshes, taken };
+}
+
+/**
+ * A patch of plants drawn as a model, each a copy of it (one draw for each of its meshes), turned,
+ * grown and tinted as the shapes are; in a group that is filled once the model has loaded.
+ */
+function plantModels(kind: string, { url, drawn }: { url: string; drawn: number }, plants: ReturnType<typeof plantCountry>): THREE.Group {
+  const patch = new THREE.Group();
+  void model(url, drawn).then(shape => {
+    shape.updateWorldMatrix(true, true);
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), tint = new THREE.Color();
+    shape.traverse(node => {
+      if (!(node instanceof THREE.Mesh)) return;
+      const mesh = new THREE.InstancedMesh(node.geometry, node.material, plants.length);
+      plants.forEach((plant, i) => {
+        q.setFromAxisAngle(new THREE.Object3D().up, plant.which * Math.PI * 2);
+        m.compose(ground(plant.x, plant.y), q, new THREE.Vector3(plant.size, plant.size, plant.size)).multiply(node.matrixWorld);
+        mesh.setMatrixAt(i, m);
+        const k = 0.88 + chance(plant.x, plant.y, 3) * 0.24;
+        mesh.setColorAt(i, tint.setRGB(k, k, k));
+      });
+      mesh.computeBoundingSphere();
+      mesh.castShadow = mesh.receiveShadow = true;
+      if (!TREES.has(kind)) mesh.renderOrder = UNHIDING;
+      patch.add(mesh);
+    });
+  });
+  return patch;
 }
 
 function raiseFences(map: WorldMap): THREE.InstancedMesh[] {
