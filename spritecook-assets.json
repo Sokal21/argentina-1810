@@ -2601,6 +2601,21 @@
       "asset_id": "48598164-ac31-4ee5-9e5e-11a17daa815e",
       "label": "ox 3D turnaround B",
       "file": "assets/cosas/3d/buey/giro_b.png"
+    },
+    {
+      "asset_id": "01408727-189e-4a43-85fe-03897bddb952",
+      "label": "ox cart 3D turnaround A",
+      "file": "assets/cosas/3d/carreta/giro_a.png"
+    },
+    {
+      "asset_id": "852aa5cc-db81-4990-9410-c0952acdae7b",
+      "label": "ox cart 3D turnaround B",
+      "file": "assets/cosas/3d/carreta/giro_b.png"
+    },
+    {
+      "asset_id": "f0f1b352-9ba7-4ceb-a8f2-8fbdcea2a7c2",
+      "label": "ox cart 3D turnaround C (B with the yoke)",
+      "file": "assets/cosas/3d/carreta/giro_c.png"
     }
   ]
 }
