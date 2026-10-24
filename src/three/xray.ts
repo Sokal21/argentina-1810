@@ -11,6 +11,11 @@ import * as THREE from 'three';
 const SEEN = new THREE.MeshBasicMaterial({ color: '#c8281e', depthFunc: THREE.GreaterDepth, depthWrite: false });
 /** The order things are drawn in: scenery (0), the twins, then whoever they belong to. */
 const TWIN = 1, FIGURE = 2;
+/**
+ * What hides nobody: grass, low plants, fences. Drawn after the twins, so they are not yet there to be
+ * seen through (in front of anyone's feet, the grass lit them red all the while).
+ */
+export const UNHIDING = 3;
 
 /** Gives every mesh within `body` a red twin seen through whatever hides it. Once a body: twins are marked. */
 export function seenThrough(body: THREE.Object3D): void {

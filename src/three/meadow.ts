@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { UNHIDING } from './xray';
 import type { WorldMap } from '../world/zones';
 import { flat } from './paint';
 import { UPRIGHT } from './space';
@@ -52,6 +53,8 @@ export function growMeadow(map: WorldMap, terrain: Terrain, houses: { x: number;
   const across = Math.ceil(FIELD.across / CELL), deep = Math.ceil(FIELD.deep / CELL), count = across * deep;
   const mesh = new THREE.InstancedMesh(tuft(map), flat(), count);
   (mesh.material as THREE.MeshToonMaterial).side = THREE.DoubleSide;
+  // It hides nobody: nobody is shown in red through it.
+  mesh.renderOrder = UNHIDING;
   const slots = new Float32Array(count * 2);
   for (let k = 0; k < count; k++) { slots[k * 2] = k % across; slots[k * 2 + 1] = Math.floor(k / across); }
   mesh.geometry.setAttribute('slot', new THREE.InstancedBufferAttribute(slots, 2));

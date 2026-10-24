@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { UNHIDING } from './xray';
 import { ISO_Y } from '../machi/data';
 import { chance } from '../world/chance';
 import { FEET, FOOT, GROWN } from '../world/country';
@@ -324,6 +325,9 @@ function inPatches<T extends { x: number; y: number }>(things: T[]): T[][] {
   return [...patches.values()];
 }
 
+/** The plants that hide whoever is behind them, so that they are shown in red through them. */
+const TREES = new Set(['tala', 'ombu', 'ombu_chico']);
+
 function plantPlants(map: WorldMap): { meshes: THREE.InstancedMesh[]; taken: Footprint[] } {
   const byKind = new Map<string, ReturnType<typeof plantCountry>>();
   const taken: Footprint[] = [];
@@ -354,6 +358,8 @@ function plantPlants(map: WorldMap): { meshes: THREE.InstancedMesh[]; taken: Foo
       });
       mesh.computeBoundingSphere();
       mesh.castShadow = mesh.receiveShadow = true;
+      // Only trees hide anyone (shown in red through them); grass and low plants do not.
+      if (!TREES.has(kind)) mesh.renderOrder = UNHIDING;
       meshes.push(mesh);
     }
   }
@@ -373,6 +379,8 @@ function raiseFences(map: WorldMap): THREE.InstancedMesh[] {
       some.forEach((stake, i) => mesh.setMatrixAt(i, m.compose(ground(stake.x, stake.y), q, one)));
       mesh.computeBoundingSphere();
       mesh.castShadow = mesh.receiveShadow = true;
+      // A fence hides nobody: nobody is shown in red through it.
+      mesh.renderOrder = UNHIDING;
       return mesh;
     });
   }).flat();
