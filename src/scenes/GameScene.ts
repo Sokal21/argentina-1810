@@ -624,9 +624,9 @@ export class GameScene extends Phaser.Scene {
         this.talkers.push({ name: thing.name, x, y, hint, take: { what, drawn }, there: given ? () => !!this.story?.has(given) : undefined });
       }
       // What is to be brought somewhere waits where the map says, once there is reason to take it. In
-      // 3D, whoever walks there as a model of their own (Mateo); the carts are not modelled yet.
+      // 3D, whoever walks there as a model of their own (Mateo), and the ox carts (three/cart.ts).
       this.led = [];
-      for (const at of (this.three ? this.map?.charges?.filter(c => !c.drives && c.who && this.three!.leads(c.who)) : told?.charges) ?? []) {
+      for (const at of (this.three ? this.map?.charges?.filter(c => c.drives || (c.who && this.three!.leads(c.who))) : told?.charges) ?? []) {
         if (!this.textures.exists(at.sprite)) continue;
         const { x, y } = middle(at.from);
         const drawn = this.add.sprite(x, y, at.sprite).setOrigin(0.5, 1).setDepth(y).setVisible(false).setScale(at.scale ?? 1);
@@ -1098,6 +1098,7 @@ export class GameScene extends Phaser.Scene {
       const waiting = !charge.going && !arrived && (!at.given || !!this.story?.has(at.given));
       // Once it has arrived it stays where it was brought.
       drawn.setVisible(charge.going || waiting || arrived);
+      if (at.drives) this.three?.carted(at.id, dt, charge.going || waiting || arrived ? body : null, body.heading);
       // Standing where it waits or where it was brought, it stands as it stands still.
       if (!charge.going && (waiting || arrived)) this.pose(charge, false, false);
       if (!charge.going && arrived && at.who) this.three?.lead(at.who, body);

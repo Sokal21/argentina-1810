@@ -13,7 +13,8 @@ import { mountPanel } from './panel';
 import { People } from './people';
 import { Royalists, type Royalist } from './realista';
 import { Shots, type Strikes } from './shot';
-import { ground, onTheGround, UPRIGHT } from './space';
+import { ground, heading, onTheGround, UPRIGHT } from './space';
+import { Cart } from './cart';
 import { Errands } from './errands';
 import { Strewn } from './strewn';
 import { View } from './view';
@@ -30,6 +31,9 @@ const made = new Map<WorldMap, World3D>();
 const ROAR = { seconds: 0.45, pixels: 1 };
 /** How far under someone's question mark the sign of what F does stands (it was 100 high over everyone, 7 under a standing keeper's). */
 const SIGN_UNDER = 7;
+
+/** How fast an ox cart turns toward where it heads, a share of the way a second. */
+const CART_TURN = 2.5;
 
 export class World3D {
   readonly view: View;
@@ -169,6 +173,28 @@ export class World3D {
   /** Whether the ring of a place where something can be done is shown: while it can be. */
   open(spot: string, on: boolean): void {
     this.errands.open(spot, on);
+  }
+
+  /** The ox carts, by the charge each is: drawn where the 2D game has them, turned the way they go. */
+  private readonly carts = new Map<string, { cart: Cart; facing: number }>();
+
+  /**
+   * An ox cart, this step (the bell's, `campana`, with the bell in its bed): where it is on the 2D ground and which way it heads there (along the
+   * ground), or not shown. It turns toward where it heads by degrees, as a cart does.
+   */
+  carted(id: string, dt: number, at: Vec | null, toward: Vec): void {
+    let one = this.carts.get(id);
+    if (!one && at) {
+      one = { cart: new Cart(id === 'campana'), facing: heading(toward.x, toward.y) };
+      this.carts.set(id, one);
+      this.view.scene.add(one.cart.group);
+    }
+    if (!one) return;
+    one.cart.group.visible = !!at;
+    if (!at) return;
+    const want = heading(toward.x, toward.y), turn = Math.atan2(Math.sin(want - one.facing), Math.cos(want - one.facing));
+    one.facing += turn * Math.min(1, dt * CART_TURN);
+    one.cart.update(dt, ground(at.x, at.y), one.facing);
   }
 
   /** One led along by the hero: where they are on the 2D ground. */

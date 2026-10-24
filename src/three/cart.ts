@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { model } from './figure';
+import { flat } from './paint';
 import { Motion } from './motion';
 import { UPRIGHT } from './space';
 
@@ -21,6 +22,8 @@ const OX = { url: 'cosas/3d/buey/buey_animado.glb', drawn: 72 };
  * pole (shares of the cart's height), and the whole is drawn from `middle` ahead of the cart's.
  */
 const ON = { wheel: 0.348, yoke: 1.13, neck: 0.39, apart: 0.21, middle: 0.27 };
+/** The bell it may carry: how tall, as a share of the cart's height; where it lies in the bed (along it, up): at its tail, where it shows past the hide (under it, it was not seen from above). */
+const BELL = { tall: 0.24, along: -0.9, up: 0.33, bronze: '#a8783a', dark: '#5e4220' };
 /** Seconds between grazing and the next, the least and how much more at random, while it stands. */
 const GRAZE = { least: 5, more: 8 };
 
@@ -38,7 +41,8 @@ export class Cart {
   private readonly at = new THREE.Vector3();
   private readonly loading: Promise<void>;
 
-  constructor() {
+  /** `bell`: it carries the chapel's bell in its bed. */
+  constructor(private readonly bell = false) {
     this.loading = this.load();
   }
 
@@ -66,6 +70,7 @@ export class Cart {
       this.oxen.push(motion);
     }
     this.stride = this.oxen[0].reach('Walk', 'FrontLowerLeg.L') * ox.scale.x || 1;
+    if (this.bell) this.group.add(bell(h));
     this.group.traverse(o => { if (o instanceof THREE.Mesh) o.castShadow = o.receiveShadow = true; });
     this.ready = true;
   }
@@ -97,4 +102,21 @@ export class Cart {
       this.next = this.grazing + GRAZE.least + Math.random() * GRAZE.more;
     }
   }
+}
+
+/** A church bell lying in a cart's bed, mouth back: turned bronze, a dark lip and its crown's loop. */
+function bell(h: number): THREE.Object3D {
+  const t = BELL.tall * h;
+  const profile = [[0, 0], [0.5, 0.02], [0.52, 0.1], [0.42, 0.25], [0.33, 0.6], [0.3, 0.85], [0.2, 0.97], [0, 1]]
+    .map(([r, y]) => new THREE.Vector2(r * t, y * t));
+  const body = new THREE.Mesh(new THREE.LatheGeometry(profile, 12), flat(BELL.bronze));
+  const lip = new THREE.Mesh(new THREE.TorusGeometry(0.5 * t, 0.05 * t, 4, 12).rotateX(Math.PI / 2), flat(BELL.dark));
+  const loop = new THREE.Mesh(new THREE.TorusGeometry(0.12 * t, 0.04 * t, 4, 8), flat(BELL.dark));
+  loop.position.y = t * 1.05;
+  const it = new THREE.Group();
+  it.add(body, lip, loop);
+  // Lying on its side in the bed, its mouth toward the back.
+  it.rotation.x = -Math.PI / 2;
+  it.position.set(0, BELL.up * h, BELL.along * h);
+  return it;
 }
