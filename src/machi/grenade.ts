@@ -6,7 +6,7 @@ export const GRENADE = {
   flight: [0.55, 0.95] as [number, number], // seconds in the air, for the nearest and the furthest throw
   arc: 46,        // how high it climbs on the longest throw
   hand: 44,       // height it leaves his hand at
-  radius: 30,     // of the blast and of the fire it leaves
+  radius: 48,     // of the blast and of the fire it leaves
   damage: 2,      // of the blast
   burns: 4.5,     // seconds the fire lasts
   smoulder: 3,    // seconds something set alight goes on burning once it is out of the fire

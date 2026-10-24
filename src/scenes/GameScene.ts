@@ -74,8 +74,8 @@ const ZOOM = 1.5;
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
 /** The kinds of the king's men that have a model in 3D (three/realista.ts, LOOKS). */
 const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan']);
-/** With the gamepad a grenade lands this share of its reach straight ahead. */
-const PAD_THROW = 2 / 3;
+/** With the gamepad a grenade lands this share of its reach straight ahead: all of it, as the musket aims. */
+const PAD_THROW = 1;
 // Soldiers are kept this far apart on the ground, easing apart at this many of it a second: a squad
 // does not stand in one knot where a single swing takes them all. And the turn from one soldier's side
 // of the hero to the next, so that sides never repeat.

@@ -34,10 +34,11 @@ const ROAR = { seconds: 0.45, pixels: 1 };
 const SIGN_UNDER = 7;
 
 /**
- * The two carts left behind the chapel: how far to either side of their spot across the screen, how
- * far down it, which way they look (toward the camera). One behind the other, they hid each other.
+ * The two carts left behind the chapel: how far apart across the screen, how far right of their spot
+ * (on it, one stood in the belfry), how far down it, which way they look (toward the camera). One
+ * behind the other, they hid each other.
  */
-const PARKED = { apart: 48, down: 10, facing: 0.25 };
+const PARKED = { apart: 48, right: 80, down: 24, facing: 0.25 };
 /** The life bar over what is brought along: how wide and tall, in world units. */
 const LIFE = { wide: 40, tall: 4 };
 /** How fast an ox cart turns toward where it heads, a share of the way a second. */
@@ -101,7 +102,7 @@ export class World3D {
         cart.group.visible = false;
         this.parkedCarts.push(cart);
         this.view.scene.add(cart.group);
-        void cart.loaded.then(() => cart.update(0, ground(x + side * PARKED.apart, y + PARKED.down), PARKED.facing));
+        void cart.loaded.then(() => cart.update(0, ground(x + PARKED.right + side * PARKED.apart, y + PARKED.down), PARKED.facing));
       }
     }
     this.sign.style.cssText = "opacity:0;transition:opacity 0.25s;position:fixed;left:0;top:0;z-index:12;pointer-events:none;width:max-content;max-width:300px;text-align:center;font:16px/1.25 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
