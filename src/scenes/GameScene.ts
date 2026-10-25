@@ -69,6 +69,8 @@ import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Charge as 
 // Screen pixels per sprite pixel: drawn a little smaller than twice, so more of the country is seen
 // round the hero, as in Diablo.
 const ZOOM = 1.5;
+/** Inti's pace in 3D, in world units a second: Cabral's is 126 (three/look.ts). */
+const INTI_3D_SPEED = 115;
 // By touch: how near an enemy the sabre goes for by itself, how far off a musket dragged all
 // the way points, and how long an arm let go is kept up waiting to go off.
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
@@ -913,6 +915,8 @@ export class GameScene extends Phaser.Scene {
     const dodging = this.machi.isDashing;
     // In 3D his speed and his roll are the look's, which the panel may be changing.
     const in3d = this.shownIn3d;
+    // In 3D she goes a little slower than he does: at the 2D game's pace she crawled (the user, 25/10/2026).
+    if (in3d && this.hero === 'inti') this.machi.kit.speed = INTI_3D_SPEED;
     if (in3d && this.hero === 'cabral') {
       const { kit } = this.machi, look = this.three!.view.look;
       kit.speed = look.speed;
