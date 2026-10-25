@@ -217,7 +217,7 @@ export const BRAULIO: Script = {
       options: [
         {
           says: 'Decime al menos por dónde se sale al vado.',
-          answer: 'Por donde entraste, y derecho al norte. Más que eso no te debo.',
+          answer: 'Por donde entraste, y derecho al este. Más que eso no te debo.',
           animo: 0,
         },
         {
@@ -287,7 +287,7 @@ export const BRAULIO: Script = {
       options: [
         {
           says: '¿Para qué lado salió el chico?',
-          answer: 'Para el norte, al campo de la pelea, detrás del ruido como todos los chicos. Más no sé, y me lo pregunto cada noche.',
+          answer: 'Para el este, al campo de la pelea, detrás del ruido como todos los chicos. Más no sé, y me lo pregunto cada noche.',
           animo: 0,
         },
         {

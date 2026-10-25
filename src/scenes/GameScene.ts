@@ -1630,8 +1630,11 @@ export class GameScene extends Phaser.Scene {
     // A stand that was lost is over: those who came go back, and it can be made again.
     if (this.battle) {
       for (const soldier of this.battle.sent) soldier.dismiss();
+      // And those whoever commands them called up.
+      for (const called of this.called.values()) for (const soldier of called) soldier.dismiss();
+      this.called.clear();
       this.battle = undefined;
-      this.board?.say('No aguantaste. Podés volver a intentarlo.');
+      this.board?.say('No aguantaste. Volvé al vado para intentarlo de nuevo.');
     }
     this.machi.rise();
     this.machi.x = this.start.x;
