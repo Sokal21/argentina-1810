@@ -931,7 +931,8 @@ export class GameScene extends Phaser.Scene {
     this.machi.update(dt, input);
     // In 3D she turns the way her orbs will fly: toward what is aimed at, or the way the attack points.
     if (this.overlaid) {
-      this.castAt = input.target ?? null;
+      // Locked on, at the middle of their body as seen; she turns to where they stand.
+      this.castAt = this.locked ? { x: this.locked.body.x, y: this.locked.body.y } : input.target ?? null;
       this.three!.castWay(input.target ? { x: input.target.x - this.machi.x, y: (input.target.y - this.machi.y) / ISO_Y } : input.aim ?? null, !!this.locked);
     }
     if (in3d && this.hero === 'cabral' && this.machi.kit.dash) this.three!.cabral?.carry(this.machi, from, this.machi.kit.dash, dt);
@@ -1063,7 +1064,10 @@ export class GameScene extends Phaser.Scene {
       cast.x = tip.x;
       cast.y = tip.z * ISO_Y;
       cast.height = tip.y * Math.cos(PITCH);
-      const sx = (this.castAt?.x ?? 0) - cast.x, sy = ((this.castAt?.y ?? 0) - cast.y) / ISO_Y;
+      // It hits what it is seen to touch, high in the air: its drawn path, from the tip, is aimed at
+      // the spot on screen (the middle of whom she is locked onto; under the pointer, the ground there,
+      // which is where the pointer is seen). Aimed along the ground it flew over whoever was aimed at.
+      const sx = (this.castAt?.x ?? 0) - cast.x, sy = ((this.castAt?.y ?? 0) - (cast.y - cast.height)) / ISO_Y;
       if (this.castAt && Math.hypot(sx, sy) > 8) { cast.dx = sx; cast.dy = sy; }
     }
     if (cast) {
