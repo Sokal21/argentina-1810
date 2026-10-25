@@ -173,6 +173,16 @@ export class World3D {
     this.nahuel?.update(dt, brain);
   }
 
+  /** The way along the ground Inti casts this step, if she does. */
+  castWay(way: Vec | null): void {
+    if (this.hero instanceof IntiFigure) this.hero.aim = way;
+  }
+
+  /** Where the tip of Inti's branch is, as drawn. */
+  tip(): THREE.Vector3 | null {
+    return this.hero instanceof IntiFigure ? this.hero.tip() : null;
+  }
+
   /** Inti calls the lightning down on a patch. */
   strike(c: Vec, at: Vec): void {
     if (this.hero instanceof IntiFigure) this.hero.strike(c, at);

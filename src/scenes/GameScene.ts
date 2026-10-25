@@ -64,6 +64,7 @@ import { DRAW, SHOT as SLING, SIP } from '../three/cabral';
 import { sunCursor } from '../three/cursor';
 import { MODELS } from '../three/buildings';
 import { World3D } from '../three/world3d';
+import { PITCH } from '../three/space';
 import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Charge as Cargo, type Spot, type WorldMap } from '../world/zones';
 
 // Screen pixels per sprite pixel: drawn a little smaller than twice, so more of the country is seen
@@ -923,6 +924,11 @@ export class GameScene extends Phaser.Scene {
       if (kit.dash) { kit.dash.time = look.rollTime; kit.dash.distance = look.rollDistance; }
     }
     this.machi.update(dt, input);
+    // In 3D she turns the way her orbs will fly: toward what is aimed at, or the way the attack points.
+    if (this.overlaid) {
+      this.castAt = input.target ?? null;
+      this.three!.castWay(input.target ? { x: input.target.x - this.machi.x, y: (input.target.y - this.machi.y) / ISO_Y } : input.aim ?? null);
+    }
     if (in3d && this.hero === 'cabral' && this.machi.kit.dash) this.three!.cabral?.carry(this.machi, from, this.machi.kit.dash, dt);
     if (!dodging && this.machi.isDashing) this.stamina.dodge();
     // Enemies throw at her chest while she is up.
@@ -1046,6 +1052,15 @@ export class GameScene extends Phaser.Scene {
     const blow = this.machi.takeStrike();
     if (blow) this.land(blow);
     const cast = this.machi.takeCast();
+    // In 3D the orb leaves the tip of her branch as it is drawn there, toward what she aims at.
+    const tip = cast && this.overlaid ? this.three?.tip() : null;
+    if (cast && tip) {
+      cast.x = tip.x;
+      cast.y = tip.z * ISO_Y;
+      cast.height = tip.y * Math.cos(PITCH);
+      const sx = (this.castAt?.x ?? 0) - cast.x, sy = ((this.castAt?.y ?? 0) - cast.y) / ISO_Y;
+      if (this.castAt && Math.hypot(sx, sy) > 8) { cast.dx = sx; cast.dy = sy; }
+    }
     if (cast) {
       // The branch reaches well in front of her, so against something she is
       // standing next to the bolt would start already past it. Anything seen
@@ -1249,6 +1264,9 @@ export class GameScene extends Phaser.Scene {
    * Whether the 2D game still draws over the 3D world what has not been made in 3D yet (Inti's forest:
    * its creatures, her spells, her nahuel), on the world's own pixels, lined up with it.
    */
+  /** The spot her orbs are aimed at this step, in 3D, if any. */
+  private castAt: Vec | null = null;
+
   private get overlaid(): boolean {
     return !!this.three && this.hero === 'inti';
   }

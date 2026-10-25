@@ -26,7 +26,11 @@ const DRAWN = 81;
  * The share of 1h_magic_attack_02 at which the light leaves her branch, and of 1h_magic_attack_03 at
  * which she brings the lightning down: the clip is held there when the controller's cast goes off.
  */
-const RELEASE = { cast: 0.42, strike: 0.45 };
+// Measured on the model: at 0.25 her branch is thrust straight ahead (its tip 38 in front of her); after
+// it the arm sweeps right and behind her, where at 0.42 the orb left from behind her back.
+const RELEASE = { cast: 0.25, strike: 0.45 };
+/** What of her casts over her walk: her chest, neck and head, and both arms. */
+const UPPER = /^(Spine0[12]|NeckTwist0[12]|Head|[LR]_(Clavicle|Upperarm|Forearm|Hand)\w*)$/;
 /** How long her call to the lightning is shown, in seconds. */
 const STRIKE_TIME = 0.9;
 /** How fast she turns, per second; how quickly what she is taken to go at follows how fast she goes. */
@@ -47,6 +51,13 @@ export class IntiFigure {
   private wasFallen = false;
   /** Seconds left of her call to the lightning, once cast. */
   private striking = 0;
+  /** Her cast, for her upper body only: each bone, and how it turns along the clip. */
+  private upper: { bone: THREE.Object3D; at: THREE.Interpolant }[] = [];
+  private castSeconds = 1;
+  /** The tip of her branch: which point of it, in its own frame. */
+  private tipAt: THREE.Vector3 | null = null;
+  /** The way along the ground (not foreshortened) she casts, while she does; set by the game each step. */
+  aim: Vec | null = null;
 
   constructor() {
     void model('machi/3d/inti_animado.glb', DRAWN).then(loaded => {
@@ -55,6 +66,26 @@ export class IntiFigure {
       this.flash = flashes(loaded);
       seenThrough(loaded);
       for (const name of [CLIPS.run, ...Object.values(CLIPS.walk)]) this.reach[name] = this.motion.reach(name, 'L_Foot') * loaded.scale.x;
+      const cast = loaded.animations.find(a => a.name === CLIPS.cast);
+      if (cast) {
+        this.castSeconds = cast.duration;
+        for (const track of cast.tracks) {
+          const [name, what] = track.name.split('.');
+          const bone = loaded.getObjectByName(name);
+          if (bone && what === 'quaternion' && UPPER.test(name)) this.upper.push({ bone, at: (track as THREE.KeyframeTrack & { createInterpolant(): THREE.Interpolant }).createInterpolant() });
+        }
+      }
+      // The point of the branch furthest from the hand that holds it.
+      const branch = loaded.getObjectByName('rama');
+      if (branch instanceof THREE.Mesh && branch.parent) {
+        const points = branch.geometry.attributes.position as THREE.BufferAttribute, p = new THREE.Vector3();
+        const hand = branch.worldToLocal(branch.parent.getWorldPosition(new THREE.Vector3()));
+        let far = -1;
+        for (let i = 0; i < points.count; i++) {
+          const d = p.fromBufferAttribute(points, i).distanceTo(hand);
+          if (d > far) { far = d; this.tipAt = p.clone(); }
+        }
+      }
       this.group.add(loaded);
     });
   }
@@ -83,7 +114,8 @@ export class IntiFigure {
     this.striking = Math.max(0, this.striking - dt);
     // Casting she faces where she casts; otherwise, the way she goes. Rooted in a ritual she keeps her way.
     const casting = c.isAttacking;
-    const look = c.steer ? Math.atan2(c.steer.x, c.steer.y) : Math.atan2(c.faces.x, c.faces.y);
+    // Turned the way her orbs fly: where the game aims them.
+    const look = this.aim ? Math.atan2(this.aim.x, this.aim.y) : c.steer ? Math.atan2(c.steer.x, c.steer.y) : Math.atan2(c.faces.x, c.faces.y);
     if (!fallen && !c.isChanneling && this.striking === 0) {
       const want = casting ? look : walking ? heading(moved.x, moved.y) : null;
       if (want !== null) this.facing += wrap(want - this.facing) * Math.min(1, dt * TURN);
@@ -101,14 +133,15 @@ export class IntiFigure {
         const off = wrap(heading(moved.x, moved.y) - this.facing), q = Math.round(off / (Math.PI / 2));
         const name = q === 0 ? CLIPS.walk.ahead : Math.abs(q) === 2 ? CLIPS.walk.back : q === 1 ? CLIPS.walk.left : CLIPS.walk.right;
         motion.play(name, paced(name));
-      } else if (casting) {
-        // Each orb leaves her branch the moment the controller looses it.
-        const share = c.attackShare ?? 0, at = c.castShare ?? 0.75;
-        const k = ((share - at + RELEASE.cast) % 1 + 1) % 1;
-        motion.hold(CLIPS.cast, k, { blend: 0.08 });
-      } else if (c.isMoving) motion.play(CLIPS.run, paced(CLIPS.run));
+      } else if (casting) motion.hold(CLIPS.cast, this.castAt(c), { blend: 0.08 });
+      else if (c.isMoving) motion.play(CLIPS.run, paced(CLIPS.run));
       else motion.play(CLIPS.idle);
       motion.update(dt);
+      // Walking, her chest and arms cast over her legs' walk.
+      if (casting && walking && !fallen && !c.isDashing && !c.isChanneling && this.striking === 0) {
+        const t = this.castAt(c) * this.castSeconds;
+        for (const { bone, at } of this.upper) bone.quaternion.fromArray(at.evaluate(t) as unknown as number[]);
+      }
     }
     this.wasFallen = fallen;
     this.wasDashing = c.isDashing;
@@ -118,11 +151,17 @@ export class IntiFigure {
     this.group.rotation.y = this.facing;
   }
 
+  /** How far into her cast she is shown: each orb leaves her branch the moment the controller looses it. */
+  private castAt(c: MachiController): number {
+    const share = c.attackShare ?? 0, at = c.castShare ?? 0.75;
+    return ((share - at + RELEASE.cast) % 1 + 1) % 1;
+  }
+
   /** Where the tip of her branch is, once she has her model: where her orbs leave from. */
   tip(): THREE.Vector3 | null {
-    const branch = this.shaped?.getObjectByName('canelo');
-    if (!branch) return null;
-    const box = new THREE.Box3().setFromObject(branch);
-    return box.getCenter(new THREE.Vector3()).setY(box.max.y);
+    const branch = this.shaped?.getObjectByName('rama');
+    if (!branch || !this.tipAt) return null;
+    this.group.updateMatrixWorld(true);
+    return this.tipAt.clone().applyMatrix4(branch.matrixWorld);
   }
 }
