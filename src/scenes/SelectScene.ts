@@ -29,9 +29,8 @@ interface Card {
 }
 
 const CARDS: Card[] = [
-  // Not in 3D yet: she has neither her map nor her model.
   { hero: 'inti', name: 'Inti', calling: 'Machi · maná', accent: 0x46e6fa, w: 183, h: 320,
-    icons: ['hud/iconos/rayo.png', 'hud/iconos/lawen.png'], soon: 'Próximamente' },
+    icons: ['hud/iconos/rayo.png', 'hud/iconos/lawen.png'] },
   { hero: 'cabral', name: 'Cabral', calling: 'Granadero · furia', accent: 0xff7a00, w: 178, h: 314,
     icons: ['hud/iconos/mosquete.png', 'hud/iconos/granada.png'] },
 ];
