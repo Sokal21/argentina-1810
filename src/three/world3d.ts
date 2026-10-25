@@ -19,6 +19,8 @@ import { ground, heading, onTheGround, UPRIGHT } from './space';
 import { Cart } from './cart';
 import { Forest3D } from './forest';
 import { IntiFigure } from './inti';
+import { NahuelFigure } from './nahuel';
+import type { NahuelBrain } from '../nahuel/brain';
 import { Errands } from './errands';
 import { seenThrough } from './xray';
 import { Strewn } from './strewn';
@@ -52,6 +54,8 @@ export class World3D {
   readonly view: View;
   /** Whoever plays this map: Cabral, or Inti. */
   readonly hero: CabralFigure | IntiFigure;
+  /** Her nahuel, where it is she who plays. */
+  private readonly nahuel: NahuelFigure | null;
   readonly royalists = new Royalists();
   private readonly shots: Shots;
   /** The royalists' balls: they stop on whoever they reach, and burst on nothing. */
@@ -92,6 +96,7 @@ export class World3D {
 
   private constructor(map: WorldMap, private readonly parent: HTMLElement, hero: 'cabral' | 'inti') {
     this.hero = hero === 'inti' ? new IntiFigure() : new CabralFigure();
+    this.nahuel = hero === 'inti' ? new NahuelFigure() : null;
     this.view = new View(parent);
     // The look's panel, while developing: L, since P shows the game's collision boxes.
     if (import.meta.env.DEV) mountPanel(this.view, { key: 'KeyL', hidden: true });
@@ -116,7 +121,7 @@ export class World3D {
     }
     this.sign.style.cssText = "opacity:0;transition:opacity 0.25s;position:fixed;left:0;top:0;z-index:12;pointer-events:none;width:max-content;max-width:300px;text-align:center;font:16px/1.25 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
     document.body.appendChild(this.sign);
-    this.view.scene.add(country.group, new Forest3D(map).group, this.people.group, this.strewn.group, this.errands.group, this.hero.group, this.royalists.group, this.marks.group);
+    this.view.scene.add(country.group, new Forest3D(map).group, ...(this.nahuel ? [this.nahuel.group] : []), this.people.group, this.strewn.group, this.errands.group, this.hero.group, this.royalists.group, this.marks.group);
     // A sergeant's roar is felt: a faint shake of the camera, its rings leaving his feet.
     this.royalists.shoutFelt = () => this.view.jolt(ROAR.seconds, ROAR.pixels);
     for (const house of this.houses) this.view.over.add(...house.asks);
@@ -161,6 +166,11 @@ export class World3D {
     const hit = new THREE.Vector3(), way = this.view.camera.getWorldDirection(new THREE.Vector3());
     new THREE.Ray(this.view.camera.position, way).intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit);
     return { x: hit.x, y: hit.z * ISO_Y };
+  }
+
+  /** Her nahuel, as its brain has it this step. */
+  beast(dt: number, brain: NahuelBrain): void {
+    this.nahuel?.update(dt, brain);
   }
 
   /** Inti calls the lightning down on a patch. */

@@ -1834,6 +1834,8 @@ export class GameScene extends Phaser.Scene {
       this.shake(200, 0.004);
     }
     const torn = this.nahuel.update(dt, this.foes.map(f => ({ ...f.ground, girth: f.girth, alive: f.alive, foe: f })), this.machi);
+    this.nahuel.hidden = this.overlaid;
+    if (this.overlaid) this.three?.beast(dt, this.nahuel.brain);
     if (torn) {
       const { foe } = torn as typeof torn & { foe: Foe };
       const at = this.nahuel.ground;

@@ -19,7 +19,9 @@ const LIGHT = 0x46e6fa;   // the light it comes out of and goes back into: her s
 
 /** The nahuel on screen: draws what its brain is doing. */
 export class Nahuel {
-  private brain = new NahuelBrain();
+  readonly brain = new NahuelBrain();
+  /** Drawn in 3D instead (three/nahuel.ts): only its bursts of light are drawn here. */
+  hidden = false;
   private sprite: Phaser.GameObjects.Sprite;
   private shadow: Phaser.GameObjects.Ellipse;
   /** Runs its gallop. */
@@ -112,7 +114,7 @@ export class Nahuel {
 
   private draw(): void {
     const b = this.brain;
-    if (!b.present) {
+    if (!b.present || this.hidden) {
       this.sprite.setVisible(false);
       this.shadow.setVisible(false);
       this.pool.setVisible(false);
