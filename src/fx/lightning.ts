@@ -15,6 +15,8 @@ interface Bolt { x: number; y: number; radius: number; t: number; next: number }
  */
 export class Lightning {
   private live: Bolt[] = [];
+  /** Drawn in 3D instead (three/lightning.ts): nothing of it is drawn here, nor is this camera shaken. */
+  hidden = false;
   private lines: Phaser.GameObjects.Graphics;
   private ground: Phaser.GameObjects.Graphics;
   private sparks: Phaser.GameObjects.Particles.ParticleEmitter;
@@ -42,6 +44,7 @@ export class Lightning {
 
   /** A bolt lands on the patch of this radius centred here. */
   strike(x: number, y: number, radius: number): void {
+    if (this.hidden) return;
     this.live.push({ x, y, radius, t: 0, next: 0 });
     this.sparks.emitParticleAt(x, y, 26);
     this.scene.cameras.main.shake(140, 0.004);

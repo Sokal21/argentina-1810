@@ -499,6 +499,7 @@ export class GameScene extends Phaser.Scene {
     // What the royalists fire is tested along its path each step (see update): it flies too fast for the physics engine.
 
     this.lightning = new Lightning(this);
+    this.lightning.hidden = this.overlaid;
     this.marks = this.add.graphics().setDepth(-1000);
     this.slashes = this.add.graphics().setDepth(1e6).setBlendMode(Phaser.BlendModes.ADD);
     // The grenade: a ball of black iron with its fuse alight.
@@ -1255,7 +1256,7 @@ export class GameScene extends Phaser.Scene {
         o.glow.setVisible(false);
         o.shadow.setVisible(false);
         return { x: o.x, y: o.y, up: o.y - o.glow.y, alpha: o.glow.alpha, scale: o.glow.scaleX };
-      }));
+      }), this.abilities.pending.map(p => ({ x: p.x, y: p.y, share: Math.min(1, p.t / STRIKE.delay) })));
       this.three.draw({ x: this.machi.x, y: this.machi.y - CHEST }, dt);
       // What is still drawn in 2D, over it: on its pixels, about the same spot.
       if (this.overlaid) {
@@ -1600,6 +1601,8 @@ export class GameScene extends Phaser.Scene {
     if (events.cast && this.shownIn3d) this.three?.strike(this.machi, events.cast);
     for (const patch of events.struck) {
       this.lightning.strike(patch.x, patch.y, STRIKE.radius);
+      // In 3D it falls there, lighting what stands about; the 3D camera is shaken instead.
+      if (this.overlaid) { this.three?.bolt(patch.x, patch.y, STRIKE.radius); this.shake(140, 0.004); }
       // Whatever stands on the patch, or flies over it, takes the bolt.
       for (const enemy of this.foes) {
         const spot = enemy.ground;

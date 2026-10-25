@@ -21,6 +21,7 @@ import { Forest3D } from './forest';
 import { IntiFigure } from './inti';
 import { NahuelFigure } from './nahuel';
 import { Orbs, type Flying, type Soul } from './orbs';
+import { Lightning3D } from './lightning';
 import type { NahuelBrain } from '../nahuel/brain';
 import { Errands } from './errands';
 import { seenThrough } from './xray';
@@ -59,6 +60,8 @@ export class World3D {
   private readonly nahuel: NahuelFigure | null;
   /** Her orbs, in flight and on the ground, and their light. */
   private readonly orbs: Orbs | null;
+  /** Her lightning, and its light. */
+  private readonly lightning: Lightning3D | null;
   readonly royalists = new Royalists();
   private readonly shots: Shots;
   /** The royalists' balls: they stop on whoever they reach, and burst on nothing. */
@@ -101,6 +104,7 @@ export class World3D {
     this.hero = hero === 'inti' ? new IntiFigure() : new CabralFigure();
     this.nahuel = hero === 'inti' ? new NahuelFigure() : null;
     this.orbs = hero === 'inti' ? new Orbs() : null;
+    this.lightning = hero === 'inti' ? new Lightning3D() : null;
     this.view = new View(parent);
     // The look's panel, while developing: L, since P shows the game's collision boxes.
     if (import.meta.env.DEV) mountPanel(this.view, { key: 'KeyL', hidden: true });
@@ -125,7 +129,7 @@ export class World3D {
     }
     this.sign.style.cssText = "opacity:0;transition:opacity 0.25s;position:fixed;left:0;top:0;z-index:12;pointer-events:none;width:max-content;max-width:300px;text-align:center;font:16px/1.25 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
     document.body.appendChild(this.sign);
-    this.view.scene.add(country.group, new Forest3D(map).group, ...(this.nahuel ? [this.nahuel.group] : []), ...(this.orbs ? [this.orbs.group] : []), this.people.group, this.strewn.group, this.errands.group, this.hero.group, this.royalists.group, this.marks.group);
+    this.view.scene.add(country.group, new Forest3D(map).group, ...(this.nahuel ? [this.nahuel.group] : []), ...(this.orbs ? [this.orbs.group] : []), ...(this.lightning ? [this.lightning.group] : []), this.people.group, this.strewn.group, this.errands.group, this.hero.group, this.royalists.group, this.marks.group);
     // A sergeant's roar is felt: a faint shake of the camera, its rings leaving his feet.
     this.royalists.shoutFelt = () => this.view.jolt(ROAR.seconds, ROAR.pixels);
     for (const house of this.houses) this.view.over.add(...house.asks);
@@ -188,8 +192,14 @@ export class World3D {
   }
 
   /** Inti's orbs as the 2D game has them this step: in flight, and lying on the ground. */
-  lights(dt: number, flying: readonly Flying[], souls: readonly Soul[]): void {
+  lights(dt: number, flying: readonly Flying[], souls: readonly Soul[], waiting: readonly { x: number; y: number; share: number }[] = []): void {
     this.orbs?.update(dt, flying, souls, this.hero.position);
+    this.lightning?.update(dt, waiting);
+  }
+
+  /** Inti's lightning falls on a patch of the 2D ground. */
+  bolt(x: number, y: number, radius: number): void {
+    this.lightning?.strike(x, y, radius);
   }
 
   /** Inti calls the lightning down on a patch. */
