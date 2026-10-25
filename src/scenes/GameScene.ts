@@ -460,6 +460,8 @@ export class GameScene extends Phaser.Scene {
     for (const foe of this.foes) this.physics.add.overlap(this.bolts.bodies, foe.zone, this.struck);
     this.balls = new Bolts(this, this.size.width, this.size.height, BALL);
     this.balls.seen = !this.three;
+    // Inti's are drawn in 3D (three/orbs.ts).
+    this.bolts.seen = !this.overlaid;
     if (this.three) {
       // The 3D ball stops at whoever it is seen to reach along the ground, as the 2D ball bursts on them.
       this.three.strikes = (from, to) => {
@@ -1248,6 +1250,12 @@ export class GameScene extends Phaser.Scene {
         fallen: !this.vitals.standing, dashTime: this.machi.kit.dash?.time ?? 0.5, trail: true,
       }, this.realistas.filter((r): r is Realista | Trooper => r instanceof Realista || IN_3D.has(r.kind)));
       // Framed a little above his feet, so his body is in the middle.
+      // Her orbs are drawn in 3D, lit: in flight, and those her kills leave on the ground.
+      if (this.overlaid) this.three.lights(dt, this.bolts.flying, this.orbs.map(o => {
+        o.glow.setVisible(false);
+        o.shadow.setVisible(false);
+        return { x: o.x, y: o.y, up: o.y - o.glow.y, alpha: o.glow.alpha, scale: o.glow.scaleX };
+      }));
       this.three.draw({ x: this.machi.x, y: this.machi.y - CHEST }, dt);
       // What is still drawn in 2D, over it: on its pixels, about the same spot.
       if (this.overlaid) {

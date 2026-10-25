@@ -42,6 +42,8 @@ export const SHOT: BoltKind = {
 };
 
 interface Bolt {
+  /** Which it is, for whoever draws it elsewhere (the 3D world). */
+  id: number;
   orb: Phaser.GameObjects.Image;
   shadow: Phaser.GameObjects.Ellipse;
   /** Invisible box on the orb that the physics engine tests. */
@@ -65,6 +67,7 @@ interface Bolt {
 /** The spells in flight: an orb, the shadow under it and a trail of sparks. */
 export class Bolts {
   private live: Bolt[] = [];
+  private made = 0;
   /**
    * The orbs' boxes. A spell hits what it is seen to touch: its place on the
    * ground can be far below the orb, and testing that instead made spells
@@ -99,6 +102,7 @@ export class Bolts {
     const len = Math.hypot(cast.dx, cast.dy) || 1;
     const spot = this.scene.add.zone(cast.x, cast.y - cast.height, 7, 7);
     const bolt: Bolt = {
+      id: ++this.made,
       orb: this.scene.add.image(0, 0, this.kind.key).setVisible(this.seen),
       shadow: this.scene.add.ellipse(cast.x, cast.y, 8, 4, 0x000000, 0.22).setVisible(this.seen),
       spot,
@@ -114,6 +118,11 @@ export class Bolts {
     this.live.push(bolt);
     this.bodies.add(spot);
     spot.setData('bolt', bolt);
+  }
+
+  /** Those in flight: where each is on the ground, and how high over it. */
+  get flying(): { id: number; x: number; y: number; z: number }[] {
+    return this.live.filter(b => !b.spent).map(({ id, x, y, z }) => ({ id, x, y, z }));
   }
 
   /** The bolt whose spot this is has hit something. Returns its heading on screen. */
