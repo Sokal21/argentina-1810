@@ -113,6 +113,8 @@ export class World3D {
     this.lightning = hero === 'inti' ? new Lightning3D() : null;
     this.healing = hero === 'inti' ? new Healing3D() : null;
     this.calling = hero === 'inti' ? new Calling3D() : null;
+    // Each beat of her kultrún a tremor, growing toward the nahuel's coming.
+    if (this.calling) this.calling.felt = beat => this.view.jolt(0.12, beat);
     this.view = new View(parent);
     // The look's panel, while developing: L, since P shows the game's collision boxes.
     if (import.meta.env.DEV) mountPanel(this.view, { key: 'KeyL', hidden: true });
@@ -454,8 +456,8 @@ export class World3D {
   }
 
   /** The camera shakes, as the 2D game's does when a blow is felt. */
-  jolt(seconds: number, pixels: number): void {
-    this.view.jolt(seconds, pixels);
+  jolt(seconds: number, pixels: number, fading = false): void {
+    this.view.jolt(seconds, pixels, fading);
   }
 
   /** The spot of the 2D game's ground under a point of the screen (in the page's pixels). */

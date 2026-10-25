@@ -32,6 +32,8 @@ export class Calling3D {
   /** The shaft from her to where the nahuel comes out, and the flare there, while they last. */
   private shaft: { lines: THREE.Group; flare: THREE.Sprite; at: THREE.Vector3; t: number } | null = null;
   private beaten = 0;
+  /** Felt as each beat falls, but the last (set by whoever shows it: a tremor of the camera). */
+  felt: (beat: number) => void = () => {};
   private beat = Infinity;
   private time = 0;
 
@@ -73,6 +75,7 @@ export class Calling3D {
     while (on && this.beaten < BEATS.length && k >= BEATS[this.beaten]) {
       this.beaten++;
       this.beat = 0;
+      if (this.beaten < BEATS.length) this.felt(this.beaten);
       this.ring(feet, BEAT.ring);
       for (let i = 0; i < 10; i++) this.mote(feet, 0.4 + Math.random() * 0.3, CALL.high * 0.6, CALL.round * (0.5 + Math.random()));
     }

@@ -159,11 +159,21 @@ export class View {
   /** Seconds the camera still shakes for, and how far, in the world's pixels. */
   private shaking = 0;
   private shake = 0;
+  /** How long a fading shake lasts in all, or 0 for one that does not fade. */
+  private shakeFor = 0;
 
   /** Shakes the camera, as a blow that connects is felt. */
-  jolt(seconds: number, pixels: number): void {
+  jolt(seconds: number, pixels: number, fading = false): void {
+    // A small blow does not cut short a great shake under way.
+    if (this.shaking > 0 && this.shake * this.left() > pixels) return;
     this.shaking = Math.max(this.shaking, seconds);
     this.shake = pixels;
+    this.shakeFor = fading ? seconds : 0;
+  }
+
+  /** How strong the shake still is, 0 to 1: dying away if it fades, whole until it ends if not. */
+  private left(): number {
+    return this.shakeFor > 0 ? Math.max(0, this.shaking / this.shakeFor) : 1;
   }
 
   /** Keeps a spot on the ground in the middle of the screen. */
@@ -173,8 +183,9 @@ export class View {
     if (this.shaking > 0) {
       this.shaking -= dt;
       const k = this.look.far;
-      eye.addScaledVector(this.right, Math.round((Math.random() * 2 - 1) * this.shake) * k);
-      eye.addScaledVector(this.up, Math.round((Math.random() * 2 - 1) * this.shake) * k);
+      const far = this.shake * this.left();
+      eye.addScaledVector(this.right, Math.round((Math.random() * 2 - 1) * far) * k);
+      eye.addScaledVector(this.up, Math.round((Math.random() * 2 - 1) * far) * k);
     }
     // On whole pixels along the screen's two ways; along the third it makes no difference.
     const unit = this.look.far, r = eye.dot(this.right), u = eye.dot(this.up);
