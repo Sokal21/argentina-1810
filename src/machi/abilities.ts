@@ -72,6 +72,11 @@ export class Abilities {
     return this.ritual !== null;
   }
 
+  /** How far into the healing ritual she is, 0 to 1, while she is in it. */
+  get healShare(): number | null {
+    return this.ritual === null ? null : Math.min(1, this.ritual / HEAL.time);
+  }
+
   /** It could be used right now: off cooldown and paid for. */
   ready(ability: Ability): boolean {
     return this.waits[ability] === 0 && this.mana >= SPEC[ability].cost && this.ritual === null;

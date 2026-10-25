@@ -30,7 +30,7 @@ const SOUL = { heart: 6, halo: 20, pool: 90, poolBright: 0.5, higher: 1.6, light
  * to a quarter of the way out, it lay on the ground as a hard round patch).
  */
 let softened: THREE.Texture | null = null;
-function soft(): THREE.Texture {
+export function soft(): THREE.Texture {
   if (softened) return softened;
   const size = 64, canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;

@@ -1259,7 +1259,7 @@ export class GameScene extends Phaser.Scene {
         o.glow.setVisible(false);
         o.shadow.setVisible(false);
         return { x: o.x, y: o.y, up: o.y - o.glow.y, alpha: o.glow.alpha, scale: o.glow.scaleX };
-      }), this.abilities.pending.map(p => ({ x: p.x, y: p.y, share: Math.min(1, p.t / STRIKE.delay) })));
+      }), this.abilities.pending.map(p => ({ x: p.x, y: p.y, share: Math.min(1, p.t / STRIKE.delay) })), this.abilities.healShare);
       this.three.draw({ x: this.machi.x, y: this.machi.y - CHEST }, dt);
       // What is still drawn in 2D, over it: on its pixels, about the same spot.
       if (this.overlaid) {
@@ -1276,7 +1276,8 @@ export class GameScene extends Phaser.Scene {
 
   /** Life or mana comes back to the hero, seen in its colour: in 2D, and in 3D where he is drawn there. */
   private mend(colour: number): void {
-    this.mending?.begin(colour, this.machi);
+    // Over the 3D world it is drawn there only.
+    if (!this.overlaid) this.mending?.begin(colour, this.machi);
     if (this.shownIn3d) this.three?.mend(colour);
   }
 
@@ -1591,12 +1592,14 @@ export class GameScene extends Phaser.Scene {
     });
 
     if (events.healing) this.machi.channel(HEAL.time);
-    if (this.abilities.isHealing && Math.random() < dt * 40) {
+    if (this.abilities.isHealing && !this.overlaid && Math.random() < dt * 40) {
       this.motes.emitParticleAt(at.x + Phaser.Math.Between(-10, 10), at.y - Phaser.Math.Between(10, 70), 1);
     }
     if (events.healed) {
       this.vitals.heal(HEAL.amount * this.growth.gives('second'));
-      for (let i = 0; i < 24; i++) {
+      // In 3D it is seen there (three/healing.ts), as she heals and as it is done.
+      if (this.overlaid) this.three?.healed();
+      for (let i = 0; i < (this.overlaid ? 0 : 24); i++) {
         this.motes.emitParticleAt(at.x + Phaser.Math.Between(-14, 14), at.y - Phaser.Math.Between(0, 75), 1);
       }
     }
