@@ -14,3 +14,4 @@ __pycache__/
 
 # Mixamo animations: usable in the game, not to be handed on as they come (see tools/mocap/README.md).
 tools/mocap/*.fbx
+tools/mocap/**/*.fbx
