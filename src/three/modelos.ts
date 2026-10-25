@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { MODELS } from './buildings';
 import { Cart } from './cart';
+import { Spirit } from './spirit';
 import { CABRAL_DRESS, model } from './figure';
 import { Fling } from './fling';
 import { Motion } from './motion';
@@ -17,7 +18,7 @@ import { View } from './view';
 // kinds of the king's men with a model of their own, whoever keeps a house), and a model's clips are
 // read off its file, so a new character or a new clip is here as soon as the game has it.
 
-interface Who { name: string; url: string; drawn: number; cart?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge'] }
+interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge'] }
 
 /** The kinds of the king's men, named as the game names them. */
 const KIND_NAMES: Record<string, string> = { sargento: 'Sargento', capitan: 'El capitán', sableador: 'Sableador', tirador: 'Tirador' };
@@ -42,7 +43,7 @@ const WHO: Who[] = [
   // Inti's nahuel: Quaternius's wolf (CC0) in the slate blue of her spirit, its eyes her spells' cyan; its
   // own clips. A puma of ours was tried on the wolf's and the sabre-tooth's skeletons and keyed by hand
   // (puma_animado.glb): its long legs went through its own body as they gathered.
-  { name: 'Nahuel', url: 'nahuel/3d/nahuel_animado.glb', drawn: 52 },
+  { name: 'Nahuel', url: 'nahuel/3d/nahuel_animado.glb', drawn: 52, spirit: true },
   { name: 'Puma (intento)', url: 'nahuel/3d/puma_animado.glb', drawn: 52 },
   // The ox cart whole, as the game draws it (three/cart.ts): going, its wheels rolling and its oxen
   // walking, in place; or standing, its oxen breathing and grazing now and then.
@@ -97,6 +98,7 @@ floor.receiveShadow = true;
 view.scene.add(floor);
 view.follow(new THREE.Vector3(0, 30, 0));
 
+const spirits: Spirit[] = [];
 const loaded = new Map<Who, { body: THREE.Group; motion: Motion; clips: string[]; flung: Fling; home: number }>();
 let shown: Who[] = [], clip = 'reposo_mixamo', into = 0, paused = false, turn = 0, pace = 1, loop = true;
 
@@ -135,6 +137,8 @@ async function load(w: Who) {
   let it = loaded.get(w);
   if (!it) {
     const body = await model(w.url, w.drawn);
+    // A spirit, as the game shows it: its halo, its inner light, its motes, its pool of light.
+    if (w.spirit) { const s = new Spirit(body); spirits.push(s); view.scene.add(s.group); }
     const clips = body.animations.map(a => a.name);
     clips.sort((a, b) => (FIRST.indexOf(a) + 1 || 99) - (FIRST.indexOf(b) + 1 || 99) || a.localeCompare(b));
     it = { body, motion: new Motion(body), clips, flung: new Fling(() => 0), home: 0 };
@@ -306,6 +310,7 @@ view.renderer.setAnimationLoop(() => {
     carried(w, it.body);
   }
   step(dt);
+  for (const s of spirits) s.update(dt);
   told.textContent = `${shown.length > 1 ? 'Todos' : shown[0]?.name ?? ''} — ${clip}${paused ? ' (pausa)' : ''}`;
   view.draw();
 });
