@@ -2646,6 +2646,26 @@
       "asset_id": "f16c452c-1349-4645-a44e-c60899f0b703",
       "label": "Inti 3D turnaround B",
       "file": "assets/machi/3d/giro_b.png"
+    },
+    {
+      "asset_id": "ad6e0117-d589-40ad-bc2a-91a02a28ee43",
+      "label": "kultrún concept A",
+      "file": "assets/machi/3d/objetos/kultrun_a.png"
+    },
+    {
+      "asset_id": "affebbc6-4987-477f-89c7-35724c2b45db",
+      "label": "kultrún concept B",
+      "file": "assets/machi/3d/objetos/kultrun_b.png"
+    },
+    {
+      "asset_id": "e12386cc-b89d-417d-ab1b-ec12bc61bc83",
+      "label": "canelo branch concept A",
+      "file": "assets/machi/3d/objetos/rama_a.png"
+    },
+    {
+      "asset_id": "711aacf6-edb7-4053-bcdb-45f25e7d4c26",
+      "label": "canelo branch concept B",
+      "file": "assets/machi/3d/objetos/rama_b.png"
     }
   ]
 }
