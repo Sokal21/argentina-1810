@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { glow } from './realista';
+import { ISO_Y } from '../machi/data';
 import { ground, UPRIGHT } from './space';
 
 // Inti's lights in 3D, as the 2D game reckons them: the orbs of her basic spell in flight, and the orbs
@@ -11,11 +12,37 @@ import { ground, UPRIGHT } from './space';
 
 const CYAN = new THREE.Color('#46e6fa'), HEART = new THREE.Color('#e8ffff');
 /** In flight: the heart's and halo's sizes, the pool under it, its light, its trail. */
-const FLYING = { heart: 7, halo: 26, pool: 60, poolBright: 0.8, light: 500, reach: 300, motes: 40, moteLife: 0.35, moteSize: 3 };
+const FLYING = { heart: 7, halo: 26, pool: 110, poolBright: 0.55, light: 500, reach: 300, motes: 90, moteLife: 0.45, moteSize: 3, swirl: 10 };
+/**
+ * Gathering at her branch tip while she winds up (it popped out whole at the release: the user wanted
+ * it to form): it grows from nothing to its full size, its light rising with it, and motes are drawn
+ * in to it from about it, more and more.
+ */
+const FORMING = { from: 22, motes: 70, moteLife: 0.3, light: 0.6 };
+/** Once loosed it is at full size; over this long its halo flares a little and settles. */
+const FLARE = { time: 0.12, more: 0.35 };
 /** Where it ends: how long its flash lasts, how big it grows, how many sparks fly and how fast. */
 const BURST = { life: 0.28, size: 36, sparks: 10, speed: 70, sparkLife: 0.4 };
 /** On the ground: sizes, how much higher than the 2D game's 12 it floats (seen from above it lay flat), its light. */
-const SOUL = { heart: 6, halo: 20, pool: 44, poolBright: 0.7, higher: 1.6, light: 70, reach: 170 };
+const SOUL = { heart: 6, halo: 20, pool: 90, poolBright: 0.5, higher: 1.6, light: 70, reach: 170 };
+/**
+ * The light on the ground, soft: falling away from its heart with no edge (with the glow's picture, bright
+ * to a quarter of the way out, it lay on the ground as a hard round patch).
+ */
+let softened: THREE.Texture | null = null;
+function soft(): THREE.Texture {
+  if (softened) return softened;
+  const size = 64, canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const g = canvas.getContext('2d')!, light = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  for (let i = 0; i <= 8; i++) {
+    const k = i / 8;
+    light.addColorStop(k, `rgba(255,255,255,${Math.exp(-k * k * 5) * (1 - k)})`);
+  }
+  g.fillStyle = light;
+  g.fillRect(0, 0, size, size);
+  return softened = new THREE.CanvasTexture(canvas);
+}
 /**
  * How the light falls off (three's lights fall off as the world does: an orb in flight is over 100 up,
  * and at 14 with a reach of 150 it hardly reached the ground). How many real lights each has, lent to
@@ -35,7 +62,9 @@ export class Orbs {
   private readonly poolShape = new THREE.CircleGeometry(0.5, 20).rotateX(-Math.PI / 2);
   private readonly flyingLights: THREE.PointLight[] = [];
   private readonly soulLights: THREE.PointLight[] = [];
-  private readonly flying = new Map<number, Shown & { at: THREE.Vector3 }>();
+  private readonly flying = new Map<number, Shown & { at: THREE.Vector3; age: number }>();
+  /** The orb gathering at her branch tip, while there is one. */
+  private gathering: Shown | null = null;
   private souls: Shown[] = [];
   private motes: Mote[] = [];
   private bursts: { flash: THREE.Sprite; t: number }[] = [];
@@ -59,7 +88,7 @@ export class Orbs {
       // edges), and none is toned down with the scene.
       heart: new THREE.Sprite(new THREE.SpriteMaterial({ map: glow(), color: HEART, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })),
       halo: new THREE.Sprite(new THREE.SpriteMaterial({ map: glow(), color: CYAN, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })),
-      pool: new THREE.Mesh(this.poolShape, new THREE.MeshBasicMaterial({ map: glow(), color: CYAN, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })),
+      pool: new THREE.Mesh(this.poolShape, new THREE.MeshBasicMaterial({ map: soft(), color: CYAN, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })),
     };
     shown.heart.scale.setScalar(heart);
     shown.halo.scale.setScalar(halo);
@@ -97,17 +126,44 @@ export class Orbs {
   }
 
   /** Every orb as the 2D game has it this step; `near` is where she stands, to lend the lights to those nearest. */
-  update(dt: number, flying: readonly Flying[], souls: readonly Soul[], near: THREE.Vector3): void {
+  update(dt: number, flying: readonly Flying[], souls: readonly Soul[], near: THREE.Vector3, forming: { at: THREE.Vector3; share: number } | null = null): void {
     this.time += dt;
+    // Gathering at her branch tip: growing, motes drawn in to it.
+    if (forming && !this.gathering) this.gathering = this.make(0, 0, FLYING.pool);
+    if (!forming && this.gathering) { this.drop(this.gathering); this.gathering = null; }
+    if (forming && this.gathering) {
+      const k = forming.share, grown = k * k;
+      this.gathering.heart.position.copy(forming.at);
+      this.gathering.halo.position.copy(forming.at);
+      this.gathering.heart.scale.setScalar(FLYING.heart * grown);
+      this.gathering.halo.scale.setScalar(FLYING.halo * grown);
+      this.gathering.heart.material.opacity = this.gathering.halo.material.opacity = 0.4 + 0.6 * k;
+      this.gathering.pool.position.copy(ground(forming.at.x, forming.at.z * ISO_Y, 0.6));
+      (this.gathering.pool.material as THREE.MeshBasicMaterial).opacity = FLYING.poolBright * grown;
+      if (Math.random() < dt * FORMING.motes * (0.3 + k)) {
+        const from = new THREE.Vector3().randomDirection().multiplyScalar(FORMING.from * (0.6 + Math.random() * 0.4));
+        this.mote(forming.at.clone().add(from), from.clone().multiplyScalar(-1 / FORMING.moteLife), FORMING.moteLife, 2 + Math.random() * 2);
+      }
+    }
     // In flight: made as they leave, moved, trailing motes; burst as they end.
     const seen = new Set<number>();
     for (const f of flying) {
       seen.add(f.id);
       let shown = this.flying.get(f.id);
-      if (!shown) this.flying.set(f.id, shown = { ...this.make(FLYING.heart, FLYING.halo, FLYING.pool), at: new THREE.Vector3() });
+      if (!shown) this.flying.set(f.id, shown = { ...this.make(FLYING.heart, FLYING.halo, FLYING.pool), at: new THREE.Vector3(), age: 0 });
+      shown.age += dt;
       const flicker = 0.85 + 0.15 * Math.sin(this.time * 40 + f.id);
       shown.at.copy(this.place(shown, f.x, f.y, f.z * UPRIGHT, flicker, FLYING.poolBright));
-      if (Math.random() < dt * FLYING.motes) this.mote(shown.at, new THREE.Vector3((Math.random() - 0.5) * 8, 6 + Math.random() * 8, (Math.random() - 0.5) * 8), FLYING.moteLife, FLYING.moteSize);
+      // Just loosed, its halo flares and settles.
+      const flare = Math.max(0, 1 - shown.age / FLARE.time);
+      shown.halo.scale.setScalar(FLYING.halo * (1 + FLARE.more * flare));
+      // Motes shed off it, swirling a little as they drift and fade.
+      const motes = Math.floor(dt * FLYING.motes) + (Math.random() < (dt * FLYING.motes) % 1 ? 1 : 0);
+      for (let i = 0; i < motes; i++) {
+        const a = Math.random() * Math.PI * 2, r = Math.random() * 3;
+        const at = shown.at.clone().add(new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, 0));
+        this.mote(at, new THREE.Vector3(Math.cos(a) * FLYING.swirl, 4 + Math.random() * 10, Math.sin(a) * FLYING.swirl), FLYING.moteLife * (0.6 + Math.random() * 0.6), FLYING.moteSize * (0.5 + Math.random()));
+      }
     }
     for (const [id, shown] of this.flying) {
       if (seen.has(id)) continue;
@@ -133,7 +189,8 @@ export class Orbs {
         if (spot) light.position.copy(spot.at);
       });
     };
-    lend(this.flyingLights, [...this.flying.values()].map(s => ({ at: s.at, bright: 1 })), FLYING.light);
+    lend(this.flyingLights, [...[...this.flying.values()].map(s => ({ at: s.at, bright: 1 })),
+      ...(forming ? [{ at: forming.at, bright: FORMING.light * forming.share * forming.share }] : [])], FLYING.light);
     lend(this.soulLights, this.souls.map(s => ({ at: s.heart.position, bright: (s.halo.material.opacity) })), SOUL.light);
     // Bursts and motes, fading.
     for (const b of this.bursts) {

@@ -102,6 +102,8 @@ export class IntiFigure {
   /** How much the cast is over her (0 to 1), and where in it she was last. */
   private over = 0;
   private castK = 0;
+  /** Whether she is winding up a cast this step, for her orb to gather at her branch tip. */
+  private winding = false;
 
   constructor() {
     void model('machi/3d/inti_animado.glb', DRAWN).then(loaded => {
@@ -205,6 +207,7 @@ export class IntiFigure {
       const free = !fallen && !c.isDashing && !c.isChanneling && this.striking === 0;
       this.over = free ? Math.max(0, Math.min(1, this.over + (casting ? dt : -dt) / EASE)) : 0;
       if (casting) this.castK = this.castAt(c);
+      this.winding = casting && free && this.castK < RELEASE.cast;
       if (this.over > 0) {
         // Winding up, the clip as it is; after the orb has gone, from the thrust straight back to rest,
         // easing: the clip's own way back swept the branch round behind her, a lash at this pace.
@@ -253,6 +256,12 @@ export class IntiFigure {
   private castAt(c: MachiController): number {
     const s = c.attackShare ?? 0, at = c.castShare ?? 0.75;
     return s < at ? (s / at) * RELEASE.cast : RELEASE.cast + ((s - at) / (1 - at)) * (1 - RELEASE.cast);
+  }
+
+  /** The orb gathering at her branch tip while she winds up: where, and how far along (0 to 1, loosed at 1). */
+  forming(): { at: THREE.Vector3; share: number } | null {
+    const at = this.winding ? this.tip() : null;
+    return at ? { at, share: this.castK / RELEASE.cast } : null;
   }
 
   /** Where the tip of her branch is, once she has her model: where her orbs leave from. */

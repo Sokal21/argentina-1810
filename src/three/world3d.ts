@@ -193,7 +193,7 @@ export class World3D {
 
   /** Inti's orbs as the 2D game has them this step: in flight, and lying on the ground. */
   lights(dt: number, flying: readonly Flying[], souls: readonly Soul[], waiting: readonly { x: number; y: number; share: number }[] = []): void {
-    this.orbs?.update(dt, flying, souls, this.hero.position);
+    this.orbs?.update(dt, flying, souls, this.hero.position, this.hero instanceof IntiFigure ? this.hero.forming() : null);
     this.lightning?.update(dt, waiting);
   }
 
