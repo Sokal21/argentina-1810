@@ -538,21 +538,28 @@ def canelo(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object
     sabre's blade): laid along its own longest way, the end with fewer corners (no leaves) in the fist."""
     import os
     branch = _loaded(os.path.join(os.path.dirname(__file__), '..', '..', CANELO), 'rama')
+    # Its own long way, from its corners (Tripo laid it slantwise in its box: the box's longest side
+    # was not the branch, and its butt stood off the fist): the covariance's strongest way.
     verts = [v.co.copy() for v in branch.data.vertices]
-    lo = Vector([min(p[i] for p in verts) for i in range(3)])
-    hi = Vector([max(p[i] for p in verts) for i in range(3)])
-    axis = max(range(3), key=lambda i: hi[i] - lo[i])
-    span = hi[axis] - lo[axis]
-    low_end = sum(1 for p in verts if p[axis] < lo[axis] + span * 0.2)
-    high_end = sum(1 for p in verts if p[axis] > hi[axis] - span * 0.2)
-    base_at_low = low_end < high_end
-    # Its butt at the origin, its length along +X, as long as asked.
+    mid = sum(verts, Vector()) / len(verts)
+    cov = [[sum((p[a] - mid[a]) * (p[b] - mid[b]) for p in verts) for b in range(3)] for a in range(3)]
+    axis = Vector((1, 1, 1)).normalized()
+    for _ in range(50):
+        axis = Vector([sum(cov[a][b] * axis[b] for b in range(3)) for a in range(3)]).normalized()
+    along = [(p - mid).dot(axis) for p in verts]
+    lo, hi = min(along), max(along)
+    span = hi - lo
+    # The butt: the end with fewer corners (no leaves), and on it the corner furthest out.
+    if sum(1 for a in along if a < lo + span * 0.2) > sum(1 for a in along if a > hi - span * 0.2):
+        axis, along, lo, hi = -axis, [-a for a in along], -hi, -lo
+    butt = verts[min(range(len(verts)), key=lambda n: along[n])]
+    side = axis.orthogonal().normalized()
+    other = axis.cross(side)
     k = CANELO_LONG / span
+    # Its butt at the origin, its length along +X, as long as asked.
     for v in branch.data.vertices:
-        along = (v.co[axis] - lo[axis]) if base_at_low else (hi[axis] - v.co[axis])
-        rest = [v.co[i] for i in range(3) if i != axis]
-        mid = [(lo[i] + hi[i]) / 2 for i in range(3) if i != axis]
-        v.co = Vector((along * k, (rest[0] - mid[0]) * k, (rest[1] - mid[1]) * k))
+        d = v.co - butt
+        v.co = Vector((d.dot(axis) * k, d.dot(side) * k, d.dot(other) * k))
     branch.data.update()
     wrist, way, length, palm, _, _ = hand(armature, bone)
     fist(armature, bone)
