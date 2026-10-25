@@ -72,8 +72,11 @@ import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Charge as 
 const ZOOM = 1.5;
 /** Inti's pace in 3D, in world units a second: Cabral's is 126 (three/look.ts). */
 const INTI_3D_SPEED = 115;
-/** The shake as her nahuel comes, in 3D: how long it takes to die away, and how far at first (a blow is ~2). */
-const NAHUEL_SHAKE = { seconds: 0.9, pixels: 7 };
+/**
+ * The shake as a hero's greatest power is let go, in 3D (his rage, her nahuel come; the same for both):
+ * how long it takes to die away, and how far at first (a blow is ~2).
+ */
+const GREAT_SHAKE = { seconds: 0.9, pixels: 7 };
 /** Inti's lock: how far off (along the ground) she can lock onto someone, and how far before she lets go. */
 const LOCK = { reach: BOLT_RANGE, keep: BOLT_RANGE * 1.4 };
 // By touch: how near an enemy the sabre goes for by itself, how far off a musket dragged all
@@ -1310,6 +1313,13 @@ export class GameScene extends Phaser.Scene {
     else this.cameras.main.shake(ms, intensity);
   }
 
+  /** A hero's greatest power let go (his rage, her nahuel come): the world shakes hard and dies away, the gamepad with it. */
+  private greatShake(): void {
+    if (!this.three) { this.shake(260, 0.006); return; }
+    this.three.jolt(GREAT_SHAKE.seconds, GREAT_SHAKE.pixels, true);
+    rumble(GREAT_SHAKE.seconds * 1000, 1);
+  }
+
   /** The spot of the world under the mouse: in 3D, the ground there. */
   private underMouse(): Vec {
     const pointer = this.input.activePointer;
@@ -1957,11 +1967,8 @@ export class GameScene extends Phaser.Scene {
       this.nahuel.summon({ x: this.machi.x + 34, y: this.machi.y + 6 }, tune.beast * this.growth.gives('ultimate'));
       // In 3D a shaft of her light runs to where it comes out, and flares there, and the world shakes
       // with it, hard and then dying away (the user wanted it felt as something great).
-      if (this.overlaid) {
-        this.three?.summoned({ x: this.machi.x + 34, y: this.machi.y + 6 });
-        this.three?.jolt(NAHUEL_SHAKE.seconds, NAHUEL_SHAKE.pixels, true);
-        rumble(NAHUEL_SHAKE.seconds * 1000, 1);
-      } else this.shake(200, 0.004);
+      if (this.overlaid) this.three?.summoned({ x: this.machi.x + 34, y: this.machi.y + 6 });
+      this.greatShake();
     }
     const torn = this.nahuel.update(dt, this.foes.map(f => ({ ...f.ground, girth: f.girth, alive: f.alive, foe: f })), this.machi);
     this.nahuel.hidden = this.overlaid;
@@ -1977,7 +1984,7 @@ export class GameScene extends Phaser.Scene {
       this.readying = null;
       this.machi.lower();
       this.machi.channel(RAGE.roar, 'roar');
-      this.shake(260, 0.006);
+      this.greatShake();
     }
     const hurt = this.wrath.update(dt);
     if (!this.wrath.active) return;
