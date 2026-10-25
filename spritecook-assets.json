@@ -2666,6 +2666,16 @@
       "asset_id": "711aacf6-edb7-4053-bcdb-45f25e7d4c26",
       "label": "canelo branch concept B",
       "file": "assets/machi/3d/objetos/rama_b.png"
+    },
+    {
+      "asset_id": "1062c332-d2c7-4542-96b9-52a2558a2a10",
+      "label": "nahuel (puma) 3D turnaround A",
+      "file": "assets/nahuel/3d/giro_a.png"
+    },
+    {
+      "asset_id": "3e43f468-d546-4a96-9ce8-71b8dab57b46",
+      "label": "nahuel (puma) 3D turnaround B",
+      "file": "assets/nahuel/3d/giro_b.png"
     }
   ]
 }

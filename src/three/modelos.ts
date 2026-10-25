@@ -39,7 +39,8 @@ const WHO: Who[] = [
   // under Cabral. Tripo's model on Quaternius's bull's skeleton (CC0, tools/blender/fit_to_bull.py),
   // playing the bull's own clips: carried over onto Tripo's own rig, its walk came out strange.
   { name: 'Buey', url: 'cosas/3d/buey/buey_animado.glb', drawn: 72 },
-  // Inti's nahuel, to try: Quaternius's wolf (CC0) in the slate blue of her spirit, its eyes her spells' cyan.
+  // Inti's nahuel: a puma (Tripo from turnaround B, 25 October 2026) on Quaternius's wolf's skeleton (CC0),
+  // playing the wolf's clips (tools/blender/fit_to_bull.py --still Ear,Tail --hips yes).
   { name: 'Nahuel', url: 'nahuel/3d/nahuel_animado.glb', drawn: 52 },
   // The ox cart whole, as the game draws it (three/cart.ts): going, its wheels rolling and its oxen
   // walking, in place; or standing, its oxen breathing and grazing now and then.

@@ -1,9 +1,10 @@
-"""The ox (Tripo's model, unrigged) put on Quaternius's bull's skeleton (CC0), to play the bull's own
+"""A model of ours (Tripo's, unrigged) put on the skeleton of one of Quaternius's animals (CC0): the ox on
+the bull, the nahuel (a puma) on the wolf. Written for the ox on Quaternius's bull's skeleton, to play the bull's own
 clips as they are: carried over onto Tripo's quadruped rig, the walk came out strange however it was
 mended (its hind legs never bent as a cow's). The bull's bones are moved into the ox's body, its skin
 bound to them by Blender, and its clips kept untouched: they are turns of those same bones.
 
-    Blender -b --python tools/blender/fit_to_bull.py -- OX.glb BULL.fbx OUT.glb
+    Blender -b --python tools/blender/fit_to_bull.py -- OX.glb BULL.fbx OUT.glb [--still Ear,Tail] [--hips yes]
 
 - The ox is turned to look as the bull does (along -Y, its left at +X) and sized to the bull's length,
   its feet on the ground.
@@ -25,6 +26,8 @@ from mathutils.kdtree import KDTree
 
 args = sys.argv[sys.argv.index('--') + 1:]
 OX, BULL, OUT = args[:3]
+STILL = [k for k in dict(zip(args[3::2], args[4::2])).get('--still', '').split(',') if k]
+HIPS = dict(zip(args[3::2], args[4::2])).get('--hips') == 'yes'
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.fbx(filepath=BULL)
@@ -108,9 +111,10 @@ length = ohi.y - olo.y
 belly = ox_back * 0.55
 
 
-def leg_middle(at: Vector, side: float, front: bool):
+def leg_middle(at: Vector, side: float, front: bool, top: float = None):
+    top = belly if top is None else top
     near = [p for p in verts if abs(p.z - at.z) < length * 0.025 and p.x * side > 0
-            and (p.y < 0 if front else p.y > 0) and abs(p.y - at.y) < length * 0.18 and p.z < belly]
+            and (p.y < 0 if front else p.y > 0) and abs(p.y - at.y) < length * 0.18 and p.z < top]
     if len(near) < 6:
         return None
     return Vector((sum(p.x for p in near) / len(near), sum(p.y for p in near) / len(near), at.z))
@@ -123,8 +127,11 @@ for b in edit:
     front = b.name.startswith('Front')
     for end in ('head', 'tail'):
         p = M @ getattr(b, end)
-        if p.z < belly:
-            found = leg_middle(p, side, front)
+        # A hind leg's joints up to the hip too, with `--hips yes` (the wolf's thigh lay outside the puma's, and
+        # its skin tore at the hip as it galloped): the middle of the thigh's half at that height.
+        reach = ox_back * 0.85 if HIPS and not front else belly
+        if p.z < reach:
+            found = leg_middle(p, side, front, reach)
             if found:
                 setattr(b, end, inv @ found)
 # The tail's bones down the ox's own tail (where the bull's lie, its tail flew about anyhow, and held
@@ -134,7 +141,8 @@ rump = max(p.y for p in verts if p.z > ox_back * 0.6)
 tail = [p for p in verts if p.y > rump - length * 0.03 and abs(p.x) < (ohi.x - olo.x) * 0.07]
 if tail:
     top, bottom = max(p.z for p in tail), min(p.z for p in tail)
-    chain = [edit[f'Tail{n}'] for n in range(1, 8)]
+    # However many the animal has (the bull 7, the wolf 8).
+    chain = sorted((b for b in edit if b.name.startswith('Tail') and b.name[4:].isdigit()), key=lambda b: int(b.name[4:]))
     marks = []
     for k in range(len(chain) + 1):
         z = top + (bottom - top) * k / len(chain)
@@ -142,7 +150,7 @@ if tail:
         marks.append(Vector((sum(p.x for p in near) / len(near), sum(p.y for p in near) / len(near), z)))
     for bone, a, b in zip(chain, marks, marks[1:]):
         bone.head, bone.tail = inv @ a, inv @ b
-    end = edit.get('Tail7_end')
+    end = edit.get(f'{chain[-1].name}_end')
     if end:
         end.head, end.tail = inv @ marks[-1], inv @ (marks[-1] + Vector((0, 0, -length * 0.02)))
 # Whole again: each child's head where its parent's tail now is.
@@ -151,7 +159,10 @@ for b in edit:
         b.head = b.parent.tail
 bpy.ops.object.mode_set(mode='OBJECT')
 for b in arm.data.bones:
-    b.use_deform = b.name in DEFORM and b.name != 'Body'
+    # Bones the animal has and ours does not want: by `--still Ear,Tail`, those named so hold nothing
+    # (the wolf's great ears took half the puma's head; its tail, thrashing, tangled the puma's curled
+    # one with its hind legs), and what they would have held goes with whatever else is nearest.
+    b.use_deform = b.name in DEFORM and b.name != 'Body' and not any(b.name.startswith(k) for k in STILL)
 
 # The skin, weighed by heat on a merged copy, given back from its nearest.
 copy = ox.copy()
