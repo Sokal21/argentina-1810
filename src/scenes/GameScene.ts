@@ -233,6 +233,9 @@ export class GameScene extends Phaser.Scene {
   private padAim: Vec | null = null;
   /** With the gamepad, where her lightning would fall, from her along the ground, while it is held. */
   private strikeAim: Vec | null = null;
+  /** With the gamepad, whether the trigger was pressed this step to loose her lightning, and whether it was down the step before. */
+  private strikeConfirm = false;
+  private triggerWas = false;
   /** With the gamepad, whom Inti is locked onto (R3), if anyone, and the ring under them. */
   private locked: Foe | null = null;
   private lockRing?: Phaser.GameObjects.Ellipse;
@@ -1583,8 +1586,11 @@ export class GameScene extends Phaser.Scene {
     const his = this.hero === 'cabral' && standing && !this.wrath.active;
     this.useArms(dt, { musket: his && pressed.strike, grenade: his && pressed.second });
     const at = { x: this.machi.x, y: this.machi.y };
+    const confirm = pad.on && this.hero === 'inti' ? this.strikeConfirm : undefined;
+    this.strikeConfirm = false;
     const events = this.abilities.update(dt, {
       ...keys,
+      confirm,
       pointer: this.hero === 'inti' ? this.strikeSpot(dt, keys.strike) : at,
       at,
       free: standing && !this.machi.isDashing,
@@ -1787,6 +1793,11 @@ export class GameScene extends Phaser.Scene {
     }
     this.padAim = null;
     if (this.hero === 'inti') this.lockOn();
+    // Her lightning held up, the trigger looses it (as his musket and grenade), and casts no orb.
+    const trigger = input.attack;
+    this.strikeConfirm = this.hero === 'inti' && !!this.abilities.aim && trigger && !this.triggerWas;
+    this.triggerWas = trigger;
+    if (this.hero === 'inti' && this.abilities.aim) input.attack = false;
     if (stick) {
       // The stick is pushed the way the hero should be seen to go; the ground is foreshortened.
       const far = Math.hypot(stick.x, stick.y / ISO_Y) || 1;

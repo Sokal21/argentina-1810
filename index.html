@@ -68,6 +68,8 @@
   #padmap .letter { font: 13px/1 'Silkscreen', ui-monospace, monospace; fill: #f0e3c4; text-anchor: middle; }
   #padmap .parts path.over { fill: none; stroke: #6b5c44; stroke-width: 2; }
   #padmap .letter.small { font-size: 11px; fill: #e2c478; }
+  /* Each hero's own buttons: only those of whoever is played are shown. */
+  #pause:not([data-hero="cabral"]) #padmap .for-cabral, #pause:not([data-hero="inti"]) #padmap .for-inti { display: none; }
   #padmap .labels text { font-size: 19px; fill: #cdbf9d; }
   #padmap .labels .soft { fill: #8a7a5e; font-size: 16px; }
   #padmap .labels .k, #padmap .labels .a, #padmap .labels .b, #padmap .labels .x { font: 15px 'Silkscreen', ui-monospace, monospace; }
@@ -256,19 +258,34 @@
           <text x="272" y="103" class="letter small">LB</text><text x="488" y="103" class="letter small">RB</text>
         </g>
         <g class="labels">
-          <text x="166" y="57" text-anchor="end"><tspan class="k">LT</tspan> el mosquete</text>
-          <text x="166" y="78" text-anchor="end" class="soft">mantené para apuntar</text>
           <text x="166" y="146" text-anchor="end"><tspan class="k">Stick</tspan> moverse</text>
           <text x="166" y="170" text-anchor="end"><tspan class="k">L3</tspan> correr</text>
-          <text x="166" y="226" text-anchor="end"><tspan class="k">↑</tspan> furia</text>
           <text x="166" y="250" text-anchor="end"><tspan class="k">←</tspan> tienda <tspan class="k">↑↓</tspan> elegir</text>
-          <text x="570" y="57"><tspan class="k">RT</tspan> sablazo</text>
-          <text x="570" y="78" class="soft">con <tspan class="k">LT</tspan>, disparar</text>
-          <text x="570" y="103"><tspan class="k">RB</tspan> granada: mantené</text>
-          <text x="570" y="124" class="soft">apuntá con el stick, <tspan class="k">RT</tspan> la tira</text>
           <text x="570" y="168"><tspan class="a">A</tspan> hablar · elegir</text>
-          <text x="570" y="194"><tspan class="b">B</tspan> rodar · volver</text>
-          <text x="570" y="220"><tspan class="x">X</tspan> tomar del chifle</text>
+          <g class="for-cabral">
+            <text x="166" y="57" text-anchor="end"><tspan class="k">LT</tspan> el mosquete</text>
+            <text x="166" y="78" text-anchor="end" class="soft">mantené para apuntar</text>
+            <text x="166" y="226" text-anchor="end"><tspan class="k">↑</tspan> furia</text>
+            <text x="570" y="57"><tspan class="k">RT</tspan> sablazo</text>
+            <text x="570" y="78" class="soft">con <tspan class="k">LT</tspan>, disparar</text>
+            <text x="570" y="103"><tspan class="k">RB</tspan> granada: mantené</text>
+            <text x="570" y="124" class="soft">apuntá con el stick, <tspan class="k">RT</tspan> la tira</text>
+            <text x="570" y="194"><tspan class="b">B</tspan> rodar · volver</text>
+            <text x="570" y="220"><tspan class="x">X</tspan> tomar del chifle</text>
+          </g>
+          <g class="for-inti">
+            <text x="166" y="57" text-anchor="end"><tspan class="k">LT</tspan> el rayo: mantené</text>
+            <text x="166" y="78" text-anchor="end" class="soft">apuntá con el stick derecho</text>
+            <text x="166" y="226" text-anchor="end"><tspan class="k">↑</tspan> llamar al nahuel</text>
+            <text x="570" y="57"><tspan class="k">RT</tspan> orbe</text>
+            <text x="570" y="78" class="soft">con <tspan class="k">LT</tspan>, lanzar el rayo</text>
+            <text x="570" y="103"><tspan class="k">RB</tspan> curarse</text>
+            <text x="570" y="124" class="soft">si te falta vida</text>
+            <text x="570" y="194"><tspan class="b">B</tspan> esquivar · volver</text>
+            <text x="570" y="220"><tspan class="x">X</tspan> tomar del frasco</text>
+            <text x="596" y="250"><tspan class="k">R3</tspan> fijar enemigo</text>
+            <text x="596" y="271" class="soft">stick der.: cambiar</text>
+          </g>
           <text x="352" y="340" text-anchor="end"><tspan class="k">⧉</tspan> tu hoja</text>
           <text x="408" y="340"><tspan class="k">≡</tspan> pausa</text>
         </g>

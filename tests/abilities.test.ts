@@ -68,6 +68,25 @@ describe('lightning strike', () => {
   });
 });
 
+describe('lightning strike with the gamepad', () => {
+  it('is loosed by the trigger while held, not by letting it go', () => {
+    const a = new Abilities();
+    a.update(DT, { ...idle, strike: true, confirm: false });
+    a.update(DT, { ...idle, strike: true, confirm: true });
+    expect(a.pending).toHaveLength(1);
+    expect(a.mana).toBe(MANA - STRIKE.cost);
+  });
+
+  it('let go without the trigger, is put away and costs nothing', () => {
+    const a = new Abilities();
+    a.update(DT, { ...idle, strike: true, confirm: false });
+    a.update(DT, { ...idle, strike: false, confirm: false });
+    expect(a.pending).toHaveLength(0);
+    expect(a.aim).toBeNull();
+    expect(a.mana).toBe(MANA);
+  });
+});
+
 describe('healing', () => {
   it('heals once the ritual is finished', () => {
     const a = new Abilities();

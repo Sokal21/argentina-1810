@@ -38,6 +38,12 @@ export interface AbilityInput {
   free: boolean;
   /** She has life to win back. */
   hurt: boolean;
+  /**
+   * With the gamepad the strike is loosed as the musket and the grenade are: held to aim, and let go
+   * with the trigger (this, pressed this step); its key let up without it puts it away. Unsaid, it is
+   * loosed as its key is let up.
+   */
+  confirm?: boolean;
 }
 
 /** What happened during a step, for whoever draws it and applies it. */
@@ -108,7 +114,8 @@ export class Abilities {
     // Holding the key shows where it would fall; letting go casts it there.
     const was = this.aim;
     this.aim = input.strike && input.free ? reach(input.at, input.pointer) : null;
-    if (was && !input.strike && input.free && this.ready('strike')) {
+    const loosed = input.confirm === undefined ? was && !input.strike : was && input.confirm;
+    if (was && loosed && input.free && this.ready('strike')) {
       this.spend('strike');
       this.pending.push({ ...was, t: 0 });
       events.cast = { ...was };

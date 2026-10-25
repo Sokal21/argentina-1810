@@ -184,6 +184,8 @@ const togglePause = () => {
   document.getElementById('keys')!.hidden = touch.on || pad.on;
   document.getElementById('taps')!.hidden = !touch.on;
   document.getElementById('padmap')!.hidden = !pad.on || touch.on;
+  // Each hero's own buttons.
+  if (game.scene.isActive('game')) pause.dataset.hero = (game.scene.getScene('game') as GameScene).playing;
   qualityButton.textContent = `Calidad: ${NAMES[quality]}`;
   again.classList.remove('sure');
   again.textContent = 'Empezar de nuevo';
