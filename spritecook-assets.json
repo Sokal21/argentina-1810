@@ -2636,6 +2636,16 @@
       "asset_id": "6edabbed-10dc-4109-b706-689880b85a4e",
       "label": "ombú 3D turnaround, as wide every way, B (its side view still narrow)",
       "file": "assets/campo/3d/ombu_ancho_b.png"
+    },
+    {
+      "asset_id": "3011e4c8-1898-4823-8cc1-44b1700f9376",
+      "label": "Inti 3D turnaround A",
+      "file": "assets/machi/3d/giro_a.png"
+    },
+    {
+      "asset_id": "f16c452c-1349-4645-a44e-c60899f0b703",
+      "label": "Inti 3D turnaround B",
+      "file": "assets/machi/3d/giro_b.png"
     }
   ]
 }

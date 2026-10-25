@@ -26,6 +26,9 @@ const KEEPER_NAMES: Record<string, string> = { braulio: 'Don Braulio', anselmo: 
 
 const WHO: Who[] = [
   { name: 'Cabral', url: 'cabral/3d/cabral_animado.glb', drawn: CABRAL_DRESS.drawn },
+  // Inti, the machi (Tripo from turnaround B, 25 October 2026), with every clip of the Pro Magic Pack on
+  // her to choose among: 81 tall, as her 2D drawing.
+  { name: 'Inti', url: 'machi/3d/inti_animado.glb', drawn: 81 },
   { name: 'Realista', url: 'realista/3d/realista_animado.glb', drawn: ROYALIST },
   ...Object.entries(LOOKS).map(([kind, look]) => ({ name: KIND_NAMES[kind] ?? kind, url: look.url, drawn: look.drawn, kneels: !!look.kneels, pistol: !!look.pistol, lunge: look.lunge })),
   ...Object.values(MODELS).flatMap(b => b.inside?.keepers ?? [])
