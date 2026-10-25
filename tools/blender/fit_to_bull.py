@@ -4,7 +4,7 @@ clips as they are: carried over onto Tripo's quadruped rig, the walk came out st
 mended (its hind legs never bent as a cow's). The bull's bones are moved into the ox's body, its skin
 bound to them by Blender, and its clips kept untouched: they are turns of those same bones.
 
-    Blender -b --python tools/blender/fit_to_bull.py -- OX.glb BULL.fbx OUT.glb [--still Ear,Tail] [--hips yes]
+    Blender -b --python tools/blender/fit_to_bull.py -- OX.glb BULL.fbx OUT.glb [--still Ear,Tail] [--hips yes] [--even yes]
 
 - The ox is turned to look as the bull does (along -Y, its left at +X) and sized to the bull's length,
   its feet on the ground.
@@ -28,6 +28,7 @@ args = sys.argv[sys.argv.index('--') + 1:]
 OX, BULL, OUT = args[:3]
 STILL = [k for k in dict(zip(args[3::2], args[4::2])).get('--still', '').split(',') if k]
 HIPS = dict(zip(args[3::2], args[4::2])).get('--hips') == 'yes'
+EVEN_ON = dict(zip(args[3::2], args[4::2])).get('--even') == 'yes'
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.fbx(filepath=BULL)
@@ -73,7 +74,20 @@ deform = [b for b in bones if not any(k in b.name for k in ('Pole', 'IK', 'FF', 
 DEFORM = {b.name for b in deform}
 blo, bhi = box([M @ b.head_local for b in deform] + [M @ b.tail_local for b in deform])
 # The bull's body: from its hooves to the top of its back, tail to muzzle.
-bull_len = (M @ bones['Head'].tail_local).y - (M @ bones['Tail1'].head_local).y
+# The animal's skeleton by its own names: Quaternius's (Head, Tail1…, FrontUpperLeg.L…) or Rigify's
+# metarig (the Ice Age pack's sabre-tooth: spine.011 its head, spine.003… its tail, front_thigh.L…).
+RIGIFY = 'spine.011' in bones
+NAMES = {
+    'head': 'spine.011' if RIGIFY else 'Head',
+    'tail': ['spine.003', 'spine.002', 'spine.001', 'spine'] if RIGIFY else None,
+    'legs': ('thigh', 'shin', 'foot') if RIGIFY else ('UpperLeg', 'LowerLeg', 'BackLeg'),
+    'ground': 'toe' if RIGIFY else 'LowerLeg',
+    'back': ('spine.005', 'spine.006', 'spine.007') if RIGIFY else ('Torso', 'Back'),
+    'root': 'spine.004' if RIGIFY else 'Body',
+}
+is_front = (lambda n: n.startswith('front_')) if RIGIFY else (lambda n: n.startswith('Front'))
+tail_root = NAMES['tail'][0] if RIGIFY else 'Tail1'
+bull_len = (M @ bones[NAMES['head']].tail_local).y - (M @ bones[tail_root].head_local).y
 olo, ohi = box([v.co for v in ox.data.vertices])
 ox_len = ohi.y - olo.y
 s = abs(bull_len) / ox_len * 1.08
@@ -83,14 +97,22 @@ ox.data.update()
 olo, ohi = box([v.co for v in ox.data.vertices])
 
 # The bull's bones stretched to the ox's box (hooves at the ground, its back and length the ox's).
-ground = min((M @ b.tail_local).z for b in bones if 'LowerLeg' in b.name and b.name.endswith(('.L', '.R')))
-back = max((M @ b.head_local).z for b in deform if b.name.startswith(('Torso', 'Back')))
+ground = min((M @ b.tail_local).z for b in bones if NAMES['ground'] in b.name and b.name.endswith(('.L', '.R')))
+back = max((M @ b.head_local).z for b in deform if b.name.startswith(NAMES['back']))
 ox_back = max(v.co.z for v in ox.data.vertices if abs(v.co.y) < (ohi.y - olo.y) * 0.15 and abs(v.co.x) < (ohi.x - olo.x) * 0.2)
 mid_b = (blo + bhi) / 2
 width = (ohi.x - olo.x) / max(1e-6, (bhi.x - blo.x)) * 0.8
 
 
+EVEN = (ox_back * 0.96) / (back - ground)
+
+
 def stretch(p: Vector) -> Vector:
+    # With `--even yes`, by one measure every way, to its height (the puma stands far higher on its legs
+    # than the wolf: stretched more up than along, the skeleton turned differently, and as the wolf
+    # crouched to strike the puma splayed its legs and kept its body up).
+    if EVEN_ON:
+        return Vector((p.x * EVEN, (p.y - mid_b.y) * EVEN + (olo.y + ohi.y) / 2, (p.z - ground) * EVEN))
     return Vector((p.x * width, (p.y - mid_b.y) * (ohi.y - olo.y) / (bhi.y - blo.y) + (olo.y + ohi.y) / 2,
                    (p.z - ground) * (ox_back * 0.96) / (back - ground)))
 
@@ -121,10 +143,10 @@ def leg_middle(at: Vector, side: float, front: bool, top: float = None):
 
 
 for b in edit:
-    if not any(k in b.name for k in ('UpperLeg', 'LowerLeg', 'BackLeg')) or not b.name.endswith(('.L', '.R')):
+    if not any(k in b.name for k in NAMES['legs']) or not b.name.endswith(('.L', '.R')):
         continue
     side = 1 if b.name.endswith('.L') else -1
-    front = b.name.startswith('Front')
+    front = is_front(b.name)
     for end in ('head', 'tail'):
         p = M @ getattr(b, end)
         # A hind leg's joints up to the hip too, with `--hips yes` (the wolf's thigh lay outside the puma's, and
@@ -142,7 +164,7 @@ tail = [p for p in verts if p.y > rump - length * 0.03 and abs(p.x) < (ohi.x - o
 if tail:
     top, bottom = max(p.z for p in tail), min(p.z for p in tail)
     # However many the animal has (the bull 7, the wolf 8).
-    chain = sorted((b for b in edit if b.name.startswith('Tail') and b.name[4:].isdigit()), key=lambda b: int(b.name[4:]))
+    chain = [edit[n] for n in NAMES['tail']] if RIGIFY else sorted((b for b in edit if b.name.startswith('Tail') and b.name[4:].isdigit()), key=lambda b: int(b.name[4:]))
     marks = []
     for k in range(len(chain) + 1):
         z = top + (bottom - top) * k / len(chain)
@@ -162,7 +184,8 @@ for b in arm.data.bones:
     # Bones the animal has and ours does not want: by `--still Ear,Tail`, those named so hold nothing
     # (the wolf's great ears took half the puma's head; its tail, thrashing, tangled the puma's curled
     # one with its hind legs), and what they would have held goes with whatever else is nearest.
-    b.use_deform = b.name in DEFORM and b.name != 'Body' and not any(b.name.startswith(k) for k in STILL)
+    still = NAMES['tail'] if RIGIFY and 'Tail' in STILL else []
+    b.use_deform = b.name in DEFORM and b.name != 'Body' and b.name not in still and not any(b.name.startswith(k) for k in STILL)
 
 # The skin, weighed by heat on a merged copy, given back from its nearest.
 copy = ox.copy()
