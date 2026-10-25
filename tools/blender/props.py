@@ -493,5 +493,106 @@ def lay_in_fists(armature: bpy.types.Object, gun: bpy.types.Object, up: Vector =
         bpy.context.view_layer.update()
 
 
+def _loaded(path: str, name: str) -> bpy.types.Object:
+    """A model made ready by prepare_model.py, its meshes joined into one object, its turn and size applied."""
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=path)
+    new = [o for o in bpy.data.objects if o not in before]
+    meshes = [o for o in new if o.type == 'MESH']
+    for o in new:
+        if o.type != 'MESH':
+            bpy.data.objects.remove(o)
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in meshes:
+        o.parent = None
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = meshes[0]
+    if len(meshes) > 1:
+        bpy.ops.object.join()
+    thing = bpy.context.active_object
+    thing.name = name
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    return thing
+
+
+def _held(armature: bpy.types.Object, thing: bpy.types.Object, bone: str, frame: Matrix) -> bpy.types.Object:
+    """Something set in a hand, its matrix in the world given, kept on the hand's bone."""
+    thing.matrix_world = frame
+    world = thing.matrix_world.copy()
+    thing.parent = armature
+    thing.parent_type = 'BONE'
+    thing.parent_bone = bone
+    thing.matrix_world = world
+    return thing
+
+
+# Inti's things, Tripo's from concepts (assets/machi/3d/objetos): how long the branch, how wide the drum,
+# as shares of her height (her height is one unit here, as the rig is before prepare_rigged scales it).
+CANELO = 'assets/machi/3d/objetos/rama.glb'
+KULTRUN = 'assets/machi/3d/objetos/kultrun.glb'
+CANELO_LONG, KULTRUN_WIDE = 0.34, 0.17
+
+
+def canelo(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object:
+    """Inti's canelo branch in her fist, held by its thick end, its leafy tip out past her thumb (as the
+    sabre's blade): laid along its own longest way, the end with fewer corners (no leaves) in the fist."""
+    import os
+    branch = _loaded(os.path.join(os.path.dirname(__file__), '..', '..', CANELO), 'rama')
+    verts = [v.co.copy() for v in branch.data.vertices]
+    lo = Vector([min(p[i] for p in verts) for i in range(3)])
+    hi = Vector([max(p[i] for p in verts) for i in range(3)])
+    axis = max(range(3), key=lambda i: hi[i] - lo[i])
+    span = hi[axis] - lo[axis]
+    low_end = sum(1 for p in verts if p[axis] < lo[axis] + span * 0.2)
+    high_end = sum(1 for p in verts if p[axis] > hi[axis] - span * 0.2)
+    base_at_low = low_end < high_end
+    # Its butt at the origin, its length along +X, as long as asked.
+    k = CANELO_LONG / span
+    for v in branch.data.vertices:
+        along = (v.co[axis] - lo[axis]) if base_at_low else (hi[axis] - v.co[axis])
+        rest = [v.co[i] for i in range(3) if i != axis]
+        mid = [(lo[i] + hi[i]) / 2 for i in range(3) if i != axis]
+        v.co = Vector((along * k, (rest[0] - mid[0]) * k, (rest[1] - mid[1]) * k))
+    branch.data.update()
+    wrist, way, length, palm, _, _ = hand(armature, bone)
+    fist(armature, bone)
+    grip = wrist + way * length * 0.42 + palm * length * 0.18
+    across = way.cross(palm).normalized()
+    forward = across if across.x > 0 else -across
+    up = (way - forward * way.dot(forward)).normalized()
+    # A little of its butt below the fist.
+    frame = Matrix.Translation(grip - forward * CANELO_LONG * 0.08) @ Matrix((forward, up.cross(forward), up)).transposed().to_4x4()
+    return _held(armature, branch, bone, frame)
+
+
+def kultrun(armature: bpy.types.Object, bone: str = 'L_Hand') -> bpy.types.Object:
+    """Inti's kultrún held in her hand by its rim, its back against her palm and its painted head out
+    from her: its thinnest way (the drum's) along her palm's, its middle a half-width out from the hand."""
+    import os
+    drum = _loaded(os.path.join(os.path.dirname(__file__), '..', '..', KULTRUN), 'kultrun')
+    verts = [v.co.copy() for v in drum.data.vertices]
+    lo = Vector([min(p[i] for p in verts) for i in range(3)])
+    hi = Vector([max(p[i] for p in verts) for i in range(3)])
+    size = hi - lo
+    thin = min(range(3), key=lambda i: size[i])
+    wide = max(size[i] for i in range(3) if i != thin)
+    k = KULTRUN_WIDE / wide
+    mid = (lo + hi) / 2
+    # Its middle at the origin, its head toward +Z (whichever end of its thin way is the flatter), as wide as asked.
+    others = [i for i in range(3) if i != thin]
+    for v in drum.data.vertices:
+        d = v.co - mid
+        v.co = Vector((d[others[0]] * k, d[others[1]] * k, d[thin] * k))
+    drum.data.update()
+    wrist, way, length, palm, _, _ = hand(armature, bone)
+    fist(armature, bone)
+    grip = wrist + way * length * 0.42 + palm * length * 0.18
+    out = -palm
+    side = way.cross(out).normalized()
+    centre = grip + way * KULTRUN_WIDE * 0.45 + out * size[thin] * k * 0.5
+    frame = Matrix.Translation(centre) @ Matrix((side, way, out)).transposed().to_4x4()
+    return _held(armature, drum, bone, frame)
+
+
 # How far up a musket from its butt the right fist holds it (the wrist of the stock).
 HELD_AT = 0.13
