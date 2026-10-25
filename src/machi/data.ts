@@ -86,7 +86,7 @@ export const SHOT_TIME = 0.45;     // seconds from the shot until the musket is 
 export const DEATH_FPS = 8;        // frames per second of her death
 export const DASH_COOLDOWN = 0.45; // seconds after one ends before the next can start
 
-export const BOLT_SPEED = 230;  // sprite pixels per second along the ground
+export const BOLT_SPEED = 380;  // sprite pixels per second along the ground (230 until the user asked for quicker, 25/10/2026)
 export const BOLT_RANGE = 390;  // ground distance it covers before fizzling out (260 until the user asked half as far again, 25/10/2026)
 
 export const SHEETS: Record<string, Sheet> = {

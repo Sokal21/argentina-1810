@@ -35,8 +35,17 @@ const RELEASE = { cast: 0.25, strike: 0.45 };
  * kultrun, and flailed (the user, 25/10/2026): it is left to the idle or the walk under the cast.
  */
 const UPPER = /^(Waist|Spine0[12]|NeckTwist0[12]|Head|R_(Clavicle|Upperarm|Forearm|Hand)\w*)$/;
+// (The upper list is in the clip's order, parents first, so a shoulder is turned after the waist above
+// which it stands has been: its parent's way in the world is then as it will be drawn.)
 /** Seconds the cast takes to come over her, and to leave her. */
 const EASE = 0.12;
+/**
+ * How much of the clip's turn of her hips (84° into the thrust) her body takes: the clip thrusts side-on,
+ * her chest a right angle off the orb's way (the user wanted her hips with the orb, 25/10/2026; at 0.3
+ * her chest was still 45° to 69° off, at none 15° to 67°, what her idle sways). The rest of the turn
+ * is laid on her branch shoulder, so her arm still points where the orb goes.
+ */
+const HIP_SHARE = 0;
 /** How long her call to the lightning is shown, in seconds. */
 const STRIKE_TIME = 0.9;
 /** How fast she turns, per second; how quickly what she is taken to go at follows how fast she goes. */
@@ -164,9 +173,19 @@ export class IntiFigure {
           into.fromArray(at.evaluate(t) as unknown as number[]);
           // Her legs keep to her idle or her walk, so the clip's turn of her hips is laid on her waist:
           // her body above them is turned as the clip turns it.
-          if (bone.name === 'Waist' && this.hip) {
+          if ((bone.name === 'Waist' || bone.name === 'R_Clavicle') && this.hip) {
             const turned = new THREE.Quaternion().fromArray(this.hip.at.evaluate(t) as unknown as number[]);
-            into.premultiply(this.hip.bone.quaternion.clone().invert().multiply(turned));
+            const turn = this.hip.bone.quaternion.clone().invert().multiply(turned);
+            if (bone.name === 'Waist') into.premultiply(new THREE.Quaternion().slerp(turn, HIP_SHARE));
+            else {
+              // The rest of the turn, about the upright through her shoulder.
+              const hipWorld = this.hip.bone.getWorldQuaternion(new THREE.Quaternion());
+              const ahead = new THREE.Vector3(0, 0, 1), turnedAhead = ahead.clone().applyQuaternion(hipWorld.clone().multiply(turn).multiply(hipWorld.clone().invert()));
+              const yaw = Math.atan2(turnedAhead.x, turnedAhead.z) * (1 - HIP_SHARE);
+              const parent = bone.parent!.getWorldQuaternion(new THREE.Quaternion());
+              const up = new THREE.Vector3(0, 1, 0).applyQuaternion(parent.invert());
+              into.premultiply(new THREE.Quaternion().setFromAxisAngle(up, yaw));
+            }
           }
           return into;
         };
