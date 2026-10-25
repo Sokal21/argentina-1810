@@ -74,6 +74,13 @@ export class IntiFigure {
   /** How far her legs are turned from her body, and whether she walks back. */
   private legTurn = 0;
   private backing = false;
+  /**
+   * The bones turned here after the clips (her pelvis, her cast over her body), as the clips left them.
+   * The mixer writes a bone only when its clip's value changes, and the walks hold her pelvis still:
+   * turned on top of itself every frame, her legs spun round like a helicopter's blades (the user,
+   * 25/10/2026). They are put back before each step.
+   */
+  private asLeft = new Map<THREE.Object3D, THREE.Quaternion>();
   private facing = 0;
   private going = 0;
   private wasDashing = false;
@@ -184,10 +191,12 @@ export class IntiFigure {
         legs = -(this.ways[CLIPS.run] ?? 0);
         motion.play(CLIPS.run, paced(CLIPS.run));
       } else motion.play(CLIPS.idle);
+      const pelvis = this.shaped?.getObjectByName('Pelvis');
+      for (const [bone, was] of this.asLeft) bone.quaternion.copy(was);
       motion.update(dt);
+      for (const bone of [pelvis, ...this.upper.map(u => u.bone)]) if (bone) this.asLeft.set(bone, bone.quaternion.clone());
       // Her legs turned from her pelvis, about the upright.
       this.legTurn += wrap(legs - this.legTurn) * Math.min(1, dt * LEG_TURN);
-      const pelvis = this.shaped?.getObjectByName('Pelvis');
       if (pelvis?.parent && Math.abs(this.legTurn) > 1e-3) {
         const up = new THREE.Vector3(0, 1, 0).applyQuaternion(pelvis.parent.getWorldQuaternion(new THREE.Quaternion()).invert());
         pelvis.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(up, this.legTurn));
