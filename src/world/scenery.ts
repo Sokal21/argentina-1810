@@ -119,8 +119,13 @@ export class Forest {
   readonly trunks: Footprint[] = [];
 
   /** @param sight what keeps the trees far from the camera out of the drawing; without it all are drawn */
-  constructor(scene: Phaser.Scene, map: WorldMap, sight?: Sight) {
+  constructor(scene: Phaser.Scene, map: WorldMap, sight?: Sight, drawn = true) {
     for (const tree of plantTrees(map, TREES.length)) {
+      // Drawn in 3D instead (three/forest.ts): only their trunks are kept, to walk round.
+      if (!drawn) {
+        if (zoneAt(map, tree.x, tree.y)) this.trunks.push({ x: tree.x, y: tree.y - TRUNK.hh * tree.size, hw: TRUNK.hw * tree.size, hh: TRUNK.hh * tree.size });
+        continue;
+      }
       const name = tree.flipped ? mirrored(scene, TREES[tree.kind]) : TREES[tree.kind];
       const shadow = castShadow(scene, name);
       this.shadows.push(scene.add.image(tree.x, tree.y, shadow.key)

@@ -48,6 +48,8 @@ export interface AbilityEvents {
   healing: boolean;
   /** She finished it. */
   healed: boolean;
+  /** The patch she marked for the lightning this step, if she did. */
+  cast: Vec | null;
 }
 
 /**
@@ -81,7 +83,7 @@ export class Abilities {
   }
 
   update(dt: number, input: AbilityInput): AbilityEvents {
-    const events: AbilityEvents = { struck: [], healing: false, healed: false };
+    const events: AbilityEvents = { struck: [], healing: false, healed: false, cast: null };
     this.mana = Math.min(MANA, this.mana + REGEN * dt);
     this.waits.strike = Math.max(0, this.waits.strike - dt);
     this.waits.heal = Math.max(0, this.waits.heal - dt);
@@ -104,6 +106,7 @@ export class Abilities {
     if (was && !input.strike && input.free && this.ready('strike')) {
       this.spend('strike');
       this.pending.push({ ...was, t: 0 });
+      events.cast = { ...was };
     }
 
     if (input.heal && input.free && input.hurt && this.ready('heal')) {

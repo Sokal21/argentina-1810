@@ -36,7 +36,8 @@ export class View {
   private readonly sun = new THREE.DirectionalLight();
   private readonly sky = new THREE.HemisphereLight();
   /** The way to the sun. */
-  private sunward = sunWay(LOOK);
+  /** The way toward the sun. */
+  sunward = sunWay(LOOK);
   /** What the picture looks like: see look.ts. */
   look: Look = { ...LOOK };
   /** The camera's own right and up, along which it is kept on whole pixels. */

@@ -2676,6 +2676,16 @@
       "asset_id": "3e43f468-d546-4a96-9ce8-71b8dab57b46",
       "label": "nahuel (puma) 3D turnaround B",
       "file": "assets/nahuel/3d/giro_b.png"
+    },
+    {
+      "asset_id": "490b4498-16ef-4acc-bc7a-3de1a0069e1d",
+      "label": "araucaria 3D concept: mature, parasol crown",
+      "file": "assets/bosque/3d/araucaria_adulta.png"
+    },
+    {
+      "asset_id": "a9fe6a9f-8093-43d0-b981-d537b6c5bbe0",
+      "label": "araucaria 3D concept: young, cone",
+      "file": "assets/bosque/3d/araucaria_joven.png"
     }
   ]
 }

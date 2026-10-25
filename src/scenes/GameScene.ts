@@ -386,11 +386,11 @@ export class GameScene extends Phaser.Scene {
     this.start = this.map ? middle(this.map.start) : { x: FIELD.width / 2, y: FIELD.height / 2 };
     // Open country has no forest: what cannot be crossed is shaded, and what is built stands as blocks.
     this.sight = new Sight();
-    this.three = this.map === vadoDeLasVizcachas ? World3D.of(this.map!, document.getElementById('world')!) : undefined;
+    this.three = this.map ? World3D.of(this.map, document.getElementById('world')!, this.hero) : undefined;
     // In 3D all this is still laid out, for the ground it takes up, though none of it is drawn.
-    this.forest = this.map && !this.map.bare ? new Forest(this, this.map, this.sight) : undefined;
-    if (this.map) layGround(this, this.map);
-    else this.drawGround();
+    this.forest = this.map && !this.map.bare ? new Forest(this, this.map, this.three ? undefined : this.sight, !this.three) : undefined;
+    if (this.map && !this.three) layGround(this, this.map);
+    else if (!this.three) this.drawGround();
     this.built = this.map ? raiseBuildings(this, this.map) : [];
     // In 3D what a place is made of by hand (a well, a cannon: three/errands.ts) is in the way as well.
     if (this.three) for (const { plot, thing } of this.map?.objectives ?? []) if (thing) this.built.push({ ...middle(plot), ...MADE[thing] });
@@ -867,7 +867,8 @@ export class GameScene extends Phaser.Scene {
     // the scenery it cannot see is left out of that same frame.
     cam.on(Phaser.Cameras.Scene2D.Events.FOLLOW_UPDATE, () => this.sight.look(cam.worldView));
     // In 3D nothing of the world is drawn here.
-    if (this.three) cam.setVisible(false);
+    if (this.three && !this.overlaid) cam.setVisible(false);
+    if (this.overlaid) cam.stopFollow();
 
     if (this.renderer.type === Phaser.WEBGL && !this.three) {
       const renderer = this.renderer as Phaser.Renderer.WebGL.WebGLRenderer;
@@ -912,13 +913,13 @@ export class GameScene extends Phaser.Scene {
     const dodging = this.machi.isDashing;
     // In 3D his speed and his roll are the look's, which the panel may be changing.
     const in3d = this.shownIn3d;
-    if (in3d) {
+    if (in3d && this.hero === 'cabral') {
       const { kit } = this.machi, look = this.three!.view.look;
       kit.speed = look.speed;
       if (kit.dash) { kit.dash.time = look.rollTime; kit.dash.distance = look.rollDistance; }
     }
     this.machi.update(dt, input);
-    if (in3d && this.machi.kit.dash) this.three!.cabral.carry(this.machi, from, this.machi.kit.dash, dt);
+    if (in3d && this.hero === 'cabral' && this.machi.kit.dash) this.three!.cabral?.carry(this.machi, from, this.machi.kit.dash, dt);
     if (!dodging && this.machi.isDashing) this.stamina.dodge();
     // Enemies throw at her chest while she is up.
     // She cannot walk through an enemy: each one she stands in pushes her
@@ -1220,6 +1221,12 @@ export class GameScene extends Phaser.Scene {
       }, this.realistas.filter((r): r is Realista | Trooper => r instanceof Realista || IN_3D.has(r.kind)));
       // Framed a little above his feet, so his body is in the middle.
       this.three.draw({ x: this.machi.x, y: this.machi.y - CHEST }, dt);
+      // What is still drawn in 2D, over it: on its pixels, about the same spot.
+      if (this.overlaid) {
+        const cam = this.cameras.main, centre = this.three.centre;
+        cam.setZoom(this.three.view.pixel / this.three.view.look.far / this.scale.zoom);
+        cam.centerOn(centre.x, centre.y);
+      }
     }
   }
 
@@ -1229,9 +1236,17 @@ export class GameScene extends Phaser.Scene {
     if (this.shownIn3d) this.three?.mend(colour);
   }
 
-  /** Whether the hero is drawn in 3D: Cabral, where the map is 3D. */
+  /** Whether the hero is drawn in 3D: wherever the map is. */
   private get shownIn3d(): boolean {
-    return !!this.three && this.hero === 'cabral';
+    return !!this.three;
+  }
+
+  /**
+   * Whether the 2D game still draws over the 3D world what has not been made in 3D yet (Inti's forest:
+   * its creatures, her spells, her nahuel), on the world's own pixels, lined up with it.
+   */
+  private get overlaid(): boolean {
+    return !!this.three && this.hero === 'inti';
   }
 
   /** The camera shakes: this one's, or the 3D world's (in its pixels: about as far). */
@@ -1539,6 +1554,7 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    if (events.cast && this.shownIn3d) this.three?.strike(this.machi, events.cast);
     for (const patch of events.struck) {
       this.lightning.strike(patch.x, patch.y, STRIKE.radius);
       // Whatever stands on the patch, or flies over it, takes the bolt.
@@ -2376,6 +2392,8 @@ export class GameScene extends Phaser.Scene {
     // Dead, she stays where she fell; the shadow under her feet goes with her standing.
     this.sprite.setAlpha(blink ? 0.45 : 1);
     this.shadow.setVisible(standing);
+    // Drawn in 3D: her 2D drawing is not shown over it.
+    if (this.overlaid) { this.sprite.setVisible(false); this.shadow.setVisible(false); }
     if (this.hitFx) {
       this.hitFx.amount = this.flash;
       // He burns with it, dying down as it runs out.

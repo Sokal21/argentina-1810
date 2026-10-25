@@ -210,6 +210,10 @@ export class MachiController {
 
   get isMoving(): boolean { return this.moving; }
   get isAttacking(): boolean { return this.attack !== null; }
+  /** How far into her casting cycle she is, as a share of it, while she casts. */
+  get attackShare(): number | null { return this.attack === null ? null : this.attack / ATTACK_TIME; }
+  /** The share of her casting cycle at which the spell leaves her branch. */
+  get castShare(): number | null { const sheet = this.castSheet(); return sheet?.cast === undefined ? null : sheet.cast / sheet.frames; }
   get isDashing(): boolean { return this.dash !== null; }
   get isChanneling(): boolean { return this.ritual !== null; }
   /** What he stops to do, while he does: its sheet's name (a drink, a roar), or null. */

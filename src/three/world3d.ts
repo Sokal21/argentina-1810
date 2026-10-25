@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Footprint } from '../world/footprint';
 import { SHOT } from '../bolts';
+import { ISO_Y } from '../machi/data';
 import type { MachiController, Vec } from '../machi/controller';
 import { middle, type WorldMap } from '../world/zones';
 import { AimMarks } from './aim';
@@ -16,6 +17,8 @@ import { Royalists, type Royalist } from './realista';
 import { Shots, type Strikes } from './shot';
 import { ground, heading, onTheGround, UPRIGHT } from './space';
 import { Cart } from './cart';
+import { Forest3D } from './forest';
+import { IntiFigure } from './inti';
 import { Errands } from './errands';
 import { seenThrough } from './xray';
 import { Strewn } from './strewn';
@@ -47,7 +50,8 @@ const CART_TURN = 2.5;
 
 export class World3D {
   readonly view: View;
-  readonly cabral = new CabralFigure();
+  /** Whoever plays this map: Cabral, or Inti. */
+  readonly hero: CabralFigure | IntiFigure;
   readonly royalists = new Royalists();
   private readonly shots: Shots;
   /** The royalists' balls: they stop on whoever they reach, and burst on nothing. */
@@ -80,13 +84,14 @@ export class World3D {
   private readonly caster = new THREE.Raycaster();
 
   /** The 3D world of a map, made the first time it is asked for. */
-  static of(map: WorldMap, parent: HTMLElement): World3D {
+  static of(map: WorldMap, parent: HTMLElement, hero: 'cabral' | 'inti' = 'cabral'): World3D {
     let world = made.get(map);
-    if (!world) made.set(map, world = new World3D(map, parent));
+    if (!world) made.set(map, world = new World3D(map, parent, hero));
     return world;
   }
 
-  private constructor(map: WorldMap, private readonly parent: HTMLElement) {
+  private constructor(map: WorldMap, private readonly parent: HTMLElement, hero: 'cabral' | 'inti') {
+    this.hero = hero === 'inti' ? new IntiFigure() : new CabralFigure();
     this.view = new View(parent);
     // The look's panel, while developing: L, since P shows the game's collision boxes.
     if (import.meta.env.DEV) mountPanel(this.view, { key: 'KeyL', hidden: true });
@@ -111,7 +116,7 @@ export class World3D {
     }
     this.sign.style.cssText = "opacity:0;transition:opacity 0.25s;position:fixed;left:0;top:0;z-index:12;pointer-events:none;width:max-content;max-width:300px;text-align:center;font:16px/1.25 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
     document.body.appendChild(this.sign);
-    this.view.scene.add(country.group, this.people.group, this.strewn.group, this.errands.group, this.cabral.group, this.royalists.group, this.marks.group);
+    this.view.scene.add(country.group, new Forest3D(map).group, this.people.group, this.strewn.group, this.errands.group, this.hero.group, this.royalists.group, this.marks.group);
     // A sergeant's roar is felt: a faint shake of the camera, its rings leaving his feet.
     this.royalists.shoutFelt = () => this.view.jolt(ROAR.seconds, ROAR.pixels);
     for (const house of this.houses) this.view.over.add(...house.asks);
@@ -146,6 +151,23 @@ export class World3D {
     this.mendings.stop();
   }
 
+  /** Cabral, if it is he who plays this map. */
+  get cabral(): CabralFigure | null {
+    return this.hero instanceof CabralFigure ? this.hero : null;
+  }
+
+  /** The spot of the 2D ground in the middle of the screen, as last drawn (shaken or not). */
+  get centre(): Vec {
+    const hit = new THREE.Vector3(), way = this.view.camera.getWorldDirection(new THREE.Vector3());
+    new THREE.Ray(this.view.camera.position, way).intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit);
+    return { x: hit.x, y: hit.z * ISO_Y };
+  }
+
+  /** Inti calls the lightning down on a patch. */
+  strike(c: Vec, at: Vec): void {
+    if (this.hero instanceof IntiFigure) this.hero.strike(c, at);
+  }
+
   /** Shown, or hidden (out of the game); and its sign with it. */
   set shown(on: boolean) {
     this.parent.hidden = !on;
@@ -154,13 +176,13 @@ export class World3D {
 
   /** Cabral, as his controller has him this step, and every royalist as his brain has him. */
   update(dt: number, c: MachiController, doing: Doing, royalists: readonly Royalist[]): void {
-    this.cabral.update(dt, c, doing);
+    this.hero.update(dt, c, doing);
     // Only those near enough the camera to be seen, or to throw a shadow into its view.
     const across = this.view.camera.right + 260, down = this.view.camera.top + 260;
     this.royalists.update(dt, royalists, (x, y) => Math.abs(x - c.x) < across && Math.abs(y - c.y) < down);
     // The line of the shot and the ring of its blast, as the 2D game draws them while the musket is up.
     const aiming = doing.aimed && c.arming?.kind === 'musket' && c.arming.phase !== 'fire';
-    this.marks.show(aiming ? this.cabral.aimFrom(c) : null, aiming ? doing.aimed : null);
+    this.marks.show(aiming && this.cabral ? this.cabral.aimFrom(c) : null, aiming ? doing.aimed : null);
     // How far he can throw and the patch it would land on, as the 2D game draws them while a grenade is drawn back.
     const drawing = doing.aimed && c.arming?.kind === 'grenade' && c.arming.phase !== 'fire';
     this.throwing.show(drawing ? c : null, drawing ? doing.aimed : null);
@@ -335,13 +357,13 @@ export class World3D {
 
   /** His musket goes off: from its muzzle, along its barrel. */
   fire(): void {
-    const barrel = this.cabral.barrel();
+    const barrel = this.cabral?.barrel() ?? null;
     if (barrel) this.shots.fire(barrel.tip, barrel.way);
   }
 
   /** His grenade is thrown, as the 2D game lobs it: it leaves his hand as the throw does. */
   lob(from: Vec, to: Vec, throwing: number): void {
-    this.grenades.lob(from, to, throwing * THROWN, () => this.cabral.grenade());
+    this.grenades.lob(from, to, throwing * THROWN, () => this.cabral?.grenade() ?? null);
   }
 
   /** A royalist's goes off. */
@@ -386,6 +408,8 @@ export class World3D {
   /** Draws the world with a spot of the 2D ground in the middle of the screen. */
   draw(centre: Vec, dt: number): void {
     this.view.follow(ground(centre.x, centre.y), dt);
+    // The trees between the camera and whoever plays are opened about them.
+    Forest3D.seeThrough(this.hero.position.clone().setY(this.hero.position.y + 40), this.view.camera, this.view.sunward);
     // The sign over whoever it is for, above their head.
     if (this.signAt) {
       this.view.camera.updateMatrixWorld();
