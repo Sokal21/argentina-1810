@@ -13,6 +13,8 @@ import type Phaser from 'phaser';
 //   B           dodge                A           talk, do, take what is offered
 //   X           drink                ↑           rage (in a talk, the choices)
 //   ←           the shop, by a seller            ≡ pause      ⧉ the hero's page
+//   R3          Inti: lock onto the nearest enemy, or let go     right stick  Inti: a flick moves the lock
+//               to whoever stands that way
 //
 // In a talk, the shop, the hero's page or the pause, the cross (or the stick) goes to whatever can
 // be chosen the way it is pushed (a slider's ← → move it), what is chosen looks as the mouse over it
@@ -28,10 +30,14 @@ export const pad = {
   stick: null as Vec | null,
   /** Running: L3 is a switch, until the stick is let go. */
   run: false,
+  /** R3 was pressed, and the game has not yet taken it. */
+  lock: false,
+  /** The right stick was flicked this way (as seen on screen), and the game has not yet taken it. */
+  flick: null as Vec | null,
 };
 
 /** The standard mapping's buttons. */
-const A = 0, B = 1, X = 2, RB = 5, LT = 6, RT = 7, VIEW = 8, MENU = 9, L3 = 10, UP = 12, DOWN = 13, LEFT = 14, RIGHT = 15;
+const A = 0, B = 1, X = 2, RB = 5, LT = 6, RT = 7, VIEW = 8, MENU = 9, L3 = 10, R3 = 11, UP = 12, DOWN = 13, LEFT = 14, RIGHT = 15;
 /** How little of a stick's push is taken as none; how far a stick goes to be a step in a menu, and how soon one held steps again (ms). */
 const SLACK = 0.25, STEP = 0.6, AGAIN = 260;
 /** After a grenade's button is let go: how long the attack is pressed for the game to see it, and the grenade still held for the throw to be made (ms). */
@@ -132,6 +138,8 @@ export function mountPad(game: Phaser.Game): void {
   };
   const letGo = () => { for (const code of [...holding]) hold(code, false); };
   let chosen: HTMLElement | null = null, chosenAt = 0;
+  /** Whether the right stick has come back to rest since its last flick. */
+  let rested = true;
   /** When each way of stepping last stepped (a held stick steps again after a while), by its first button. */
   const stepped: Record<number, number> = {};
 
@@ -204,6 +212,11 @@ export function mountPad(game: Phaser.Game): void {
     // Playing.
     pad.stick = stick;
     if (press(L3)) pad.run = !pad.run;
+    if (press(R3)) pad.lock = true;
+    // A flick of the right stick: pushed well over from rest, once until it is let back.
+    const [rx, ry] = [gp.axes[2] ?? 0, gp.axes[3] ?? 0], rfar = Math.hypot(rx, ry);
+    if (rested && rfar > STEP) { pad.flick = { x: rx / rfar, y: ry / rfar }; rested = false; }
+    else if (rfar < SLACK) rested = true;
     if (!stick) pad.run = false;
     const tap = (code: string) => { key(code); key(code, false); };
     if (press(A)) tap('KeyF');

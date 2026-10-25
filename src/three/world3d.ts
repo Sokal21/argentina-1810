@@ -174,8 +174,8 @@ export class World3D {
   }
 
   /** The way along the ground Inti casts this step, if she does. */
-  castWay(way: Vec | null): void {
-    if (this.hero instanceof IntiFigure) this.hero.aim = way;
+  castWay(way: Vec | null, locked = false): void {
+    if (this.hero instanceof IntiFigure) { this.hero.aim = way; this.hero.locked = locked; }
   }
 
   /** Where the tip of Inti's branch is, as drawn. */

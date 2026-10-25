@@ -72,6 +72,8 @@ import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Charge as 
 const ZOOM = 1.5;
 /** Inti's pace in 3D, in world units a second: Cabral's is 126 (three/look.ts). */
 const INTI_3D_SPEED = 115;
+/** Inti's lock: how far off (along the ground) she can lock onto someone, and how far before she lets go. */
+const LOCK = { reach: BOLT_RANGE, keep: BOLT_RANGE * 1.4 };
 // By touch: how near an enemy the sabre goes for by itself, how far off a musket dragged all
 // the way points, and how long an arm let go is kept up waiting to go off.
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
@@ -229,6 +231,9 @@ export class GameScene extends Phaser.Scene {
   private loosing: Arm | null = null;
   /** With the gamepad, where a grenade held ready is to land, from the hero (on the 2D ground); moved by the stick. */
   private padAim: Vec | null = null;
+  /** With the gamepad, whom Inti is locked onto (R3), if anyone, and the ring under them. */
+  private locked: Foe | null = null;
+  private lockRing?: Phaser.GameObjects.Ellipse;
   /** Where the hero last stood on their feet, which is where a game left is taken up; and seconds until it is next kept. */
   private stood?: Vec;
   private keeping = 0;
@@ -927,7 +932,7 @@ export class GameScene extends Phaser.Scene {
     // In 3D she turns the way her orbs will fly: toward what is aimed at, or the way the attack points.
     if (this.overlaid) {
       this.castAt = input.target ?? null;
-      this.three!.castWay(input.target ? { x: input.target.x - this.machi.x, y: (input.target.y - this.machi.y) / ISO_Y } : input.aim ?? null);
+      this.three!.castWay(input.target ? { x: input.target.x - this.machi.x, y: (input.target.y - this.machi.y) / ISO_Y } : input.aim ?? null, !!this.locked);
     }
     if (in3d && this.hero === 'cabral' && this.machi.kit.dash) this.three!.cabral?.carry(this.machi, from, this.machi.kit.dash, dt);
     if (!dodging && this.machi.isDashing) this.stamina.dodge();
@@ -1242,6 +1247,10 @@ export class GameScene extends Phaser.Scene {
       this.three.draw({ x: this.machi.x, y: this.machi.y - CHEST }, dt);
       // What is still drawn in 2D, over it: on its pixels, about the same spot.
       if (this.overlaid) {
+        // A ring of her light under whom she is locked onto.
+        this.lockRing ??= this.add.ellipse(0, 0, 44, 16).setStrokeStyle(2, 0x46e6fa, 0.9).setDepth(-999);
+        this.lockRing.setVisible(!!this.locked);
+        if (this.locked) this.lockRing.setPosition(this.locked.ground.x, this.locked.ground.y).setAlpha(0.65 + 0.35 * Math.sin(this.time.now / 120));
         const cam = this.cameras.main, centre = this.three.centre;
         cam.setZoom(this.three.view.pixel / this.three.view.look.far / this.scale.zoom);
         cam.centerOn(centre.x, centre.y);
@@ -1756,6 +1765,7 @@ export class GameScene extends Phaser.Scene {
       return input;
     }
     this.padAim = null;
+    if (this.hero === 'inti') this.lockOn();
     if (stick) {
       // The stick is pushed the way the hero should be seen to go; the ground is foreshortened.
       const far = Math.hypot(stick.x, stick.y / ISO_Y) || 1;
@@ -1763,7 +1773,41 @@ export class GameScene extends Phaser.Scene {
       this.heading = input.move;
     }
     if (input.attack) input.aim = this.heading;
+    // Locked on, her orbs go at whom she is locked onto.
+    if (this.locked) {
+      const at = this.locked.ground, x = at.x - this.machi.x, y = (at.y - this.machi.y) / ISO_Y, far = Math.hypot(x, y) || 1;
+      input.aim = { x: x / far, y: y / far };
+      input.target = { ...at };
+    }
     return input;
+  }
+
+  /**
+   * Inti's lock, with the gamepad: R3 locks onto the nearest enemy within reach (or lets go), a flick of
+   * the right stick moves it to whoever stands that way from whom she is locked onto (on screen), and it
+   * is let go of when they fall or get too far.
+   */
+  private lockOn(): void {
+    if (pad.lock) {
+      pad.lock = false;
+      this.locked = this.locked ? null : this.nearest(LOCK.reach) ?? null;
+    }
+    const flick = pad.flick;
+    pad.flick = null;
+    if (flick && this.locked) {
+      const from = this.locked.ground;
+      let best: Foe | null = null, least = Infinity;
+      for (const foe of this.foes) {
+        if (!foe.alive || foe === this.locked || ground(this.machi, foe.ground) > LOCK.keep) continue;
+        const dx = foe.ground.x - from.x, dy = foe.ground.y - from.y;
+        const along = dx * flick.x + dy * flick.y, aside = Math.abs(dx * flick.y - dy * flick.x);
+        if (along <= 0) continue;
+        const score = along + aside * 2;
+        if (score < least) { least = score; best = foe; }
+      }
+      if (best) this.locked = best;
+    }
+    if (this.locked && (!this.locked.alive || ground(this.machi, this.locked.ground) > LOCK.keep)) this.locked = null;
   }
 
   // Whoever of the enemy is nearest the hero and no further than a reach, if anyone.

@@ -66,6 +66,8 @@ export class IntiFigure {
   private tipAt: THREE.Vector3 | null = null;
   /** The way along the ground (not foreshortened) she casts, while she does; set by the game each step. */
   aim: Vec | null = null;
+  /** Locked onto someone (the gamepad's R3): she faces them all the while, walking round them. */
+  locked = false;
   /** How much the cast is over her (0 to 1), and where in it she was last. */
   private over = 0;
   private castK = 0;
@@ -130,7 +132,7 @@ export class IntiFigure {
     // Turned the way her orbs fly: where the game aims them.
     const look = this.aim ? Math.atan2(this.aim.x, this.aim.y) : c.steer ? Math.atan2(c.steer.x, c.steer.y) : Math.atan2(c.faces.x, c.faces.y);
     if (!fallen && !c.isChanneling && this.striking === 0) {
-      const want = casting ? look : walking ? heading(moved.x, moved.y) : null;
+      const want = casting || (this.locked && this.aim) ? look : walking ? heading(moved.x, moved.y) : null;
       if (want !== null) this.facing += wrap(want - this.facing) * Math.min(1, dt * TURN);
     }
     const motion = this.motion;
@@ -141,7 +143,7 @@ export class IntiFigure {
       else if (c.channelling === 'call') motion.play(CLIPS.call, { once: true, lasts: NAHUEL.call, afresh: !this.wasChanneling, blend: 0.08 });
       else if (c.isChanneling) motion.play(CLIPS.heal, { once: true, lasts: HEAL.time, afresh: !this.wasChanneling, blend: 0.08 });
       else if (this.striking > 0) motion.play(CLIPS.strike, { once: true, lasts: STRIKE_TIME, afresh: this.striking > STRIKE_TIME - dt, blend: 0.05 });
-      else if (casting && walking) {
+      else if ((casting || this.locked) && walking) {
         // Her legs walk whichever of her four ways is nearest the way she goes, turned to where she casts.
         const off = wrap(heading(moved.x, moved.y) - this.facing), q = Math.round(off / (Math.PI / 2));
         const name = q === 0 ? CLIPS.walk.ahead : Math.abs(q) === 2 ? CLIPS.walk.back : q === 1 ? CLIPS.walk.left : CLIPS.walk.right;
