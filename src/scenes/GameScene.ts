@@ -88,6 +88,8 @@ const LIFE_OVER = { cart: 135, walker: 100 };
 const MADE = { pozo: { hw: 23, hh: 10 }, canon: { hw: 28, hh: 10 } };
 /** A captain's men come in from out of sight, so far past the edge of what is seen; and from no further than this from the hero. */
 const CALLED_PAST = 40, CALLED_MOST = 700;
+/** How far along the ground a wave looks for somewhere out of sight to come in from, when straight on there is none. */
+const OFFSTAGE_ALONG = 2400, OFFSTAGE_BACK = 320, OFFSTAGE_MORE = 160;
 const KEEP = 4;
 // A soldier struck comes after the hero for this many seconds, and so does any of his own this near.
 const PROVOKED = 12, ALARM = 260;
@@ -252,7 +254,7 @@ export class GameScene extends Phaser.Scene {
   /** Everything on the map that is to be brought somewhere. */
   private led: Led[] = [];
   /** A stand being made: where, the waves still to come, and those who have. */
-  private battle?: { at: Spot; waves: Waves; sent: Soldier[] };
+  private battle?: { at: Spot; waves: Waves; sent: Soldier[]; leader?: Soldier; enlisted: number };
   /** The plot the hero was last seen in, so the story is told only when it changes. */
   private plotWas = '';
   /** The orbs Inti's kills leave on the ground for a while. */
@@ -737,7 +739,7 @@ export class GameScene extends Phaser.Scene {
           if (at.stand) {
             // What was done beforehand counts: fewer come. Whoever commands them comes last, alone.
             const eased = at.stand.eased && this.story?.has(at.stand.eased.given) ? at.stand.eased.waves : at.stand.waves;
-            this.battle = { at, waves: new Waves(at.stand.leader ? [...eased, 1] : eased), sent: [] };
+            this.battle = { at, waves: new Waves(eased), sent: [], enlisted: 0 };
             if (at.fire) this.three?.light(at.id);
             if (at.note) this.board?.say(at.note);
             this.story?.tell(at.happening);
@@ -1152,19 +1154,25 @@ export class GameScene extends Phaser.Scene {
     }
     // A stand: each wave comes from where the map says, once the last of the one before is down.
     if (this.battle && this.map) {
-      const { at, waves, sent } = this.battle, stand = at.stand!;
-      const coming = waves.update(dt, sent.filter(soldier => soldier.alive).length);
+      const { at, waves, sent } = this.battle, stand = at.stand!, leader = this.battle.leader;
+      // The next wave comes once his men are down; the last is not over until whoever commands them is too.
+      const standing = sent.filter(soldier => soldier.alive && soldier !== leader).length + (waves.come === waves.sizes.length && leader?.alive ? 1 : 0);
+      const coming = waves.update(dt, standing);
       if (typeof coming === 'number') {
-        const leads = !!stand.leader && waves.come === waves.sizes.length;
-        const from = middle(stand.from), bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
-        for (let n = 0; n < coming; n++) {
-          // Abreast, a few paces apart.
-          const soldier = this.enlist(leads ? stand.leader!.kind : undefined, from.x + (n - (coming - 1) / 2) * 46, from.y + (n % 2) * 18, bounds).sent(this.walkable);
+        const bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
+        // From out of sight, the way the column comes from: seen springing up where one looked, it was strange.
+        const enter = (n: number, of: number, kind: string | undefined) => {
+          const { x, y } = this.offstage(middle(stand.from), (n - (of - 1) / 2) * 46);
+          const soldier = this.enlist(kind, x, y, bounds).sent(this.walkable);
           this.realistas.push(soldier);
           sent.push(soldier);
           this.physics.add.overlap(this.bolts.bodies, soldier.zone, this.struck);
-        }
-        this.board?.say(leads ? `${stand.leader!.name}.` : `Oleada ${waves.come} de ${waves.sizes.length - (stand.leader ? 1 : 0)}.`);
+          return soldier;
+        };
+        // Whoever commands them comes with the first, in the middle of it.
+        if (waves.come === 1 && stand.leader) this.battle.leader = enter(0, 1, stand.leader.kind);
+        for (let n = 0; n < coming; n++) enter(n, coming, stand.mix?.[(this.battle.enlisted++) % stand.mix.length]);
+        this.board?.say(waves.come === 1 && stand.leader ? `${stand.leader.name}, y su columna.` : `Oleada ${waves.come} de ${waves.sizes.length}.`);
       } else if (coming === 'won') {
         this.battle = undefined;
         this.story?.tell(stand.won);
@@ -1992,6 +2000,36 @@ export class GameScene extends Phaser.Scene {
    * from just out of sight (seen appearing, they popped up), abreast a few paces apart, and come
    * straight on; with no post, they are taken off the field once left far behind.
    */
+  /**
+   * Where one comes in from out of sight, the way toward `toward` from the hero: out along it past the
+   * edge of what is seen (in 3D, what its camera sees), `side` across it; nearer, where that is no ground
+   * to stand on; at `toward` itself if nowhere on the way is.
+   */
+  private offstage(toward: Vec, side = 0): Vec {
+    const dx = toward.x - this.machi.x, dy = (toward.y - this.machi.y) / ISO_Y, far = Math.hypot(dx, dy) || 1;
+    const out = { x: dx / far, y: dy / far }, view = this.cameras.main.worldView;
+    const spot = (d: number) => ({ x: this.machi.x + out.x * d - out.y * side, y: this.machi.y + (out.y * d + out.x * side) * ISO_Y });
+    const sees = (d: number) => { const p = spot(d - CALLED_PAST); return this.three ? this.three.sees(p) : view.contains(p.x, p.y); };
+    let d = 0;
+    while (d < CALLED_MOST && sees(d)) d += 10;
+    for (; d < CALLED_MOST; d += 10) if (this.walkable(spot(d).x, spot(d).y)) return spot(d);
+    // Nowhere out of sight that way (the ground ends in view, as the far bank of the ford does): along
+    // the ground `toward` stands on, to whichever side is out of sight first, one behind another there.
+    // Row by row away from the hero (the bank widens further back), the nearest such spot.
+    const back = Math.sign(toward.y - this.machi.y) || -1;
+    for (let row = 0; row <= OFFSTAGE_BACK; row += 32) {
+      for (let along = 0; along < OFFSTAGE_ALONG; along += 20) {
+        for (const way of [1, -1]) {
+          const p = { x: toward.x + way * (along + Math.abs(side)), y: toward.y + back * row + side * 0.4 };
+          const seen = this.three ? this.three.sees(p) : view.contains(p.x, p.y);
+          // A little further on, so none of those abreast with it shows at the edge.
+          if (!seen && this.walkable(p.x, p.y)) return this.walkable(p.x + way * OFFSTAGE_MORE, p.y) ? { x: p.x + way * OFFSTAGE_MORE, y: p.y } : p;
+        }
+      }
+    }
+    return { x: toward.x - out.y * side, y: toward.y + out.x * side * ISO_Y };
+  }
+
   private reinforce(caller: Trooper, call: { many: number; most: number }): void {
     const standing = (this.called.get(caller) ?? []).filter(s => s.alive);
     const coming = Math.min(call.many, call.most - standing.length);

@@ -69,8 +69,13 @@ export interface Spot {
     won: string;
     /** Fewer come, if this has happened: what was done beforehand counts. */
     eased?: { given: string; waves: number[] };
-    /** Whoever commands them comes last, alone, and takes this much to bring down. */
+    /**
+     * Whoever commands them: there from the first wave (the next come on when his men are down, not him),
+     * and the stand is not held until he is down too.
+     */
     leader?: { name: string; kind: string };
+    /** The kinds the waves are made of, one after another round (a fusilier where it is not one of the others). */
+    mix?: string[];
   };
   /** Shown to the player when it is done. */
   note?: string;
