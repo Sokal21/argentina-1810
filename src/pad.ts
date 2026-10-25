@@ -14,7 +14,7 @@ import type Phaser from 'phaser';
 //   X           drink                ↑           rage (in a talk, the choices)
 //   ←           the shop, by a seller            ≡ pause      ⧉ the hero's page
 //   R3          Inti: lock onto the nearest enemy, or let go     right stick  Inti: a flick moves the lock
-//               to whoever stands that way
+//               to whoever stands that way; with LT held (the lightning), it moves where the bolt falls
 //
 // In a talk, the shop, the hero's page or the pause, the cross (or the stick) goes to whatever can
 // be chosen the way it is pushed (a slider's ← → move it), what is chosen looks as the mouse over it
@@ -34,6 +34,8 @@ export const pad = {
   lock: false,
   /** The right stick was flicked this way (as seen on screen), and the game has not yet taken it. */
   flick: null as Vec | null,
+  /** Which way the right stick is pushed, as seen on screen, up to 1 long; null at rest. */
+  right: null as Vec | null,
 };
 
 /** The standard mapping's buttons. */
@@ -215,7 +217,10 @@ export function mountPad(game: Phaser.Game): void {
     if (press(R3)) pad.lock = true;
     // A flick of the right stick: pushed well over from rest, once until it is let back.
     const [rx, ry] = [gp.axes[2] ?? 0, gp.axes[3] ?? 0], rfar = Math.hypot(rx, ry);
-    if (rested && rfar > STEP) { pad.flick = { x: rx / rfar, y: ry / rfar }; rested = false; }
+    pad.right = rfar < SLACK ? null : { x: rx / Math.max(1, rfar), y: ry / Math.max(1, rfar) };
+    // With the lightning held it aims the bolt, and is no flick.
+    if (down[LT]) rested = false;
+    else if (rested && rfar > STEP) { pad.flick = { x: rx / rfar, y: ry / rfar }; rested = false; }
     else if (rfar < SLACK) rested = true;
     if (!stick) pad.run = false;
     const tap = (code: string) => { key(code); key(code, false); };

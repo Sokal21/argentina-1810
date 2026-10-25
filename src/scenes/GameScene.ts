@@ -231,6 +231,8 @@ export class GameScene extends Phaser.Scene {
   private loosing: Arm | null = null;
   /** With the gamepad, where a grenade held ready is to land, from the hero (on the 2D ground); moved by the stick. */
   private padAim: Vec | null = null;
+  /** With the gamepad, where her lightning would fall, from her along the ground, while it is held. */
+  private strikeAim: Vec | null = null;
   /** With the gamepad, whom Inti is locked onto (R3), if anyone, and the ring under them. */
   private locked: Foe | null = null;
   private lockRing?: Phaser.GameObjects.Ellipse;
@@ -1581,7 +1583,7 @@ export class GameScene extends Phaser.Scene {
     const at = { x: this.machi.x, y: this.machi.y };
     const events = this.abilities.update(dt, {
       ...keys,
-      pointer: this.hero === 'inti' ? this.pointing(STRIKE.range) : at,
+      pointer: this.hero === 'inti' ? this.strikeSpot(dt, keys.strike) : at,
       at,
       free: standing && !this.machi.isDashing,
       hurt: this.vitals.life < this.vitals.max,
@@ -1855,6 +1857,29 @@ export class GameScene extends Phaser.Scene {
     const foe = this.nearest(reach);
     if (foe) return this.pointed = { ...foe.ground };
     return this.pointed = { x: at.x + this.heading.x * reach * 0.6, y: at.y + this.heading.y * reach * 0.6 * ISO_Y };
+  }
+
+  /**
+   * Where Inti's lightning would fall. With the gamepad, while it is held, the right stick moves the spot
+   * about her (it goes with her as she walks), never past its reach; it starts on whom she is locked
+   * onto, or ahead of her. Otherwise as anything else is pointed.
+   */
+  private strikeSpot(dt: number, held: boolean): Vec {
+    if (!pad.on) { this.strikeAim = null; return this.pointing(STRIKE.range); }
+    const at = this.machi;
+    if (!held) { this.strikeAim = null; return this.pointing(STRIKE.range); }
+    // Along the ground, not foreshortened.
+    this.strikeAim ??= this.locked
+      ? { x: this.locked.ground.x - at.x, y: (this.locked.ground.y - at.y) / ISO_Y }
+      : { x: this.heading.x * STRIKE.range * 0.6, y: this.heading.y * STRIKE.range * 0.6 };
+    const right = pad.right;
+    if (right) {
+      this.strikeAim.x += right.x * PAD_AIM * dt;
+      this.strikeAim.y += (right.y / ISO_Y) * PAD_AIM * dt;
+    }
+    const far = Math.hypot(this.strikeAim.x, this.strikeAim.y);
+    if (far > STRIKE.range) { this.strikeAim.x *= STRIKE.range / far; this.strikeAim.y *= STRIKE.range / far; }
+    return { x: at.x + this.strikeAim.x, y: at.y + this.strikeAim.y * ISO_Y };
   }
 
   /** How much of her life is left, from 0 to 1. */
