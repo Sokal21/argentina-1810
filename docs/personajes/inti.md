@@ -191,3 +191,23 @@ arriba), espejadas para cubrir ocho direcciones.
 | Diagonal abajo | `d244941b-fc51-4389-9a91-137fdd799967` |
 
 El resto está en `spritecook-assets.json`.
+
+## En 3D
+
+Modelo de Tripo desde la hoja B (manto corto, para que no se enganche con los brazos al castear),
+25 de octubre de 2026: `assets/machi/3d/inti_animado.glb`, 81 de alto. Tiene encima las 56 del Pro
+Magic Pack de Mixamo para elegir en `modelos.html`. Las elegidas por el usuario:
+
+| Acción | Clip |
+|---|---|
+| Quieta | `idle_02` |
+| Caminar (para cualquier lado, castenado de frente) | `walk_forward`, `walk_back`, `walk_left`, `walk_right` |
+| Correr | `run_forward` |
+| Hechizo (básico) | `1h_magic_attack_02` |
+| Rayo del Pillán | `1h_magic_attack_03` |
+| Lawen (curación) | `2h_cast_spell_01` |
+| Nahuel (definitiva) | `2h_magic_area_attack_02` |
+| Derrape | `derrape` (Mixamo "Running Slide") |
+| Muerte | `react_death_forward` |
+
+No reacciona a los golpes (Cabral tampoco). Falta: el kultrún y la rama de canelo como objetos en sus manos.
