@@ -1262,7 +1262,8 @@ export class GameScene extends Phaser.Scene {
         o.glow.setVisible(false);
         o.shadow.setVisible(false);
         return { x: o.x, y: o.y, up: o.y - o.glow.y, alpha: o.glow.alpha, scale: o.glow.scaleX };
-      }), this.abilities.pending.map(p => ({ x: p.x, y: p.y, share: Math.min(1, p.t / STRIKE.delay) })), this.abilities.healShare);
+      }), this.abilities.pending.map(p => ({ x: p.x, y: p.y, share: Math.min(1, p.t / STRIKE.delay) })), this.abilities.healShare,
+        this.machi.channelling === 'call' ? this.machi.channelShare : null);
       this.three.draw({ x: this.machi.x, y: this.machi.y - CHEST }, dt);
       // What is still drawn in 2D, over it: on its pixels, about the same spot.
       if (this.overlaid) {
@@ -1952,6 +1953,8 @@ export class GameScene extends Phaser.Scene {
     if (this.calling !== null && (this.calling -= dt) <= 0) {
       this.calling = null;
       this.nahuel.summon({ x: this.machi.x + 34, y: this.machi.y + 6 }, tune.beast * this.growth.gives('ultimate'));
+      // In 3D a shaft of her light runs to where it comes out, and flares there.
+      if (this.overlaid) this.three?.summoned({ x: this.machi.x + 34, y: this.machi.y + 6 });
       this.shake(200, 0.004);
     }
     const torn = this.nahuel.update(dt, this.foes.map(f => ({ ...f.ground, girth: f.girth, alive: f.alive, foe: f })), this.machi);
