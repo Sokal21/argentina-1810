@@ -19,6 +19,9 @@ const SHADOW_MAP = 2048;
 /** How far the camera stands off, along the way it looks: anything so long as all is in front. */
 const OFF = 3000;
 
+/** How many of the world's pixels the screen's shorter side shows at least (a computer's 772 at 3 a pixel). */
+const SHORT_SIDE = 257;
+
 export class View {
   readonly renderer = new THREE.WebGLRenderer({ antialias: false });
   readonly scene = new THREE.Scene();
@@ -113,9 +116,14 @@ export class View {
 
   private sized = false;
 
-  /** Screen pixels to each pixel of the world. */
+  /**
+   * Screen pixels to each pixel of the world: the look's, or fewer on a small screen, so that its
+   * shorter side shows as much of the world as a computer's does (on a phone, at 3 a pixel, the hero
+   * filled the screen).
+   */
   get pixel(): number {
-    return this.look.pixel;
+    const short = Math.min(innerWidth, innerHeight);
+    return Math.max(1, Math.min(this.look.pixel, short / SHORT_SIDE));
   }
 
   fit(): void {
