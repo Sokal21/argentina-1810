@@ -2,7 +2,7 @@
 Torso…, Neck1…3, Head, FrontUpperLeg/FrontLowerLeg, BackLeg/BackUpperLeg/BackLowerLeg .L/.R), for the
 nahuel: carried over from the wolf, its clips tore the puma's skin (its legs and neck are far longer).
 
-    Blender -b --python tools/blender/anims/trote_felino.py -- RIG.glb OUT.glb [--frames 24] [--name trote] [--still yes]
+    Blender -b --python tools/blender/anims/trote_felino.py -- RIG.glb OUT.glb [--frames 24] [--name trote] [--still yes | --gait gallop | --gait swipe]
 
 Diagonal pairs (front left with hind right, front right with hind left) half a stride apart; each leg
 swung from its top about the way across the body, its lower joints bent as it is carried forward and
@@ -62,6 +62,14 @@ def turn(name: str, degrees: float) -> None:
 
 
 STILL = opts.get('--still') == 'yes'
+GAIT = opts.get('--gait', 'trot')
+if GAIT == 'gallop':
+    # A bound: each pair nearly together (a little apart, left then right), the hind pair half a stride
+    # after the front; long swings, deep folds; the back gathering and stretching once a stride.
+    # (Folded deeper, the skin tore at the belly and the legs crossed.)
+    SWING = {'front': 34, 'hind': 30}
+    BEND = {'front': (0, 45, 30), 'hind': (-10, 38, -35)}
+    PHASE = {('front', 'L'): 0.0, ('front', 'R'): 0.08, ('hind', 'L'): 0.5, ('hind', 'R'): 0.58}
 if STILL:
     # Standing instead: legs bearing, the body breathing, the head turning a little, the tail-end still.
     SWING = {'front': 0, 'hind': 0}
@@ -79,9 +87,28 @@ for f in range(FRAMES):
     if body:
         body.location = (0, 0, 0)
         bpy.context.view_layer.update()
-        lift = (math.sin(t * math.tau) * 0.008 if STILL else math.sin(t * math.tau * 2) * 0.025) * legs_h
+        lift = (math.sin(t * math.tau) * 0.008 if STILL else math.sin(t * math.tau) * 0.07 if GAIT == 'gallop' else math.sin(t * math.tau * 2) * 0.025) * legs_h
         body.matrix = Matrix.Translation((0, 0, lift)) @ body.matrix
         bpy.context.view_layer.update()
+    if GAIT == 'swipe':
+        # Crouched back (0 to 0.35), the right forepaw raised high and forward; struck down (0.35 to 0.5);
+        # held, then back to standing (to 1). `k` how far into the crouch, `up` how high the paw.
+        k = min(1, t / 0.35) if t < 0.5 else max(0, 1 - (t - 0.5) / 0.5)
+        up = min(1, t / 0.35) if t < 0.35 else max(0, 1 - (t - 0.35) / 0.12) if t < 0.47 else 0
+        strike = 0 if t < 0.35 else min(1, (t - 0.35) / 0.12) * max(0, 1 - (t - 0.6) / 0.4) if t > 0.6 else min(1, (t - 0.35) / 0.12)
+        if body:
+            body.matrix = Matrix.Translation((0, legs_h * 0.06 * k, -legs_h * 0.08 * k)) @ body.matrix
+            bpy.context.view_layer.update()
+        for name, angle in (('BackLeg.L', -18 * k), ('BackLeg.R', -18 * k), ('BackUpperLeg.L', 30 * k), ('BackUpperLeg.R', 30 * k),
+                            ('BackLowerLeg.L', -25 * k), ('BackLowerLeg.R', -25 * k), ('FrontUpperLeg.L', 12 * k), ('FrontLowerLeg.L', 20 * k),
+                            ('FrontUpperLeg.R', -140 * up - 40 * strike), ('FrontLowerLeg.R', 70 * up - 30 * strike),
+                            ('Neck1', -12 * k), ('Head', 18 * k)):
+            if name in pb:
+                turn(name, angle)
+        for b in order:
+            b.keyframe_insert('rotation_quaternion', frame=f)
+            b.keyframe_insert('location', frame=f)
+        continue
     for (kind, side), chain in CHAINS.items():
         a = (t + PHASE[(kind, side)]) * math.tau
         # Forward (negative) while carried, back (positive) while bearing.
@@ -92,9 +119,15 @@ for f in range(FRAMES):
             if name in pb:
                 turn(name, angle)
     # The neck against the bob, so the head stays steadier; the spine a touch.
-    for name, k in ((('Neck1', 1.5), ('Head', -2.0), ('Torso2', 1.0)) if STILL else (('Neck1', -2.0), ('Head', 3.0), ('Torso2', 1.5))):
-        if name in pb:
-            turn(name, k * math.sin(t * math.tau * (1 if STILL else 2)))
+    if GAIT == 'gallop':
+        # The back gathers as the hind legs come under, and stretches as they push off.
+        for name, k in (('Torso', 10.0), ('Torso2', 8.0), ('Torso3', 6.0), ('Neck1', -8.0), ('Head', 10.0)):
+            if name in pb:
+                turn(name, k * math.sin(t * math.tau))
+    else:
+        for name, k in ((('Neck1', 1.5), ('Head', -2.0), ('Torso2', 1.0)) if STILL else (('Neck1', -2.0), ('Head', 3.0), ('Torso2', 1.5))):
+            if name in pb:
+                turn(name, k * math.sin(t * math.tau * (1 if STILL else 2)))
     for b in order:
         b.keyframe_insert('rotation_quaternion', frame=f)
         b.keyframe_insert('location', frame=f)
