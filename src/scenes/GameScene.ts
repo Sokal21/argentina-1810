@@ -64,7 +64,7 @@ import { DRAW, SHOT as SLING, SIP } from '../three/cabral';
 import { sunCursor } from '../three/cursor';
 import { MODELS } from '../three/buildings';
 import { World3D } from '../three/world3d';
-import { PITCH } from '../three/space';
+import { heightAt, PITCH } from '../three/space';
 import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Charge as Cargo, type Spot, type WorldMap } from '../world/zones';
 
 // Screen pixels per sprite pixel: drawn a little smaller than twice, so more of the country is seen
@@ -1068,7 +1068,8 @@ export class GameScene extends Phaser.Scene {
     if (cast && tip) {
       cast.x = tip.x;
       cast.y = tip.z * ISO_Y;
-      cast.height = tip.y * Math.cos(PITCH);
+      // Over the ground under it, which rises and falls (measured from nothing, its orb leapt up as much as the ground stood).
+      cast.height = (tip.y - heightAt(cast.x, cast.y)) * Math.cos(PITCH);
       // It hits what it is seen to touch, high in the air: its drawn path, from the tip, is aimed at
       // the spot on screen (the middle of whom she is locked onto; under the pointer, the ground there,
       // which is where the pointer is seen). Aimed along the ground it flew over whoever was aimed at.
