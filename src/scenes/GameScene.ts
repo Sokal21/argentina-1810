@@ -89,6 +89,8 @@ const MADE = { pozo: { hw: 23, hh: 10 }, canon: { hw: 28, hh: 10 } };
 /** A captain's men come in from out of sight, so far past the edge of what is seen; and from no further than this from the hero. */
 const CALLED_PAST = 40, CALLED_MOST = 700;
 /** How far along the ground a wave looks for somewhere out of sight to come in from, when straight on there is none. */
+/** How far straight on a wave looks for somewhere out of sight: across the ford, the far bank is out of sight past 850. */
+const WAVE_FROM = 1400;
 const OFFSTAGE_ALONG = 2400, OFFSTAGE_BACK = 320, OFFSTAGE_MORE = 160;
 const KEEP = 4;
 // A soldier struck comes after the hero for this many seconds, and so does any of his own this near.
@@ -1162,7 +1164,7 @@ export class GameScene extends Phaser.Scene {
         const bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
         // From out of sight, the way the column comes from: seen springing up where one looked, it was strange.
         const enter = (n: number, of: number, kind: string | undefined) => {
-          const { x, y } = this.offstage(middle(stand.from), (n - (of - 1) / 2) * 46);
+          const { x, y } = this.offstage(middle(stand.from), (n - (of - 1) / 2) * 46, WAVE_FROM);
           const soldier = this.enlist(kind, x, y, bounds).sent(this.walkable);
           this.realistas.push(soldier);
           sent.push(soldier);
@@ -2005,14 +2007,14 @@ export class GameScene extends Phaser.Scene {
    * edge of what is seen (in 3D, what its camera sees), `side` across it; nearer, where that is no ground
    * to stand on; at `toward` itself if nowhere on the way is.
    */
-  private offstage(toward: Vec, side = 0): Vec {
+  private offstage(toward: Vec, side = 0, most = CALLED_MOST): Vec {
     const dx = toward.x - this.machi.x, dy = (toward.y - this.machi.y) / ISO_Y, far = Math.hypot(dx, dy) || 1;
     const out = { x: dx / far, y: dy / far }, view = this.cameras.main.worldView;
     const spot = (d: number) => ({ x: this.machi.x + out.x * d - out.y * side, y: this.machi.y + (out.y * d + out.x * side) * ISO_Y });
     const sees = (d: number) => { const p = spot(d - CALLED_PAST); return this.three ? this.three.sees(p) : view.contains(p.x, p.y); };
     let d = 0;
-    while (d < CALLED_MOST && sees(d)) d += 10;
-    for (; d < CALLED_MOST; d += 10) if (this.walkable(spot(d).x, spot(d).y)) return spot(d);
+    while (d < most && sees(d)) d += 10;
+    for (; d < most; d += 10) if (this.walkable(spot(d).x, spot(d).y)) return spot(d);
     // Nowhere out of sight that way (the ground ends in view, as the far bank of the ford does): along
     // the ground `toward` stands on, to whichever side is out of sight first, one behind another there.
     // Row by row away from the hero (the bank widens further back), the nearest such spot.
