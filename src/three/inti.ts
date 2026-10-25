@@ -29,8 +29,14 @@ const DRAWN = 81;
 // Measured on the model: at 0.25 her branch is thrust straight ahead (its tip 38 in front of her); after
 // it the arm sweeps right and behind her, where at 0.42 the orb left from behind her back.
 const RELEASE = { cast: 0.25, strike: 0.45 };
-/** What of her casts over her walk: her chest, neck and head, and both arms. */
-const UPPER = /^(Spine0[12]|NeckTwist0[12]|Head|[LR]_(Clavicle|Upperarm|Forearm|Hand)\w*)$/;
+/**
+ * What of her casts, over whatever her legs do: her waist, chest, neck and head, and the arm with the branch.
+ * The clip swings the other hand right across her body and back, as if it were free; it holds her
+ * kultrun, and flailed (the user, 25/10/2026): it is left to the idle or the walk under the cast.
+ */
+const UPPER = /^(Waist|Spine0[12]|NeckTwist0[12]|Head|R_(Clavicle|Upperarm|Forearm|Hand)\w*)$/;
+/** Seconds the cast takes to come over her, and to leave her. */
+const EASE = 0.12;
 /** How long her call to the lightning is shown, in seconds. */
 const STRIKE_TIME = 0.9;
 /** How fast she turns, per second; how quickly what she is taken to go at follows how fast she goes. */
@@ -53,11 +59,16 @@ export class IntiFigure {
   private striking = 0;
   /** Her cast, for her upper body only: each bone, and how it turns along the clip. */
   private upper: { bone: THREE.Object3D; at: THREE.Interpolant }[] = [];
+  /** Her hips in the cast, and the bone itself: the clip turns her whole body 84° into the thrust. */
+  private hip: { bone: THREE.Object3D; at: THREE.Interpolant } | null = null;
   private castSeconds = 1;
   /** The tip of her branch: which point of it, in its own frame. */
   private tipAt: THREE.Vector3 | null = null;
   /** The way along the ground (not foreshortened) she casts, while she does; set by the game each step. */
   aim: Vec | null = null;
+  /** How much the cast is over her (0 to 1), and where in it she was last. */
+  private over = 0;
+  private castK = 0;
 
   constructor() {
     void model('machi/3d/inti_animado.glb', DRAWN).then(loaded => {
@@ -72,7 +83,9 @@ export class IntiFigure {
         for (const track of cast.tracks) {
           const [name, what] = track.name.split('.');
           const bone = loaded.getObjectByName(name);
-          if (bone && what === 'quaternion' && UPPER.test(name)) this.upper.push({ bone, at: (track as THREE.KeyframeTrack & { createInterpolant(): THREE.Interpolant }).createInterpolant() });
+          const at = () => (track as THREE.KeyframeTrack & { createInterpolant(): THREE.Interpolant }).createInterpolant();
+          if (bone && what === 'quaternion' && UPPER.test(name)) this.upper.push({ bone, at: at() });
+          if (bone && what === 'quaternion' && name === 'Hip') this.hip = { bone, at: at() };
         }
       }
       // The point of the branch furthest from the hand that holds it.
@@ -133,14 +146,33 @@ export class IntiFigure {
         const off = wrap(heading(moved.x, moved.y) - this.facing), q = Math.round(off / (Math.PI / 2));
         const name = q === 0 ? CLIPS.walk.ahead : Math.abs(q) === 2 ? CLIPS.walk.back : q === 1 ? CLIPS.walk.left : CLIPS.walk.right;
         motion.play(name, paced(name));
-      } else if (casting) motion.hold(CLIPS.cast, this.castAt(c), { blend: 0.08 });
-      else if (c.isMoving) motion.play(CLIPS.run, paced(CLIPS.run));
+      } else if (c.isMoving && !casting) motion.play(CLIPS.run, paced(CLIPS.run));
       else motion.play(CLIPS.idle);
       motion.update(dt);
-      // Walking, her chest and arms cast over her legs' walk.
-      if (casting && walking && !fallen && !c.isDashing && !c.isChanneling && this.striking === 0) {
-        const t = this.castAt(c) * this.castSeconds;
-        for (const { bone, at } of this.upper) bone.quaternion.fromArray(at.evaluate(t) as unknown as number[]);
+      // Her chest and branch arm cast over her idle or her walk, coming over her and leaving her smoothly.
+      const free = !fallen && !c.isDashing && !c.isChanneling && this.striking === 0;
+      this.over = free ? Math.max(0, Math.min(1, this.over + (casting ? dt : -dt) / EASE)) : 0;
+      if (casting) this.castK = this.castAt(c);
+      if (this.over > 0) {
+        // Winding up, the clip as it is; after the orb has gone, from the thrust straight back to rest,
+        // easing: the clip's own way back swept the branch round behind her, a lash at this pace.
+        const k = this.castK, back = k > RELEASE.cast ? (k - RELEASE.cast) / (1 - RELEASE.cast) : 0;
+        const ease = back * back * (3 - 2 * back), q = new THREE.Quaternion(), rest = new THREE.Quaternion();
+        const pose = (into: THREE.Quaternion, bone: THREE.Object3D, at: THREE.Interpolant, t: number) => {
+          into.fromArray(at.evaluate(t) as unknown as number[]);
+          // Her legs keep to her idle or her walk, so the clip's turn of her hips is laid on her waist:
+          // her body above them is turned as the clip turns it.
+          if (bone.name === 'Waist' && this.hip) {
+            const turned = new THREE.Quaternion().fromArray(this.hip.at.evaluate(t) as unknown as number[]);
+            into.premultiply(this.hip.bone.quaternion.clone().invert().multiply(turned));
+          }
+          return into;
+        };
+        for (const { bone, at } of this.upper) {
+          pose(q, bone, at, Math.min(k, RELEASE.cast) * this.castSeconds);
+          if (ease > 0) q.slerp(pose(rest, bone, at, 0), ease);
+          bone.quaternion.slerp(q, this.over);
+        }
       }
     }
     this.wasFallen = fallen;
@@ -151,10 +183,14 @@ export class IntiFigure {
     this.group.rotation.y = this.facing;
   }
 
-  /** How far into her cast she is shown: each orb leaves her branch the moment the controller looses it. */
+  /**
+   * How far into her cast she is shown. Each cast starts from rest, at the clip's start; its wind-up
+   * takes until the controller looses the orb, which is the moment her branch is thrust ahead, and
+   * the rest of the clip, back to rest, takes what is left.
+   */
   private castAt(c: MachiController): number {
-    const share = c.attackShare ?? 0, at = c.castShare ?? 0.75;
-    return ((share - at + RELEASE.cast) % 1 + 1) % 1;
+    const s = c.attackShare ?? 0, at = c.castShare ?? 0.75;
+    return s < at ? (s / at) * RELEASE.cast : RELEASE.cast + ((s - at) / (1 - at)) * (1 - RELEASE.cast);
   }
 
   /** Where the tip of her branch is, once she has her model: where her orbs leave from. */
