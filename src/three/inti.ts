@@ -18,8 +18,18 @@ import type { Doing } from './cabral';
 const CLIPS = {
   idle: 'idle_02', run: 'run_forward', cast: '1h_magic_attack_02', strike: '1h_magic_attack_03',
   heal: '2h_cast_spell_01', call: '2h_magic_area_attack_02', dash: 'derrape', death: 'react_death_forward',
-  walk: { ahead: 'walk_forward', back: 'walk_back', left: 'walk_left', right: 'walk_right' },
+  walk: { ahead: 'walk_forward', back: 'walk_back' },
 };
+/**
+ * How fast her legs turn to where they should go, per second. The pack's walks and run go at a slant
+ * (measured: forward 27° to her left, back 40° to her right, the run 22°; its walk right goes nearly
+ * ahead), so her legs are turned from her pelvis for each step to go where she really goes, and her
+ * walks left and right are not used: walking while she casts she walks ahead or back, whichever turns
+ * her legs least from her body, as Cabral does.
+ */
+const LEG_TURN = 12;
+/** How much less one way of walking must turn her legs than the other before she changes to it. */
+const LEG_SWAP = 0.3;
 /** How tall she is drawn, in sprite pixels: as in the gallery. */
 const DRAWN = 81;
 /**
@@ -59,6 +69,11 @@ export class IntiFigure {
   private motion: Motion | null = null;
   private flash: (amount: number) => void = () => {};
   private reach: Record<string, number> = {};
+  /** Which way each walk and the run really go, from her front. */
+  private ways: Record<string, number> = {};
+  /** How far her legs are turned from her body, and whether she walks back. */
+  private legTurn = 0;
+  private backing = false;
   private facing = 0;
   private going = 0;
   private wasDashing = false;
@@ -87,7 +102,11 @@ export class IntiFigure {
       this.motion = new Motion(loaded);
       this.flash = flashes(loaded);
       seenThrough(loaded);
-      for (const name of [CLIPS.run, ...Object.values(CLIPS.walk)]) this.reach[name] = this.motion.reach(name, 'L_Foot') * loaded.scale.x;
+      for (const name of [CLIPS.run, ...Object.values(CLIPS.walk)]) {
+        const left = this.motion.stride(name, 'L_Foot'), right = this.motion.stride(name, 'R_Foot');
+        this.reach[name] = ((left.reach + right.reach) / 2) * loaded.scale.x;
+        this.ways[name] = Math.atan2(Math.sin(left.way) + Math.sin(right.way), Math.cos(left.way) + Math.cos(right.way));
+      }
       const cast = loaded.animations.find(a => a.name === CLIPS.cast);
       if (cast) {
         this.castSeconds = cast.duration;
@@ -146,6 +165,7 @@ export class IntiFigure {
     }
     const motion = this.motion;
     if (motion) {
+      let legs = 0;
       const paced = (name: string) => ({ pace: this.reach[name] ? Math.max(LEAST_PACE, this.going / this.reach[name]) : 1 });
       if (fallen) motion.play(CLIPS.death, { once: true, afresh: !this.wasFallen });
       else if (c.isDashing) motion.play(CLIPS.dash, { once: true, lasts: dashTime, afresh: !this.wasDashing, blend: 0.05 });
@@ -153,13 +173,25 @@ export class IntiFigure {
       else if (c.isChanneling) motion.play(CLIPS.heal, { once: true, lasts: HEAL.time, afresh: !this.wasChanneling, blend: 0.08 });
       else if (this.striking > 0) motion.play(CLIPS.strike, { once: true, lasts: STRIKE_TIME, afresh: this.striking > STRIKE_TIME - dt, blend: 0.05 });
       else if ((casting || this.locked) && walking) {
-        // Her legs walk whichever of her four ways is nearest the way she goes, turned to where she casts.
-        const off = wrap(heading(moved.x, moved.y) - this.facing), q = Math.round(off / (Math.PI / 2));
-        const name = q === 0 ? CLIPS.walk.ahead : Math.abs(q) === 2 ? CLIPS.walk.back : q === 1 ? CLIPS.walk.left : CLIPS.walk.right;
+        // Turned to where she casts, her legs walk ahead or back, turned to go where she goes.
+        const off = wrap(heading(moved.x, moved.y) - this.facing);
+        const ahead = wrap(off - (this.ways[CLIPS.walk.ahead] ?? 0)), back = wrap(off - (this.ways[CLIPS.walk.back] ?? Math.PI));
+        this.backing = this.backing ? Math.abs(back) < Math.abs(ahead) + LEG_SWAP : Math.abs(back) + LEG_SWAP < Math.abs(ahead);
+        const name = this.backing ? CLIPS.walk.back : CLIPS.walk.ahead;
+        legs = this.backing ? back : ahead;
         motion.play(name, paced(name));
-      } else if (c.isMoving && !casting) motion.play(CLIPS.run, paced(CLIPS.run));
-      else motion.play(CLIPS.idle);
+      } else if (c.isMoving && !casting) {
+        legs = -(this.ways[CLIPS.run] ?? 0);
+        motion.play(CLIPS.run, paced(CLIPS.run));
+      } else motion.play(CLIPS.idle);
       motion.update(dt);
+      // Her legs turned from her pelvis, about the upright.
+      this.legTurn += wrap(legs - this.legTurn) * Math.min(1, dt * LEG_TURN);
+      const pelvis = this.shaped?.getObjectByName('Pelvis');
+      if (pelvis?.parent && Math.abs(this.legTurn) > 1e-3) {
+        const up = new THREE.Vector3(0, 1, 0).applyQuaternion(pelvis.parent.getWorldQuaternion(new THREE.Quaternion()).invert());
+        pelvis.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(up, this.legTurn));
+      }
       // Her chest and branch arm cast over her idle or her walk, coming over her and leaving her smoothly.
       const free = !fallen && !c.isDashing && !c.isChanneling && this.striking === 0;
       this.over = free ? Math.max(0, Math.min(1, this.over + (casting ? dt : -dt) / EASE)) : 0;

@@ -55,6 +55,36 @@ export class Motion {
     return (2 * (far - near)) / clip.duration;
   }
 
+  /**
+   * Which way a clip made in place really goes, as a turn about the upright from the body's front (+Z),
+   * and how far it goes a second: from a foot while it bears, which slides back the way the body goes.
+   * (Some clips walk at a slant: Inti's walk forward goes 27° to her left.)
+   */
+  stride(name: string, foot: string): { way: number; reach: number } {
+    const clip = this.clips.get(name), bone = this.body.getObjectByName(foot);
+    if (!clip || !bone) return { way: 0, reach: 0 };
+    const sampler = new THREE.AnimationMixer(this.body), action = sampler.clipAction(clip).play();
+    const points: THREE.Vector3[] = [];
+    for (let i = 0; i <= SAMPLES; i++) {
+      sampler.setTime((clip.duration * i) / SAMPLES);
+      this.body.updateMatrixWorld(true);
+      points.push(this.body.worldToLocal(bone.getWorldPosition(new THREE.Vector3())));
+    }
+    action.stop();
+    sampler.uncacheRoot(this.body);
+    // While it bears: the lower half of where it goes.
+    const low = [...points].map(p => p.y).sort((a, b) => a - b)[Math.floor(points.length / 2)];
+    const slid = new THREE.Vector3();
+    let along = 0;
+    for (let i = 1; i < points.length; i++) {
+      if (points[i].y > low || points[i - 1].y > low) continue;
+      const d = points[i].clone().sub(points[i - 1]).setY(0);
+      slid.add(d);
+      along += d.length();
+    }
+    return { way: Math.atan2(-slid.x, -slid.z), reach: (2 * along) / clip.duration };
+  }
+
   /** How long a clip lasts at its own pace, in seconds. */
   seconds(name: string): number {
     return this.clips.get(name)?.duration ?? 0;
