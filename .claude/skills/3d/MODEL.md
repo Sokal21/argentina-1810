@@ -23,6 +23,12 @@ now gives 1K only on this account (2K needs a higher plan): 1376×768 is enough 
 `Blender -b --python tools/blender/prepare_model.py -- IN.glb assets/NAME/3d/NAME.glb`
 - Turns it to face +Z (Tripo faces +X), feet at the origin, one unit tall.
 - Texture to **512 px in 16 colours** (k-means over its own pixels), nearest-filtered, no shine.
+- **Then fewer triangles** (26 October 2026): `Blender -b --python tools/blender/decimate.py -- X.glb X.glb --faces N`,
+  the last step for every model, animated ones too (after `prepare_rigged.py`; it keeps the rig,
+  the clips and the props). Tripo's 8000 faces for a figure 45 px tall went through every pass for
+  nothing: at a quarter nothing changes on screen (checked side by side at the game's size). Asked:
+  figures 2500, buildings 4000, furniture 5000, the ombú 3000, araucarias 1000 and 800. Collapsing
+  stops at UV seams, material borders and sharp edges; meshes under `--keep` (400) are left alone.
 
 ## Checking it
 `Blender -b --python tools/blender/turntable.py -- NAME.glb DIR`, then

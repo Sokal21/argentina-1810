@@ -175,7 +175,7 @@ out byte for byte the same. Re-run a character's hand-keyed clips whenever Cabra
 ## The game's model
 
 `prepare_rigged.py OUT MAIN.glb CLIPS... --front +x --carries sabre,musket,musket_in_hand` joins
-every clip into `assets/NAME/3d/NAME_animado.glb`. Re-run it after any clip changes, with the
+every clip into `assets/NAME/3d/NAME_animado.glb`, then `decimate.py` on that file (MODEL.md). Re-run both after any clip changes, with the
 whole list (the last command in git history has it).
 
 ## Playing them: `src/three/motion.ts` and `main.ts`
