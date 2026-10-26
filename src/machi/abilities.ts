@@ -2,7 +2,7 @@ import { ISO_Y } from './data';
 import type { Vec } from './controller';
 
 export const MANA = 100;
-export const REGEN = 6;   // mana back per second
+export const REGEN = 3;   // mana back per second (6 until the user found it came back too fast)
 
 /** Lightning called down on a patch of ground, a moment after it is marked. */
 export const STRIKE = {
@@ -19,7 +19,7 @@ export const HEAL = {
   cost: 45,
   cooldown: 8,
   time: 1,      // seconds she stands rooted
-  amount: 2,
+  amount: 1,    // of her life (2 until the user found it healed too much)
 };
 
 export type Ability = 'strike' | 'heal';
