@@ -45,6 +45,9 @@ const WHO: Who[] = [
   // (puma_animado.glb): its long legs went through its own body as they gathered.
   { name: 'Nahuel', url: 'nahuel/3d/nahuel_animado.glb', drawn: 52, spirit: true },
   { name: 'Puma (intento)', url: 'nahuel/3d/puma_animado.glb', drawn: 52 },
+  // The chonchón (Tripo from turnaround C, 25 October 2026): no rig nor clips yet, its wings to be boned
+  // apart in Blender. 60 from wingtips to the ends of its hair, as its 2D drawing.
+  { name: 'Chonchón', url: 'chonchon/3d/chonchon.glb', drawn: 60 },
   // The ox cart whole, as the game draws it (three/cart.ts): going, its wheels rolling and its oxen
   // walking, in place; or standing, its oxen breathing and grazing now and then.
   { name: 'Carreta', url: '', drawn: 110, cart: true },
