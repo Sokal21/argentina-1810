@@ -86,9 +86,10 @@ const used = (name: string) => CODE.includes(`'${name}'`);
 const LUNGE = 'estocada_a_fondo', LUNGE_FROM = 180;
 /**
  * The chonchón as the game plays it: its own brain set on Inti standing `DIVE_FROM` off, circling her
- * and diving at her (and biting her, close), drawn by its game figure (three/chonchon.ts).
+ * and diving at her (and biting her, close), drawn by its game figure (three/chonchon.ts); or set
+ * on her standing `BITE_FROM` off, close enough to bite her, and put back there after each bite.
  */
-const DIVE = 'en_picada', DIVE_FROM = 150;
+const DIVE = 'en_picada', DIVE_FROM = 150, BITE = 'en_mordida', BITE_FROM = 30;
 /** The clips a character stands and walks with, listed first. */
 const FIRST = ['reposo_mixamo', 'caminata_mixamo', 'caminata_atras'];
 /** How fast the cart goes in the gallery, world units a second (the 2D game's carts go 40 to 46). */
@@ -101,7 +102,7 @@ const view = new View(document.getElementById('world')!);
 const game = new Royalists();
 view.scene.add(game.group);
 let played: { who: Royalist & { mind: TroopBrain }; target: { x: number; y: number }; over: number } | null = null;
-let hunting: { brain: ChonchonBrain; figure: ChonchonFigure; her: { x: number; y: number } } | null = null;
+let hunting: { brain: ChonchonBrain; figure: ChonchonFigure; her: { x: number; y: number }; close: boolean } | null = null;
 view.apply({ ...view.look, far: 0.6 });
 const floor = new THREE.Mesh(new THREE.PlaneGeometry(900, 500), flat('#8a7a50'));
 floor.rotation.x = -Math.PI / 2;
@@ -174,17 +175,16 @@ function length(name: string): number {
 }
 
 /** Shows one character, or all of them; their clips as buttons. */
-async function show(list: Who[], mark: HTMLButtonElement): Promise<void> {
-  for (const b of who.querySelectorAll('button')) b.classList.toggle('on', b === mark);
+async function show(list: Who[]): Promise<void> {
   for (const it of loaded.values()) { it.flung.back(); view.scene.remove(it.body); }
   shown = list;
   const all = await Promise.all(list.map(load));
   all.forEach((it, i) => { it.body.position.x = it.home = (i - (all.length - 1) / 2) * APART; view.scene.add(it.body); });
   // Their clips: with several, those any of them has (each one lacking a clip stands as he is).
-  const names = [...new Set([...all.flatMap(it => it.clips), ...(list.some(w => w.lunge) ? [LUNGE] : []), ...(list.some(w => w.dives) ? [DIVE] : [])])];
+  const names = [...new Set([...all.flatMap(it => it.clips), ...(list.some(w => w.lunge) ? [LUNGE] : []), ...(list.some(w => w.dives) ? [DIVE, BITE] : [])])];
   if (!names.includes(clip)) clip = names[0] ?? 'reposo_mixamo';
   clipsBar.replaceChildren();
-  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE;
+  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE;
   const ordered = [...names.filter(playing), ...names.filter(n => !playing(n))];
   for (const name of ordered) {
     const b = button(clipsBar, name, () => { play(name); for (const x of clipsBar.children) x.classList.toggle('on', x === b); });
@@ -209,7 +209,7 @@ function play(name: string): void {
     it.body.position.z = 0;
     if (shown.length === 1) view.follow(new THREE.Vector3(0, w.drawn * 0.5, 0));
     if (name === LUNGE && w.lunge) { act(it.body); continue; }
-    if (name === DIVE && w.dives) { hunt(it.body); continue; }
+    if ((name === DIVE || name === BITE) && w.dives) { hunt(it.body, name === BITE); continue; }
     const c = it.motion.has(name) ? name : 'reposo_mixamo';
     it.motion.play(c, { once: !!t.lasts || !!t.once, lasts: t.lasts, afresh: true, blend: 0.12 });
     // One who holds his musket in both hands lets it fall from them as he falls, as in the game.
@@ -260,21 +260,26 @@ function act(body: THREE.Group): void {
   });
 }
 
-/** The chonchón's brain set on Inti, standing off before it, and its game figure drawing it. */
-function hunt(body: THREE.Group): void {
-  body.visible = false;
-  const inti = WHO[1];
-  const her = { x: Math.sin(turn) * DIVE_FROM, y: Math.cos(turn) * DIVE_FROM * ISO_Y };
+/** A chonchón's brain where the gallery sets it, going for her at once rather than after circling a while. */
+function brainAt(): ChonchonBrain {
   const brain = new ChonchonBrain(0, 0);
-  // At her at once, rather than after circling a while.
   (brain as unknown as Record<string, number>).wait = 0;
+  return brain;
+}
+
+/** The chonchón's brain set on Inti, standing off before it (close, to be bitten), and its game figure drawing it. */
+function hunt(body: THREE.Group, close: boolean): void {
+  body.visible = false;
+  // Close, she stands to its side, so its face is seen as it bites rather than hidden behind her.
+  const inti = WHO[1], off = close ? BITE_FROM : DIVE_FROM, way = close ? turn + Math.PI / 2 : turn;
+  const her = { x: Math.sin(way) * off, y: Math.cos(way) * off * ISO_Y };
   const figure = new ChonchonFigure();
   view.scene.add(figure.group);
-  hunting = { brain, figure, her };
+  hunting = { brain: brainAt(), figure, her, close };
   void load(inti).then(it => {
     if (!hunting) return;
     it.body.position.set(her.x, 0, her.y / ISO_Y);
-    it.body.rotation.y = turn + Math.PI;
+    it.body.rotation.y = way + Math.PI;
     it.motion.play('reposo_mixamo');
     view.scene.add(it.body);
   });
@@ -283,7 +288,10 @@ function hunt(body: THREE.Group): void {
 /** Steps the move played by the game: its brain and its figure; the view following him. */
 function step(dt: number): void {
   if (hunting) {
-    const { brain, figure, her } = hunting;
+    const { figure, her } = hunting;
+    // Close, it is put back where it bites from a moment after each bite.
+    if (hunting.close && hunting.brain.mode === 'fly' && hunting.brain.t > 0.6) hunting.brain = brainAt();
+    const brain = hunting.brain;
     if (dt > 0) brain.update(dt, her);
     figure.update(dt, brain);
     view.follow(new THREE.Vector3((brain.x + her.x) / 2, 30, (brain.y + her.y) / 2 / ISO_Y));
@@ -314,9 +322,16 @@ function leave(): void {
   for (const w of shown) { const it = loaded.get(w); if (it) it.body.visible = true; }
 }
 
-// The list: each alone, and all together.
-for (const w of WHO) { const b = button(who, w.name, () => void show([w], b)); }
-const together = button(who, 'Todos juntos', () => void show(WHO, together));
+// The list, to choose from: each alone, and all together. The one chosen is kept for the next visit.
+const choice = document.createElement('select');
+for (const w of WHO) choice.append(new Option(w.name, w.name));
+choice.append(new Option('Todos juntos', ''));
+function choose(): void {
+  try { localStorage.setItem('modelos.who', choice.value); } catch { /* kept only while the page is open */ }
+  void show(choice.value ? WHO.filter(w => w.name === choice.value) : WHO);
+}
+choice.onchange = choose;
+who.append(choice);
 
 // What is done with whoever is shown.
 const tools = document.getElementById('tools')!;
@@ -335,7 +350,8 @@ slider('giro', -180, 180, 0, 15, v => { turn = THREE.MathUtils.degToRad(v); });
 slider('velocidad', 0.1, 1, 1, 0.05, v => { pace = v; });
 slider('cerca', 0.25, 1.8, 0.6, 0.05, v => view.apply({ ...view.look, far: v }));
 
-void show([WHO[0]], who.querySelector('button')!);
+try { const kept = localStorage.getItem('modelos.who'); if (kept !== null && [...choice.options].some(o => o.value === kept)) choice.value = kept; } catch { /* the first, then */ }
+choose();
 
 let last = performance.now();
 view.renderer.setAnimationLoop(() => {

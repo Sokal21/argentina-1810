@@ -3,13 +3,14 @@
     Blender -b --python tools/blender/rig_wings.py -- CHONCHON.glb OUT.glb
 
 The model is Tripo's, one mesh and no rig (`prepare_model.py`: one unit tall, facing +Z in glTF,
--Y here). It is given a head bone, a chain of bones down its hair and another down its tongue,
-and two bones in each wing, both from the shoulder (where the wing leaves the head behind the ear), as the ribs of a fan:
+-Y here). It is given a head bone, a jaw hinged on it, a chain of bones down its hair and another
+down its tongue (hung from the jaw), and two bones in each wing, both from the shoulder (where the wing leaves the head behind the ear), as the ribs of a fan:
 the arm, up its leading edge to the claw on top, and the finger, out to the wing's outer tip. The
 membrane between is shared between them by its angle about the shoulder, all the arm's at the
 leading edge and all the finger's at the outer tip and beyond. The hair below the head is shared
 along the chain by where it lies along it, and with the head where it starts; so is the tongue,
-found by its red before the mouth.
+found by its red before the mouth, with the jaw. The jaw is what lies under the mouth and before
+its hinge, shading into the head at its edges.
 
 The flap is keyed by hand, as a bird's seen from the front. The wings are first laid down level,
 turned forward about the line from side to side through the shoulders till they stick out to the
@@ -52,6 +53,11 @@ CROWN, ROOT = 0.52, 0.44
 # LOLL.
 TONGUE = [Vector(p) for p in [(0.0, -0.175, 0.645), (0.0, -0.19, 0.6), (0.0, -0.198, 0.555), (0.0, -0.2, 0.495)]]
 FRONT, MOUTH, LOLL = -0.15, 0.68, 0.61
+# The jaw, measured on the model: its hinge, before the ears at the height of the mouth, and its
+# chin. It is what is under the mouth (LIPS), above BELOW, before BEHIND and within CHEEK of the
+# middle; each edge shades into the head over EDGE.
+HINGE, CHIN = Vector((0.0, -0.03, 0.655)), Vector((0.0, -0.13, 0.58))
+LIPS, BELOW, BEHIND, CHEEK, EDGE = 0.645, 0.5, -0.03, 0.12, 0.015
 # One flap, in frames (0.8 s, as the 2D one); the share of it the downstroke takes; how far forward
 # the wings are turned from standing as drawn to lie level; how far above level their tips rise at
 # the top of the stroke, and how far they turn from there to the bottom; how late the finger comes,
@@ -90,6 +96,13 @@ AIM = [math.radians(a) for a in (-50, -15, -10)]
 # the arm, the membrane between, shared by two bones turned so differently, buckled out sideways.)
 STOOP = 8
 FOLD, SLANT, FLUTTER = math.radians(80), math.radians(-35), math.radians(4)
+# The bite: so many frames (0.6 s, at the brain's pace), the jaws shut at SNAP (0.4 s); how wide the
+# jaw opens and how far past drawn it shuts; how far back the head is drawn and thrust forward, how
+# far its chin lifts as it draws back and dips as it bites; how far each bone of the tongue curls in.
+BITE, SNAP = 15, 10
+OPEN, SHUT = math.radians(28), math.radians(8)
+PULL, THRUST, LIFT_CHIN, DIP = 0.05, 0.06, math.radians(12), math.radians(14)
+CURL = [math.radians(a) for a in (70, 50, 40)]
 STREAM = [math.radians(a) for a in (35, 10, 5, 5, 3, 3, 2, 2)]
 
 
@@ -142,7 +155,10 @@ for i in range(len(LOCKS) - 1):
     bone.parent = parent
     bone.use_connect = i > 0
     parent = bone
-parent = head
+jaw = rig.data.edit_bones.new('mandibula')
+jaw.head, jaw.tail = HINGE, CHIN
+jaw.parent = head
+parent = jaw
 for i in LICKS:
     bone = rig.data.edit_bones.new(f'lengua_{i}')
     bone.head, bone.tail = TONGUE[i], TONGUE[i + 1]
@@ -197,28 +213,38 @@ print('HAIR', len(hair), 'of', len(mesh.data.vertices))
 # The weights.
 LOCK = range(len(LOCKS) - 1)
 groups = {n: mesh.vertex_groups.new(name=n) for n in ['cabeza'] + [f'ala_{s}_{r}' for s in 'RL' for r in ('brazo', 'dedo')]
-          + [f'pelo_{i}' for i in LOCK] + [f'lengua_{i}' for i in LICKS]}
+          + [f'pelo_{i}' for i in LOCK] + [f'lengua_{i}' for i in LICKS] + ['mandibula']}
 ARM, FINGER = angle(CLAW), angle(TIP)
 
 
-def chained(v: int, p: Vector, chain: list[Vector], bones: range, name: str, own: float) -> None:
+def chained(v: int, p: Vector, chain: list[Vector], bones: range, name: str, own: float, rest: str = 'cabeza') -> None:
     """A point shared along a chain, each bone's share falling off from the middle of its stretch,
-    and the rest of it the head's."""
+    and the rest of it the head's (or the jaw's)."""
     u = along(p, chain)
     near = {i: max(0.0, 1 - abs(u - (i + 0.5))) for i in bones}
     near[min(bones[-1], max(0, int(u)))] += 1e-3
     total = sum(near.values())
     for i, n in near.items():
         if n > 0: groups[f'{name}_{i}'].add([v], own * n / total, 'REPLACE')
-    if own < 1: groups['cabeza'].add([v], 1 - own, 'REPLACE')
+    if own < 1: groups[rest].add([v], 1 - own, 'REPLACE')
+
+
+def edge(inside: float) -> float:
+    """How much is the jaw's, by how far within its edge a point is."""
+    return min(1.0, max(0.0, inside / EDGE))
 
 
 for v in mesh.data.vertices:
     p = mesh.matrix_world @ v.co
     if v.index in tongue:
-        chained(v.index, p, TONGUE, LICKS, 'lengua', min(1.0, (MOUTH - p.z) / (MOUTH - LOLL)))
+        chained(v.index, p, TONGUE, LICKS, 'lengua', min(1.0, (MOUTH - p.z) / (MOUTH - LOLL)), 'mandibula')
         continue
     wing = 0.0 if p.z < LOW or v.index in hair else min(1.0, max(0.0, (abs(p.x) - INNER) / (WING - INNER)))
+    chin = 0.0 if v.index in hair or wing > 0 else edge(LIPS - p.z) * edge(p.z - BELOW) * edge(BEHIND - p.y) * edge(CHEEK - abs(p.x))
+    if chin > 0:
+        groups['mandibula'].add([v.index], chin, 'REPLACE')
+        if chin < 1: groups['cabeza'].add([v.index], 1 - chin, 'REPLACE')
+        continue
     if wing <= 0 and p.z < CROWN:
         chained(v.index, p, LOCKS, LOCK, 'pelo', min(1.0, (CROWN - p.z) / (CROWN - ROOT)))
         continue
@@ -264,17 +290,23 @@ def sprung() -> list[tuple[float, float]]:
 
 
 def pose(k: int, height: float, nod: float, wings: tuple[float, float, float, float, float, float], hair: list[tuple[float, float]],
-         tongue: list[tuple[float, float]]) -> None:
-    """Keys every bone at frame k: the head raised and nodded (chin down for more); each wing laid
-    forward (about X), its arm and finger each raised (about Y, mirrored on the left) and swept
-    back (about Z, mirrored), and then the whole of it leant forward (about X again); each bone of the hair and the tongue turned to and fro and from side to
-    side from the one above."""
-    held = Matrix.Translation(Vector((0, 0, height)) + PIVOT) @ Matrix.Rotation(-nod, 4, 'X') @ Matrix.Translation(-PIVOT)
+         tongue: list[tuple[float, float]], jaw: float = 0.0, back: float = 0.0) -> None:
+    """Keys every bone at frame k: the head raised, drawn back (+Y) and nodded (chin down for
+    more); the jaw opened (chin down for more); each wing laid forward (about X), its arm and finger
+    each raised (about Y, mirrored on the left) and swept back (about Z, mirrored), and then the
+    whole of it leant forward (about X again); each bone of the hair and the tongue turned to and
+    fro and from side to side from the one above."""
+    held = Matrix.Translation(Vector((0, back, height)) + PIVOT) @ Matrix.Rotation(-nod, 4, 'X') @ Matrix.Translation(-PIVOT)
     cab = rig.pose.bones['cabeza']
     cab.matrix = held @ rest['cabeza']
     bpy.context.view_layer.update()
     cab.keyframe_insert('location', frame=k)
     cab.keyframe_insert('rotation_quaternion', frame=k)
+    mouth = rig.pose.bones['mandibula']
+    mouth.matrix = held @ Matrix.Translation(HINGE) @ Matrix.Rotation(jaw, 4, 'X') @ Matrix.Translation(-HINGE) @ rest['mandibula']
+    bpy.context.view_layer.update()
+    mouth.keyframe_insert('rotation_quaternion', frame=k)
+    mouth.keyframe_insert('location', frame=k)
     lay, arm, finger, arm_sweep, finger_sweep, slant = wings
     for s in 'RL':
         # Beating, this way lifts the right wing's tip (out at -X); sweeping, takes it back (+Y).
@@ -360,10 +392,30 @@ def diving(k: int):
 keyed('vuelo', CLIP, flying)
 keyed('picada_aviso', WARN, warning)
 keyed('picada', STOOP, diving)
+
+
+def biting(k: int):
+    """The bite, as long as the brain's (BITE_TIME, 0.6 s), its jaws shutting at SNAP (BITE_SNAP,
+    0.4 s): it draws its head back and up, opens wide, lifts its wings tense and curls its tongue in;
+    then thrusts, shuts its jaw hard past where it is drawn and a little back, and beats its wings
+    down; and lets go, as it is drawn and flying again."""
+    charge = eased(k / (SNAP - 2))
+    after = eased((k - SNAP) / (BITE - SNAP))
+    if k <= SNAP - 2: jaw, back, nod, arm = OPEN * charge, PULL * charge, -LIFT_CHIN * charge, UP + (HIGH - UP) * charge
+    elif k < SNAP: jaw, back, nod, arm = OPEN * 0.35, (PULL - THRUST) / 2, 0.0, (HIGH + LOW_BEAT) / 2
+    elif k == SNAP: jaw, back, nod, arm = -SHUT, -THRUST, DIP, LOW_BEAT
+    else: jaw, back, nod, arm = -SHUT * 0.5 * (1 - after), -THRUST * (1 - after), DIP * (1 - after), LOW_BEAT + (UP - LOW_BEAT) * after
+    going = 1.0 if SNAP - 2 < k <= SNAP else 0.0
+    curl = eased(k / (SNAP - 2)) * (1 - eased((k - SNAP - 1) / (BITE - SNAP - 1)))
+    tongue = [(CURL[i] * curl, WRIGGLE[i] * 0.3 * math.sin(2 * math.pi * 2 * k / BITE - i * LICK)) for i in LICKS]
+    return 0.0, nod, (LAY, arm, arm + LAG * going, 0.0, 0.0, 0.0), hair_at(k, BITE, drag=False), tongue, jaw, back
+
+
+keyed('mordida', BITE, biting)
 bpy.ops.object.mode_set(mode='OBJECT')
 # Only these clips go out.
 for a in list(bpy.data.actions):
-    if a.name not in ('vuelo', 'picada_aviso', 'picada'): bpy.data.actions.remove(a)
+    if a.name not in ('vuelo', 'picada_aviso', 'picada', 'mordida'): bpy.data.actions.remove(a)
 print('SKIN', len(mesh.vertex_groups), sum(len(v.groups) for v in mesh.data.vertices), [m.type for m in mesh.modifiers], mesh.parent)
 scene.render.fps = FPS
 scene.frame_start, scene.frame_end = 0, CLIP

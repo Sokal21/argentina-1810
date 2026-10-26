@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { DIVE_LOW, DIVE_PAST, WINDUP, type ChonchonBrain, type Mode } from '../chonchon/brain';
+import { BITE_SNAP, BITE_TIME, DIVE_LOW, DIVE_PAST, WINDUP, type ChonchonBrain, type Mode } from '../chonchon/brain';
 import { ISO_Y } from '../machi/data';
 import { flashes, model } from './figure';
 import { Motion } from './motion';
@@ -11,6 +11,8 @@ import { ground, UPRIGHT } from './space';
 // and reddens; it falls from there straight at her, red through, its wings folded back, nose along
 // the way it falls; and the red goes as it pulls out. Its fall is drawn only: the brain drops at
 // once and skims along low (the 2D game's), but its hits are reckoned on the ground, not by height.
+// Its bite: it draws back and opens wide, its tongue curled in, and shuts its jaws on her with a
+// thrust, a beat of its wings and a short flash of red, smaller than its dive's.
 
 const URL = 'chonchon/3d/chonchon_animado.glb';
 /** Its drawn height, wingtips to the ends of its hair, as its 2D drawing. */
@@ -19,8 +21,8 @@ export const DRAWN = 60;
 const FACE = 0.68;
 /** How much higher it rises in the warning, in the 2D game's pixels: drawn only, the brain's height is its own. */
 const RISE = 20;
-/** Seconds the red takes to go (as the 2D's). */
-const FADE = 0.22;
+/** Seconds the red takes to go (as the 2D's); and how red its bite flashes as its jaws shut. */
+const FADE = 0.22, SNAP_RED = 0.35;
 /** How far it noses down toward her as it warns; and the seconds it takes to level out after its fall. */
 const AIM = THREE.MathUtils.degToRad(15), LEVEL = 0.2;
 
@@ -80,6 +82,12 @@ export class ChonchonFigure {
         this.nose = u < 1 ? this.fall : Math.max(0, this.nose - dt * this.fall / LEVEL);
         break;
       }
+      case 'bite':
+        this.motion.play('mordida', { once: true, lasts: BITE_TIME, blend: 0.08 });
+        this.lift = 0;
+        this.red = b.t >= BITE_SNAP ? Math.max(0, SNAP_RED * (1 - (b.t - BITE_SNAP) / FADE)) : Math.max(0, this.red - dt / FADE);
+        this.nose = Math.max(0, this.nose - dt * AIM / LEVEL);
+        break;
       default:
         this.motion.play('vuelo', { blend: 0.15 });
         this.lift = 0;

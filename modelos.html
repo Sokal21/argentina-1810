@@ -13,13 +13,16 @@
     position: fixed; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
     color: #cdbfa3; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; text-shadow: 0 1px 0 #000; user-select: none;
   }
-  #who { left: 8px; top: 30px; flex-direction: column; align-items: stretch; width: 130px; }
+  #who { left: 8px; top: 30px; }
   #clips { left: 8px; right: 8px; bottom: 40px; }
   #tools { left: 8px; right: 8px; bottom: 8px; }
   .bar button {
     font: inherit; color: #f0e3c4; background: #241d17; border: 1px solid #6b5c44; border-radius: 3px; padding: 3px 8px; cursor: pointer; text-align: left;
   }
   .bar button.on { background: #6b5c44; }
+  .bar select {
+    font: inherit; color: #f0e3c4; background: #241d17; border: 1px solid #6b5c44; border-radius: 3px; padding: 3px 6px; cursor: pointer;
+  }
   .bar button.unused { opacity: .4; }
   .bar button.unused:first-of-type, .bar button:not(.unused) + .unused { margin-left: 18px; }
   .bar label { display: inline-flex; gap: 4px; align-items: center; margin-left: 8px; }
