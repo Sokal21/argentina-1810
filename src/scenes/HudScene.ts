@@ -11,10 +11,10 @@ const MARGIN = 6;    // screen pixels between the frame and the bottom edge
 const TALLEST = 0.3; // share of the screen's height the frame may take
 // The glow around a full vessel: its size for a glass of radius `r`, and how its strength breathes.
 const HALO = { size: 96, r: 31, low: 0.1, high: 0.26 };
-const SETTLE = 6;    // how fast a level slides to its new value, per second
+export const SETTLE = 6;    // how fast a level slides to its new value, per second
 const ICON = 30;     // side of a skill's icon
 // The breath bar's greens, and its reds once spent.
-const BREATH = { fill: [0x4f8a3a, 0x9fd46e] as [number, number], spent: [0x8a2e1e, 0xd8604a] as [number, number] };
+export const BREATH = { fill: [0x4f8a3a, 0x9fd46e] as [number, number], spent: [0x8a2e1e, 0xd8604a] as [number, number] };
 // The note that comes up over a slot when it is pointed at, in its own
 // pixels, each two of the screen's.
 const NOTE = { w: 184, pad: 7, gap: 5, ink: '#f0e3c4', dim: '#a89a80', back: 0x16120f, edge: 0x0a0807 };
@@ -64,7 +64,7 @@ interface Layout {
 
 const LIFE = ['#571227', '#8a1730', '#c22f48', '#e0607a'] as Vessel['colours'];
 
-const LAYOUTS: Record<Hero, Layout> = {
+export const LAYOUTS: Record<Hero, Layout> = {
   // Inti's: two orbs held by roots, life and mana.
   inti: {
     frame: 'hud/marco.png', w: 484, h: 161,
@@ -259,7 +259,8 @@ export class HudScene extends Phaser.Scene {
     const game = this.scene.get('game') as GameScene;
     const dt = Math.min(0.05, delta / 1000);
     for (const [hero, panel] of Object.entries(this.panels) as [Hero, Panel][]) {
-      const theirs = hero === game.playing;
+      // Drawn in the world instead (three/hud3d.ts), it is not drawn here.
+      const theirs = hero === game.playing && !game.hudIn3d;
       panel.box.setVisible(theirs);
       if (!theirs) { if (this.note?.hero === hero) this.hideNote(); continue; }
       // By touch the buttons sit over it: they are told how tall it stands, their bar and their money with it.

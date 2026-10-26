@@ -29,6 +29,7 @@ import { Calling3D } from './calling';
 import type { NahuelBrain } from '../nahuel/brain';
 import { Errands } from './errands';
 import { seenThrough } from './xray';
+import { Hud3D, type HudLook, type HudReading } from './hud3d';
 import { Strewn } from './strewn';
 import { View } from './view';
 import { raiseCountry } from './world';
@@ -184,6 +185,18 @@ export class World3D {
     this.mendings.begin(0xffffff);
     this.view.warm();
     this.mendings.stop();
+  }
+
+  /** Inti's HUD as a thing in the world (hud3d.ts), once the game first asks for it. */
+  private hud3d: Hud3D | null = null;
+
+  /** Shows the HUD in the world, made the first time in the look given, with what the game reads now. */
+  hud(look: HudLook, reading: HudReading, dt: number): void {
+    if (!this.hud3d) {
+      this.hud3d = new Hud3D(look);
+      this.view.scene.add(this.hud3d.group);
+    }
+    this.hud3d.read(reading, dt);
   }
 
   /** The ring under whom he is locked onto with the gamepad (R3), on the 2D ground; or none. */
@@ -505,6 +518,8 @@ export class World3D {
   /** Draws the world with a spot of the 2D ground in the middle of the screen. */
   draw(centre: Vec, dt: number): void {
     this.view.follow(ground(centre.x, centre.y), dt);
+    // The HUD, if it is drawn in the world, before the camera wherever it now is.
+    this.hud3d?.place(this.view.camera);
     // The trees between the camera and whoever plays are opened about them.
     Forest3D.seeThrough(this.hero.position.clone().setY(this.hero.position.y + 40), this.view.camera, this.view.sunward);
     // The sign over whoever it is for, above their head.

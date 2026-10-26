@@ -61,6 +61,8 @@ import { THINGS } from '../story/things';
 import { FACTS, RULES, VADO } from '../story/vado';
 import { Vitals } from '../world/vitals';
 import { DRAW, MUSKET_TIMES, SHOT as SLING, SIP } from '../three/cabral';
+import type { HudLook } from '../three/hud3d';
+import { BREATH, LAYOUTS, SETTLE } from './HudScene';
 import { sunCursor } from '../three/cursor';
 import { MODELS } from '../three/buildings';
 import { World3D } from '../three/world3d';
@@ -85,6 +87,19 @@ const INTI_3D_DASH = { time: 1, distance: 200 };
 const GREAT_SHAKE = { seconds: 0.9, pixels: 7 };
 /** Inti's lock: how far off (along the ground) she can lock onto someone, and how far before she lets go. */
 const LOCK = { reach: BOLT_RANGE, keep: BOLT_RANGE * 1.4 };
+/**
+ * Inti's HUD drawn in the world, as a thing of it (three/hud3d.ts), instead of over it: on trial, as
+ * the user asked (26 October 2026). Its colours and pictures are the 2D HUD's.
+ */
+const HUD_IN_3D = true;
+const INTI_HUD = LAYOUTS.inti;
+const HUD_LOOK: HudLook = {
+  vessels: INTI_HUD.vessels.map(v => v.colours),
+  level: INTI_HUD.bar.fill,
+  breath: BREATH,
+  icons: [...INTI_HUD.skills.map(s => s.icon), INTI_HUD.ultimate!, INTI_HUD.flask],
+  settle: SETTLE,
+};
 /** Cabral's, as far as a ball of his carries. */
 const CABRAL_LOCK = { reach: BALL.range, keep: BALL.range * 1.4 };
 // By touch: how near an enemy the sabre goes for by itself, how far off a musket dragged all
@@ -1289,6 +1304,14 @@ export class GameScene extends Phaser.Scene {
         return { x: o.x, y: o.y, up: o.y - o.glow.y, alpha: o.glow.alpha, scale: o.glow.scaleX };
       }), this.abilities.pending.map(p => ({ x: p.x, y: p.y, share: Math.min(1, p.t / STRIKE.delay) })), this.abilities.healShare,
         this.machi.channelling === 'call' ? this.machi.channelShare : null);
+      if (this.hudIn3d) {
+        const growth = this.growth;
+        this.three.hud(HUD_LOOK, {
+          life: this.life, mana: this.mana, level: growth.level, growth: growth.share,
+          breath: this.breath.share, winded: this.breath.winded,
+          skills: INTI_HUD.skills.map(s => this.skill(s.ability)), ultimate: this.ultimate, draughts: this.draughts.left,
+        }, dt);
+      }
       // A ring of brass under whom he is locked onto (hers is drawn in 2D, below).
       this.three.lockedOn(this.hero === 'cabral' ? this.locked?.ground ?? null : null, dt);
       this.three.draw({ x: this.machi.x, y: this.machi.y - CHEST }, dt);
@@ -1310,6 +1333,11 @@ export class GameScene extends Phaser.Scene {
     // Over the 3D world it is drawn there only.
     if (!this.overlaid) this.mending?.begin(colour, this.machi);
     if (this.shownIn3d) this.three?.mend(colour);
+  }
+
+  /** Whether the HUD is drawn in the world rather than over it (see HUD_IN_3D). */
+  get hudIn3d(): boolean {
+    return HUD_IN_3D && this.hero === 'inti' && this.shownIn3d;
   }
 
   /** Whether the hero is drawn in 3D: wherever the map is. */
