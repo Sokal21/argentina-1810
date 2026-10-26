@@ -25,7 +25,7 @@ export const SHOT = 0.8;
  * `KICK` of mosquete_disparo, frames 0 to 9 of 19: back to the aim) put back there in `PUT_BACK`;
  * slower than a grenade, so the musket has its own times (`MUSKET_TIMES`, the kit's `musketTimes`).
  */
-const UNSLING = 0.9, KICK = SHOT * 9 / 19, PUT_BACK = 1.1;
+const UNSLING = 0.6, KICK = SHOT * 9 / 19, PUT_BACK = 0.7;
 /** Where the musket's butt is from him as he aims, in his own axes, and how far its line is turned from his (measured in the game). */
 const HELD_FROM = { x: -0.088, y: 0.683, z: 0.03 }, HELD_OFF = 0.0997;
 export const MUSKET_TIMES = { shoulder: UNSLING, shot: KICK + PUT_BACK, putBack: PUT_BACK };

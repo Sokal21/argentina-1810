@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { MODELS } from './buildings';
+import { MUSKET_TIMES } from './cabral';
 import { Cart } from './cart';
 import { ChonchonFigure, DRAWN as CHONCHON } from './chonchon';
 import { ChonchonBrain } from '../chonchon/brain';
@@ -63,11 +64,11 @@ const WHO: Who[] = [
  */
 const DRAW = 0.45, SHOT = 0.8;
 /**
- * The musket taken from his back and put back by Mixamo's capture (anims/descolgar.py), tried here
- * before the game plays it: over so long each (their own pace is 2.2 s and 2.7 s), and in turn as the
- * game would, taken, aimed `HOLD` and put back (`SLUNG_AGAIN`).
+ * The musket taken from his back and put back by Mixamo's capture (anims/descolgar.py): as long as
+ * the game takes over each (their own pace is 2.2 s and 2.7 s), and in turn as the game plays them,
+ * taken, aimed `HOLD` and put back (`SLUNG_AGAIN`).
  */
-const UNSLING = 1.1, SLING = 1.3, HOLD = 1.2, SLUNG_AGAIN = 'descolgar_y_guardar';
+const UNSLING = MUSKET_TIMES.shoulder, SLING = MUSKET_TIMES.putBack, HOLD = 1.2, SLUNG_AGAIN = 'descolgar_y_guardar';
 const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   mosquete_sacar: { lasts: DRAW }, mosquete_disparo: { lasts: SHOT },
   mosquete_descolgar: { lasts: UNSLING }, mosquete_guardar: { lasts: SLING }, [SLUNG_AGAIN]: { lasts: UNSLING + HOLD + SLING },
