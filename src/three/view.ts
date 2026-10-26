@@ -15,6 +15,19 @@ import { PITCH } from './space';
 
 const SHADOW_MAP = 2048;
 /**
+ * What a phone that cannot keep up is asked less of, a step at a time (main.ts steps up when the
+ * game runs under 45 frames a second for a while): first the sun's shadow map at a quarter of its
+ * texels, then no glow, then no shadows at all. Of the picture's costs these are the ones that
+ * can be given up without changing how it is drawn: the shadow pass is near half the triangles
+ * of a frame, and its map 4 million texels; the glow a dozen small passes.
+ */
+export const ECONOMIES: { shadowMap: number; bloom: boolean; shadows: boolean }[] = [
+  { shadowMap: SHADOW_MAP, bloom: true, shadows: true },
+  { shadowMap: SHADOW_MAP / 2, bloom: true, shadows: true },
+  { shadowMap: SHADOW_MAP / 2, bloom: false, shadows: true },
+  { shadowMap: SHADOW_MAP / 2, bloom: false, shadows: false },
+];
+/**
  * The sun's shadows are worked out only where they can be seen: over the ground in view and whatever
  * stands on it, from the stream's bed (`low`) to the top of the tallest thing on the map (`tallest`,
  * told by whoever makes the map) standing on a hill (`over`), all reckoned from the ground under
@@ -34,6 +47,16 @@ const OFF = 3000;
 const SHORT_SIDE = 257;
 
 export class View {
+  /** Every view there is, and the step of economy they are all at (see ECONOMIES). */
+  private static readonly all = new Set<View>();
+  private static economy = 0;
+
+  /** Asks less of the machine, by so many steps of ECONOMIES (0: nothing given up), of every view now and after. */
+  static economise(step: number): void {
+    View.economy = Math.max(0, Math.min(ECONOMIES.length - 1, Math.round(step)));
+    for (const view of View.all) view.apply(view.look);
+  }
+
   readonly renderer = new THREE.WebGLRenderer({ antialias: false });
   readonly scene = new THREE.Scene();
   /** Drawn over the finished picture, on the world's pixels but past every pass: signs that must read whole. */
@@ -109,6 +132,7 @@ export class View {
     this.composer.addPass(new OutputPass());
     this.finisher = finishing();
     this.composer.addPass(this.finisher);
+    View.all.add(this);
     this.apply(this.look);
     addEventListener('resize', () => this.fit());
   }
@@ -117,14 +141,21 @@ export class View {
   apply(look: Look): void {
     const pixelChanged = look.pixel !== this.look.pixel || look.far !== this.look.far;
     this.look = { ...look };
+    const economy = ECONOMIES[View.economy];
     this.pixels.normalEdgeStrength = look.creases;
     this.glow.strength = look.bloom;
     this.glow.threshold = look.bloomFrom;
-    this.glow.enabled = look.bloom > 0;
+    this.glow.enabled = look.bloom > 0 && economy.bloom;
     this.pixels.depthEdgeStrength = look.outlines;
     this.sun.color.set(look.sunColour);
     this.sun.intensity = look.sunStrength;
-    this.sun.castShadow = look.shadows;
+    this.sun.castShadow = look.shadows && economy.shadows;
+    // The map is made again at its new size the next time the shadows are drawn.
+    if (this.sun.shadow.mapSize.x !== economy.shadowMap) {
+      this.sun.shadow.mapSize.setScalar(economy.shadowMap);
+      this.sun.shadow.map?.dispose();
+      this.sun.shadow.map = null;
+    }
     this.sunward = sunWay(look);
     this.sky.color.set(look.skyColour);
     this.sky.groundColor.set(look.groundColour);
@@ -211,7 +242,7 @@ export class View {
     s.near = Math.max(1, OFF - nearest - casting);
     s.far = OFF - furthest;
     s.updateProjectionMatrix();
-    this.texel.set((2 * halfW) / SHADOW_MAP, (2 * halfH) / SHADOW_MAP);
+    this.texel.set((2 * halfW) / this.sun.shadow.mapSize.x, (2 * halfH) / this.sun.shadow.mapSize.y);
   }
 
   /** Seconds the camera still shakes for, and how far, in the world's pixels. */

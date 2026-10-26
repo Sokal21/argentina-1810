@@ -11,6 +11,7 @@ import { mountPad, pad } from './pad';
 import { forget } from './save';
 import { music, nowPlaying, setMusic } from './music';
 import { mountSupport } from './support';
+import { View } from './three/view';
 
 // The pixel type is fetched now, so it is there by the time anything is written in it.
 void document.fonts.load("8px 'Silkscreen'");
@@ -20,9 +21,19 @@ void document.fonts.load("21px 'Jacquard 12'");
 // little of it. Where the screen is small it is drawn as if it were larger and shown smaller: its
 // short side is never fewer than this many pixels.
 // On a phone it may have to be fewer, if it does not run smoothly (see `quality` below).
-const SHORTS = [560, 440, 440];
+// The steps of quality, from the whole picture down: each gives up a little more (`STEPS`: the
+// screen's pixels, what the 3D picture gives up (View.economise), whether it is held to 30 frames).
+const STEPS: { name: string; short: number; economy: number; fps: number }[] = [
+  { name: 'alta', short: 560, economy: 0, fps: 0 },
+  { name: 'liviana', short: 440, economy: 1, fps: 0 },
+  { name: 'liviana, sin brillo', short: 440, economy: 2, fps: 0 },
+  { name: 'liviana, sin sombras', short: 440, economy: 3, fps: 0 },
+  { name: 'liviana, sin sombras, a 30 cuadros', short: 440, economy: 3, fps: 30 },
+];
+const SHORTS = STEPS.map(s => s.short);
+const LOWEST = STEPS.length - 1;
 const QUALITY = '1810.calidad';
-let quality = (() => { try { return Math.min(2, Math.max(0, Number(localStorage.getItem(QUALITY)) || 0)); } catch { return 0; } })();
+let quality = (() => { try { return Math.min(LOWEST, Math.max(0, Number(localStorage.getItem(QUALITY)) || 0)); } catch { return 0; } })();
 const shown = () => Math.min(1, Math.min(innerWidth, innerHeight) / SHORTS[quality]);
 const sized = (k: number) => [Math.ceil(innerWidth / k), Math.ceil(innerHeight / k)] as const;
 
@@ -70,11 +81,12 @@ visualViewport?.addEventListener('resize', fit);
 
 // How smoothly it runs, on a phone. A phone that has been playing a while warms up and slows
 // itself down; when the game has run under FLUID frames a second for several seconds together,
-// it asks less of it, a step at a time: first it is drawn at fewer pixels, then at thirty frames
-// a second, which is steadier than sixty that stumble. The step is kept for next time; the pause
-// menu puts it back.
+// it asks less of it, a step at a time (STEPS): first it is drawn at fewer pixels and the sun's
+// shadow map is smaller, then the glow goes, then the shadows, and last it is held to thirty
+// frames a second, which is steadier than sixty that stumble. The step is kept for next time; the
+// pause menu's button goes round the steps.
 const FLUID = 45, WATCHED = 6;
-const NAMES = ['alta', 'liviana', 'liviana, a 30 cuadros'];
+const NAMES = STEPS.map(s => s.name);
 const limit = (fps: number) => {
   const loop = game.loop as unknown as { fpsLimit: number; hasFpsLimit: boolean; _limitRate: number; callback: (time: number, delta: number) => void; stop(): void; start(cb: (time: number, delta: number) => void): void };
   if (loop.fpsLimit === fps) return;
@@ -90,16 +102,18 @@ const setQuality = (level: number) => {
   quality = level;
   try { localStorage.setItem(QUALITY, String(level)); } catch { /* kept for this sitting only */ }
   fit();
-  limit(level >= 2 ? 30 : 0);
+  View.economise(STEPS[level].economy);
+  limit(STEPS[level].fps);
   const shownAs = document.getElementById('quality');
   if (shownAs) shownAs.textContent = `Calidad: ${NAMES[level]}`;
 };
-game.events.once(Phaser.Core.Events.READY, () => { if (quality >= 2) limit(30); });
+View.economise(STEPS[quality].economy);
+game.events.once(Phaser.Core.Events.READY, () => { limit(STEPS[quality].fps); });
 const rates: number[] = [];
 let settling = 0;
 setInterval(() => {
   const playing = game.scene.isActive('game') && document.visibilityState === 'visible';
-  if (!touch.on || !playing || quality >= 2) { rates.length = 0; settling = 0; return; }
+  if (!touch.on || !playing || quality >= LOWEST) { rates.length = 0; settling = 0; return; }
   // The first seconds of play are not counted: it is still loading and settling.
   if (settling++ < 5) return;
   rates.push(game.loop.actualFps);
@@ -146,7 +160,7 @@ const pause = document.getElementById('pause')!;
 let paused = false;
 // What the game asked less of the phone is shown in the pause menu, and touched it goes back to the best.
 const qualityButton = document.getElementById('quality')!;
-qualityButton.addEventListener('click', () => { setQuality(0); });
+qualityButton.addEventListener('click', () => { setQuality((quality + 1) % STEPS.length); });
 
 // The music: how loud, and silenced or not, kept for next time.
 const mute = document.getElementById('mute')!, volume = document.getElementById('volume') as HTMLInputElement, volumeShown = document.getElementById('volume-shown')!;
