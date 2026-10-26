@@ -19,6 +19,14 @@ import { Trail } from './trail';
 export const DRAW = 0.45;
 /** Seconds from the shot until the musket is slung again: a big kick and a slow return, chosen by the user. */
 export const SHOT = 0.8;
+/**
+ * Where his model has them (anims/descolgar.py, Mixamo's "Grab And Put Back Rifle"), the musket is
+ * taken from over his shoulder in `UNSLING` seconds, and after the kick of the shot (the first
+ * `KICK` of mosquete_disparo, frames 0 to 9 of 19: back to the aim) put back there in `PUT_BACK`;
+ * slower than a grenade, so the musket has its own times (`MUSKET_TIMES`, the kit's `musketTimes`).
+ */
+const UNSLING = 0.9, KICK = SHOT * 9 / 19, PUT_BACK = 1.1;
+export const MUSKET_TIMES = { shoulder: UNSLING, shot: KICK + PUT_BACK };
 // The musket passes between his back and his hands where both hands hold it round in front of him
 // (mosquete.py's ROUND): any later, the left hand had already let go of it.
 /** The share of the draw at which the musket is in his hands (frame 4 of 6). */
@@ -144,6 +152,8 @@ export class CabralFigure {
   private wasChanneling = false;
   private swung = 0;
   private phaseWas: string | null = null;
+  /** Whether he is putting the musket back after a shot (mosquete_guardar), to start it once. */
+  private puttingBack = false;
   /** How much of the dash's distance he has covered, and the way it goes on the 2D ground (screen units, per unit of its distance). */
   private dashDone = 0;
   private dashWay: Vec = { x: 0, y: 0 };
@@ -278,9 +288,14 @@ export class CabralFigure {
         else motion.play('granada_apuntar', { blend: 0.05 });
       } else if (arming?.kind === 'grenade') motion.play('pitch_baseball', { once: true });
       else if (arming && motion.has('mosquete_apuntar')) {
-        // The musket: drawn from his back while it comes up, held aiming, then the shot and slinging it again.
-        if (arming.phase === 'fire') motion.play('mosquete_disparo', { once: true, lasts: arming.shot, afresh: this.phaseWas !== 'fire', blend: 0.03 });
-        else if (arming.phase === 'raise') motion.play('mosquete_sacar', { once: true, lasts: arming.shoulder, afresh: this.phaseWas !== 'raise', blend: 0.06 });
+        // The musket: drawn from his back while it comes up, held aiming, then the shot and slinging it
+        // again: taken and put back over his shoulder where his model has it, keyed by hand otherwise.
+        const overShoulder = motion.has('mosquete_descolgar') && motion.has('mosquete_guardar');
+        if (arming.phase === 'fire' && overShoulder && arming.t >= KICK) {
+          motion.play('mosquete_guardar', { once: true, lasts: arming.shot - KICK, afresh: !this.puttingBack, blend: 0.08 });
+          this.puttingBack = true;
+        } else if (arming.phase === 'fire') motion.play('mosquete_disparo', { once: true, lasts: overShoulder ? SHOT : arming.shot, afresh: this.phaseWas !== 'fire', blend: 0.03 });
+        else if (arming.phase === 'raise') motion.play(overShoulder ? 'mosquete_descolgar' : 'mosquete_sacar', { once: true, lasts: arming.shoulder, afresh: this.phaseWas !== 'raise', blend: 0.06 });
         else motion.play('mosquete_apuntar', { blend: 0.05 });
       } else if (arming) motion.play('shoot', { once: true });
       // His walk keeps step with the ground: played as fast as he goes, however fast that is;
@@ -297,11 +312,15 @@ export class CabralFigure {
     this.dashing = into;
     this.wasDashing = c.isDashing;
     this.phaseWas = arming?.phase ?? null;
+    if (arming?.phase !== 'fire') this.puttingBack = false;
     // Which musket is seen, the one on his back or the one in his hands, and the sabre put away
     // while he has the musket or a grenade up.
     if (this.shaped) {
-      const inHand = musket && (arming.phase === 'raise' ? arming.t >= arming.shoulder * DRAWN
-        : arming.phase === 'fire' ? arming.t < arming.shot * SLUNG : true);
+      // Taken and put back over his shoulder, the one in his hands is moved from his back and to it
+      // (props.musket_carried) and is seen all through.
+      const overShoulder = !!this.motion?.has('mosquete_descolgar');
+      const inHand = musket && (overShoulder || (arming.phase === 'raise' ? arming.t >= arming.shoulder * DRAWN
+        : arming.phase === 'fire' ? arming.t < arming.shot * SLUNG : true));
       const back = this.shaped.getObjectByName('mosquete'), hand = this.shaped.getObjectByName('mosquete_mano'), sabre = this.shaped.getObjectByName('sable');
       if (back) back.visible = !inHand;
       if (hand) hand.visible = inHand;

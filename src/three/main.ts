@@ -11,7 +11,7 @@ import { Impacts } from './impact';
 import { AimMarks } from './aim';
 import { Shots } from './shot';
 import { MUSKET } from '../machi/musket';
-import { CabralFigure, DRAW, ROLLS, SHOT, THROWN } from './cabral';
+import { CabralFigure, DRAW, MUSKET_TIMES, ROLLS, SHOT, THROWN } from './cabral';
 import { GrenadeMarks, Grenades, within } from './grenade';
 import { GRENADE } from '../machi/grenade';
 import { CABRAL_DRESS } from './figure';
@@ -81,7 +81,7 @@ country.feet.push(dummy.footprint);
 const { width, height } = extent(map);
 // His kit, but with a speed and a dash of his own here: they are the look's (the panel's
 // "Movimiento" and "Rodada"), read every frame.
-const kit = { ...KITS.cabral, speed: 126, dash: { time: 0.8, distance: 170 }, shoulder: DRAW, shot: SHOT };
+const kit = { ...KITS.cabral, speed: 126, dash: { time: 0.8, distance: 170 }, shoulder: DRAW, shot: SHOT, musketTimes: MUSKET_TIMES };
 const cabral = new MachiController({ minX: 12, maxX: width - 12, minY: 0, maxY: height }, kit);
 Object.assign(cabral, middle(map.start));
 // His model, shown doing whatever his controller says (cabral.ts); the figure of blocks on M.

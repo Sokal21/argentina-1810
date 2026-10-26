@@ -197,10 +197,13 @@ export class MachiController {
 
   private get dashTime(): number { return this.kit.dash?.time ?? DASH_TIME; }
   private get dashDistance(): number { return this.kit.dash?.distance ?? DASH_DISTANCE; }
-  // How long this character takes to bring a musket up.
-  private get shoulderTime(): number { return this.kit.shoulder ?? SHOULDER_TIME; }
+  // How long this character takes to bring a musket (or a grenade) up.
+  private get shoulderTime(): number { return this.ownTimes?.shoulder ?? this.kit.shoulder ?? SHOULDER_TIME; }
   // And to come back from a shot.
-  private get shotTime(): number { return this.kit.shot ?? SHOT_TIME; }
+  private get shotTime(): number { return this.ownTimes?.shot ?? this.kit.shot ?? SHOT_TIME; }
+  private get ownTimes(): { shoulder: number; shot: number } | undefined {
+    return this.gun?.kind === 'musket' ? this.kit.musketTimes : undefined;
+  }
 
   get view(): View {
     if (this.straight) return this.faceY < 0 ? 'north' : 'south';

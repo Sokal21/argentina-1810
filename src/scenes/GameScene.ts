@@ -60,7 +60,7 @@ import { Story } from '../story/story';
 import { THINGS } from '../story/things';
 import { FACTS, RULES, VADO } from '../story/vado';
 import { Vitals } from '../world/vitals';
-import { DRAW, SHOT as SLING, SIP } from '../three/cabral';
+import { DRAW, MUSKET_TIMES, SHOT as SLING, SIP } from '../three/cabral';
 import { sunCursor } from '../three/cursor';
 import { MODELS } from '../three/buildings';
 import { World3D } from '../three/world3d';
@@ -1594,7 +1594,7 @@ export class GameScene extends Phaser.Scene {
     // In 3D he goes at the look's speed and rolls its roll, and takes longer over the musket, as its clips do.
     const look = this.three?.view.look;
     const kit = look && hero === 'cabral'
-      ? { ...KITS.cabral, speed: look.speed, dash: { time: look.rollTime, distance: look.rollDistance }, shoulder: DRAW, shot: SLING } : KITS[hero];
+      ? { ...KITS.cabral, speed: look.speed, dash: { time: look.rollTime, distance: look.rollDistance }, shoulder: DRAW, shot: SLING, musketTimes: MUSKET_TIMES } : KITS[hero];
     const body = new MachiController({ minX: 12, maxX: this.size.width - 12, minY: FRAME, maxY: this.size.height + ROOMS }, kit);
     body.x = at.x;
     body.y = at.y;

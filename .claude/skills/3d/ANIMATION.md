@@ -157,6 +157,22 @@ out byte for byte the same. Re-run a character's hand-keyed clips whenever Cabra
 - **Feet that slide**: a clip played while the brain walks him (the pistol lowered after the shot)
   slid; the brain stands him for as long (`shot.after`) and the clip is played over that time.
 
+## Taken from the back and put back (Cabral's musket, 26 October 2026)
+
+- **A capture that does both ways** (Mixamo "Grab And Put Back Rifle"), cut in two and eased into
+  and out of the hand-keyed aim (`anims/descolgar.py`): one capture for both keeps them alike.
+- **One musket all through, on a bone of its own** (`props.musket_carried`, a 'Mosquete' bone under
+  the right hand): keyed from where the one on his back is while he takes it, so the game shows the
+  hand's for the whole clip and nothing jumps. The user saw the old swap (two muskets, one appearing
+  in the hand) and called it out.
+- **Sling it the way the hand takes it**: muzzle up, his hand took it by the barrel; butt up (the
+  user's call) it takes it by the stock, where it is held to aim.
+- **Measure what goes through him** (points along the musket inside the posed mesh, frame by frame):
+  turned the short way from his hands to his back, the barrel went through his chest. Pass it
+  through ways of its own instead ('up', then 'behind' over his shoulder), as one does.
+- In the game the musket has its own times (`musketTimes` in the kit, `MUSKET_TIMES` in cabral.ts),
+  slower than a grenade's.
+
 ## An animal (the ox, 23–24 October 2026)
 
 - **Tripo rigs a quadruped** (`animations/rig`, `rig_type: quadruped`, model v3.0; run the free

@@ -369,9 +369,29 @@ def musket_carried(armature: bpy.types.Object, action: str, spans: str) -> None:
             before = parts[i - 1] if i > 0 and parts[i - 1][0] == 'back' else None
             grips[i] = on_back(before[2]) if before else on_back(parts[i + 1][1])
     by_stock = Matrix.Identity(4)
+    chest = armature.pose.bones['Spine02']
+    chest_rest = armature.data.bones['Spine02'].matrix_local.to_3x3()
+    # Held up by the stock, turned as his chest is: muzzle to the sky ('up'), or laid back over his
+    # shoulder ('behind'). He passes it through these between his hands and his back: turned the
+    # short way from one to the other, its barrel went through him.
+    WAYS = {'up': (Vector((0.15, -0.25, 1)), Vector((1, 0, 0))),
+            'behind': (Vector((-1, -0.35, 0.6)), Vector((0, 0, 1)))}
+
+    def standing(kind: str, frame: int) -> Matrix:
+        h = at(frame)
+        turned = (armature.matrix_world.to_3x3() @ chest.matrix.to_3x3() @ chest_rest.inverted())
+        along, top = (turned @ w.normalized() for w in WAYS[kind])
+        side = top.cross(along).normalized()
+        top = along.cross(side).normalized()
+        grip = h.to_translation()
+        butt = grip - along * HELD_AT
+        world = Matrix.Translation(butt) @ Matrix((along, side, top)).transposed().to_4x4()
+        return h.inverted() @ world @ held.inverted()
 
     def offset(i: int, frame: int) -> Matrix:
         kind = parts[i][0]
+        if kind in WAYS:
+            return standing(kind, frame)
         return on_back(frame) if kind == 'back' else grips[i] if kind == 'barrel' else by_stock
 
     start, end = map(int, act.frame_range)

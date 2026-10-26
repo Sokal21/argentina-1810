@@ -256,6 +256,25 @@ describe("Cabral's grenade", () => {
     c.update(DT, still);
     expect(c.pose().sheet).toBe('grenade_front');
   });
+
+  it('takes the musket and puts it back in its own times, where his kit has them, the grenade in the usual', () => {
+    const kit = { ...CABRAL, shoulder: 0.45, shot: 0.8, musketTimes: { shoulder: 0.9, shot: 1.5 } };
+    const phases = (kind: 'musket' | 'grenade') => {
+      const c = new MachiController(undefined, kit);
+      c.shoulder({ x: c.x + 80, y: c.y }, kind);
+      let raised = 0;
+      while (c.arming?.phase === 'raise') { c.shoulder({ x: c.x + 80, y: c.y }, kind); c.update(DT, still); raised += DT; }
+      c.fire();
+      let fired = 0;
+      while (c.isShouldering) { c.update(DT, still); fired += DT; }
+      return [raised, fired];
+    };
+    const [mr, mf] = phases('musket'), [gr, gf] = phases('grenade');
+    expect(mr).toBeCloseTo(0.9, 1);
+    expect(mf).toBeCloseTo(1.5, 1);
+    expect(gr).toBeCloseTo(0.45, 1);
+    expect(gf).toBeCloseTo(0.8, 1);
+  });
 });
 
 describe("Cabral's death", () => {

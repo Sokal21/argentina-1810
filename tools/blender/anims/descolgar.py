@@ -42,7 +42,7 @@ EASE = 8
 # Where the musket is in each clip's own frames (props.musket_carried).
 CARRIED = {
     'mosquete_descolgar': 'back.0.18+barrel.18.36+stock.45.53',
-    'mosquete_guardar': 'stock.0.12+barrel.19.48+back.48.64',
+    'mosquete_guardar': 'stock.0.8+up.16.20+behind.30.34+back.42.64',
 }
 
 
