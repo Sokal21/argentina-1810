@@ -275,6 +275,24 @@ describe("Cabral's grenade", () => {
     expect(gr).toBeCloseTo(0.45, 1);
     expect(gf).toBeCloseTo(0.8, 1);
   });
+
+  it('puts the musket back unfired as after a shot, where putting it back takes time, and never fires it', () => {
+    const kit = { ...CABRAL, musketTimes: { shoulder: 0.9, shot: 1.5, putBack: 1.1 } };
+    const c = new MachiController(undefined, kit);
+    for (let t = 0; t < 1.2; t += DT) { c.shoulder({ x: c.x + 80, y: c.y }); c.update(DT, still); }
+    c.lower();
+    expect(c.arming?.phase).toBe('fire');
+    let away = 0, fired = false;
+    while (c.isShouldering) { c.lower(); c.update(DT, still); away += DT; fired ||= c.takeShot(); }
+    expect(away).toBeCloseTo(1.1, 1);
+    expect(fired).toBe(false);
+    // Without it, at once.
+    const d = new MachiController(undefined, CABRAL);
+    d.shoulder({ x: d.x + 80, y: d.y });
+    d.update(DT, still);
+    d.lower();
+    expect(d.isShouldering).toBe(false);
+  });
 });
 
 describe("Cabral's death", () => {

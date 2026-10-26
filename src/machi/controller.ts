@@ -201,7 +201,7 @@ export class MachiController {
   private get shoulderTime(): number { return this.ownTimes?.shoulder ?? this.kit.shoulder ?? SHOULDER_TIME; }
   // And to come back from a shot.
   private get shotTime(): number { return this.ownTimes?.shot ?? this.kit.shot ?? SHOT_TIME; }
-  private get ownTimes(): { shoulder: number; shot: number } | undefined {
+  private get ownTimes(): { shoulder: number; shot: number; putBack?: number } | undefined {
     return this.gun?.kind === 'musket' ? this.kit.musketTimes : undefined;
   }
 
@@ -257,9 +257,17 @@ export class MachiController {
     if (this.gun && this.gun.phase !== 'fire') this.gun.loose = true;
   }
 
-  /** Puts the musket away without firing. */
+  /**
+   * Puts the musket away without firing: at once, or, where putting it back takes time of its own
+   * (`musketTimes.putBack`), as he puts it back after a shot, standing where he is.
+   */
   lower(): void {
-    if (this.gun?.phase !== 'fire') this.gun = null;
+    if (!this.gun || this.gun.phase === 'fire') return;
+    const away = this.gun.kind === 'musket' ? this.kit.musketTimes?.putBack : undefined;
+    if (!away) { this.gun = null; return; }
+    this.gun.phase = 'fire';
+    this.gun.t = Math.max(0, this.shotTime - away);
+    this.gun.loose = false;
   }
 
   /** Whether the shot went off during the last update. Reading it clears it. */

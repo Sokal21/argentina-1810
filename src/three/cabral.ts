@@ -26,7 +26,9 @@ export const SHOT = 0.8;
  * slower than a grenade, so the musket has its own times (`MUSKET_TIMES`, the kit's `musketTimes`).
  */
 const UNSLING = 0.9, KICK = SHOT * 9 / 19, PUT_BACK = 1.1;
-export const MUSKET_TIMES = { shoulder: UNSLING, shot: KICK + PUT_BACK };
+/** Where the musket's butt is from him as he aims, in his own axes, and how far its line is turned from his (measured in the game). */
+const HELD_FROM = { x: -0.088, y: 0.683, z: 0.03 }, HELD_OFF = 0.0997;
+export const MUSKET_TIMES = { shoulder: UNSLING, shot: KICK + PUT_BACK, putBack: PUT_BACK };
 // The musket passes between his back and his hands where both hands hold it round in front of him
 // (mosquete.py's ROUND): any later, the left hand had already let go of it.
 /** The share of the draw at which the musket is in his hands (frame 4 of 6). */
@@ -152,6 +154,12 @@ export class CabralFigure {
   private wasChanneling = false;
   private swung = 0;
   private phaseWas: string | null = null;
+  /**
+   * Where the butt of the musket in his hands is from him, and how far its line is turned from his,
+   * as he last aimed: what he is turned by while he takes it or puts it back (measured in the game
+   * before he first aims).
+   */
+  private held = { from: new THREE.Vector3(HELD_FROM.x, HELD_FROM.y, HELD_FROM.z), off: HELD_OFF };
   /** Whether he is putting the musket back after a shot (mosquete_guardar), to start it once. */
   private puttingBack = false;
   /** How much of the dash's distance he has covered, and the way it goes on the 2D ground (screen units, per unit of its distance). */
@@ -339,11 +347,18 @@ export class CabralFigure {
     // Aiming at the pointer, he is turned so the line of the barrel, not the middle of him, runs
     // through the spot: the musket lies against his right shoulder, beside his middle, and turned
     // only by his middle it ran alongside the pointer and missed it.
+    // Taken from his back or put back there, the musket swings about over his shoulder and its line
+    // means nothing: he is turned as it lay in his hands the last time he aimed (as it will again),
+    // not after it, which spun him round.
     const muzzle = aimed ? this.barrel() : null;
     if (muzzle && aimed) {
+      const steady = arming?.phase === 'aim' || !this.motion?.has('mosquete_descolgar');
+      this.body.updateMatrixWorld(true);
+      if (steady) this.held = { from: this.body.worldToLocal(muzzle.from.clone()), off: wrap(Math.atan2(muzzle.way.x, muzzle.way.z) - this.facing) };
+      const from = this.body.localToWorld(this.held.from.clone());
       const spot = ground(aimed.x, aimed.y);
-      const want = Math.atan2(spot.x - muzzle.from.x, spot.z - muzzle.from.z), has = Math.atan2(muzzle.way.x, muzzle.way.z);
-      this.facing += Math.atan2(Math.sin(want - has), Math.cos(want - has));
+      const want = Math.atan2(spot.x - from.x, spot.z - from.z), has = this.facing + this.held.off;
+      this.facing += wrap(want - has);
       this.body.rotation.y = this.facing;
     }
     this.body.updateMatrixWorld(true);

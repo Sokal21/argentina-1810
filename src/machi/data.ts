@@ -257,8 +257,12 @@ export interface Kit {
   shoulder?: number;
   /** And for one whose shot takes longer to come back from: seconds from the shot till it is slung. */
   shot?: number;
-  /** Both for the musket alone, where it is slower than a grenade (Cabral takes it from his back and puts it back there). */
-  musketTimes?: { shoulder: number; shot: number };
+  /**
+   * Both for the musket alone, where it is slower than a grenade (Cabral takes it from his back and
+   * puts it back there); and `putBack`, the end of `shot` spent putting it back, which is also how
+   * long he takes to put it away unfired.
+   */
+  musketTimes?: { shoulder: number; shot: number; putBack?: number };
 }
 
 /** A blow struck standing still, which lands on everything in a cone in front. */
