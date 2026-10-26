@@ -86,6 +86,29 @@ espejadas. Como flota y casi siempre mira al jugador, no necesitó las cinco.
 El concepto detallado del que salió es
 `90371287-9078-4de6-b335-8822dc588994`.
 
+## En 3D
+
+En el bosque de Inti en 3D el chonchón es un modelo (`assets/chonchon/3d/chonchon_animado.glb`)
+movido por el mismo cerebro que el sprite. La barra de vida y la zona de golpe siguen siendo las
+del 2D. El usuario lo dio por terminado el 26/10/2026.
+
+- **Modelo:** Tripo, a partir de una hoja de vistas (`turnaround_c.png`), con 24 colores,
+  reducido a unos 2500 triángulos.
+- **Rig y clips:** se arman a mano con `tools/blender/rig_wings.py`, y después se pasa
+  `decimate.py`. Los dibuja `src/three/chonchon.ts`.
+- **Vuelo:** las alas van acostadas, casi paralelas al suelo, y aletean de arriba hacia abajo.
+  Así lo pidió el usuario después de varias vueltas: no en diagonal ni cerrando las puntas. La
+  cabeza tiene un resorte suave, el pelo serpentea como una víbora y la lengua se retuerce.
+- **Picada:** en el aviso sube y se pone rojo. Después cae derecho, en diagonal, hacia Inti,
+  rojo todo el tiempo y con las alas plegadas hacia atrás. Su velocidad (`DIVE_SPEED`) se
+  duplicó a 500 a pedido del usuario, también para el 2D.
+- **Mordida:** se echa atrás abriendo grande la mandíbula y la cierra sobre ella con un empujón
+  y un destello rojo chico.
+- **Muerte:** no tiene clip propio. Cae dando vueltas con las alas plegadas y se hunde en el
+  suelo. Al usuario le alcanzó así.
+- En `modelos.html` se ve con sus clips y con `en_picada`, `en_mordida` y `derribado`, que lo
+  muestran movido por su cerebro.
+
 ## Otras criaturas que se pensaron
 
 Quedaron conversadas como candidatas, todas de la mitología mapuche:
