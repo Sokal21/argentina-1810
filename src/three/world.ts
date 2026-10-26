@@ -59,6 +59,8 @@ export interface Country3D {
   terrain: Terrain;
   /** The buildings with models of their own, gone into without a cut. */
   houses: House[];
+  /** How tall the tallest thing stood up stands, in world units: the sun's shadows are reckoned up to there. */
+  tallest: number;
 }
 
 export function raiseCountry(map: WorldMap): Country3D {
@@ -73,14 +75,14 @@ export function raiseCountry(map: WorldMap): Country3D {
     return where && walls ? [{ x: where.x, z: where.y / ISO_Y, hw: walls.long / 2, hd: walls.deep / 2, turn: where.turn }] : [];
   });
   group.add(paintGround(map, terrain), pourWater(map, terrain), growMeadow(map, terrain, floors));
-  const { meshes, taken } = plantPlants(map);
+  const { meshes, taken, tallest: plantsTall } = plantPlants(map);
   group.add(...meshes);
   feet.push(...taken);
   group.add(...raiseFences(map));
   const built = raiseBuildings(map);
   group.add(...built.meshes);
   feet.push(...built.taken);
-  return { group, feet, terrain, houses: built.houses, plants: taken };
+  return { group, feet, terrain, houses: built.houses, plants: taken, tallest: Math.max(plantsTall, built.tallest) };
 }
 
 function paintGround(map: WorldMap, terrain: Terrain): THREE.Group {
@@ -339,14 +341,18 @@ const MODELLED: Record<string, { url: string; drawn: number; trunk: number }> = 
 
 /** The plants that hide whoever is behind them, so that they are shown in red through them. */
 const TREES = new Set(['tala', 'ombu', 'ombu_chico']);
+/** How tall each plant's shapes stand at size 1, in the drawings' pixels (plantShape); a modelled one is as tall as MODELLED says. */
+const SHAPE_TALL: Record<string, number> = { cortadera: 88, cardo: 108, tuna: 72, maiz: 110, tala: 112, junco: 80 };
 
-function plantPlants(map: WorldMap): { meshes: THREE.Object3D[]; taken: Footprint[] } {
+function plantPlants(map: WorldMap): { meshes: THREE.Object3D[]; taken: Footprint[]; tallest: number } {
   const byKind = new Map<string, ReturnType<typeof plantCountry>>();
   const taken: Footprint[] = [];
+  let tallest = 0;
   for (const plant of plantCountry(map)) {
     const size = plant.size * (GROWN[plant.kind] ?? 1);
     byKind.set(plant.kind, [...(byKind.get(plant.kind) ?? []), { ...plant, size }]);
     const modelled = MODELLED[plant.kind];
+    tallest = Math.max(tallest, (modelled?.drawn ?? SHAPE_TALL[plant.kind] ?? 0) * UPRIGHT * size);
     if (plant.inTheWay && modelled) {
       // A model stands round its middle, which the 2D drawing's foot (behind it, and narrower) did
       // not: walked round its trunk.
@@ -386,7 +392,7 @@ function plantPlants(map: WorldMap): { meshes: THREE.Object3D[]; taken: Footprin
       meshes.push(mesh);
     }
   }
-  return { meshes, taken };
+  return { meshes, taken, tallest };
 }
 
 /**
@@ -437,12 +443,14 @@ function raiseFences(map: WorldMap): THREE.InstancedMesh[] {
   }).flat();
 }
 
-function raiseBuildings(map: WorldMap): { meshes: THREE.Object3D[]; taken: Footprint[]; houses: House[] } {
+function raiseBuildings(map: WorldMap): { meshes: THREE.Object3D[]; taken: Footprint[]; houses: House[]; tallest: number } {
   const meshes: THREE.Object3D[] = [], taken: Footprint[] = [], houses: House[] = [];
+  let tallest = 0;
   for (const b of map.buildings ?? []) {
     // One with a model of its own stands as that, at its true size, once it has loaded.
     const where = standing(b);
     if (where) {
+      tallest = Math.max(tallest, MODELS[b.name].tall);
       const house = new House(where, MODELS[b.name]);
       houses.push(house);
       meshes.push(house.group);
@@ -456,6 +464,7 @@ function raiseBuildings(map: WorldMap): { meshes: THREE.Object3D[]; taken: Footp
     const { x, y } = middle(b.plot);
     // Its front foot is on the plot; it runs `deep` back from there and is `tall` as drawn.
     const tall = b.tall * UPRIGHT, roof = Math.min(b.deep, b.wide) * 0.45;
+    tallest = Math.max(tallest, tall + roof / 1.5);
     const wall = new THREE.Color(b.colour), eaves = wall.clone().multiplyScalar(0.55);
     // A gabled roof: a three-sided prism lying along its width, its point up. Laid on its side the
     // prism's point is 1 above its axis and its foot 0.5 below, and its foot is √3 across.
@@ -474,5 +483,5 @@ function raiseBuildings(map: WorldMap): { meshes: THREE.Object3D[]; taken: Footp
     const back = b.deep / 2;
     taken.push({ x, y: y - back / 2, hw: b.wide / 2, hh: back / 2 });
   }
-  return { meshes, taken, houses };
+  return { meshes, taken, houses, tallest };
 }

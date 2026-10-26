@@ -146,7 +146,10 @@ export class World3D {
     }
     this.sign.style.cssText = "opacity:0;transition:opacity 0.25s;position:fixed;left:0;top:0;z-index:12;pointer-events:none;width:max-content;max-width:300px;text-align:center;font:16px/1.25 'Silkscreen',ui-monospace,monospace;color:#f0e3c4;text-shadow:0 2px 0 #14110f,0 0 6px #14110f;transform:translate(-50%,-100%)";
     document.body.appendChild(this.sign);
-    this.view.scene.add(country.group, new Forest3D(map).group, ...(this.nahuel ? [this.nahuel.group] : []), ...(this.orbs ? [this.orbs.group] : []), ...(this.lightning ? [this.lightning.group] : []), ...(this.healing ? [this.healing.group] : []), ...(this.calling ? [this.calling.group] : []), this.people.group, this.strewn.group, this.errands.group, this.hero.group, this.royalists.group, this.marks.group);
+    const forest = new Forest3D(map);
+    // The sun's shadows are reckoned only as high as the tallest thing on this map (a man, at least).
+    this.view.tallest = Math.max(120, country.tallest, forest.tallest);
+    this.view.scene.add(country.group, forest.group, ...(this.nahuel ? [this.nahuel.group] : []), ...(this.orbs ? [this.orbs.group] : []), ...(this.lightning ? [this.lightning.group] : []), ...(this.healing ? [this.healing.group] : []), ...(this.calling ? [this.calling.group] : []), this.people.group, this.strewn.group, this.errands.group, this.hero.group, this.royalists.group, this.marks.group);
     // A sergeant's roar is felt: a faint shake of the camera, its rings leaving his feet.
     this.royalists.shoutFelt = () => this.view.jolt(ROAR.seconds, ROAR.pixels);
     for (const house of this.houses) this.view.over.add(...house.asks);

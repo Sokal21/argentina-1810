@@ -26,8 +26,11 @@ Keep these values unless the user asks otherwise. Code: `src/three/view.ts`, `pa
 
 ## Light and colour
 - A hemisphere light (sky `#cfd8dc`, ground `#8a7a50`, 1.6) and one sun (`#fff1d6`, 2.4) high
-  behind the left shoulder (50° left, 55° up), hard shadows (`BasicShadowMap`, 2048, ±900 units
-  round the hero).
+  behind the left shoulder (50° left, 55° up), hard shadows (`BasicShadowMap`, 2048). The shadow
+  camera is fitted each frame to what is seen (`View.fitShadows`): the view's slab from 80 under the
+  hero's ground to the map's tallest thing (`World3D` tells `view.tallest`), reaching toward the sun
+  far enough for whatever casts onto it, snapped to whole texels. Over the whole map (±1620, 6000
+  deep) the shadow pass drew ten million triangles a frame in the forest (25 October 2026).
 - Materials are `MeshToonMaterial` in **three hard steps** (0.45 to 1) through `flat()`;
   `shadeIn()` changes the steps of every one.
 - Flat colours: a shape of several colours is built from `part()` pieces, each painted one

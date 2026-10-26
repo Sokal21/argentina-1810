@@ -13,9 +13,20 @@ import { PITCH } from './space';
 // world, as one pixel of a sprite was. The camera only ever moves a whole pixel at a time, so
 // nothing standing still shimmers as it goes.
 
-/** How far round whoever is followed the sun's shadows are worked out, in world units, seen from close. */
-const SHADOWED = 900;
 const SHADOW_MAP = 2048;
+/**
+ * The sun's shadows are worked out only where they can be seen: over the ground in view and whatever
+ * stands on it, from the stream's bed (`low`) to the top of the tallest thing on the map (`tallest`,
+ * told by whoever makes the map) standing on a hill (`over`), all reckoned from the ground under
+ * whoever is followed (world units, up); and a little past the picture's edges (world units), for the
+ * shake and the snapping. Reckoned over the whole map (a box of ±1620 round the hero, 6000 deep), the
+ * shadow pass drew every tree of the forest in the sun's strip across it: ten million triangles a
+ * frame, five times the rest of the picture. Everything the box takes in costs: the higher it reaches,
+ * the deeper the strip of ground along the sun's slant it must cover.
+ */
+const SHADOWED = { low: -80, over: 80, past: 48 };
+/** How tall the tallest thing stands until a map says: the belfry (buildings.ts). */
+const TALLEST = 330;
 /** How far the camera stands off, along the way it looks: anything so long as all is in front. */
 const OFF = 3000;
 
@@ -44,6 +55,18 @@ export class View {
   private readonly right = new THREE.Vector3(1, 0, 0);
   private readonly up = new THREE.Vector3(0, Math.cos(PITCH), -Math.sin(PITCH));
   private readonly back = new THREE.Vector3(0, Math.sin(PITCH), Math.cos(PITCH));
+  /** How tall the tallest thing on the map stands, in world units: the sun's shadows are reckoned up to there. */
+  private _tallest = TALLEST;
+  get tallest(): number { return this._tallest; }
+  set tallest(height: number) {
+    if (height === this._tallest) return;
+    this._tallest = height;
+    if (this.sized) this.fitShadows();
+  }
+  /** The sun's shadow camera's own right and up (as Three turns it toward its target), and one texel of its map along each. */
+  private readonly sunRight = new THREE.Vector3(1, 0, 0);
+  private readonly sunUp = new THREE.Vector3(0, 1, 0);
+  private readonly texel = new THREE.Vector2(1, 1);
   /** How deep in his rage Cabral is, which the whole picture shows (0 to 1). */
   fury = 0;
   /** Drawn in big pixels, or as a plain 3D scene to compare. */
@@ -108,11 +131,8 @@ export class View {
     this.sky.intensity = look.skyStrength;
     shadeIn(look.steps, look.darkest);
     if (pixelChanged || !this.sized) this.fit();
-  }
-
-  /** How far round whoever is followed the sun's shadows reach: more, the further off the camera stands. */
-  private get shadowed(): number {
-    return SHADOWED * Math.max(1, this.look.far);
+    // The sun moved: its shadows are reckoned over the same view from where it now stands.
+    else this.fitShadows();
   }
 
   private sized = false;
@@ -150,10 +170,48 @@ export class View {
     this.camera.top = h / 2;
     this.camera.bottom = -h / 2;
     this.camera.updateProjectionMatrix();
+    this.fitShadows();
+  }
+
+  /**
+   * Fits the sun's shadow camera to the view: a box, in the light's own frame, round everything the
+   * camera can see between the lowest and highest things there are (the eight corners of that slab),
+   * and reaching toward the sun far enough to take in whatever casts a shadow onto it. Its size holds
+   * until the camera or the sun changes; each frame only its place moves (`follow`), by whole texels.
+   */
+  private fitShadows(): void {
+    // The light's frame, as Three turns the shadow camera toward its target (Matrix4.lookAt, up +Y).
+    const toward = this.sunward.clone().normalize();
+    this.sunRight.set(0, 1, 0).cross(toward);
+    if (this.sunRight.lengthSq() < 1e-6) this.sunRight.set(1, 0, 0);
+    this.sunRight.normalize();
+    this.sunUp.crossVectors(toward, this.sunRight).normalize();
+    // The corners of what is seen: across the screen, up it, and at either height; a point `u` up
+    // the screen at height `y` stands `(y - u·cos) / sin` along the camera's back.
+    const w = (this.camera.right - this.camera.left) / 2 + SHADOWED.past;
+    const h = (this.camera.top - this.camera.bottom) / 2 + SHADOWED.past;
+    const high = this._tallest + SHADOWED.over;
+    let left = Infinity, right = -Infinity, bottom = Infinity, top = -Infinity, nearest = -Infinity, furthest = Infinity;
+    const corner = new THREE.Vector3();
+    for (const r of [-w, w]) for (const u of [-h, h]) for (const y of [SHADOWED.low, high]) {
+      corner.set(0, 0, 0).addScaledVector(this.right, r).addScaledVector(this.up, u).addScaledVector(this.back, (y - u * Math.cos(PITCH)) / Math.sin(PITCH));
+      const x = corner.dot(this.sunRight), v = corner.dot(this.sunUp), toSun = corner.dot(toward);
+      left = Math.min(left, x); right = Math.max(right, x);
+      bottom = Math.min(bottom, v); top = Math.max(top, v);
+      nearest = Math.max(nearest, toSun); furthest = Math.min(furthest, toSun);
+    }
+    // Whatever casts a shadow into the box stands toward the sun from it, by at most the height of
+    // the tallest thing over the lowest, along the sun's slant.
+    const casting = (high - SHADOWED.low) / Math.max(0.1, toward.y);
     const s = this.sun.shadow.camera;
-    s.left = s.bottom = -this.shadowed;
-    s.right = s.top = this.shadowed;
+    // The box is centred on the spot the light looks at, which `follow` keeps on whole texels.
+    const halfW = (right - left) / 2, halfH = (top - bottom) / 2;
+    s.left = -halfW; s.right = halfW;
+    s.bottom = -halfH; s.top = halfH;
+    s.near = Math.max(1, OFF - nearest - casting);
+    s.far = OFF - furthest;
     s.updateProjectionMatrix();
+    this.texel.set((2 * halfW) / SHADOW_MAP, (2 * halfH) / SHADOW_MAP);
   }
 
   /** Seconds the camera still shakes for, and how far, in the world's pixels. */
@@ -192,9 +250,11 @@ export class View {
     eye.addScaledVector(this.right, Math.round(r / unit) * unit - r);
     eye.addScaledVector(this.up, Math.round(u / unit) * unit - u);
     this.camera.position.copy(eye);
-    // The sun's shadows are worked out round the same spot, kept on whole texels of its map.
-    const texel = (this.shadowed * 2) / SHADOW_MAP;
-    const spot = new THREE.Vector3(Math.round(at.x / texel) * texel, 0, Math.round(at.z / texel) * texel);
+    // The sun's shadows are worked out round the same spot (the middle of what is seen), kept on whole
+    // texels of its map along the light's own right and up, so they do not shimmer as the camera goes.
+    const spot = at.clone(), x = spot.dot(this.sunRight), y = spot.dot(this.sunUp);
+    spot.addScaledVector(this.sunRight, Math.round(x / this.texel.x) * this.texel.x - x);
+    spot.addScaledVector(this.sunUp, Math.round(y / this.texel.y) * this.texel.y - y);
     this.sun.target.position.copy(spot);
     this.sun.position.copy(spot).addScaledVector(this.sunward, OFF);
   }

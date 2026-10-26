@@ -90,6 +90,8 @@ function holed(material: THREE.Material): THREE.Material {
 
 export class Forest3D {
   readonly group = new THREE.Group();
+  /** How tall the tallest tree stands, in world units (0 on a bare map): the sun's shadows are reckoned up to there. */
+  tallest = 0;
 
   /** Opens the hole about a spot (her middle) as this camera sees it. */
   static seeThrough(at: THREE.Vector3, camera: THREE.OrthographicCamera, sunward: THREE.Vector3): void {
@@ -103,6 +105,7 @@ export class Forest3D {
   constructor(map: WorldMap) {
     if (map.bare) return;
     const trees = plantTrees(map, KINDS.length);
+    this.tallest = Math.max(0, ...trees.map(t => DRAWN * t.size * KINDS[t.kind].tall * UPRIGHT));
     KINDS.forEach((kind, k) => {
       const mine = trees.filter(t => t.kind === k);
       if (mine.length) void this.plant(kind, mine);
