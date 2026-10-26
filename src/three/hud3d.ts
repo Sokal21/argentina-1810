@@ -27,6 +27,14 @@ const FIT = { wide: 0.42, tall: 0.3, margin: 8, own: 2.15 };
 const FRAME = { half: 1.1, low: -0.03, high: 1.03 };
 /** Where its sun shines from, in its own axes: high, from the upper left and before it. */
 const SUN = new THREE.Vector3(-1, 1.3, 1.4);
+/**
+ * The light each glass gives off onto what holds it, in its liquid's lit colour: as strong as it is
+ * full, breathing slowly between `low` and all of it (as the 2D orbs' halo); from a little before the
+ * glass's middle, reaching so far round it, in the model's units. It fades as the distance (decay 1),
+ * not its square: in units this small, the square burnt the roots white beside the glass and left
+ * those a little further dark.
+ */
+const GLOW = { strength: 0.8, low: 0.7, before: 0.12, reach: 0.9 };
 /** Seconds without being shown after which its canvas is hidden (the game asks for it every frame it is). */
 const STALE = 0.25;
 
@@ -126,7 +134,7 @@ export class Hud3D {
   private readonly sun = new THREE.DirectionalLight();
   private shownAt = 0;
   private size = '';
-  private readonly orbs: { material: THREE.ShaderMaterial; shown: number }[] = [];
+  private readonly orbs: { material: THREE.ShaderMaterial; light: THREE.PointLight; shown: number }[] = [];
   private readonly levelBar: THREE.Group;
   private readonly breathBar: THREE.Group;
   private readonly breathBody: THREE.MeshBasicMaterial;
@@ -171,8 +179,10 @@ export class Hud3D {
       });
       const glass = new THREE.Mesh(sphere, material);
       glass.position.set(ORBS[i].x, ORBS[i].y, 0);
-      this.add(glass);
-      this.orbs.push({ material, shown: NaN });
+      const light = new THREE.PointLight(lit, 0, GLOW.reach, 1);
+      light.position.set(ORBS[i].x, ORBS[i].y, GLOW.before);
+      this.add(glass, light);
+      this.orbs.push({ material, light, shown: NaN });
     });
     // A bar fills from its left end: a body and a lighter line along its top.
     const bar = (spec: { from: number; y: number; h: number; z: number }, body: THREE.MeshBasicMaterial, line: THREE.MeshBasicMaterial) => {
@@ -242,6 +252,9 @@ export class Hud3D {
       orb.shown = Number.isNaN(orb.shown) ? want : orb.shown + (want - orb.shown) * Math.min(1, dt * this.look.settle);
       orb.material.uniforms.level.value = orb.shown;
       orb.material.uniforms.time.value = this.time;
+      // The fuller it is the more it lights what holds it, breathing slowly.
+      const breath = 0.5 + 0.5 * Math.sin(this.time * 1.7);
+      orb.light.intensity = GLOW.strength * orb.shown * (GLOW.low + (1 - GLOW.low) * breath);
     });
     this.levelBar.scale.x = Math.max(1e-4, (LEVEL.to - LEVEL.from) * Math.min(1, r.growth));
     // The breath slides to where it is, quickly, and turns red when it is spent.
