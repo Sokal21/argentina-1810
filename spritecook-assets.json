@@ -2686,6 +2686,23 @@
       "asset_id": "a9fe6a9f-8093-43d0-b981-d537b6c5bbe0",
       "label": "araucaria 3D concept: young, cone",
       "file": "assets/bosque/3d/araucaria_joven.png"
+    },
+    {
+      "asset_id": "fb1cf40f-d152-421b-970b-c191d68242ce",
+      "label": "chonchon 3D turnaround A (pixel style, discarded)"
+    },
+    {
+      "asset_id": "254db8cf-0da5-49c3-af58-c76466cd0a66",
+      "label": "chonchon 3D turnaround B (pixel style, discarded)"
+    },
+    {
+      "asset_id": "f851181e-81f4-4c45-ba56-51d7fae7718b",
+      "label": "chonchon 3D turnaround C (smooth, chosen; to Tripo)",
+      "file": "assets/chonchon/3d/turnaround_c.png"
+    },
+    {
+      "asset_id": "c465b403-a970-4dfb-b795-27c46fb8cacd",
+      "label": "chonchon 3D turnaround D (smooth, cape-like wings)"
     }
   ]
 }
