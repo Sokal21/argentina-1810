@@ -1051,6 +1051,8 @@ export class GameScene extends Phaser.Scene {
       const prey = feet && !drawn ? this.prey(realista) : undefined;
       realista.route = prey ? undefined : this.route;
       const deed = realista.update(dt * tune.foes, drawn ? this.nahuel.ground : prey?.body ?? feet);
+      // On her map the 2D game draws over the 3D world; one drawn in 3D (one put in to try things out) is not drawn twice.
+      if (this.overlaid && (realista instanceof Realista || IN_3D.has(realista.kind))) realista.sleep();
       if (realista.alive) awake.push(realista);
       if (deed.shot) {
         this.shots.spawn(deed.shot);
