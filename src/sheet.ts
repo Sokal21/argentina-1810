@@ -39,6 +39,7 @@ const STYLE = `
     font: 21px/1.15 'Jacquard 12', Georgia, serif; letter-spacing: .01em;
   }
   #sheet[hidden] { display: none; }
+  #sheet .below { display: contents; }
   #sheet .book { position: relative; flex: none; background-repeat: no-repeat; image-rendering: pixelated; color: var(--ink); }
   #sheet .side { position: absolute; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; }
   #sheet h1, #sheet h2 { margin: 0; font: inherit; font-weight: normal; color: var(--accent); }
@@ -151,6 +152,9 @@ export function mountSheet(game: Phaser.Game): void {
     node.append(...kids);
     return node;
   };
+  /** The book, kept; and what is below it, laid out as if it were the page's own (display: contents). */
+  const book = el('div', { className: 'book' });
+  const below = el('div', { className: 'below' });
   const list = (title: string, lines: string[], none: string) =>
     [el('h2', {}, title), lines.length ? el('ul', {}, ...lines.map(line => el('li', {}, line))) : el('div', { className: 'none' }, none)];
 
@@ -259,10 +263,11 @@ export function mountSheet(game: Phaser.Game): void {
       const at = page.sides[n];
       return el('div', { className: 'side', hidden: single && n !== leaf, style: `left:${(at.x - from) * k}px;top:${at.y * k}px;width:${at.w * k}px;height:${at.h * k}px` } as never, ...kids);
     };
-    const book = el('div', {
-      className: 'book',
-      style: `width:${wide * k}px;height:${page.h * k}px;background-image:url(${page.src});background-size:${page.w * k}px ${page.h * k}px;background-position:${-from * k}px 0;--k:${touch.on ? 3 : Math.min(k, 2)};--kk:${k};--plus:url(hud/mas_${hero}.png);--square:url(hud/cuadro_${hero}.png);--ink:${page.ink};--accent:${page.accent};--good:${page.good};--faint:${page.faint}`,
-    } as never,
+    // The book itself is kept from one drawing to the next, and only what is written in it drawn anew:
+    // made anew each time (a tab turned, a point given), its picture flickered as it was put up again.
+    const look = `width:${wide * k}px;height:${page.h * k}px;background-image:url(${page.src});background-size:${page.w * k}px ${page.h * k}px;background-position:${-from * k}px 0;--k:${touch.on ? 3 : Math.min(k, 2)};--kk:${k};--plus:url(hud/mas_${hero}.png);--square:url(hud/cuadro_${hero}.png);--ink:${page.ink};--accent:${page.accent};--good:${page.good};--faint:${page.faint}`;
+    if (book.getAttribute('style') !== look) book.setAttribute('style', look);
+    book.replaceChildren(
       side(0,
         el('div', { className: 'top' }, el('h1', {}, HEROES[hero]), el('span', {}, `Nivel ${growth.level}`)),
         el('div', { className: 'bar' }, el('i', { style: `width:${Math.min(100, growth.share * 100)}%` } as never)),
@@ -284,13 +289,14 @@ export function mountSheet(game: Phaser.Game): void {
             const st = s.stands;
             return list('Cómo te ven', [`Pueblo: ${feeling(st.pueblo)}.`, `Frailes: ${feeling(st.frailes)}.`, `Tu nombre: ${renown(st.fama)}.`], '');
           })() : []),
-        ])));
-    book.append(tipBoard);
+        ])),
+      tipBoard);
     // Below the book: what was last asked about, the way to its other page, and the way out.
     const turn = el('button', { className: 'turn', textContent: leaf ? '‹ Personaje' : 'Bolsa y cuaderno ›' });
     turn.addEventListener('click', () => { leaf = leaf ? 0 : 1; picked = undefined; draw(); });
     const asked = el('span', { className: 'foot said' }, said);
-    root.replaceChildren(book,
+    if (book.parentNode !== root) root.replaceChildren(book, below);
+    below.replaceChildren(
       ...(said || pad.on ? [asked] : []),
       el('div', { className: 'ways' }, ...(single ? [turn] : []), touch.on ? leave : el('span', { className: 'foot' }, pad.on ? 'Ⓑ para volver' : 'I para volver')));
   };
