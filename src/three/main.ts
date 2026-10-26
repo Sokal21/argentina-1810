@@ -228,8 +228,9 @@ function advance(dt: number): void {
     house.update(dt, cabral);
   }
   figured.update(dt, cabral, { from, aimed, fallen, dashTime: kit.dash.time, trail: view.look.trail });
-  // The line of the shot and the ring of its blast, as the 2D game draws them while the musket is up.
-  const aiming = aimed && cabral.arming?.kind === 'musket' && cabral.arming.phase !== 'fire';
+  // The line of the shot and the ring of its blast, as the 2D game draws them while the musket is up:
+  // only once it is at his shoulder, not while he takes it from his back.
+  const aiming = aimed && cabral.arming?.kind === 'musket' && cabral.arming.phase === 'aim';
   marks.show(aiming ? figured.aimFrom(cabral) : null, aiming ? aimed : null);
   // How far he can throw and the patch it would land on, while a grenade is drawn back.
   const drawing = aimed && cabral.arming?.kind === 'grenade' && cabral.arming.phase !== 'fire';

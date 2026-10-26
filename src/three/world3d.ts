@@ -269,8 +269,9 @@ export class World3D {
     // Only those near enough the camera to be seen, or to throw a shadow into its view.
     const across = this.view.camera.right + 260, down = this.view.camera.top + 260;
     this.royalists.update(dt, royalists, (x, y) => Math.abs(x - c.x) < across && Math.abs(y - c.y) < down);
-    // The line of the shot and the ring of its blast, as the 2D game draws them while the musket is up.
-    const aiming = doing.aimed && c.arming?.kind === 'musket' && c.arming.phase !== 'fire';
+    // The line of the shot and the ring of its blast, as the 2D game draws them while the musket is up:
+    // only once it is at his shoulder, not while he takes it from his back.
+    const aiming = doing.aimed && c.arming?.kind === 'musket' && c.arming.phase === 'aim';
     this.marks.show(aiming && this.cabral ? this.cabral.aimFrom(c) : null, aiming ? doing.aimed : null);
     // How far he can throw and the patch it would land on, as the 2D game draws them while a grenade is drawn back.
     const drawing = doing.aimed && c.arming?.kind === 'grenade' && c.arming.phase !== 'fire';
