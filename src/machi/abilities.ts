@@ -8,7 +8,7 @@ export const REGEN = 6;   // mana back per second
 export const STRIKE = {
   cost: 35,
   cooldown: 4,
-  range: 160,   // how far from her the patch can be, along the ground
+  range: 240,   // how far from her the patch can be, along the ground (160 until the user asked for half as far again)
   radius: 45,   // of the patch
   delay: 0.8,   // seconds between marking it and the bolt
   damage: 2,

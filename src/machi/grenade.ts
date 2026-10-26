@@ -2,7 +2,7 @@
 export const GRENADE = {
   cost: 40,       // fury it takes
   cooldown: 12,   // seconds until he can throw another
-  range: 200,     // how far from him it can land, along the ground
+  range: 300,     // how far from him it can land, along the ground (200 until the user asked for half as far again)
   flight: [0.55, 0.95] as [number, number], // seconds in the air, for the nearest and the furthest throw
   arc: 46,        // how high it climbs on the longest throw
   hand: 44,       // height it leaves his hand at
