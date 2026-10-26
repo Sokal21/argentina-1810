@@ -37,7 +37,7 @@ document.body.style.cursor = sunCursor();
 mountPanel(view);
 const country = raiseCountry(map);
 view.scene.add(country.group);
-for (const house of country.houses) view.over.add(...house.asks);
+for (const ask of country.houses.flatMap(house => house.asks)) view.over.add(ask);
 
 const people = new People(map);
 view.scene.add(people.group);

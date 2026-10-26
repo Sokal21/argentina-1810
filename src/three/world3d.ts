@@ -152,7 +152,7 @@ export class World3D {
     this.view.scene.add(country.group, forest.group, ...(this.nahuel ? [this.nahuel.group] : []), ...(this.orbs ? [this.orbs.group] : []), ...(this.lightning ? [this.lightning.group] : []), ...(this.healing ? [this.healing.group] : []), ...(this.calling ? [this.calling.group] : []), this.people.group, this.strewn.group, this.errands.group, this.hero.group, this.royalists.group, this.marks.group);
     // A sergeant's roar is felt: a faint shake of the camera, its rings leaving his feet.
     this.royalists.shoutFelt = () => this.view.jolt(ROAR.seconds, ROAR.pixels);
-    for (const house of this.houses) this.view.over.add(...house.asks);
+    for (const ask of this.houses.flatMap(house => house.asks)) this.view.over.add(ask);
     for (const { sign } of this.people.signs.values()) this.view.over.add(sign);
     this.view.scene.add(roomLight());
     // The blast itself is the 2D game's, which hurts; this only shows the ball and what it raises.

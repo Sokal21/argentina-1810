@@ -76,11 +76,10 @@ export function raiseCountry(map: WorldMap): Country3D {
   });
   group.add(paintGround(map, terrain), pourWater(map, terrain), growMeadow(map, terrain, floors));
   const { meshes, taken, tallest: plantsTall } = plantPlants(map);
-  group.add(...meshes);
   feet.push(...taken);
-  group.add(...raiseFences(map));
   const built = raiseBuildings(map);
-  group.add(...built.meshes);
+  // (Given nothing at all, Three's add complains of it: a map may have no fences, or no buildings.)
+  for (const mesh of [...meshes, ...raiseFences(map), ...built.meshes]) group.add(mesh);
   feet.push(...built.taken);
   return { group, feet, terrain, houses: built.houses, plants: taken, tallest: Math.max(plantsTall, built.tallest) };
 }

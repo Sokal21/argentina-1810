@@ -41,7 +41,7 @@ export class Strewn {
       if (what === 'poncho') void model(PONCHO.url, PONCHO.drawn).then(cloth => spot.add(cloth));
       else spot.add(bundle());
     }
-    this.group.add(...trails(map));
+    for (const trail of trails(map)) this.group.add(trail);
   }
 
   /** Whether this thing is drawn lying here, to be picked up. */
