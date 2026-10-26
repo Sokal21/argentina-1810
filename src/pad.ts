@@ -18,7 +18,7 @@ import type Phaser from 'phaser';
 //
 // In a talk, the shop, the hero's page or the pause, the cross (or the stick) goes to whatever can
 // be chosen the way it is pushed (a slider's ← → move it), what is chosen looks as the mouse over it
-// would have it, A chooses it and B leaves. In the menus before the game, ← → choose and A goes on. Any real key or
+// would have it, A chooses it and B leaves. On the hero's page LB and RB turn to the bag and the notebook. In the menus before the game, ← → choose and A goes on. Any real key or
 // mouse movement takes the game back to the keyboard and the mouse.
 
 type Vec = { x: number; y: number };
@@ -39,7 +39,7 @@ export const pad = {
 };
 
 /** The standard mapping's buttons. */
-const A = 0, B = 1, X = 2, RB = 5, LT = 6, RT = 7, VIEW = 8, MENU = 9, L3 = 10, R3 = 11, UP = 12, DOWN = 13, LEFT = 14, RIGHT = 15;
+const A = 0, B = 1, X = 2, LB = 4, RB = 5, LT = 6, RT = 7, VIEW = 8, MENU = 9, L3 = 10, R3 = 11, UP = 12, DOWN = 13, LEFT = 14, RIGHT = 15;
 /** How little of a stick's push is taken as none; how far a stick goes to be a step in a menu, and how soon one held steps again (ms). */
 const SLACK = 0.25, STEP = 0.6, AGAIN = 260;
 /** After a grenade's button is let go: how long the attack is pressed for the game to see it, and the grenade still held for the throw to be made (ms). */
@@ -193,6 +193,8 @@ export function mountPad(game: Phaser.Game): void {
       if (press(A) && chosen) chosen.click();
       if (press(B) || press(MENU)) key('Escape');
       if (press(VIEW) && over.id === 'sheet') key('KeyI');
+      // On the hero's page, the bag (LB) or the notebook (RB).
+      if (over.id === 'sheet' && (press(LB) || press(RB))) over.dispatchEvent(new CustomEvent('pad-tab', { detail: press(LB) ? 'bolsa' : 'cuaderno' }));
       was = down;
       return;
     }

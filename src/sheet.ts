@@ -65,6 +65,9 @@ const STYLE = `
   #sheet .tabs { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid var(--faint); }
   #sheet .tabs button { all: unset; cursor: pointer; color: var(--faint); }
   #sheet .tabs button.on { color: var(--accent); }
+  /* The gamepad's shoulder buttons that turn to each, drawn, shown while it is played with. */
+  #sheet .tabs .pad-key { display: flex; color: var(--ink); }
+  #sheet .tabs .pad-key svg { width: calc(12px * var(--k)); height: calc(6px * var(--k)); shape-rendering: crispEdges; }
   #sheet .tabs button:hover, #sheet .tabs button.pad-chosen { color: var(--ink); }
   #sheet .gold { display: flex; align-items: center; gap: 4px; margin-left: auto; color: var(--ink); }
   #sheet .squares { display: grid; grid-template-columns: repeat(4, calc(22px * var(--kk))); gap: calc(2px * var(--kk)); margin-top: 3px; }
@@ -101,6 +104,20 @@ const STYLE = `
 /** How many squares the bag has. */
 const BAG = 8;
 const HEROES: Record<Hero, string> = { inti: 'Inti', cabral: 'Cabral' };
+
+/**
+ * A gamepad's shoulder button, drawn in pixels in the page's ink rather than named: a bar higher at
+ * its outer end, as the button sits on the pad, the left one (LB) or the right one (RB).
+ */
+const BUMPER = ['###.........', '#######.....', '###########.', '############', '############', '.##########.'];
+function bumper(side: 'left' | 'right'): HTMLElement {
+  const rows = side === 'left' ? BUMPER : BUMPER.map(row => [...row].reverse().join(''));
+  const cells = rows.flatMap((row, y) => [...row].map((c, x) => c === '#' ? `<rect x="${x}" y="${y}" width="1" height="1"/>` : '')).join('');
+  const span = document.createElement('span');
+  span.className = 'pad-key';
+  span.innerHTML = `<svg viewBox="0 0 12 6" fill="currentColor" aria-label="${side === 'left' ? 'LB' : 'RB'}">${cells}</svg>`;
+  return span;
+}
 
 /** Puts the page there to be opened with I, over a game. */
 export function mountSheet(game: Phaser.Game): void {
@@ -234,7 +251,9 @@ export function mountSheet(game: Phaser.Game): void {
         ...stats),
       side(1,
         // The two leaves of this side, and at the end of the line what they have to spend.
-        el('div', { className: 'tabs' }, tabButton('bolsa', 'Bolsa'), tabButton('cuaderno', 'Cuaderno'), el('span', { className: 'gold' }, String(s.pack.gold), coin())),
+        el('div', { className: 'tabs' },
+          ...(pad.on ? [bumper('left')] : []), tabButton('bolsa', 'Bolsa'), tabButton('cuaderno', 'Cuaderno'),
+          ...(pad.on ? [bumper('right')] : []), el('span', { className: 'gold' }, String(s.pack.gold), coin())),
         ...(tab === 'bolsa' ? bag() : [
           ...list('Lleva', has.map(what => THINGS[what]?.name ?? NAMED[what] ?? what), 'Nada todavía.'),
           ...list('Sabe', knows.map(told), 'Nada todavía.'),
@@ -263,6 +282,13 @@ export function mountSheet(game: Phaser.Game): void {
   const leave = el('button', { className: 'leave', textContent: 'Volver' });
   leave.addEventListener('click', () => key('KeyI'));
   let tab: 'bolsa' | 'cuaderno' = 'bolsa';
+  // The gamepad's LB and RB (pad.ts): to the bag or the notebook, and to their page where one is shown at a time.
+  root.addEventListener('pad-tab', e => {
+    tab = (e as CustomEvent<typeof tab>).detail;
+    leaf = 1;
+    picked = undefined;
+    draw();
+  });
   const toggle = () => {
     const s = scene();
     // Not while talking, nor while the game is stopped for something else.
