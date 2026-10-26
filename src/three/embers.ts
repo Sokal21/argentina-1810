@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { unlitShader } from './pixels';
 import { chance } from '../world/chance';
 
 // Embers still alight where a house burnt: points of fire on what is left of it, among the ash of
@@ -44,13 +45,13 @@ export class Embers {
           gl_PointSize = 1.0 + 1.5 * heat;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }`,
-      fragmentShader: /* glsl */ `
+      fragmentShader: unlitShader(/* glsl */ `
         uniform vec3 dull;
         uniform vec3 hot;
         varying float heat;
         void main() {
           gl_FragColor = vec4(mix(dull, hot, heat) * (0.7 + 2.4 * heat), 1.0);
-        }`,
+        }`),
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       transparent: true,

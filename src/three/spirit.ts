@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { unlitShader } from './pixels';
 import { glow } from './realista';
 
 // What marks Inti's nahuel as a spirit in 3D, as SpiritFX does in 2D: a halo of its own cyan round its
@@ -47,14 +48,14 @@ export class Spirit {
           vView = normalize(-mv.xyz);
           gl_Position = projectionMatrix * mv;
         }`,
-      fragmentShader: `
+      fragmentShader: unlitShader(`
         uniform vec3 colour; uniform float power; uniform float time;
         varying vec3 vNormal; varying vec3 vView;
         void main() {
           float rim = 1.0 - abs(dot(normalize(vNormal), normalize(vView)));
           float a = pow(rim, 1.6) * ${HALO.bright.toFixed(2)} * power * (0.85 + 0.15 * sin(time * 4.0));
           gl_FragColor = vec4(colour, a);
-        }`,
+        }`),
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.BackSide,
     });
     body.traverse(node => {

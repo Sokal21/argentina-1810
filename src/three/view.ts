@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { RenderPixelatedPass } from 'three/examples/jsm/postprocessing/RenderPixelatedPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import type { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { finish, finishing, LOOK, sunWay, type Look } from './look';
+import { PixelPass } from './pixels';
 import { shadeIn } from './paint';
 import { PITCH } from './space';
 
@@ -40,7 +40,7 @@ export class View {
   readonly over = new THREE.Scene();
   readonly camera = new THREE.OrthographicCamera();
   private readonly composer: EffectComposer;
-  private readonly pixels: RenderPixelatedPass;
+  private readonly pixels: PixelPass;
   /** The glow round only what is very bright; before the finishing pass, which draws it in the world's pixels. */
   private readonly glow: UnrealBloomPass;
   private readonly finisher: ShaderPass;
@@ -102,7 +102,7 @@ export class View {
     this.scene.add(this.sun, this.sun.target);
 
     this.composer = new EffectComposer(this.renderer);
-    this.pixels = new RenderPixelatedPass(this.look.pixel, this.scene, this.camera);
+    this.pixels = new PixelPass(this.look.pixel, this.scene, this.camera);
     this.composer.addPass(this.pixels);
     this.glow = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0, 0.35, 0.92);
     this.composer.addPass(this.glow);

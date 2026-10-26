@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { unlitShader } from './pixels';
 
 // The arc a blade leaves as it cuts: a pale ribbon between where its point and its foot have been
 // over the last few frames, fading toward the oldest. Without it, a blade a couple of pixels wide
@@ -28,7 +29,7 @@ export class Trail {
       transparent: true, depthWrite: false, side: THREE.DoubleSide,
       uniforms: { colour: { value: COLOUR }, opacity: { value: OPACITY } },
       vertexShader: 'attribute float alpha; varying float vAlpha; void main() { vAlpha = alpha; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: 'uniform vec3 colour; uniform float opacity; varying float vAlpha; void main() { if (vAlpha < 0.02) discard; gl_FragColor = vec4(colour, vAlpha * opacity); }',
+      fragmentShader: unlitShader('uniform vec3 colour; uniform float opacity; varying float vAlpha; void main() { if (vAlpha < 0.02) discard; gl_FragColor = vec4(colour, vAlpha * opacity); }'),
     }));
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 10;

@@ -118,7 +118,7 @@ float hash1(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453)
   // that along the ground, seen from 30° up) and a little past; not drawn from far off, where it
   // would be a patch. Grown for the whole of a 1700 by 2100 field, 44 000 tufts were put through
   // every pass for the 15 000 in view.
-  mesh.onBeforeRender = (_renderer, scene, camera) => {
+  mesh.onBeforeRender = (_renderer, _scene, camera) => {
     uniforms.time.value = performance.now() / 1000;
     const cam = camera as THREE.OrthographicCamera;
     const across = Math.ceil((cam.right - cam.left + 2 * PAST.across) / CELL);
@@ -128,9 +128,7 @@ float hash1(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453)
     hit.copy(camera.position).addScaledVector(forward, -camera.position.y / forward.y);
     uniforms.origin.value.set(Math.floor(hit.x / CELL - across / 2), Math.floor(hit.z / CELL - deep / 2));
     // (Hidden by its count, not by its material: a hidden material is never asked again.)
-    // Nor in the pass that finds the picture's edges (drawn with a material of its own, it would not
-    // be placed, and outlines on every blade were not wanted).
-    mesh.count = !scene.overrideMaterial && across * deep <= room ? across * deep : 0;
+    mesh.count = across * deep <= room ? across * deep : 0;
   };
   return mesh;
 }

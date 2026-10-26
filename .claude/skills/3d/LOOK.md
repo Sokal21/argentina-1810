@@ -16,7 +16,9 @@ Keep these values unless the user asks otherwise. Code: `src/three/view.ts`, `pa
 - Every number of the look lives in `LOOK` in `src/three/look.ts`, as the user tuned it in the
   panel (`src/three/panel.ts`, P in the game) and pasted back with its "Copiar config" button.
   To change the look, have the user tune it there and paste the JSON; write it into `LOOK`.
-- `RenderPixelatedPass`, `OutputPass`, then the finishing pass (`finishing()` in `look.ts`),
+- `PixelPass` (`pixels.ts`: Three's `RenderPixelatedPass` drawing the scene once, every material
+  writing its normal beside its colour instead of a second drawing of the whole scene for them;
+  creases only between lit surfaces), `OutputPass`, then the finishing pass (`finishing()` in `look.ts`),
   which works a world pixel at a time: colour, palette levels and Bayer dithering, grain,
   vignette, chromatic aberration, CRT bulge, scanlines.
 - Chosen: 3 screen pixels per world pixel; edges `creases 0.3` (lighter, along folds) and
