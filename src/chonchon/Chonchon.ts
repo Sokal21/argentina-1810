@@ -55,6 +55,10 @@ export class Chonchon {
   private tilt = 0;
   /** Height it was at when it was brought down. */
   private fellFrom = 0;
+  /** How strongly it smoulders. */
+  private burnt = 0;
+  /** Whether it is drawn here: where the 3D world draws it (three/chonchon.ts), only its life bar is. */
+  seen = true;
 
   constructor(scene: Phaser.Scene, x: number, y: number, bounds?: Bounds) {
     this.brain = new ChonchonBrain(x, y, bounds);
@@ -82,7 +86,21 @@ export class Chonchon {
 
   /** How strongly it smoulders, from 0 to 1, while it is on fire. */
   set burning(amount: number) {
+    this.burnt = amount;
     if (this.fx) this.fx.burn = amount;
+  }
+  get burning(): number {
+    return this.burnt;
+  }
+
+  /** What it is doing, for whoever draws it elsewhere. */
+  get mind(): ChonchonBrain {
+    return this.brain;
+  }
+
+  /** How red it flashes from its last hit, from 1 as it is struck to 0. */
+  get struck(): number {
+    return this.flash;
   }
 
   /** The spot on the ground under it, and how far its body reaches from there. */
@@ -178,11 +196,11 @@ export class Chonchon {
       .setRotation(tilt)
       .setDepth(y)
       .setAlpha(alpha)
-      .setVisible(alpha > 0);
+      .setVisible(alpha > 0 && this.seen);
     // The shadow tightens as it comes down.
     const spread = 1 + z / 80;
     this.shadow.setPosition(x, y).setDepth(y - 0.5).setScale(spread, spread)
-      .setAlpha(alpha).setVisible(alpha > 0);
+      .setAlpha(alpha).setVisible(alpha > 0 && this.seen);
 
     const alive = b.alive;
     this.zone.setPosition(x, y - up);

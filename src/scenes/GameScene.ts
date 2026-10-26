@@ -1010,10 +1010,13 @@ export class GameScene extends Phaser.Scene {
     this.water?.follow();
     // Chonchones go for where she stands; their teeth miss her mid-dash.
     for (const chonchon of this.chonchones) {
+      // Where she plays in 3D, it is drawn there (three/chonchon.ts).
+      chonchon.seen = !this.overlaid;
       const drawn = feet && this.nahuel.lures(chonchon.ground, feet);
       // Its teeth do nothing to a spirit.
       if (chonchon.update(dt * tune.foes, drawn ? this.nahuel.ground : feet) && !drawn) this.hurt();
     }
+    if (this.overlaid) this.three?.chonchones(dt * tune.foes, this.chonchones);
     // Royalists shoot from where they stand, and cut whoever is beside them.
     const awake: Soldier[] = [];
     // Indoors, nobody outside can get to the hero.

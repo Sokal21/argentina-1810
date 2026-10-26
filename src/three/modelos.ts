@@ -90,6 +90,8 @@ const LUNGE = 'estocada_a_fondo', LUNGE_FROM = 180;
  * on her standing `BITE_FROM` off, close enough to bite her, and put back there after each bite.
  */
 const DIVE = 'en_picada', DIVE_FROM = 150, BITE = 'en_mordida', BITE_FROM = 30;
+/** Or brought down: struck once and again, as her orbs strike it (red, flashing), falling, sinking; and back up for another go. */
+const DOWNED = 'derribado', STRIKES = [0.8, 1.4], AGAIN = 3.5;
 /** The clips a character stands and walks with, listed first. */
 const FIRST = ['reposo_mixamo', 'caminata_mixamo', 'caminata_atras'];
 /** How fast the cart goes in the gallery, world units a second (the 2D game's carts go 40 to 46). */
@@ -102,7 +104,7 @@ const view = new View(document.getElementById('world')!);
 const game = new Royalists();
 view.scene.add(game.group);
 let played: { who: Royalist & { mind: TroopBrain }; target: { x: number; y: number }; over: number } | null = null;
-let hunting: { brain: ChonchonBrain; figure: ChonchonFigure; her: { x: number; y: number }; close: boolean } | null = null;
+let hunting: { brain: ChonchonBrain; figure: ChonchonFigure; her: { x: number; y: number }; close: boolean; downed: boolean; since: number; struck: number } | null = null;
 view.apply({ ...view.look, far: 0.6 });
 const floor = new THREE.Mesh(new THREE.PlaneGeometry(900, 500), flat('#8a7a50'));
 floor.rotation.x = -Math.PI / 2;
@@ -181,10 +183,10 @@ async function show(list: Who[]): Promise<void> {
   const all = await Promise.all(list.map(load));
   all.forEach((it, i) => { it.body.position.x = it.home = (i - (all.length - 1) / 2) * APART; view.scene.add(it.body); });
   // Their clips: with several, those any of them has (each one lacking a clip stands as he is).
-  const names = [...new Set([...all.flatMap(it => it.clips), ...(list.some(w => w.lunge) ? [LUNGE] : []), ...(list.some(w => w.dives) ? [DIVE, BITE] : [])])];
+  const names = [...new Set([...all.flatMap(it => it.clips), ...(list.some(w => w.lunge) ? [LUNGE] : []), ...(list.some(w => w.dives) ? [DIVE, BITE, DOWNED] : [])])];
   if (!names.includes(clip)) clip = names[0] ?? 'reposo_mixamo';
   clipsBar.replaceChildren();
-  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE;
+  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE || n === DOWNED;
   const ordered = [...names.filter(playing), ...names.filter(n => !playing(n))];
   for (const name of ordered) {
     const b = button(clipsBar, name, () => { play(name); for (const x of clipsBar.children) x.classList.toggle('on', x === b); });
@@ -209,7 +211,7 @@ function play(name: string): void {
     it.body.position.z = 0;
     if (shown.length === 1) view.follow(new THREE.Vector3(0, w.drawn * 0.5, 0));
     if (name === LUNGE && w.lunge) { act(it.body); continue; }
-    if ((name === DIVE || name === BITE) && w.dives) { hunt(it.body, name === BITE); continue; }
+    if ((name === DIVE || name === BITE || name === DOWNED) && w.dives) { hunt(it.body, name === BITE, name === DOWNED); continue; }
     const c = it.motion.has(name) ? name : 'reposo_mixamo';
     it.motion.play(c, { once: !!t.lasts || !!t.once, lasts: t.lasts, afresh: true, blend: 0.12 });
     // One who holds his musket in both hands lets it fall from them as he falls, as in the game.
@@ -268,14 +270,15 @@ function brainAt(): ChonchonBrain {
 }
 
 /** The chonchón's brain set on Inti, standing off before it (close, to be bitten), and its game figure drawing it. */
-function hunt(body: THREE.Group, close: boolean): void {
+function hunt(body: THREE.Group, close: boolean, downed = false): void {
   body.visible = false;
   // Close, she stands to its side, so its face is seen as it bites rather than hidden behind her.
   const inti = WHO[1], off = close ? BITE_FROM : DIVE_FROM, way = close ? turn + Math.PI / 2 : turn;
   const her = { x: Math.sin(way) * off, y: Math.cos(way) * off * ISO_Y };
   const figure = new ChonchonFigure();
   view.scene.add(figure.group);
-  hunting = { brain: brainAt(), figure, her, close };
+  // Brought down, it has nobody to go for.
+  hunting = { brain: brainAt(), figure, her, close, downed, since: 0, struck: 0 };
   void load(inti).then(it => {
     if (!hunting) return;
     it.body.position.set(her.x, 0, her.y / ISO_Y);
@@ -291,9 +294,16 @@ function step(dt: number): void {
     const { figure, her } = hunting;
     // Close, it is put back where it bites from a moment after each bite.
     if (hunting.close && hunting.brain.mode === 'fly' && hunting.brain.t > 0.6) hunting.brain = brainAt();
+    if (hunting.downed) {
+      const was = hunting.since;
+      hunting.since += dt;
+      for (const at of STRIKES) if (was < at && hunting.since >= at) { hunting.brain.hit(1, 0); hunting.struck = 1; }
+      if (hunting.since > AGAIN) { hunting.brain = new ChonchonBrain(0, 0); hunting.since = 0; }
+    }
+    hunting.struck = Math.max(0, hunting.struck - dt / 0.22);
     const brain = hunting.brain;
-    if (dt > 0) brain.update(dt, her);
-    figure.update(dt, brain);
+    if (dt > 0) brain.update(dt, hunting.downed ? null : her);
+    figure.update(dt, brain, hunting.struck);
     view.follow(new THREE.Vector3((brain.x + her.x) / 2, 30, (brain.y + her.y) / 2 / ISO_Y));
   }
   if (!played) return;

@@ -20,6 +20,8 @@ import { Cart } from './cart';
 import { Forest3D } from './forest';
 import { IntiFigure } from './inti';
 import { NahuelFigure } from './nahuel';
+import { ChonchonFigure } from './chonchon';
+import type { ChonchonBrain } from '../chonchon/brain';
 import { Orbs, type Flying, type Soul } from './orbs';
 import { Lightning3D } from './lightning';
 import { Healing3D } from './healing';
@@ -54,12 +56,17 @@ const LIFE = { wide: 40, tall: 4 };
 /** How fast an ox cart turns toward where it heads, a share of the way a second. */
 const CART_TURN = 2.5;
 
+/** A chonchón, as the 3D world draws it: what it is doing, how red it flashes from a hit, how it smoulders. */
+type Chonchon = { readonly mind: ChonchonBrain; readonly struck: number; readonly burning: number };
+
 export class World3D {
   readonly view: View;
   /** Whoever plays this map: Cabral, or Inti. */
   readonly hero: CabralFigure | IntiFigure;
   /** Her nahuel, where it is she who plays. */
   private readonly nahuel: NahuelFigure | null;
+  /** The chonchones' figures, by the chonchón each draws. */
+  private readonly flying = new Map<Chonchon, ChonchonFigure>();
   /** Her orbs, in flight and on the ground, and their light. */
   private readonly orbs: Orbs | null;
   /** Her lightning, and its light. */
@@ -189,6 +196,24 @@ export class World3D {
   /** Her nahuel, as its brain has it this step. */
   beast(dt: number, brain: NahuelBrain): void {
     this.nahuel?.update(dt, brain);
+  }
+
+  /** The chonchones there are, each drawn as it is this step; one gone from the list is taken away. */
+  chonchones(dt: number, list: readonly Chonchon[]): void {
+    for (const one of list) {
+      let figure = this.flying.get(one);
+      if (!figure) {
+        figure = new ChonchonFigure();
+        this.flying.set(one, figure);
+        this.view.scene.add(figure.group);
+      }
+      figure.update(dt, one.mind, one.struck, one.burning);
+    }
+    for (const [one, figure] of this.flying) {
+      if (list.includes(one)) continue;
+      this.view.scene.remove(figure.group);
+      this.flying.delete(one);
+    }
   }
 
   /** The way along the ground Inti casts this step, if she does. */
