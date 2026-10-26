@@ -61,7 +61,7 @@ import { THINGS } from '../story/things';
 import { FACTS, RULES, VADO } from '../story/vado';
 import { Vitals } from '../world/vitals';
 import { DRAW, MUSKET_TIMES, SHOT as SLING, SIP } from '../three/cabral';
-import type { HudLook } from '../three/hud3d';
+import { HUD_SHAPES, type HudLook } from '../three/hud3d';
 import { BREATH, LAYOUTS, SETTLE } from './HudScene';
 import { sunCursor } from '../three/cursor';
 import { MODELS } from '../three/buildings';
@@ -88,18 +88,22 @@ const GREAT_SHAKE = { seconds: 0.9, pixels: 7 };
 /** Inti's lock: how far off (along the ground) she can lock onto someone, and how far before she lets go. */
 const LOCK = { reach: BOLT_RANGE, keep: BOLT_RANGE * 1.4 };
 /**
- * Inti's HUD drawn in the world, as a thing of it (three/hud3d.ts), instead of over it: on trial, as
- * the user asked (26 October 2026). Its colours and pictures are the 2D HUD's.
+ * The heroes' HUDs drawn in 3D (three/hud3d.ts) instead of over the game in 2D, as the user asked
+ * (26 October 2026): Inti's first, then Cabral's. Their colours and pictures are the 2D HUD's.
  */
 const HUD_IN_3D = true;
-const INTI_HUD = LAYOUTS.inti;
-const HUD_LOOK: HudLook = {
-  vessels: INTI_HUD.vessels.map(v => v.colours),
-  level: INTI_HUD.bar.fill,
-  breath: BREATH,
-  icons: [...INTI_HUD.skills.map(s => s.icon), INTI_HUD.ultimate!, INTI_HUD.flask],
-  settle: SETTLE,
-};
+const HUD_LOOKS = Object.fromEntries((['inti', 'cabral'] as const).map(hero => {
+  const layout = LAYOUTS[hero];
+  const look: HudLook = {
+    shape: HUD_SHAPES[hero],
+    vessels: layout.vessels.map(v => v.colours),
+    level: layout.bar.fill,
+    breath: BREATH,
+    icons: [...layout.skills.map(s => s.icon), layout.ultimate!, layout.flask],
+    settle: SETTLE,
+  };
+  return [hero, look];
+})) as Record<Hero, HudLook>;
 /** Cabral's, as far as a ball of his carries. */
 const CABRAL_LOCK = { reach: BALL.range, keep: BALL.range * 1.4 };
 // By touch: how near an enemy the sabre goes for by itself, how far off a musket dragged all
@@ -1306,10 +1310,12 @@ export class GameScene extends Phaser.Scene {
         this.machi.channelling === 'call' ? this.machi.channelShare : null);
       if (this.hudIn3d) {
         const growth = this.growth;
-        this.three.hud(HUD_LOOK, {
-          life: this.life, mana: this.mana, level: growth.level, growth: growth.share,
+        const look = HUD_LOOKS[this.playing], [life, other] = LAYOUTS[this.playing].vessels;
+        // Each glass reads what the 2D HUD's does: life, and her mana or his fury.
+        this.three.hud(look, {
+          life: life.read(this), mana: other.read(this), level: growth.level, growth: growth.share,
           breath: this.breath.share, winded: this.breath.winded,
-          skills: INTI_HUD.skills.map(s => this.skill(s.ability)), ultimate: this.ultimate, draughts: this.draughts.left,
+          skills: LAYOUTS[this.playing].skills.map(s => this.skill(s.ability)), ultimate: this.ultimate, draughts: this.draughts.left,
         }, dt);
       }
       // A ring of brass under whom he is locked onto (hers is drawn in 2D, below).
@@ -1340,7 +1346,7 @@ export class GameScene extends Phaser.Scene {
    * drawn in 3D here: asked only once the world was made, the 2D HUD showed while it loaded.
    */
   get hudIn3d(): boolean {
-    return HUD_IN_3D && this.playing === 'inti';
+    return HUD_IN_3D && !!HUD_LOOKS[this.playing];
   }
 
   /** Whether the hero is drawn in 3D: wherever the map is. */

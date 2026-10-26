@@ -2718,6 +2718,21 @@
       "asset_id": "7a985ef7-9acf-416e-93a3-6e53e9becf32",
       "label": "Inti's HUD as one carved object for Tripo, HD concept C (orbs, skill slots, level and stamina bars), from hud_a",
       "file": "assets/hud/3d/concepto/hud3d_c.png"
+    },
+    {
+      "asset_id": "6f38ca2b-8e0c-4d3c-8ac8-17132bfbcd1d",
+      "label": "Cabral's HUD as one object for Tripo, HD concept A (caged flasks, kit box, level and stamina bars), from cabral_c2",
+      "file": "assets/hud/3d/concepto/hud3d_cabral_a.png"
+    },
+    {
+      "asset_id": "d391e799-2e66-4018-a13d-d18cce2f4ec0",
+      "label": "Cabral's HUD as one object for Tripo, HD concept B (caged flasks, kit box, level and stamina bars), from cabral_c2",
+      "file": "assets/hud/3d/concepto/hud3d_cabral_b.png"
+    },
+    {
+      "asset_id": "dc18197f-e7d4-4c57-ada1-cc2a2c5446a0",
+      "label": "Cabral's HUD as one object for Tripo, HD concept C (caged flasks, kit box, level and stamina bars), from cabral_c2",
+      "file": "assets/hud/3d/concepto/hud3d_cabral_c.png"
     }
   ]
 }

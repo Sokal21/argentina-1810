@@ -3,9 +3,9 @@ import { model } from './figure';
 import type { Look } from './look';
 import { unlitShader } from './pixels';
 
-// Inti's HUD as a thing in 3D, on trial (the user's, 26 October 2026): Tripo's model of it
-// (assets/hud/3d, from an HD concept of hud_a with the level and stamina bars below), at the bottom
-// of the screen. Drawn in the world's own picture it came out in the world's big pixels and could
+// The heroes' HUDs as things in 3D (the user's, 26 October 2026): Tripo's model of each (assets/hud/3d,
+// from an HD concept of their 2D HUD with the level and stamina bars below), at the bottom of the
+// screen. Drawn in the world's own picture it came out in the world's big pixels and could
 // not be read, so it is drawn apart, at the screen's own pixels, on a canvas of its own between the
 // world and the 2D game's, under the world's light (its sky, its ground and its sun's colours, and
 // its toon steps). What moves is laid over the model: a glass of liquid over each painted orb (the
@@ -13,33 +13,62 @@ import { unlitShader } from './pixels';
 // odd pixel twinkling, and the glass's shine), the level and stamina bars filling their channels,
 // and the skills' pictures in the four slots, shaded while they cool down.
 
-const URL = 'hud/3d/hud_inti.glb';
-/** Where its parts are, in the model's own units (one tall, its front toward +Z), measured on its front (assets/hud/3d/vistas_hud.png). */
-const ORBS = [{ x: -0.729, y: 0.631 }, { x: 0.742, y: 0.627 }];
-/** The glasses' radius: a little over the painted orbs', which they hide. */
-const ORB_R = 0.152;
-const SLOTS = { xs: [-0.349, -0.116, 0.12, 0.36], y: 0.603, z: 0.03, size: 0.15 };
-const LEVEL = { from: -0.485, to: 0.6, y: 0.307, h: 0.05, z: 0.004, number: { x: -0.56, y: 0.31, w: 0.1, h: 0.05 } };
-const STAMINA = { from: -0.445, to: 0.535, y: 0.162, h: 0.07, z: 0.004 };
-/** Its width (its own is 2.15) as a share of the screen's width, at most this share of its height, and its gap above the bottom, in screen pixels. */
-const FIT = { wide: 0.42, tall: 0.3, margin: 8, own: 2.15 };
-/** What the camera takes in round it, in its own units: its width, and from just under its foot to just over its top. */
-const FRAME = { half: 1.1, low: -0.03, high: 1.03 };
+/**
+ * Where a model's parts are, in its own units (one tall, its front toward +Z), measured on its front
+ * (a grid over it, and rays cast at it for how deep each lies): its glasses (their middles and radius),
+ * its four slots, its level bar's channel and the hollow its level is written in, its stamina bar's
+ * channel; and how wide it is.
+ */
+export interface HudShape {
+  url: string;
+  wide: number;
+  glasses: { x: number; y: number; z: number }[];
+  radius: number;
+  slots: { xs: number[]; y: number; z: number; size: number };
+  level: { from: number; to: number; y: number; h: number; z: number; number: { x: number; y: number; w: number; h: number } };
+  stamina: { from: number; to: number; y: number; h: number; z: number };
+}
+
+export const HUD_SHAPES: Record<'inti' | 'cabral', HudShape> = {
+  // Her orbs are painted domes: the glasses lie over them, a little wider, and hide them (vistas_hud.png).
+  inti: {
+    url: 'hud/3d/hud_inti.glb', wide: 2.15,
+    glasses: [{ x: -0.729, y: 0.631, z: 0 }, { x: 0.742, y: 0.627, z: 0 }], radius: 0.152,
+    slots: { xs: [-0.349, -0.116, 0.12, 0.36], y: 0.603, z: 0.03, size: 0.15 },
+    level: { from: -0.485, to: 0.6, y: 0.307, h: 0.05, z: 0.004, number: { x: -0.56, y: 0.31, w: 0.1, h: 0.05 } },
+    stamina: { from: -0.445, to: 0.535, y: 0.162, h: 0.07, z: 0.004 },
+  },
+  // His flasks stand in iron cages: their painted glass is taken out (tools/blender/hollow_glass.py)
+  // and the glasses sit within the cages, a little smaller than the flasks, so the iron is before them
+  // (vistas_hud_cabral.png). The box is deep and the bars lie well before it.
+  cabral: {
+    url: 'hud/3d/hud_cabral.glb', wide: 2.46,
+    glasses: [{ x: -0.965, y: 0.54, z: -0.225 }, { x: 0.948, y: 0.545, z: -0.225 }], radius: 0.215,
+    slots: { xs: [-0.447, -0.145, 0.153, 0.453], y: 0.552, z: -0.14, size: 0.19 },
+    level: { from: -0.447, to: 0.628, y: 0.213, h: 0.07, z: 0.215, number: { x: -0.6, y: 0.21, w: 0.12, h: 0.06 } },
+    stamina: { from: -0.43, to: 0.603, y: 0.097, h: 0.07, z: 0.565 },
+  },
+};
+/** Its width as a share of the screen's width, at most this share of its height, and its gap above the bottom, in screen pixels. */
+const FIT = { wide: 0.42, tall: 0.3, margin: 8 };
+/** What the camera takes in round it, in its own units: a little past its sides, and from just under its foot to just over its top. */
+const FRAME = { past: 0.025, low: -0.03, high: 1.03 };
 /** Where its sun shines from, in its own axes: high, from the upper left and before it. */
 const SUN = new THREE.Vector3(-1, 1.3, 1.4);
 /**
  * The light each glass gives off onto what holds it, in its liquid's lit colour: as strong as it is
- * full, breathing slowly between `low` and all of it (as the 2D orbs' halo); from a little before the
- * glass's middle, reaching so far round it, in the model's units. It fades as the distance (decay 1),
+ * full, breathing slowly between `low` and all of it (as the 2D orbs' halo); from four fifths of the
+ * way to the front of the glass, reaching so far round it, in the model's units. It fades as the distance (decay 1),
  * not its square: in units this small, the square burnt the roots white beside the glass and left
  * those a little further dark.
  */
-const GLOW = { strength: 0.8, low: 0.7, before: 0.12, reach: 0.9 };
+const GLOW = { strength: 0.8, low: 0.7, reach: 0.9 };
 /** Seconds without being shown after which its canvas is hidden (the game asks for it every frame it is). */
 const STALE = 0.25;
 
-/** How each part is coloured: from the 2D HUD (HudScene's LAYOUTS), so both are alike. */
+/** How each part is coloured: from the 2D HUD (HudScene's LAYOUTS), so both are alike; and the model it is. */
 export interface HudLook {
+  shape: HudShape;
   /** Each glass's deep, body, lit and surface colours: life, then mana. */
   vessels: [string, string, string, string][];
   /** The level bar's body and top line; the stamina bar's, and its own when spent. */
@@ -54,6 +83,7 @@ export interface HudLook {
 /** What it shows, read off the game each frame. */
 export interface HudReading {
   life: number;
+  /** What the other glass holds: her mana, his fury. */
   mana: number;
   level: number;
   /** How far toward the next level, 0 to 1. */
@@ -129,7 +159,8 @@ export class Hud3D {
   readonly group = new THREE.Group();
   private readonly renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
   private readonly scene = new THREE.Scene();
-  private readonly camera = new THREE.OrthographicCamera(-FRAME.half, FRAME.half, FRAME.high, FRAME.low, 0.1, 10);
+  private readonly camera: THREE.OrthographicCamera;
+  private readonly shape: HudShape;
   private readonly sky = new THREE.HemisphereLight();
   private readonly sun = new THREE.DirectionalLight();
   private shownAt = 0;
@@ -149,6 +180,8 @@ export class Hud3D {
     canvas.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);pointer-events:none;display:none';
     beside.after(canvas);
     this.renderer.setPixelRatio(devicePixelRatio);
+    const shape = this.shape = look.shape, half = shape.wide / 2 + FRAME.past;
+    this.camera = new THREE.OrthographicCamera(-half, half, FRAME.high, FRAME.low, 0.1, 10);
     this.camera.position.set(0, 0, 5);
     this.sun.position.copy(SUN);
     this.scene.add(this.group, this.sky, this.sun);
@@ -158,7 +191,7 @@ export class Hud3D {
       requestAnimationFrame(watch);
     };
     requestAnimationFrame(watch);
-    void model(URL, 1).then(body => {
+    void model(shape.url, 1).then(body => {
       // Drawn at its own size here: the whole is scaled to the screen.
       body.scale.setScalar(1);
       body.traverse(node => {
@@ -170,17 +203,18 @@ export class Hud3D {
       });
       this.group.add(body);
     });
-    const sphere = new THREE.SphereGeometry(ORB_R, 32, 16);
+    const sphere = new THREE.SphereGeometry(shape.radius, 32, 16);
     look.vessels.forEach((colours, i) => {
       const [deep, body, lit, surface] = colours.map(c => new THREE.Color(c));
       const material = new THREE.ShaderMaterial({
-        uniforms: { time: { value: 0 }, level: { value: 1 }, radius: { value: ORB_R }, deep: { value: deep }, body: { value: body }, lit: { value: lit }, surface: { value: surface } },
+        uniforms: { time: { value: 0 }, level: { value: 1 }, radius: { value: shape.radius }, deep: { value: deep }, body: { value: body }, lit: { value: lit }, surface: { value: surface } },
         vertexShader: ORB_VERTEX, fragmentShader: ORB_FRAGMENT,
       });
       const glass = new THREE.Mesh(sphere, material);
-      glass.position.set(ORBS[i].x, ORBS[i].y, 0);
+      const at = shape.glasses[i];
+      glass.position.set(at.x, at.y, at.z);
       const light = new THREE.PointLight(lit, 0, GLOW.reach, 1);
-      light.position.set(ORBS[i].x, ORBS[i].y, GLOW.before);
+      light.position.set(at.x, at.y, at.z + shape.radius * 0.8);
       this.add(glass, light);
       this.orbs.push({ material, light, shown: NaN });
     });
@@ -198,23 +232,24 @@ export class Hud3D {
       this.add(filled);
       return filled;
     };
-    this.levelBar = bar(LEVEL, new THREE.MeshBasicMaterial({ color: look.level[0] }), new THREE.MeshBasicMaterial({ color: look.level[1] }));
+    this.levelBar = bar(shape.level, new THREE.MeshBasicMaterial({ color: look.level[0] }), new THREE.MeshBasicMaterial({ color: look.level[1] }));
     this.breathBody = new THREE.MeshBasicMaterial({ color: look.breath.fill[0] });
     this.breathTop = new THREE.MeshBasicMaterial({ color: look.breath.fill[1] });
-    this.breathBar = bar(STAMINA, this.breathBody, this.breathTop);
+    this.breathBar = bar(shape.stamina, this.breathBody, this.breathTop);
     // The slots: a picture in each, and a shade drawn down over it from its top while it cools down.
     const loader = new THREE.TextureLoader();
-    const square = new THREE.PlaneGeometry(SLOTS.size, SLOTS.size);
-    const hanging = new THREE.PlaneGeometry(SLOTS.size, 1).translate(0, -0.5, 0);
+    const slots = shape.slots;
+    const square = new THREE.PlaneGeometry(slots.size, slots.size);
+    const hanging = new THREE.PlaneGeometry(slots.size, 1).translate(0, -0.5, 0);
     look.icons.forEach((src, i) => {
       const map = loader.load(src);
       map.minFilter = map.magFilter = THREE.NearestFilter;
       map.colorSpace = THREE.SRGBColorSpace;
       const icon = new THREE.MeshBasicMaterial({ map, transparent: true, alphaTest: 0.5 });
       const picture = new THREE.Mesh(square, icon);
-      picture.position.set(SLOTS.xs[i], SLOTS.y, SLOTS.z);
+      picture.position.set(slots.xs[i], slots.y, slots.z);
       const shade = new THREE.Mesh(hanging, new THREE.MeshBasicMaterial({ color: 0x0c0a08, transparent: true, opacity: 0.75 }));
-      shade.position.set(SLOTS.xs[i], SLOTS.y + SLOTS.size / 2, SLOTS.z + 0.003);
+      shade.position.set(slots.xs[i], slots.y + slots.size / 2, slots.z + 0.003);
       shade.scale.y = 0;
       this.add(picture, shade);
       this.slots.push({ icon, shade });
@@ -224,8 +259,9 @@ export class Hud3D {
     const texture = new THREE.CanvasTexture(board);
     texture.minFilter = texture.magFilter = THREE.NearestFilter;
     texture.colorSpace = THREE.SRGBColorSpace;
-    const written = new THREE.Mesh(new THREE.PlaneGeometry(LEVEL.number.w, LEVEL.number.h), new THREE.MeshBasicMaterial({ map: texture, transparent: true, alphaTest: 0.5 }));
-    written.position.set(LEVEL.number.x, LEVEL.number.y, LEVEL.z + 0.01);
+    const { number } = shape.level;
+    const written = new THREE.Mesh(new THREE.PlaneGeometry(number.w, number.h), new THREE.MeshBasicMaterial({ map: texture, transparent: true, alphaTest: 0.5 }));
+    written.position.set(number.x, number.y, shape.level.z + 0.01);
     this.add(written);
     this.number = { canvas: board, texture, shown: NaN };
   }
@@ -256,10 +292,11 @@ export class Hud3D {
       const breath = 0.5 + 0.5 * Math.sin(this.time * 1.7);
       orb.light.intensity = GLOW.strength * orb.shown * (GLOW.low + (1 - GLOW.low) * breath);
     });
-    this.levelBar.scale.x = Math.max(1e-4, (LEVEL.to - LEVEL.from) * Math.min(1, r.growth));
+    const { level, stamina, slots } = this.shape;
+    this.levelBar.scale.x = Math.max(1e-4, (level.to - level.from) * Math.min(1, r.growth));
     // The breath slides to where it is, quickly, and turns red when it is spent.
     this.breathShown += (r.breath - this.breathShown) * Math.min(1, dt * 14);
-    this.breathBar.scale.x = Math.max(1e-4, (STAMINA.to - STAMINA.from) * Math.max(0, Math.min(1, this.breathShown)));
+    this.breathBar.scale.x = Math.max(1e-4, (stamina.to - stamina.from) * Math.max(0, Math.min(1, this.breathShown)));
     const [body, line] = r.winded ? this.look.breath.spent : this.look.breath.fill;
     this.breathBody.color.setHex(body);
     this.breathTop.color.setHex(line);
@@ -267,13 +304,13 @@ export class Hud3D {
     r.skills.forEach((skill, i) => {
       const slot = this.slots[i];
       if (!slot) return;
-      slot.shade.scale.y = SLOTS.size * skill.cooldown;
+      slot.shade.scale.y = slots.size * skill.cooldown;
       slot.icon.color.setScalar(skill.ready || skill.cooldown > 0 ? 1 : 0.35);
     });
     // The greatest power: shaded over what is not yet charged, and pulsing once it is.
     const power = this.slots[2], charged = Math.max(0, Math.min(1, r.ultimate)), pulse = 0.5 + 0.5 * Math.sin(this.time * 6);
     if (power) {
-      power.shade.scale.y = SLOTS.size * (1 - charged);
+      power.shade.scale.y = slots.size * (1 - charged);
       if (charged >= 1) power.icon.color.setRGB(1, 0.84 + 0.16 * pulse, 0.67 + 0.33 * pulse);
       else power.icon.color.setScalar(0.7);
     }
@@ -298,8 +335,9 @@ export class Hud3D {
 
   /** Its canvas as wide as the screen allows, at the bottom of it; shown. */
   private fit(): void {
-    const tall = FRAME.high - FRAME.low, wide = Math.min(innerWidth * FIT.wide, innerHeight * FIT.tall * FIT.own / tall);
-    const w = Math.round(wide * 2 * FRAME.half / FIT.own), h = Math.round(w * tall / (2 * FRAME.half));
+    const own = this.shape.wide, across = own + 2 * FRAME.past, tall = FRAME.high - FRAME.low;
+    const wide = Math.min(innerWidth * FIT.wide, innerHeight * FIT.tall * own / tall);
+    const w = Math.round(wide * across / own), h = Math.round(w * tall / across);
     const canvas = this.renderer.domElement;
     canvas.style.display = '';
     if (`${w}x${h}` === this.size) return;
