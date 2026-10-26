@@ -16,3 +16,6 @@ __pycache__/
 tools/mocap/*.fbx
 tools/mocap/**/*.fbx
 assets/machi/3d/anims/magia/
+
+# Third-party reference models whose licence is not known to allow publishing them.
+assets/chonchon/3d/referencia/
