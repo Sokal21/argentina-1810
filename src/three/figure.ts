@@ -81,8 +81,11 @@ export async function model(url: string, drawn: number): Promise<THREE.Group> {
     material.side = was.side;
     node.material = material;
     node.castShadow = node.receiveShadow = true;
-    // A body that moves can leave the box it was measured in at rest.
-    node.frustumCulled = false;
+    // A body that moves can leave the box it was measured in at rest: it is drawn whether or not
+    // that box is in view. Anything else (a building, its furniture, a thing held in a hand, which
+    // goes with its bone) is drawn only while its box is: every model drawn always, the buildings
+    // out of sight cost a fifth of the vado's picture, three times over.
+    node.frustumCulled = !(node instanceof THREE.SkinnedMesh);
   });
   scene.scale.setScalar(drawn * UPRIGHT);
   return scene;

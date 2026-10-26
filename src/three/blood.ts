@@ -72,6 +72,9 @@ export class Blood {
         mesh.setMatrixAt(i, this.m.makeScale(0, 0, 0));
         mesh.setColorAt(i, new THREE.Color(Math.random() < 0.5 ? DARK : RED).lerp(new THREE.Color(DARK), Math.random() * 0.5));
       }
+      // Only as many copies as have ever been taken are drawn (`take`): scaled to nothing, the
+      // whole room was still put through every pass.
+      mesh.count = 0;
     }
     this.group.add(this.pools, this.drops);
   }
@@ -178,7 +181,9 @@ export class Blood {
 
   /** The next free copy of a drop or a pool, round and round: past the room, the oldest is taken. */
   private take(kind: 'drop' | 'pool'): number {
-    if (kind === 'drop') return this.nextDrop = (this.nextDrop + 1) % ROOM.drops;
-    return this.nextPool = (this.nextPool + 1) % ROOM.pools;
+    const mesh = kind === 'drop' ? this.drops : this.pools, room = kind === 'drop' ? ROOM.drops : ROOM.pools;
+    const slot = kind === 'drop' ? (this.nextDrop = (this.nextDrop + 1) % room) : (this.nextPool = (this.nextPool + 1) % room);
+    mesh.count = Math.max(mesh.count, slot + 1);
+    return slot;
   }
 }

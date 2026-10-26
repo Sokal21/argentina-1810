@@ -31,7 +31,8 @@ export function seenThrough(body: THREE.Object3D): void {
     mesh.userData.twinned = true;
     twin.renderOrder = TWIN;
     mesh.renderOrder = FIGURE;
-    twin.frustumCulled = false;
+    // Drawn whenever its mesh is: a body's moves out of its box (figure.ts); a cart's does not.
+    twin.frustumCulled = mesh.frustumCulled;
     twin.castShadow = twin.receiveShadow = false;
     // Its child, standing where it stands: shown and hidden with it.
     mesh.add(twin);
