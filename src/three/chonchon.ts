@@ -4,6 +4,7 @@ import { ISO_Y } from '../machi/data';
 import { flashes, model } from './figure';
 import { Motion } from './motion';
 import { ground, UPRIGHT } from './space';
+import { seenThrough } from './xray';
 
 // The chonchón in 3D: its model (tools/blender/rig_wings.py) put where its brain says and moved by
 // nothing else. The brain is the 2D game's own: where it is, how high, which way, what it is doing.
@@ -57,6 +58,8 @@ export class ChonchonFigure {
       this.pitch.add(body);
       this.motion = new Motion(body);
       this.flash = flashes(body);
+      // Red through the trees, as the royalists are: on her map too one knows where they fly.
+      seenThrough(body);
     });
   }
 
