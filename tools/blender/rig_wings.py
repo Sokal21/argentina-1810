@@ -1,6 +1,7 @@
 """Bones for the chonchón's wings and hair, and its flight keyed on them.
 
     Blender -b --python tools/blender/rig_wings.py -- CHONCHON.glb OUT.glb
+    Blender -b --python tools/blender/decimate.py -- OUT.glb OUT.glb --faces 2500
 
 The model is Tripo's, one mesh and no rig (`prepare_model.py`: one unit tall, facing +Z in glTF,
 -Y here). It is given a head bone, a jaw hinged on it, a chain of bones down its hair and another
