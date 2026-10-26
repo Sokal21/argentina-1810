@@ -56,6 +56,14 @@ const EASE = 0.12;
  * is laid on her branch shoulder, so her arm still points where the orb goes.
  */
 const HIP_SHARE = 0;
+/**
+ * How much of her running slide her dash shows: it slides to its lowest by 0.25 and is back up by 0.83,
+ * but from about 0.6 its feet already run, and at the dash's end (all but still by then) she ran on the
+ * spot. It is shown up to as she is nearly up, then blends over this long into whatever she does next;
+ * for its first moments it is held, until her controller says whether she goes on or stands (at once it
+ * said neither, and she blended into standing and at once into running, a jolt).
+ */
+const SLIDE = { until: 0.7, blendOut: 0.25, settle: 0.08 };
 /** How long her call to the lightning is shown, in seconds. */
 const STRIKE_TIME = 0.9;
 /** How fast she turns, per second; how quickly what she is taken to go at follows how fast she goes. */
@@ -84,6 +92,9 @@ export class IntiFigure {
   private facing = 0;
   private going = 0;
   private wasDashing = false;
+  /** Seconds into her dash, and since it ended. */
+  private dashed = 0;
+  private sinceDash = Infinity;
   private wasChanneling = false;
   private wasFallen = false;
   /** Seconds left of her call to the lightning, once cast. */
@@ -175,9 +186,12 @@ export class IntiFigure {
     const motion = this.motion;
     if (motion) {
       let legs = 0;
-      const paced = (name: string) => ({ pace: this.reach[name] ? Math.max(LEAST_PACE, this.going / this.reach[name]) : 1 });
+      // Just up from her slide, whatever comes next blends in slowly from it.
+      const out = this.sinceDash < SLIDE.blendOut ? { blend: SLIDE.blendOut } : {};
+      const paced = (name: string) => ({ pace: this.reach[name] ? Math.max(LEAST_PACE, this.going / this.reach[name]) : 1, ...out });
       if (fallen) motion.play(CLIPS.death, { once: true, afresh: !this.wasFallen });
-      else if (c.isDashing) motion.play(CLIPS.dash, { once: true, lasts: dashTime, afresh: !this.wasDashing, blend: 0.05 });
+      else if (c.isDashing) motion.hold(CLIPS.dash, Math.min(1, this.dashed / dashTime) * SLIDE.until, { afresh: !this.wasDashing, blend: 0.05 });
+      else if (this.sinceDash < SLIDE.settle && !c.isAttacking) motion.hold(CLIPS.dash, SLIDE.until);
       else if (c.channelling === 'call') motion.play(CLIPS.call, { once: true, lasts: NAHUEL.call, afresh: !this.wasChanneling, blend: 0.08 });
       else if (c.isChanneling) motion.play(CLIPS.heal, { once: true, lasts: HEAL.time, afresh: !this.wasChanneling, blend: 0.08 });
       else if (this.striking > 0) motion.play(CLIPS.strike, { once: true, lasts: STRIKE_TIME, afresh: this.striking > STRIKE_TIME - dt, blend: 0.05 });
@@ -192,7 +206,7 @@ export class IntiFigure {
       } else if (c.isMoving && !casting) {
         legs = -(this.ways[CLIPS.run] ?? 0);
         motion.play(CLIPS.run, paced(CLIPS.run));
-      } else motion.play(CLIPS.idle);
+      } else motion.play(CLIPS.idle, out);
       const pelvis = this.shaped?.getObjectByName('Pelvis');
       for (const [bone, was] of this.asLeft) bone.quaternion.copy(was);
       motion.update(dt);
@@ -241,6 +255,8 @@ export class IntiFigure {
       }
     }
     this.wasFallen = fallen;
+    this.dashed = c.isDashing ? (this.wasDashing ? this.dashed + dt : dt) : 0;
+    this.sinceDash = c.isDashing ? 0 : this.sinceDash + dt;
     this.wasDashing = c.isDashing;
     this.wasChanneling = c.isChanneling;
     this.flash(doing.hurt ?? 0);
