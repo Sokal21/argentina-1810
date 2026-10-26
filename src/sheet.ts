@@ -119,6 +119,28 @@ function bumper(side: 'left' | 'right'): HTMLElement {
   return span;
 }
 
+/** How wide each picture on the page is, once it has been seen. */
+const WIDTHS = new Map<string, number>();
+/**
+ * A picture `scale` times its size. The page is drawn anew at every change (a tab, a point given):
+ * sized only once it had loaded, each picture showed for a moment at its own size and the page
+ * jumped; so it is born at its size where it has been seen before, and unseen until it is otherwise.
+ */
+function picture(src: string, scale: number): HTMLImageElement {
+  const img = document.createElement('img');
+  img.alt = '';
+  const known = WIDTHS.get(src);
+  if (known) img.width = known * scale;
+  else img.style.visibility = 'hidden';
+  img.addEventListener('load', () => {
+    WIDTHS.set(src, img.naturalWidth);
+    img.width = img.naturalWidth * scale;
+    img.style.visibility = '';
+  });
+  img.src = src;
+  return img;
+}
+
 /** Puts the page there to be opened with I, over a game. */
 export function mountSheet(game: Phaser.Game): void {
   document.head.appendChild(Object.assign(document.createElement('style'), { textContent: STYLE }));
@@ -166,7 +188,7 @@ export function mountSheet(game: Phaser.Game): void {
     // What they were told is in the words of whoever told it, or of the story itself.
     const notes = Object.fromEntries(Object.values(PEOPLE).flatMap(p => p.favours.map(f => [f.key, f.note.replace(/^Dato conseguido: /, '')])));
     const told = (key: string) => (notes[key] ?? FACTS[`sabe:${key}`] ?? key).replace(/^./, first => first.toUpperCase());
-    const coin = () => { const img = el('img', { src: 'cosas/moneda_chica.png', alt: '' }); img.addEventListener('load', () => { img.width = img.naturalWidth * Math.min(k, 2); }); return img; };
+    const coin = () => picture('cosas/moneda_chica.png', Math.min(k, 2));
     const tabButton = (name: typeof tab, label: string) => {
       const b = el('button', { textContent: label, className: name === tab ? 'on' : '' });
       b.addEventListener('mousedown', e => e.preventDefault());
@@ -189,7 +211,7 @@ export function mountSheet(game: Phaser.Game): void {
     let made = 0;
     const bag = () => {
       const pack = s.pack;
-      const icon = (src: string) => { const img = el('img', { src, alt: '' }); img.addEventListener('load', () => { img.width = img.naturalWidth * k; }); return img; };
+      const icon = (src: string) => picture(src, k);
       const square = (full: boolean, onPoint: (cell: HTMLElement) => void, onClick?: () => void, ...kids: (Node | string)[]) => {
         const cell = el('button', { className: `square${full ? ' full' : ''}` }, ...kids);
         cell.addEventListener('mousedown', e => e.preventDefault());
