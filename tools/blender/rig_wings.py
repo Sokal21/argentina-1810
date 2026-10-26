@@ -1,6 +1,6 @@
 """Bones for the chonchón's wings and hair, and its flight keyed on them.
 
-    Blender -b --python tools/blender/rig_wings.py -- CHONCHON.glb OUT.glb [--name vuelo]
+    Blender -b --python tools/blender/rig_wings.py -- CHONCHON.glb OUT.glb
 
 The model is Tripo's, one mesh and no rig (`prepare_model.py`: one unit tall, facing +Z in glTF,
 -Y here). It is given a head bone, a chain of bones down its hair and another down its tongue,
@@ -34,8 +34,6 @@ from mathutils import Euler, Matrix, Vector
 
 args = sys.argv[sys.argv.index('--') + 1:]
 MODEL, OUT = args[:2]
-opts = dict(zip(args[2::2], args[3::2]))
-NAME = opts.get('--name', 'vuelo')
 FPS = 24
 
 # The chonchón's right wing (-X), measured on the model: the shoulder, the claw on top, and the
@@ -82,6 +80,17 @@ TRAVEL = 2 * math.pi / 7
 # times in the clip, and how far behind the one above; and up and down after the head's nodding.
 WRIGGLE, WRIGGLES, LICK = [math.radians(a) for a in (10, 15, 20)], 5, 1.0
 FLICK = [math.radians(a) for a in (6, 9, 12)]
+# The dive's warning: as long as the brain's (WINDUP, 0.55 s); how high the wings lift, and how low
+# their one hard beat goes; how far each bone of the tongue swings up to point ahead.
+WARN, HIGH, LOW_BEAT = 13, math.radians(75), math.radians(-45)
+AIM = [math.radians(a) for a in (-50, -15, -10)]
+# The dive, a loop as long as STOOP: its wings, standing as drawn, swung back like doors about the
+# upright till they lie along the head's sides, and leant back (their tops toward +Y); fluttering
+# so much; each bone of the hair turned back to stream. (Laid back first and the finger swept to
+# the arm, the membrane between, shared by two bones turned so differently, buckled out sideways.)
+STOOP = 8
+FOLD, SLANT, FLUTTER = math.radians(80), math.radians(-35), math.radians(4)
+STREAM = [math.radians(a) for a in (35, 10, 5, 5, 3, 3, 2, 2)]
 
 
 def resampled(points: list[Vector], n: int) -> list[Vector]:
@@ -254,57 +263,109 @@ def sprung() -> list[tuple[float, float]]:
     return [((x - lo) / (hi - lo) * RISE, v / fast) for x, v in kept]
 
 
+def pose(k: int, height: float, nod: float, wings: tuple[float, float, float, float, float, float], hair: list[tuple[float, float]],
+         tongue: list[tuple[float, float]]) -> None:
+    """Keys every bone at frame k: the head raised and nodded (chin down for more); each wing laid
+    forward (about X), its arm and finger each raised (about Y, mirrored on the left) and swept
+    back (about Z, mirrored), and then the whole of it leant forward (about X again); each bone of the hair and the tongue turned to and fro and from side to
+    side from the one above."""
+    held = Matrix.Translation(Vector((0, 0, height)) + PIVOT) @ Matrix.Rotation(-nod, 4, 'X') @ Matrix.Translation(-PIVOT)
+    cab = rig.pose.bones['cabeza']
+    cab.matrix = held @ rest['cabeza']
+    bpy.context.view_layer.update()
+    cab.keyframe_insert('location', frame=k)
+    cab.keyframe_insert('rotation_quaternion', frame=k)
+    lay, arm, finger, arm_sweep, finger_sweep, slant = wings
+    for s in 'RL':
+        # Beating, this way lifts the right wing's tip (out at -X); sweeping, takes it back (+Y).
+        way = 1 if s == 'R' else -1
+        for rib, up, sweep in (('brazo', arm, arm_sweep), ('dedo', finger, finger_sweep)):
+            pb = rig.pose.bones[f'ala_{s}_{rib}']
+            at = rest[pb.name].translation
+            turn = Matrix.Rotation(slant, 4, 'X') @ Matrix.Rotation(-way * sweep, 4, 'Z') @ Matrix.Rotation(way * up, 4, 'Y') @ Matrix.Rotation(lay, 4, 'X')
+            pb.matrix = held @ Matrix.Translation(at) @ turn @ Matrix.Translation(-at) @ rest[pb.name]
+            bpy.context.view_layer.update()
+            pb.keyframe_insert('rotation_quaternion', frame=k)
+            pb.keyframe_insert('location', frame=k)
+    for name, turns in (('pelo', hair), ('lengua', tongue)):
+        for i, (to_and_fro, aside) in enumerate(turns):
+            pb = rig.pose.bones[f'{name}_{i}']
+            pb.rotation_quaternion = Euler((to_and_fro, 0, aside)).to_quaternion()
+            pb.keyframe_insert('rotation_quaternion', frame=k)
+
+
+def keyed(name: str, frames: int, at) -> None:
+    """A clip of so many frames, each posed as `at` says."""
+    rig.animation_data.action = bpy.data.actions.new(name)
+    for k in range(frames + 1):
+        scene.frame_set(k)
+        pose(k, *at(k))
+    print('CLIP', name, frames, 'frames')
+
+
+def eased(u: float) -> float:
+    return (1 - math.cos(math.pi * max(0.0, min(1.0, u)))) / 2
+
+
 rig.animation_data_create()
-rig.animation_data.action = bpy.data.actions.new(NAME)
 bpy.context.view_layer.objects.active = rig
 bpy.ops.object.mode_set(mode='POSE')
 rest = {b.name: b.matrix_local.copy() for b in rig.data.bones}
 scene = bpy.context.scene
 head = sprung()
 CLIP = 2 * FLAP
-for k in range(CLIP + 1):
-    scene.frame_set(k)
+
+
+def hair_at(k: int, frames: int, drag: bool = True) -> list[tuple[float, float]]:
+    """The hair's wave, running down it, and dragged after the head as the head went a frame earlier
+    for each bone further down."""
+    wave = 2 * math.pi * k / frames
+    return [(WAVE[i] * math.sin(2 * wave - i * TRAVEL + 1) + (DRAG[i] * head[(k - i - 1) % FLAP][1] if drag else 0),
+             SWAY[i] * math.sin(wave - i * TRAVEL)) for i in LOCK]
+
+
+def flying(k: int):
     down, going = stroke(k % FLAP / FLAP)
     # The head up as high as its spring has it, and nodding as fast as it goes: chin down as it rises.
     height, pace = head[k % FLAP]
-    held = Matrix.Translation(Vector((0, 0, height)) + PIVOT) @ Matrix.Rotation(-NOD * pace, 4, 'X') @ Matrix.Translation(-PIVOT)
-    cab = rig.pose.bones['cabeza']
-    cab.matrix = held @ rest['cabeza']
-    bpy.context.view_layer.update()
-    cab.keyframe_insert('location', frame=k)
-    cab.keyframe_insert('rotation_quaternion', frame=k)
-    for s in 'RL':
-        # Laid: about X, this way takes the top forward (toward -Y), the same on both sides. Beating:
-        # about Y, this way lifts the right wing's tip (out at -X), the other way the left's.
-        laid = Matrix.Rotation(LAY, 4, 'X')
-        way = 1 if s == 'R' else -1
-        for rib, up in (('brazo', UP - BEAT * down), ('dedo', UP - BEAT * down + LAG * going)):
-            pb = rig.pose.bones[f'ala_{s}_{rib}']
-            at = rest[pb.name].translation
-            pb.matrix = held @ Matrix.Translation(at) @ Matrix.Rotation(way * up, 4, 'Y') @ laid @ Matrix.Translation(-at) @ rest[pb.name]
-            bpy.context.view_layer.update()
-            pb.keyframe_insert('rotation_quaternion', frame=k)
-            pb.keyframe_insert('location', frame=k)
-    # The hair, each bone turned from the one above: its wave running down it, and dragged after
-    # the head as the head went a frame earlier for each bone further down.
     wave = 2 * math.pi * k / CLIP
-    for i in LOCK:
-        pb = rig.pose.bones[f'pelo_{i}']
-        to_and_fro = WAVE[i] * math.sin(2 * wave - i * TRAVEL + 1) + DRAG[i] * head[(k - i - 1) % FLAP][1]
-        pb.rotation_quaternion = Euler((to_and_fro, 0, SWAY[i] * math.sin(wave - i * TRAVEL))).to_quaternion()
-        pb.keyframe_insert('rotation_quaternion', frame=k)
-    # The tongue, likewise: wriggling, and flicked after the head's nodding a frame later each bone.
-    for i in LICKS:
-        pb = rig.pose.bones[f'lengua_{i}']
-        flick = FLICK[i] * head[(k - i - 1) % FLAP][1]
-        pb.rotation_quaternion = Euler((flick, 0, WRIGGLE[i] * math.sin(WRIGGLES * wave - i * LICK))).to_quaternion()
-        pb.keyframe_insert('rotation_quaternion', frame=k)
+    tongue = [(FLICK[i] * head[(k - i - 1) % FLAP][1], WRIGGLE[i] * math.sin(WRIGGLES * wave - i * LICK)) for i in LICKS]
+    return height, NOD * pace, (LAY, UP - BEAT * down, UP - BEAT * down + LAG * going, 0.0, 0.0, 0.0), hair_at(k, CLIP), tongue
+
+
+def warning(k: int):
+    """The warning before a dive, as long as the brain's: the wings lift high, beat down hard once
+    and lift high again, held there; the tongue, wriggling quicker, swings up till it points ahead."""
+    u = k / WARN
+    if u < 0.35: arm = UP + (HIGH - UP) * eased(u / 0.35)
+    elif u < 0.65: arm = HIGH - (HIGH - LOW_BEAT) * eased((u - 0.35) / 0.3)
+    else: arm = LOW_BEAT + (HIGH - LOW_BEAT) * eased((u - 0.65) / 0.3)
+    going = 1.0 if 0.35 <= u < 0.65 else -0.5 if u < 0.95 and u >= 0.65 else 0.0
+    height = RISE * eased((u - 0.35) / 0.4)
+    aim = eased(u / 0.8)
+    tongue = [(aim * AIM[i], WRIGGLE[i] * 0.6 * math.sin(2 * math.pi * 3 * u - i * LICK)) for i in LICKS]
+    return height, 0.0, (LAY, arm, arm + LAG * going, 0.0, 0.0, 0.0), hair_at(k, WARN, drag=False), tongue
+
+
+def diving(k: int):
+    """The dive, a short loop: the wings folded back along the head, fluttering a little; the hair
+    streaming back; the tongue pointing ahead, quivering."""
+    u = k / STOOP
+    flutter = FLUTTER * math.sin(2 * math.pi * u)
+    hair = [(STREAM[i] + 0.3 * SWAY[i] * math.sin(2 * math.pi * u * 2 - i * TRAVEL), 0.4 * SWAY[i] * math.sin(2 * math.pi * u - i * TRAVEL)) for i in LOCK]
+    tongue = [(AIM[i], WRIGGLE[i] * 0.3 * math.sin(2 * math.pi * 2 * u - i * LICK)) for i in LICKS]
+    return 0.0, 0.0, (0.0, flutter, flutter * 1.5, FOLD, FOLD, SLANT), hair, tongue
+
+
+keyed('vuelo', CLIP, flying)
+keyed('picada_aviso', WARN, warning)
+keyed('picada', STOOP, diving)
 bpy.ops.object.mode_set(mode='OBJECT')
-# Only the flap goes out.
+# Only these clips go out.
 for a in list(bpy.data.actions):
-    if a.name != NAME: bpy.data.actions.remove(a)
+    if a.name not in ('vuelo', 'picada_aviso', 'picada'): bpy.data.actions.remove(a)
 print('SKIN', len(mesh.vertex_groups), sum(len(v.groups) for v in mesh.data.vertices), [m.type for m in mesh.modifiers], mesh.parent)
 scene.render.fps = FPS
 scene.frame_start, scene.frame_end = 0, CLIP
 bpy.ops.export_scene.gltf(filepath=OUT, export_format='GLB', export_animations=True, export_force_sampling=True)
-print('WROTE', OUT, NAME, CLIP, 'frames')
+print('WROTE', OUT)

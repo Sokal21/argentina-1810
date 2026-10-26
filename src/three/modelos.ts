@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { MODELS } from './buildings';
 import { Cart } from './cart';
+import { ChonchonFigure, DRAWN as CHONCHON } from './chonchon';
+import { ChonchonBrain } from '../chonchon/brain';
 import { Spirit } from './spirit';
 import { CABRAL_DRESS, model } from './figure';
 import { Fling } from './fling';
@@ -18,7 +20,7 @@ import { View } from './view';
 // kinds of the king's men with a model of their own, whoever keeps a house), and a model's clips are
 // read off its file, so a new character or a new clip is here as soon as the game has it.
 
-interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge'] }
+interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge']; dives?: boolean }
 
 /** The kinds of the king's men, named as the game names them. */
 const KIND_NAMES: Record<string, string> = { sargento: 'Sargento', capitan: 'El capitán', sableador: 'Sableador', tirador: 'Tirador' };
@@ -47,7 +49,7 @@ const WHO: Who[] = [
   { name: 'Puma (intento)', url: 'nahuel/3d/puma_animado.glb', drawn: 52 },
   // The chonchón (Tripo from turnaround C, 25 October 2026): its wings boned and its flap keyed by hand
   // (tools/blender/rig_wings.py). 60 from wingtips to the ends of its hair, as its 2D drawing.
-  { name: 'Chonchón', url: 'chonchon/3d/chonchon_animado.glb', drawn: 60 },
+  { name: 'Chonchón', url: 'chonchon/3d/chonchon_animado.glb', drawn: CHONCHON, dives: true },
   // The ox cart whole, as the game draws it (three/cart.ts): going, its wheels rolling and its oxen
   // walking, in place; or standing, its oxen breathing and grazing now and then.
   { name: 'Carreta', url: '', drawn: 110, cart: true },
@@ -82,6 +84,11 @@ const used = (name: string) => CODE.includes(`'${name}'`);
  * its red glint, its slide (stopping short of him), its dust and its thrust are the game's own.
  */
 const LUNGE = 'estocada_a_fondo', LUNGE_FROM = 180;
+/**
+ * The chonchón as the game plays it: its own brain set on Inti standing `DIVE_FROM` off, circling her
+ * and diving at her (and biting her, close), drawn by its game figure (three/chonchon.ts).
+ */
+const DIVE = 'en_picada', DIVE_FROM = 150;
 /** The clips a character stands and walks with, listed first. */
 const FIRST = ['reposo_mixamo', 'caminata_mixamo', 'caminata_atras'];
 /** How fast the cart goes in the gallery, world units a second (the 2D game's carts go 40 to 46). */
@@ -94,6 +101,7 @@ const view = new View(document.getElementById('world')!);
 const game = new Royalists();
 view.scene.add(game.group);
 let played: { who: Royalist & { mind: TroopBrain }; target: { x: number; y: number }; over: number } | null = null;
+let hunting: { brain: ChonchonBrain; figure: ChonchonFigure; her: { x: number; y: number } } | null = null;
 view.apply({ ...view.look, far: 0.6 });
 const floor = new THREE.Mesh(new THREE.PlaneGeometry(900, 500), flat('#8a7a50'));
 floor.rotation.x = -Math.PI / 2;
@@ -173,10 +181,10 @@ async function show(list: Who[], mark: HTMLButtonElement): Promise<void> {
   const all = await Promise.all(list.map(load));
   all.forEach((it, i) => { it.body.position.x = it.home = (i - (all.length - 1) / 2) * APART; view.scene.add(it.body); });
   // Their clips: with several, those any of them has (each one lacking a clip stands as he is).
-  const names = [...new Set([...all.flatMap(it => it.clips), ...(list.some(w => w.lunge) ? [LUNGE] : [])])];
+  const names = [...new Set([...all.flatMap(it => it.clips), ...(list.some(w => w.lunge) ? [LUNGE] : []), ...(list.some(w => w.dives) ? [DIVE] : [])])];
   if (!names.includes(clip)) clip = names[0] ?? 'reposo_mixamo';
   clipsBar.replaceChildren();
-  const playing = (n: string) => used(n) || n === LUNGE;
+  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE;
   const ordered = [...names.filter(playing), ...names.filter(n => !playing(n))];
   for (const name of ordered) {
     const b = button(clipsBar, name, () => { play(name); for (const x of clipsBar.children) x.classList.toggle('on', x === b); });
@@ -201,6 +209,7 @@ function play(name: string): void {
     it.body.position.z = 0;
     if (shown.length === 1) view.follow(new THREE.Vector3(0, w.drawn * 0.5, 0));
     if (name === LUNGE && w.lunge) { act(it.body); continue; }
+    if (name === DIVE && w.dives) { hunt(it.body); continue; }
     const c = it.motion.has(name) ? name : 'reposo_mixamo';
     it.motion.play(c, { once: !!t.lasts || !!t.once, lasts: t.lasts, afresh: true, blend: 0.12 });
     // One who holds his musket in both hands lets it fall from them as he falls, as in the game.
@@ -251,8 +260,34 @@ function act(body: THREE.Group): void {
   });
 }
 
+/** The chonchón's brain set on Inti, standing off before it, and its game figure drawing it. */
+function hunt(body: THREE.Group): void {
+  body.visible = false;
+  const inti = WHO[1];
+  const her = { x: Math.sin(turn) * DIVE_FROM, y: Math.cos(turn) * DIVE_FROM * ISO_Y };
+  const brain = new ChonchonBrain(0, 0);
+  // At her at once, rather than after circling a while.
+  (brain as unknown as Record<string, number>).wait = 0;
+  const figure = new ChonchonFigure();
+  view.scene.add(figure.group);
+  hunting = { brain, figure, her };
+  void load(inti).then(it => {
+    if (!hunting) return;
+    it.body.position.set(her.x, 0, her.y / ISO_Y);
+    it.body.rotation.y = turn + Math.PI;
+    it.motion.play('reposo_mixamo');
+    view.scene.add(it.body);
+  });
+}
+
 /** Steps the move played by the game: its brain and its figure; the view following him. */
 function step(dt: number): void {
+  if (hunting) {
+    const { brain, figure, her } = hunting;
+    if (dt > 0) brain.update(dt, her);
+    figure.update(dt, brain);
+    view.follow(new THREE.Vector3((brain.x + her.x) / 2, 30, (brain.y + her.y) / 2 / ISO_Y));
+  }
   if (!played) return;
   const { who, target } = played;
   if (dt > 0) who.mind.update(dt, target);
@@ -264,6 +299,13 @@ function step(dt: number): void {
 
 /** Leaves the move played by the game: the captain and Cabral as the gallery shows them again. */
 function leave(): void {
+  if (hunting) {
+    view.scene.remove(hunting.figure.group);
+    hunting = null;
+    const inti = loaded.get(WHO[1]);
+    if (inti && !shown.includes(WHO[1])) view.scene.remove(inti.body);
+    for (const w of shown) { const it = loaded.get(w); if (it) it.body.visible = true; }
+  }
   if (!played) return;
   played = null;
   game.update(0, []);
