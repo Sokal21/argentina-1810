@@ -2703,6 +2703,21 @@
     {
       "asset_id": "c465b403-a970-4dfb-b795-27c46fb8cacd",
       "label": "chonchon 3D turnaround D (smooth, cape-like wings)"
+    },
+    {
+      "asset_id": "12d18f85-b77d-4845-9de2-1388d432ae2d",
+      "label": "Inti's HUD as one carved object for Tripo, HD concept A (orbs, skill slots, level and stamina bars), from hud_a",
+      "file": "assets/hud/3d/concepto/hud3d_a.png"
+    },
+    {
+      "asset_id": "ed9b0cdb-987f-4a0d-abb4-c0f4e6062691",
+      "label": "Inti's HUD as one carved object for Tripo, HD concept B (orbs, skill slots, level and stamina bars), from hud_a",
+      "file": "assets/hud/3d/concepto/hud3d_b.png"
+    },
+    {
+      "asset_id": "7a985ef7-9acf-416e-93a3-6e53e9becf32",
+      "label": "Inti's HUD as one carved object for Tripo, HD concept C (orbs, skill slots, level and stamina bars), from hud_a",
+      "file": "assets/hud/3d/concepto/hud3d_c.png"
     }
   ]
 }
