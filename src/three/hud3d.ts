@@ -1,11 +1,14 @@
 import * as THREE from 'three';
 import { model } from './figure';
+import type { Look } from './look';
 import { unlitShader } from './pixels';
 
-// Inti's HUD as a thing in the world, on trial (the user's, 26 October 2026): Tripo's model of it
-// (assets/hud/3d, from an HD concept of hud_a with the level and stamina bars below), stood before
-// the camera at the bottom of the screen, so the world's light, pixels and finish fall on it as on
-// everything else. What moves is laid over the model: a glass of liquid over each painted orb (the
+// Inti's HUD as a thing in 3D, on trial (the user's, 26 October 2026): Tripo's model of it
+// (assets/hud/3d, from an HD concept of hud_a with the level and stamina bars below), at the bottom
+// of the screen. Drawn in the world's own picture it came out in the world's big pixels and could
+// not be read, so it is drawn apart, at the screen's own pixels, on a canvas of its own between the
+// world and the 2D game's, under the world's light (its sky, its ground and its sun's colours, and
+// its toon steps). What moves is laid over the model: a glass of liquid over each painted orb (the
 // 2D orb's shader, fx/orb.ts, on a sphere: the surface rocking, light drifting through in bands, the
 // odd pixel twinkling, and the glass's shine), the level and stamina bars filling their channels,
 // and the skills' pictures in the four slots, shaded while they cool down.
@@ -18,10 +21,14 @@ const ORB_R = 0.152;
 const SLOTS = { xs: [-0.349, -0.116, 0.12, 0.36], y: 0.603, z: 0.03, size: 0.15 };
 const LEVEL = { from: -0.485, to: 0.6, y: 0.307, h: 0.05, z: 0.004, number: { x: -0.56, y: 0.31, w: 0.1, h: 0.05 } };
 const STAMINA = { from: -0.445, to: 0.535, y: 0.162, h: 0.07, z: 0.004 };
-/** Its width (its own is 2.15) as a share of the screen's width, at most this share of its height, and its gap above the bottom. */
-const FIT = { wide: 0.42, tall: 0.3, margin: 0.03, own: 2.15 };
-/** How far before the camera it stands, in the world's units: before anything of the world, behind its near plane. */
-const AWAY = 60;
+/** Its width (its own is 2.15) as a share of the screen's width, at most this share of its height, and its gap above the bottom, in screen pixels. */
+const FIT = { wide: 0.42, tall: 0.3, margin: 8, own: 2.15 };
+/** What the camera takes in round it, in its own units: its width, and from just under its foot to just over its top. */
+const FRAME = { half: 1.1, low: -0.03, high: 1.03 };
+/** Where its sun shines from, in its own axes: high, from the upper left and before it. */
+const SUN = new THREE.Vector3(-1, 1.3, 1.4);
+/** Seconds without being shown after which its canvas is hidden (the game asks for it every frame it is). */
+const STALE = 0.25;
 
 /** How each part is coloured: from the 2D HUD (HudScene's LAYOUTS), so both are alike. */
 export interface HudLook {
@@ -112,6 +119,13 @@ const ORB_FRAGMENT = unlitShader(/* glsl */ `
 
 export class Hud3D {
   readonly group = new THREE.Group();
+  private readonly renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  private readonly scene = new THREE.Scene();
+  private readonly camera = new THREE.OrthographicCamera(-FRAME.half, FRAME.half, FRAME.high, FRAME.low, 0.1, 10);
+  private readonly sky = new THREE.HemisphereLight();
+  private readonly sun = new THREE.DirectionalLight();
+  private shownAt = 0;
+  private size = '';
   private readonly orbs: { material: THREE.ShaderMaterial; shown: number }[] = [];
   private readonly levelBar: THREE.Group;
   private readonly breathBar: THREE.Group;
@@ -122,12 +136,30 @@ export class Hud3D {
   private breathShown = 1;
   private time = 0;
 
-  constructor(private readonly look: HudLook) {
-    this.group.visible = false;
+  constructor(private readonly look: HudLook, beside: HTMLElement) {
+    const canvas = this.renderer.domElement;
+    canvas.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);pointer-events:none;display:none';
+    beside.after(canvas);
+    this.renderer.setPixelRatio(devicePixelRatio);
+    this.camera.position.set(0, 0, 5);
+    this.sun.position.copy(SUN);
+    this.scene.add(this.group, this.sky, this.sun);
+    // Hidden once the game stops asking for it (another hero, the title, a map without it).
+    const watch = () => {
+      if (performance.now() - this.shownAt > STALE * 1000) canvas.style.display = 'none';
+      requestAnimationFrame(watch);
+    };
+    requestAnimationFrame(watch);
     void model(URL, 1).then(body => {
       // Drawn at its own size here: the whole is scaled to the screen.
       body.scale.setScalar(1);
-      body.traverse(node => { node.castShadow = node.receiveShadow = false; node.frustumCulled = false; });
+      body.traverse(node => {
+        node.castShadow = node.receiveShadow = false;
+        node.frustumCulled = false;
+        // Seen at the screen's own pixels and smaller than its texture, it is smoothed, not blocked as the world's are.
+        const map = node instanceof THREE.Mesh ? (node.material as THREE.MeshToonMaterial).map : null;
+        if (map) { map.minFilter = THREE.LinearMipmapLinearFilter; map.magFilter = THREE.LinearFilter; map.needsUpdate = true; }
+      });
       this.group.add(body);
     });
     const sphere = new THREE.SphereGeometry(ORB_R, 32, 16);
@@ -178,24 +210,30 @@ export class Hud3D {
       this.slots.push({ icon, shade });
     });
     // The level, written in the hollow at the level bar's left end.
-    const canvas = Object.assign(document.createElement('canvas'), { width: 32, height: 16 });
-    const texture = new THREE.CanvasTexture(canvas);
+    const board = Object.assign(document.createElement('canvas'), { width: 32, height: 16 });
+    const texture = new THREE.CanvasTexture(board);
     texture.minFilter = texture.magFilter = THREE.NearestFilter;
     texture.colorSpace = THREE.SRGBColorSpace;
     const written = new THREE.Mesh(new THREE.PlaneGeometry(LEVEL.number.w, LEVEL.number.h), new THREE.MeshBasicMaterial({ map: texture, transparent: true, alphaTest: 0.5 }));
     written.position.set(LEVEL.number.x, LEVEL.number.y, LEVEL.z + 0.01);
     this.add(written);
-    this.number = { canvas, texture, shown: NaN };
+    this.number = { canvas: board, texture, shown: NaN };
   }
 
   private add(...things: THREE.Object3D[]): void {
     for (const thing of things) { thing.frustumCulled = false; this.group.add(thing); }
   }
 
-  /** Shows what the game reads now. */
-  read(r: HudReading, dt: number): void {
-    this.group.visible = true;
+  /** Shows what the game reads now, under the world's light as its look has it, and draws it. */
+  read(r: HudReading, dt: number, look: Look): void {
+    this.shownAt = performance.now();
     this.time += dt;
+    this.fit();
+    this.sky.color.set(look.skyColour);
+    this.sky.groundColor.set(look.groundColour);
+    this.sky.intensity = look.skyStrength;
+    this.sun.color.set(look.sunColour);
+    this.sun.intensity = look.sunStrength;
     [r.life, r.mana].forEach((level, i) => {
       const orb = this.orbs[i];
       if (!orb) return;
@@ -242,15 +280,20 @@ export class Hud3D {
       c.fillText(String(r.level), 16, 8);
       this.number.texture.needsUpdate = true;
     }
+    this.renderer.render(this.scene, this.camera);
   }
 
-  /** Stands it before the camera, at the bottom of what it sees, as wide as the screen allows. */
-  place(camera: THREE.OrthographicCamera): void {
-    const wide = camera.right - camera.left, tall = camera.top - camera.bottom;
-    const scale = Math.min(wide * FIT.wide / FIT.own, tall * FIT.tall);
-    this.group.scale.setScalar(scale);
-    camera.updateMatrixWorld();
-    this.group.position.copy(camera.localToWorld(new THREE.Vector3(0, camera.bottom + tall * FIT.margin, -AWAY)));
-    this.group.quaternion.copy(camera.quaternion);
+  /** Its canvas as wide as the screen allows, at the bottom of it; shown. */
+  private fit(): void {
+    const tall = FRAME.high - FRAME.low, wide = Math.min(innerWidth * FIT.wide, innerHeight * FIT.tall * FIT.own / tall);
+    const w = Math.round(wide * 2 * FRAME.half / FIT.own), h = Math.round(w * tall / (2 * FRAME.half));
+    const canvas = this.renderer.domElement;
+    canvas.style.display = '';
+    if (`${w}x${h}` === this.size) return;
+    this.size = `${w}x${h}`;
+    this.renderer.setSize(w, h, false);
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+    canvas.style.bottom = `${FIT.margin}px`;
   }
 }
