@@ -62,8 +62,15 @@ const WHO: Who[] = [
  * one for a character alone is written `Name:clip`, and is looked for first.
  */
 const DRAW = 0.45, SHOT = 0.8;
+/**
+ * The musket taken from his back and put back by Mixamo's capture (anims/descolgar.py), tried here
+ * before the game plays it: over so long each (their own pace is 2.2 s and 2.7 s), and in turn as the
+ * game would, taken, aimed `HOLD` and put back (`SLUNG_AGAIN`).
+ */
+const UNSLING = 1.1, SLING = 1.3, HOLD = 1.2, SLUNG_AGAIN = 'descolgar_y_guardar';
 const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   mosquete_sacar: { lasts: DRAW }, mosquete_disparo: { lasts: SHOT },
+  mosquete_descolgar: { lasts: UNSLING }, mosquete_guardar: { lasts: SLING }, [SLUNG_AGAIN]: { lasts: UNSLING + HOLD + SLING },
   granada_sacar: { lasts: DRAW }, granada_lanzar: { lasts: SHOT },
   tajo: { lasts: 0.5 }, 'Realista:tajo': { lasts: 0.8 }, 'Sableador:tajo': { once: true },
   barrido: { once: true }, estocada: { once: true }, zarpazo: { once: true }, 'El capitán:grito': { lasts: 2.0 }, grito: { lasts: 2.0 }, tiro: { once: true },
@@ -183,10 +190,11 @@ async function show(list: Who[]): Promise<void> {
   const all = await Promise.all(list.map(load));
   all.forEach((it, i) => { it.body.position.x = it.home = (i - (all.length - 1) / 2) * APART; view.scene.add(it.body); });
   // Their clips: with several, those any of them has (each one lacking a clip stands as he is).
-  const names = [...new Set([...all.flatMap(it => it.clips), ...(list.some(w => w.lunge) ? [LUNGE] : []), ...(list.some(w => w.dives) ? [DIVE, BITE, DOWNED] : [])])];
+  const names = [...new Set([...all.flatMap(it => it.clips), ...(list.some(w => w.lunge) ? [LUNGE] : []), ...(list.some(w => w.dives) ? [DIVE, BITE, DOWNED] : []),
+    ...(all.some(it => it.motion.has('mosquete_descolgar')) ? [SLUNG_AGAIN] : [])])];
   if (!names.includes(clip)) clip = names[0] ?? 'reposo_mixamo';
   clipsBar.replaceChildren();
-  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE || n === DOWNED;
+  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE || n === DOWNED || n === SLUNG_AGAIN;
   const ordered = [...names.filter(playing), ...names.filter(n => !playing(n))];
   for (const name of ordered) {
     const b = button(clipsBar, name, () => { play(name); for (const x of clipsBar.children) x.classList.toggle('on', x === b); });
@@ -212,6 +220,7 @@ function play(name: string): void {
     if (shown.length === 1) view.follow(new THREE.Vector3(0, w.drawn * 0.5, 0));
     if (name === LUNGE && w.lunge) { act(it.body); continue; }
     if ((name === DIVE || name === BITE || name === DOWNED) && w.dives) { hunt(it.body, name === BITE, name === DOWNED); continue; }
+    if (name === SLUNG_AGAIN && it.motion.has('mosquete_descolgar')) { slungAgain(it.motion, 0, true); continue; }
     const c = it.motion.has(name) ? name : 'reposo_mixamo';
     it.motion.play(c, { once: !!t.lasts || !!t.once, lasts: t.lasts, afresh: true, blend: 0.12 });
     // One who holds his musket in both hands lets it fall from them as he falls, as in the game.
@@ -220,11 +229,19 @@ function play(name: string): void {
   }
 }
 
+/** Taken, aimed and put back in turn: the clip for so far `into` it. */
+function slungAgain(motion: Motion, into: number, afresh = false): void {
+  if (into < UNSLING) motion.play('mosquete_descolgar', { once: true, lasts: UNSLING, afresh, blend: 0.12 });
+  else if (into < UNSLING + HOLD) motion.play('mosquete_apuntar', { blend: 0.1 });
+  else motion.play('mosquete_guardar', { once: true, lasts: SLING, blend: 0.1 });
+}
+
 /** What each carries, shown as the game shows it for the clip: which musket, the sabre, the grenade. */
 function carried(w: Who, body: THREE.Object3D): void {
-  const musket = clip.startsWith('mosquete'), grenade = clip.startsWith('granada');
+  const musket = clip.startsWith('mosquete') || clip === SLUNG_AGAIN, grenade = clip.startsWith('granada');
   // One who kneels to shoot has it always in his hands.
-  const inHand = w.kneels || clip === 'mosquete_apuntar' || (clip === 'mosquete_sacar' && into >= DRAW * 0.5) || (clip === 'mosquete_disparo' && into < SHOT * 0.72);
+  // Taken and put back, the one in his hand is moved from his back and to it (props.musket_carried).
+  const inHand = w.kneels || clip === 'mosquete_apuntar' || clip === 'mosquete_descolgar' || clip === 'mosquete_guardar' || clip === SLUNG_AGAIN || (clip === 'mosquete_sacar' && into >= DRAW * 0.5) || (clip === 'mosquete_disparo' && into < SHOT * 0.72);
   const back = body.getObjectByName('mosquete'), hand = body.getObjectByName('mosquete_mano');
   if (back) back.visible = !inHand;
   if (hand) hand.visible = inHand;
@@ -375,6 +392,7 @@ view.renderer.setAnimationLoop(() => {
   for (const w of shown) {
     const it = loaded.get(w);
     if (!it) continue;
+    if (clip === SLUNG_AGAIN && it.motion.has('mosquete_descolgar')) slungAgain(it.motion, into);
     it.motion.update(dt);
     it.flung.update(dt);
     it.body.rotation.y = turn;

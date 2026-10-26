@@ -221,7 +221,8 @@ WOOD, IRON = (0.16, 0.075, 0.03, 1), (0.08, 0.085, 0.09, 1)
 
 def musket(armature: bpy.types.Object, bone: str = 'Spine02') -> bpy.types.Object:
     """A musket of plain shapes, 0.62 long (about a metre and a half), slung across his back by the
-    chest's bone: from behind his right shoulder, muzzle up, down to his left hip, butt down.
+    chest's bone: from behind his right shoulder, butt up, down to his left hip, muzzle down (where
+    his hand takes it by the stock, over his shoulder; muzzle up, he took it by the barrel).
     Its length runs along its +X, from the butt (0) to the muzzle, so it can be aimed like the sabre."""
     parts = []
     length = 0.62
@@ -250,8 +251,8 @@ def musket(armature: bpy.types.Object, bone: str = 'Spine02') -> bpy.types.Objec
     # past the right shoulder (the rig's +X is forward, +Y his left).
     pb = armature.pose.bones[bone]
     chest = armature.matrix_world @ pb.head
-    butt = chest + Vector((-0.075, 0.13, -0.2))
-    muzzle = chest + Vector((-0.075, -0.17, 0.33))
+    butt = chest + Vector((-0.075, -0.17, 0.33))
+    muzzle = chest + Vector((-0.075, 0.13, -0.2))
     along = (muzzle - butt).normalized()
     side = Vector((-1, 0, 0))                     # the stock's flat lies against his back
     up = along.cross(side).normalized()
@@ -302,6 +303,109 @@ def musket_in_hand(armature: bpy.types.Object, action: str = 'mosquete_apuntar',
         pb.matrix_basis = Matrix.Identity(4)
     bpy.context.view_layer.update()
     return gun
+
+
+def musket_carried(armature: bpy.types.Object, action: str, spans: str) -> None:
+    """Moves the musket in his hand (musket_in_hand, made first) through a clip in which he takes it
+    from his back or puts it back there, so that it never jumps from one place to the other: the
+    game shows it all through the clip and hides the one on his back.
+
+    `spans` says where it is, in the clip's frames: 'back.0.18+barrel.18.36+stock.45.53' is on his
+    back until 18 (where the one on his back is), then in his hand as it was when he took it until
+    36, then held by the stock as he aims from 45; between spans it slides through his hand. A
+    barrel span takes its grip from the back span beside it.
+
+    The musket is hung on a bone of its own, 'Mosquete', under the right hand where the hand
+    stands at rest; keyed only in these clips, it stays at rest (held by the stock) in the others."""
+    gun, back = bpy.data.objects['mosquete_mano'], bpy.data.objects['mosquete']
+    armature.animation_data_create()
+    bones = armature.data
+    if 'Mosquete' not in bones.bones:
+        armature.animation_data.action = None
+        for pb in armature.pose.bones:
+            pb.matrix_basis = Matrix.Identity(4)
+        bpy.context.view_layer.update()
+        world = gun.matrix_world.copy()
+        bpy.context.view_layer.objects.active = armature
+        bpy.ops.object.mode_set(mode='EDIT')
+        hand = bones.edit_bones['R_Hand']
+        bone = bones.edit_bones.new('Mosquete')
+        bone.head, bone.tail, bone.roll = hand.head.copy(), hand.tail.copy(), hand.roll
+        bone.parent = hand
+        bone.use_deform = False
+        bpy.ops.object.mode_set(mode='OBJECT')
+        armature.pose.bones['Mosquete'].rotation_mode = 'QUATERNION'
+        gun.parent = armature
+        gun.parent_type = 'BONE'
+        gun.parent_bone = 'Mosquete'
+        gun.matrix_world = world
+        bpy.context.view_layer.update()
+    rest = armature.data.bones['Mosquete'].matrix_local
+    # The musket as the bone holds it at rest: by the stock.
+    held = rest.inverted() @ armature.matrix_world.inverted() @ gun.matrix_world
+
+    act = bpy.data.actions[action]
+    armature.animation_data.action = act
+    slots = getattr(act, 'slots', None)
+    if slots:
+        armature.animation_data.action_slot = slots[0]
+    hand, bone = armature.pose.bones['R_Hand'], armature.pose.bones['Mosquete']
+
+    def at(frame: int) -> Matrix:
+        bpy.context.scene.frame_set(frame)
+        bpy.context.view_layer.update()
+        return armature.matrix_world @ hand.matrix
+
+    def on_back(frame: int) -> Matrix:
+        """Where the musket on his back is, from his hand, at a frame."""
+        h = at(frame)
+        return h.inverted() @ back.matrix_world @ held.inverted()
+
+    parts = [(kind, int(a), int(b)) for kind, a, b in (s.split('.') for s in spans.split('+'))]
+    # A grip by the barrel is the grip he took it with from his back, or will hang it there with.
+    grips = {}
+    for i, (kind, a, b) in enumerate(parts):
+        if kind == 'barrel':
+            before = parts[i - 1] if i > 0 and parts[i - 1][0] == 'back' else None
+            grips[i] = on_back(before[2]) if before else on_back(parts[i + 1][1])
+    by_stock = Matrix.Identity(4)
+
+    def offset(i: int, frame: int) -> Matrix:
+        kind = parts[i][0]
+        return on_back(frame) if kind == 'back' else grips[i] if kind == 'barrel' else by_stock
+
+    start, end = map(int, act.frame_range)
+    was = None
+    for frame in range(start, end + 1):
+        i = next((i for i, (_, a, b) in enumerate(parts) if a <= frame <= b), None)
+        if i is not None:
+            o = offset(i, frame)
+        else:
+            # Between two spans: slid from the one to the other, eased.
+            j = next(j for j, (_, a, _) in enumerate(parts) if a > frame)
+            a, b = parts[j - 1][2], parts[j][1]
+            u = (1 - math.cos(math.pi * (frame - a) / (b - a))) / 2
+            o1, o2 = offset(j - 1, a), offset(j, b)
+            l1, q1, _ = o1.decompose()
+            l2, q2, _ = o2.decompose()
+            if q1.dot(q2) < 0:
+                q2 = -q2
+            o = Matrix.Translation(l1.lerp(l2, u)) @ q1.slerp(q2, u).to_matrix().to_4x4()
+        h = at(frame)
+        # The bone set so that the musket it holds lies at the hand's offset `o` from the hand
+        # (offsets are the bone's own: at rest it lies as the hand does).
+        bone.matrix = armature.matrix_world.inverted() @ h @ o
+        bpy.context.view_layer.update()
+        q = bone.rotation_quaternion
+        if was is not None and q.dot(was) < 0:
+            bone.rotation_quaternion = -q
+        was = bone.rotation_quaternion.copy()
+        bone.keyframe_insert('rotation_quaternion', frame=frame)
+        bone.keyframe_insert('location', frame=frame)
+    armature.animation_data.action = None
+    for pb in armature.pose.bones:
+        pb.matrix_basis = Matrix.Identity(4)
+    bpy.context.view_layer.update()
 
 
 # A black iron ball and a fuse of tow: dark grey against his coat, a pale fuse to catch the eye.
