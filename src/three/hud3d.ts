@@ -27,6 +27,11 @@ export interface HudShape {
   slots: { xs: number[]; y: number; z: number; size: number };
   level: { from: number; to: number; y: number; h: number; z: number; number: { x: number; y: number; w: number; h: number } };
   stamina: { from: number; to: number; y: number; h: number; z: number };
+  /**
+   * For one that does not stand out from the map on its own: a dark edge and shadow round its
+   * outline (a CSS filter on its canvas, which is clear round it), and so much more light on it.
+   */
+  contrast?: { edge: string; light: number };
 }
 
 export const HUD_SHAPES: Record<'inti' | 'cabral', HudShape> = {
@@ -47,6 +52,8 @@ export const HUD_SHAPES: Record<'inti' | 'cabral', HudShape> = {
     slots: { xs: [-0.447, -0.145, 0.153, 0.453], y: 0.552, z: -0.14, size: 0.19 },
     level: { from: -0.447, to: 0.628, y: 0.213, h: 0.07, z: 0.215, number: { x: -0.6, y: 0.21, w: 0.12, h: 0.06 } },
     stamina: { from: -0.43, to: 0.603, y: 0.097, h: 0.07, z: 0.565 },
+    // Dark wood, iron and grey stone, lost against the pampa's browns where hers stood out (the user).
+    contrast: { edge: 'drop-shadow(0 0 1px #0a0807) drop-shadow(0 0 3px rgba(10, 8, 7, 0.9)) drop-shadow(0 3px 8px rgba(0, 0, 0, 0.6))', light: 1.3 },
   },
 };
 /**
@@ -183,6 +190,7 @@ export class Hud3D {
   constructor(private readonly look: HudLook, beside: HTMLElement) {
     const canvas = this.renderer.domElement;
     canvas.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);pointer-events:none;display:none';
+    if (look.shape.contrast) canvas.style.filter = look.shape.contrast.edge;
     beside.after(canvas);
     this.renderer.setPixelRatio(devicePixelRatio);
     const shape = this.shape = look.shape, half = shape.wide / 2 + FRAME.past;
@@ -282,9 +290,10 @@ export class Hud3D {
     this.fit();
     this.sky.color.set(look.skyColour);
     this.sky.groundColor.set(look.groundColour);
-    this.sky.intensity = look.skyStrength;
+    const lift = this.shape.contrast?.light ?? 1;
+    this.sky.intensity = look.skyStrength * lift;
     this.sun.color.set(look.sunColour);
-    this.sun.intensity = look.sunStrength;
+    this.sun.intensity = look.sunStrength * lift;
     [r.life, r.mana].forEach((level, i) => {
       const orb = this.orbs[i];
       if (!orb) return;
