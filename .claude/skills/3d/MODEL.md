@@ -29,6 +29,9 @@ now gives 1K only on this account (2K needs a higher plan): 1376×768 is enough 
   nothing: at a quarter nothing changes on screen (checked side by side at the game's size). Asked:
   figures 2500, buildings 4000, furniture 5000, the ombú 3000, araucarias 1000 and 800. Collapsing
   stops at UV seams, material borders and sharp edges; meshes under `--keep` (400) are left alone.
+- **Not the HUDs** (`assets/hud/3d`, 26 October 2026): drawn on a canvas of their own at the screen's
+  pixels, past none of the world's passes, their ~10 000 triangles cost nothing; collapsed, Cabral's
+  showed dark creases and slivers (an empanada, a stone, a wedge across a bar's channel).
 
 ## Checking it
 `Blender -b --python tools/blender/turntable.py -- NAME.glb DIR`, then
