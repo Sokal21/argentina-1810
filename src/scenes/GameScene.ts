@@ -1335,9 +1335,12 @@ export class GameScene extends Phaser.Scene {
     if (this.shownIn3d) this.three?.mend(colour);
   }
 
-  /** Whether the HUD is drawn in the world rather than over it (see HUD_IN_3D). */
+  /**
+   * Whether the HUD is drawn in 3D rather than over the game in 2D (see HUD_IN_3D). Every map is
+   * drawn in 3D here: asked only once the world was made, the 2D HUD showed while it loaded.
+   */
   get hudIn3d(): boolean {
-    return HUD_IN_3D && this.hero === 'inti' && this.shownIn3d;
+    return HUD_IN_3D && this.playing === 'inti';
   }
 
   /** Whether the hero is drawn in 3D: wherever the map is. */
