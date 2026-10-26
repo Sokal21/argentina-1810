@@ -73,6 +73,12 @@ const ZOOM = 1.5;
 /** Inti's pace in 3D, in world units a second: Cabral's is 126 (three/look.ts). */
 const INTI_3D_SPEED = 115;
 /**
+ * Her dash in 3D: as far as Cabral's roll (three/look.ts: 200), and over 1 s, her running slide (1.21 s
+ * as made) played a little quick. At the 2D game's 84 over 0.32 s it was short, and her slide was
+ * played as if it lasted 0.5 and cut off (the user, 25/10/2026).
+ */
+const INTI_3D_DASH = { time: 1, distance: 200 };
+/**
  * The shake as a hero's greatest power is let go, in 3D (his rage, her nahuel come; the same for both):
  * how long it takes to die away, and how far at first (a blow is ~2).
  */
@@ -935,7 +941,10 @@ export class GameScene extends Phaser.Scene {
     // In 3D his speed and his roll are the look's, which the panel may be changing.
     const in3d = this.shownIn3d;
     // In 3D she goes a little slower than he does: at the 2D game's pace she crawled (the user, 25/10/2026).
-    if (in3d && this.hero === 'inti') this.machi.kit.speed = INTI_3D_SPEED;
+    if (in3d && this.hero === 'inti') {
+      this.machi.kit.speed = INTI_3D_SPEED;
+      this.machi.kit.dash = { ...INTI_3D_DASH };
+    }
     if (in3d && this.hero === 'cabral') {
       const { kit } = this.machi, look = this.three!.view.look;
       kit.speed = look.speed;
