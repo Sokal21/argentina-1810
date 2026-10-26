@@ -56,3 +56,33 @@ export class AimMarks {
     (this.ring.material as THREE.LineBasicMaterial).color.copy(colour);
   }
 }
+
+/** The ring under whom he is locked onto with the gamepad (R3): Cabral's brass, as wide as Inti's in 2D. */
+const LOCK_COLOUR = new THREE.Color('#e2c478'), LOCK_RADIUS = 22;
+
+export class LockRing {
+  readonly group = new THREE.Group();
+  private readonly ring: THREE.LineLoop;
+  private time = 0;
+
+  constructor() {
+    const points = Array.from({ length: SEGMENTS }, (_, i) => {
+      const a = (i / SEGMENTS) * Math.PI * 2;
+      return new THREE.Vector3(Math.cos(a) * LOCK_RADIUS, 0, Math.sin(a) * LOCK_RADIUS);
+    });
+    this.ring = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points),
+      new THREE.LineBasicMaterial({ color: LOCK_COLOUR, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false }));
+    this.ring.frustumCulled = false;
+    this.group.add(this.ring);
+    this.group.visible = false;
+  }
+
+  /** Round where they stand, throbbing as Inti's does; or nowhere. */
+  show(at: { x: number; y: number } | null, dt: number): void {
+    this.group.visible = !!at;
+    if (!at) return;
+    this.time += dt;
+    this.ring.position.copy(ground(at.x, at.y, LIFT));
+    (this.ring.material as THREE.LineBasicMaterial).opacity = 0.65 + 0.35 * Math.sin(this.time * 1000 / 120);
+  }
+}

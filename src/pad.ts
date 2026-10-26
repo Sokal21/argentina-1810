@@ -13,8 +13,10 @@ import type Phaser from 'phaser';
 //   B           dodge                A           talk, do, take what is offered
 //   X           drink                ↑           rage (in a talk, the choices)
 //   ←           the shop, by a seller            ≡ pause      ⧉ the hero's page
-//   R3          Inti: lock onto the nearest enemy, or let go     right stick  Inti: a flick moves the lock
-//               to whoever stands that way; with LT held (the lightning), it moves where the bolt falls
+//   R3          lock onto the nearest enemy, or let go: Inti's orbs go at them; Cabral looks at them,
+//               walking without turning, and cuts, fires and throws at them
+//   right stick a flick moves the lock to whoever stands that way; Inti, with LT held (the lightning),
+//               moves where the bolt falls
 //
 // In a talk, the shop, the hero's page or the pause, the cross (or the stick) goes to whatever can
 // be chosen the way it is pushed (a slider's ← → move it), what is chosen looks as the mouse over it

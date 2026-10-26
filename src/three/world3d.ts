@@ -4,7 +4,7 @@ import { SHOT } from '../bolts';
 import { ISO_Y } from '../machi/data';
 import type { MachiController, Vec } from '../machi/controller';
 import { middle, type WorldMap } from '../world/zones';
-import { AimMarks } from './aim';
+import { AimMarks, LockRing } from './aim';
 import { CabralFigure, THROWN, type Doing } from './cabral';
 import { GrenadeMarks, Grenades } from './grenade';
 import { Impacts } from './impact';
@@ -80,6 +80,8 @@ export class World3D {
   /** The royalists' balls: they stop on whoever they reach, and burst on nothing. */
   private readonly volleys: Shots;
   private readonly marks = new AimMarks();
+  /** The ring under whom he is locked onto with the gamepad. */
+  private readonly lockRing = new LockRing();
   private readonly throwing = new GrenadeMarks();
   private readonly grenades: Grenades;
   private readonly impacts: Impacts;
@@ -149,7 +151,7 @@ export class World3D {
     const forest = new Forest3D(map);
     // The sun's shadows are reckoned only as high as the tallest thing on this map (a man, at least).
     this.view.tallest = Math.max(120, country.tallest, forest.tallest);
-    this.view.scene.add(country.group, forest.group, ...(this.nahuel ? [this.nahuel.group] : []), ...(this.orbs ? [this.orbs.group] : []), ...(this.lightning ? [this.lightning.group] : []), ...(this.healing ? [this.healing.group] : []), ...(this.calling ? [this.calling.group] : []), this.people.group, this.strewn.group, this.errands.group, this.hero.group, this.royalists.group, this.marks.group);
+    this.view.scene.add(country.group, forest.group, ...(this.nahuel ? [this.nahuel.group] : []), ...(this.orbs ? [this.orbs.group] : []), ...(this.lightning ? [this.lightning.group] : []), ...(this.healing ? [this.healing.group] : []), ...(this.calling ? [this.calling.group] : []), this.people.group, this.strewn.group, this.errands.group, this.hero.group, this.royalists.group, this.marks.group, this.lockRing.group);
     // A sergeant's roar is felt: a faint shake of the camera, its rings leaving his feet.
     this.royalists.shoutFelt = () => this.view.jolt(ROAR.seconds, ROAR.pixels);
     for (const ask of this.houses.flatMap(house => house.asks)) this.view.over.add(ask);
@@ -182,6 +184,11 @@ export class World3D {
     this.mendings.begin(0xffffff);
     this.view.warm();
     this.mendings.stop();
+  }
+
+  /** The ring under whom he is locked onto with the gamepad (R3), on the 2D ground; or none. */
+  lockedOn(at: Vec | null, dt: number): void {
+    this.lockRing.show(at, dt);
   }
 
   /** Cabral, if it is he who plays this map. */
