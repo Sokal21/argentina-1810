@@ -59,6 +59,16 @@ describe('chonchón', () => {
     expect(bites).toBe(1);
   });
 
+  it('catches her even when one slow frame carries it past her', () => {
+    for (let dt = 0.04; dt <= 0.1; dt += 0.005) {
+      const b = new ChonchonBrain(her.x + RING, her.y, undefined, fixed(0));
+      until(b, 'dive');
+      let bitten = false;
+      while (b.mode === 'dive') bitten = b.update(dt, her) || bitten;
+      expect(bitten).toBe(true);
+    }
+  });
+
   it('is slow and low after a dive, then climbs back and circles again', () => {
     const b = new ChonchonBrain(her.x + RING, her.y, undefined, fixed(0));
     until(b, 'recover');

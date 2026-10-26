@@ -9,7 +9,7 @@ export const NEAR = 42;         // closer than this it bites instead of diving
 export const REACH = 170;       // further than this it does not attack at all
 export const WAIT: [number, number] = [1.4, 2.6]; // seconds between attacks
 export const WINDUP = 0.55;     // seconds of warning before a dive
-export const DIVE_SPEED = 250;
+export const DIVE_SPEED = 500;
 export const DIVE_PAST = 45;    // how far beyond her a dive carries
 export const DIVE_LOW = 22;     // height a dive comes down to
 export const DIVE_HIT = 13;     // ground distance at which a dive catches her
@@ -105,7 +105,10 @@ export class ChonchonBrain {
         this.z = Math.max(DIVE_LOW, this.z - (HOVER - DIVE_LOW) * dt / 0.15);
         if (this.left <= 0) this.enter('recover');
         if (this.snapped || !her) return false;
-        const gap = Math.hypot(her.x - this.x, (her.y - this.y) / ISO_Y);
+        // Measured along the whole step, which at its speed can be longer than its reach.
+        const gx = her.x - this.x, gy = (her.y - this.y) / ISO_Y;
+        const back = Math.max(0, Math.min(step, -(gx * this.dir.x + gy * this.dir.y)));
+        const gap = Math.hypot(gx + this.dir.x * back, gy + this.dir.y * back);
         return this.snapped = gap < DIVE_HIT;
       }
       case 'recover': {
