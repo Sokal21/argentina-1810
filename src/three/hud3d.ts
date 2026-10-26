@@ -49,8 +49,13 @@ export const HUD_SHAPES: Record<'inti' | 'cabral', HudShape> = {
     stamina: { from: -0.43, to: 0.603, y: 0.097, h: 0.07, z: 0.565 },
   },
 };
-/** Its width as a share of the screen's width, at most this share of its height, and its gap above the bottom, in screen pixels. */
-const FIT = { wide: 0.42, tall: 0.3, margin: 8 };
+/**
+ * How wide every hero's HUD is: this share of the screen's width, but no wider than a HUD shaped as
+ * Inti's (`shaped`, its width over its height) standing this share of the screen's height; and its gap
+ * above the bottom, in screen pixels. The same width for both: held to the height instead, Cabral's,
+ * the longer, stood a seventh wider than hers.
+ */
+const FIT = { wide: 0.42, tall: 0.3, shaped: 2.15 / 1.06, margin: 8 };
 /** What the camera takes in round it, in its own units: a little past its sides, and from just under its foot to just over its top. */
 const FRAME = { past: 0.025, low: -0.03, high: 1.03 };
 /** Where its sun shines from, in its own axes: high, from the upper left and before it. */
@@ -336,7 +341,7 @@ export class Hud3D {
   /** Its canvas as wide as the screen allows, at the bottom of it; shown. */
   private fit(): void {
     const own = this.shape.wide, across = own + 2 * FRAME.past, tall = FRAME.high - FRAME.low;
-    const wide = Math.min(innerWidth * FIT.wide, innerHeight * FIT.tall * own / tall);
+    const wide = Math.min(innerWidth * FIT.wide, innerHeight * FIT.tall * FIT.shaped);
     const w = Math.round(wide * across / own), h = Math.round(w * tall / across);
     const canvas = this.renderer.domElement;
     canvas.style.display = '';
