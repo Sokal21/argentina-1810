@@ -51,7 +51,7 @@ export const HUD_SHAPES: Record<'inti' | 'cabral', HudShape> = {
     glasses: [{ x: -0.965, y: 0.54, z: -0.225 }, { x: 0.948, y: 0.545, z: -0.225 }], radius: 0.215,
     slots: { xs: [-0.447, -0.145, 0.153, 0.453], y: 0.552, z: -0.14, size: 0.19 },
     level: { from: -0.447, to: 0.628, y: 0.213, h: 0.07, z: 0.215, number: { x: -0.6, y: 0.21, w: 0.12, h: 0.06 } },
-    stamina: { from: -0.43, to: 0.603, y: 0.097, h: 0.07, z: 0.565 },
+    stamina: { from: -0.43, to: 0.603, y: 0.097, h: 0.07, z: 0.58 },
     // Dark wood, iron and grey stone, lost against the pampa's browns where hers stood out (the user).
     contrast: { edge: 'drop-shadow(0 0 1px #0a0807) drop-shadow(0 0 3px rgba(10, 8, 7, 0.9)) drop-shadow(0 3px 8px rgba(0, 0, 0, 0.6))', light: 1.3 },
   },
