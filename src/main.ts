@@ -176,6 +176,21 @@ volume.addEventListener('input', () => { setMusic({ volume: Number(volume.value)
 volume.addEventListener('change', () => volume.blur());
 showMusic();
 
+// How bright the picture is, the 3D world and what the 2D game draws over it (not the menus), kept for next time.
+const BRIGHTNESS = 'argentina-1810-brillo';
+const brightness = document.getElementById('brightness') as HTMLInputElement, brightnessShown = document.getElementById('brightness-shown')!;
+const setBrightness = (percent: number) => {
+  for (const id of ['world', 'game']) document.getElementById(id)!.style.filter = percent === 100 ? '' : `brightness(${percent / 100})`;
+  brightness.value = String(percent);
+  brightnessShown.textContent = `${percent}%`;
+  try { localStorage.setItem(BRIGHTNESS, String(percent)); } catch { /* kept for this sitting only */ }
+};
+brightness.addEventListener('input', () => setBrightness(Number(brightness.value)));
+brightness.addEventListener('change', () => brightness.blur());
+let keptBrightness = 100;
+try { keptBrightness = Number(localStorage.getItem(BRIGHTNESS)) || 100; } catch { /* none kept */ }
+setBrightness(Math.min(200, Math.max(100, keptBrightness)));
+
 // Beginning again throws away the game kept for whoever is being played. It asks once more first.
 const again = document.getElementById('again')!;
 again.addEventListener('click', () => {
