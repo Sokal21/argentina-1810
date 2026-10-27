@@ -11,7 +11,7 @@ import type { Quest, Rule } from './story';
 //   acepto:QUE       the hero has taken on something asked of him
 //   tiene:COSA       the hero has picked something up
 //   sabe:DATO        the hero has been told something
-//   cerro:QUIEN      someone has had enough of the hero
+//   cerro:QUIEN      someone has had enough of the hero; solo:vado, all four have
 //   dijo:QUE         the hero has told someone something they needed to hear
 //   armada:LOMA      a signal fire has been built on one of the rises
 //   lleva:QUE        something to be brought somewhere has been led off; its arriving has a name of its own
@@ -165,9 +165,11 @@ export const VADO: Quest[] = [
     id: 'vado',
     name: 'Solo en el vado',
     xp: 400,
-    // The last way out, that depends on nobody: he plants himself in the ford and holds it.
-    opens: ['planta:vado'],
+    // The last way out, that depends on nobody: he plants himself in the ford and holds it. It is
+    // opened for him once everyone he could talk to has had enough of him (solo:vado), so he is told.
+    opens: ['planta:vado', 'solo:vado'],
     steps: [
+      { says: 'Nadie en el paraje quiere saber más nada con vos. Queda el vado: plantate ahí, solo.', when: ['planta:vado'] },
       { says: 'Aguantá en el vado. Que la columna no pase.', when: ['aguanto:vado'] },
     ],
     leaves: ['final:solo'],
@@ -199,6 +201,8 @@ export const RULES: Rule[] = [
   { then: 'listo:emboscada', of: ['hecha:entregar', 'hecha:campana', 'hecha:rehenes'], count: 2 },
   // The bell has to be in its belfry still to be rung.
   { then: 'listo:rebato', of: ['hecha:amparar', 'hecha:fogatas', 'hecha:escolta'], count: 2, unless: 'bajada:campana' },
+  // Everyone who could be talked to has had enough of him: there is nobody left, and only the ford.
+  { then: 'solo:vado', of: ['cerro:braulio', 'cerro:anselmo', 'cerro:mateo', 'cerro:tobias'], count: 4 },
   // With all three of the village's done, fewer come to the ford.
   { then: 'entera:emboscada', of: ['hecha:entregar', 'hecha:campana', 'hecha:rehenes'], count: 3 },
 ];

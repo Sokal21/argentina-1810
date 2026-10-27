@@ -181,6 +181,19 @@ describe('the last way out', () => {
   });
 });
 
+describe('nobody left to talk to', () => {
+  it('opens the last way out by itself, and tells him to go to the ford, once all four have had enough of him', () => {
+    const story = new Story(VADO, RULES);
+    for (const h of ['empieza', 'cerro:braulio', 'cerro:anselmo', 'cerro:mateo']) story.tell(h);
+    expect(story.isOpen('vado')).toBe(false);
+    story.tell('cerro:tobias');
+    expect(story.isOpen('vado')).toBe(true);
+    expect(story.current.find(c => c.quest.id === 'vado')?.step.says).toContain('Queda el vado');
+    story.tell('planta:vado'); story.tell('aguanto:vado');
+    expect(story.has('final:solo')).toBe(true);
+  });
+});
+
 describe('the three that are a thing brought somewhere', () => {
   for (const [id, steps] of Object.entries({
     entregar: ['lleva:mateo', 'entregado:mateo'],

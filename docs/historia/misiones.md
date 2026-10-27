@@ -239,8 +239,9 @@ a medias es llegar con menos.
 
 - **Hace falta:** no alcanzar para ninguna de las otras dos. Es también
   adonde va a parar quien se peleó con todos: un hablable que se hartó no
-  vuelve a hablar, y con los cuatro cerrados no queda otro camino. Por eso
-  este final no puede depender de nadie.
+  vuelve a hablar, y con los cuatro cerrados no queda otro camino: el juego
+  lo dice y abre la misión, que manda al vado. Por eso este final no puede
+  depender de nadie.
 - **Tipo:** pelear.
 - **Qué pasa:** Cabral en el vado, solo, contra la columna. Se gana si
   aguanta un tiempo fijo.
@@ -274,7 +275,7 @@ pueblo" no queda cumplido por haber estado antes), `hablo:QUIEN`,
 | 7b | La escolta | `acepto:escolta`: la pide fray Anselmo con las fogatas armadas, mientras no se hayan aceptado los rehenes | `lleva:carretas` · `llego:carretas`, en la Loma del Medio | **Hecha** |
 | 8a | La emboscada | `listo:emboscada`: dos de las tres del pueblo cumplidas | `planta:emboscada`, en el vado · tres oleadas y el capitán (`aguanto:emboscada`). Con las tres cumplidas vienen menos. Deja `final:emboscada` | **Hecha** |
 | 8b | El rebato | `listo:rebato`: dos de las tres de los frailes cumplidas, y la campana sin bajar | las tres `prende:LOMA`, donde se armaron, cada una con una banda chica que aguantar (`aguanto:LOMA`); siempre se pelea. Deja `final:rebato` | **Hecha** |
-| 8c | Solo en el vado | `planta:vado`: plantarse en el vado, cuando sea; no depende de nadie | aguantar tres oleadas (`aguanto:vado`). Deja `final:solo` | **Hecha** |
+| 8c | Solo en el vado | `planta:vado`: plantarse en el vado, cuando sea; no depende de nadie. Con los cuatro cerrados (`solo:vado`) se abre sola y manda al vado | aguantar tres oleadas (`aguanto:vado`). Deja `final:solo` | **Hecha** |
 
 Lo que el juego todavía no sabe hacer, y que varias misiones comparten:
 
