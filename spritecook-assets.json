@@ -2733,6 +2733,21 @@
       "asset_id": "dc18197f-e7d4-4c57-ada1-cc2a2c5446a0",
       "label": "Cabral's HUD as one object for Tripo, HD concept C (caged flasks, kit box, level and stamina bars), from cabral_c2",
       "file": "assets/hud/3d/concepto/hud3d_cabral_c.png"
+    },
+    {
+      "asset_id": "7dd4ca7e-ffac-486c-93a7-efbc49a8d3b3",
+      "label": "frontier line soldier (1879) concept, soldado_a",
+      "file": "assets/frontera/concept/soldado_a.png"
+    },
+    {
+      "asset_id": "33ce789d-157d-495a-bc2a-792701125472",
+      "label": "frontier line soldier (1879) concept, soldado_b",
+      "file": "assets/frontera/concept/soldado_b.png"
+    },
+    {
+      "asset_id": "b7c7d65a-c2f9-425c-b8df-e35de071583e",
+      "label": "frontier line soldier (1879) concept, soldado_c",
+      "file": "assets/frontera/concept/soldado_c.png"
     }
   ]
 }
