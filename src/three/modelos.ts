@@ -34,6 +34,9 @@ const WHO: Who[] = [
   // her to choose among: 81 tall, as her 2D drawing.
   { name: 'Inti', url: 'machi/3d/inti_animado.glb', drawn: 81 },
   { name: 'Realista', url: 'realista/3d/realista_animado.glb', drawn: ROYALIST },
+  // The frontier soldier of 1879, the enemy of Inti's arc (Tripo from turnaround A, 27 October 2026):
+  // the royalist's clips and musket, a bayonet fixed on it, and Mixamo's Bayonet Stab. Not in the game yet.
+  { name: 'Soldado de frontera', url: 'frontera/3d/soldado_animado.glb', drawn: ROYALIST },
   ...Object.entries(LOOKS).map(([kind, look]) => ({ name: KIND_NAMES[kind] ?? kind, url: look.url, drawn: look.drawn, kneels: !!look.kneels, pistol: !!look.pistol, lunge: look.lunge })),
   ...Object.values(MODELS).flatMap(b => b.inside?.keepers ?? [])
     .map(k => ({ name: KEEPER_NAMES[k.who] ?? k.who, url: k.url, drawn: k.drawn })),
@@ -243,9 +246,12 @@ function carried(w: Who, body: THREE.Object3D): void {
   // One who kneels to shoot has it always in his hands.
   // Taken and put back, the one in his hand is moved from his back and to it (props.musket_carried).
   const inHand = w.kneels || clip === 'mosquete_apuntar' || clip === 'mosquete_descolgar' || clip === 'mosquete_guardar' || clip === SLUNG_AGAIN || (clip === 'mosquete_sacar' && into >= DRAW * 0.5) || (clip === 'mosquete_disparo' && into < SHOT * 0.72);
+  // The frontier soldier's bayonet thrust is made with his rifle in both fists, one of its own.
+  const fixed = body.getObjectByName('fusil_bayoneta'), stabbing = !!fixed && clip === 'bayoneta';
   const back = body.getObjectByName('mosquete'), hand = body.getObjectByName('mosquete_mano');
-  if (back) back.visible = !inHand;
+  if (back) back.visible = !inHand && !stabbing;
   if (hand) hand.visible = inHand;
+  if (fixed) fixed.visible = stabbing;
   const sabre = body.getObjectByName('sable');
   // One with a pistol has it in his left hand and his sabre in his right, both always.
   const thrust = body.getObjectByName('sable_estocada'), thrusting = clip === 'estocada' || clip === LUNGE;

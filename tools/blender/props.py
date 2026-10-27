@@ -217,6 +217,14 @@ PISTOL_MUZZLE = (0.13, 0.032)
 
 # In Blender's linear colour: a dark walnut stock, a blackened barrel.
 WOOD, IRON = (0.16, 0.075, 0.03, 1), (0.08, 0.085, 0.09, 1)
+STEEL = (0.42, 0.44, 0.47, 1)
+# Whether the muskets made from here on have a bayonet fixed, and how long its blade is (about 45 cm).
+BAYONET = {'fixed': False, 'long': 0.18}
+
+
+def bayonet(armature: bpy.types.Object) -> None:
+    """Fixes a bayonet on every musket made after it: put before the muskets among what is carried."""
+    BAYONET['fixed'] = True
 
 
 def musket(armature: bpy.types.Object, bone: str = 'Spine02') -> bpy.types.Object:
@@ -240,6 +248,17 @@ def musket(armature: bpy.types.Object, bone: str = 'Spine02') -> bpy.types.Objec
     # Brass bands round barrel and fore-end.
     for x in (0.3, 0.42):
         parts.append(box(f'abrazadera_{x}', (0.01, 0.024, 0.04), (x, 0, 0.01), BRASS, 'bronce'))
+    # A bayonet fixed (the frontier soldier's): a socket round the muzzle and a long three-edged blade
+    # past it, a little under and beside the barrel, as one is worn.
+    if BAYONET['fixed']:
+        parts.append(box('cubo', (0.035, 0.02, 0.02), (length - 0.01, 0.006, 0.012), STEEL, 'acero'))
+        bpy.ops.mesh.primitive_cone_add(vertices=3, radius1=0.007, radius2=0.0008, depth=BAYONET['long'],
+                                        location=(length + BAYONET['long'] / 2, 0.008, 0.008), rotation=(0, math.pi / 2, 0))
+        blade = bpy.context.active_object
+        blade.name = 'bayoneta'
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        blade.data.materials.append(material('acero', STEEL))
+        parts.append(blade)
     for p in parts:
         p.select_set(True)
     bpy.context.view_layer.objects.active = parts[0]
@@ -574,7 +593,7 @@ def halberd(armature: bpy.types.Object, bone: str = 'R_Hand', action: str = 'rep
     return pole
 
 
-def musket_in_fists(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object:
+def musket_in_fists(armature: bpy.types.Object, bone: str = 'R_Hand', name: str = 'mosquete_mano') -> bpy.types.Object:
     """A musket held in both fists, its stock in the right a little way up from the butt: set by the
     rest pose alone (so whoever sets it again sets it the same), and laid every frame by the clip's
     script along the line from the right fist through the left (tools/blender/anims/tiro_arrodillado.py).
@@ -584,7 +603,8 @@ def musket_in_fists(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.typ
             OPEN_HANDS[(armature.name, side)] = hand(armature, side)[:4]
         fist(armature, side)
     gun = musket(armature)
-    gun.name = 'mosquete_mano'
+    # Named apart where he also has one held in the right hand alone (the frontier soldier: aimed, and in both fists for his bayonet).
+    gun.name = name
     gun.parent = None
     wrist, way, length, palm = OPEN_HANDS[(armature.name, bone)]
     grip = wrist + way * length * 0.42 + palm * length * 0.18
