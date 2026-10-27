@@ -49,7 +49,7 @@ import { Waves } from '../world/waves';
 import { Escort } from '../world/escort';
 import { showEnding } from '../story/ending';
 import { prompt, touch } from '../touch';
-import { glyphs, pad, rumble } from '../pad';
+import { glyphs, pad, push, rumble } from '../pad';
 import { Indoors, ROOMS, type Entering } from '../world/inside';
 import { Road, Route } from '../world/route';
 import { leaning, markup, shut, standing, told as moved, type Standing } from '../story/standing';
@@ -115,6 +115,8 @@ const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan']);
 const PAD_THROW = 1;
 /** With the gamepad, how fast the stick moves where a grenade held ready is to land, world units a second. */
 const PAD_AIM = 260;
+/** With the gamepad, the slowest walk (the stick barely pushed), as a share of the full one; running is always full. */
+const PAD_CREEP = 0.35;
 // Soldiers are kept this far apart on the ground, easing apart at this many of it a second: a squad
 // does not stand in one knot where a single swing takes them all. And the turn from one soldier's side
 // of the hero to the next, so that sides never repeat.
@@ -958,11 +960,14 @@ export class GameScene extends Phaser.Scene {
       backing = !!steer && len > 0 && (goes.x * steer.x + goes.y * steer.y) / len < STEER.runAhead;
     } else this.machi.steer = null;
     const running = this.stamina.update(dt, standing && !this.machi.isDashing && !backing && (this.keys.running || touch.run || pad.run), this.machi.isMoving);
-    this.machi.pace = tune.speed * (this.wrath.active ? RAGE.pace : 1) * (running ? RUN : 1);
+    // With the gamepad he walks as fast as the stick is pushed: all the way over, his full walk.
+    const pushed = pad.on && !running && pad.stick ? PAD_CREEP + (1 - PAD_CREEP) * push(pad.stick) : 1;
+    this.machi.pace = tune.speed * (this.wrath.active ? RAGE.pace : 1) * (running ? RUN : pushed);
     this.machi.haste = this.wrath.active ? RAGE.haste : 1;
     const from = { x: this.machi.x, y: this.machi.y };
     // A dodge is paid for when it begins, once: a press the hero could not act on costs nothing.
-    const dodging = this.machi.isDashing;
+    const dodges = this.machi.dashes;
+    this.machi.mayDash = this.stamina.canDodge;
     // In 3D his speed and his roll are the look's, which the panel may be changing.
     const in3d = this.shownIn3d;
     // In 3D she goes a little slower than he does: at the 2D game's pace she crawled (the user, 25/10/2026).
@@ -983,7 +988,7 @@ export class GameScene extends Phaser.Scene {
       this.three!.castWay(input.target ? { x: input.target.x - this.machi.x, y: (input.target.y - this.machi.y) / ISO_Y } : input.aim ?? null, !!this.locked);
     }
     if (in3d && this.hero === 'cabral' && this.machi.kit.dash) this.three!.cabral?.carry(this.machi, from, this.machi.kit.dash, dt);
-    if (!dodging && this.machi.isDashing) this.stamina.dodge();
+    if (this.machi.dashes !== dodges) this.stamina.dodge();
     // Enemies throw at her chest while she is up.
     // She cannot walk through an enemy: each one she stands in pushes her
     // back out the short way. Done here rather than by the physics engine

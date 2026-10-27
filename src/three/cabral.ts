@@ -150,6 +150,8 @@ export class CabralFigure {
   private going = 0;
   private dashing = 0;
   private wasDashing = false;
+  /** Which of his controller's dashes the last step showed: one rolled straight from another starts afresh. */
+  private dashSeen = 0;
   private wasSwinging = false;
   private wasChanneling = false;
   private swung = 0;
@@ -211,9 +213,14 @@ export class CabralFigure {
     this.group.add(next);
   }
 
+  /** Whether the dash he is in was already under way the step before (not a new one, even straight from another). */
+  private sameDash(c: MachiController): boolean {
+    return this.wasDashing && this.dashSeen === c.dashes;
+  }
+
   /** How long into the dash he is this step. */
   private into(c: MachiController, dt: number): number {
-    return c.isDashing ? (this.wasDashing ? this.dashing + dt : dt) : 0;
+    return c.isDashing ? (this.sameDash(c) ? this.dashing + dt : dt) : 0;
   }
 
   /**
@@ -223,7 +230,7 @@ export class CabralFigure {
   carry(c: MachiController, from: Vec, dash: { time: number; distance: number }, dt: number): void {
     const travel = TRAVEL[ROLLS[this.roll]];
     if (!c.isDashing || !travel) return;
-    if (!this.wasDashing) {
+    if (!this.sameDash(c)) {
       this.dashDone = 0;
       const dx = c.x - from.x, dy = (c.y - from.y) / ISO_Y, len = Math.hypot(dx, dy) || 1;
       this.dashWay = { x: dx / len, y: (dy / len) * ISO_Y };
@@ -280,8 +287,8 @@ export class CabralFigure {
         // A roll from motion capture is shown by its phases (see ROLL_PHASES), which also move him;
         // any other is played by the clock.
         const name = ROLLS[this.roll];
-        if (TRAVEL[name]) motion.hold(name, rollAt(into / dashTime), { afresh: !this.wasDashing, blend: 0.05 });
-        else motion.play(name, { once: true, lasts: dashTime, afresh: !this.wasDashing, blend: 0.05 });
+        if (TRAVEL[name]) motion.hold(name, rollAt(into / dashTime), { afresh: !this.sameDash(c), blend: 0.05 });
+        else motion.play(name, { once: true, lasts: dashTime, afresh: !this.sameDash(c), blend: 0.05 });
       }
       // His own cut, keyed in Blender to land when the game's blow does; the library's if it is missing.
       // In his rage he cuts quicker: the clip as quick as the blow.
@@ -321,6 +328,7 @@ export class CabralFigure {
     this.wasChanneling = c.isChanneling;
     this.dashing = into;
     this.wasDashing = c.isDashing;
+    this.dashSeen = c.dashes;
     this.phaseWas = arming?.phase ?? null;
     if (arming?.phase !== 'fire') this.puttingBack = false;
     // Which musket is seen, the one on his back or the one in his hands, and the sabre put away

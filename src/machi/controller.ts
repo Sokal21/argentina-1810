@@ -1,7 +1,7 @@
 // The machi's movement, turning and attack rules, with no rendering: feed it
 // the held directions each step and read back which frame to draw and where.
 import {
-  ATTACK_SLOW, ATTACK_TIME, ATTACK_UNWIND, COAST_GRACE, DASH_COOLDOWN, DASH_DISTANCE, DASH_TIME, DEATH_FPS, SHOT_TIME, SHOULDER_TIME,
+  ATTACK_SLOW, ATTACK_TIME, ATTACK_UNWIND, COAST_GRACE, DASH_BUFFER, DASH_CHAIN, DASH_COOLDOWN, DASH_DISTANCE, DASH_TIME, DEATH_FPS, SHOT_TIME, SHOULDER_TIME,
   FPS, IDLE_REST, ISO_Y,
   PIVOT_DRIFT, PIVOT_STOP, RETREAT_BELOW, INTI, SNAP_STICK, SPEED, TURN_FPS, VIEW_ORDER,
   type Kit, type Melee, type Sheet, type Turn, type View,
@@ -164,6 +164,12 @@ export class MachiController {
   private dash: { t: number; dir: Vec } | null = null;
   /** Seconds until she can dash again. */
   private dashWait = 0;
+  /** Seconds a press of the dash is still kept for, waiting until she can. */
+  private dashAsked = 0;
+  /** How many dashes she has begun: one begun straight from another is told from it by this. */
+  dashes = 0;
+  /** Whether a dash may begin (the game says: she has the breath for it). */
+  mayDash = true;
   /** A ritual in progress: how long it has run and how long it takes. */
   private ritual: { t: number; time: number; sheet: string } | null = null;
   /** Seconds since she fell dead, or null while she lives. */
@@ -344,8 +350,12 @@ export class MachiController {
       else return;
       this.t = 0;
     }
-    if (input.dash && !this.dash && this.dashWait === 0 && !(this.gun?.loose && this.gun.phase !== 'fire')) {
+    // A press is kept a moment: one made late in a dash, or just after, makes the next as soon as it can.
+    this.dashAsked = input.dash ? DASH_BUFFER : Math.max(0, this.dashAsked - dt);
+    const chains = !this.dash || this.dash.t >= this.dashTime * DASH_CHAIN;
+    if (this.dashAsked > 0 && this.mayDash && chains && this.dashWait === 0 && !(this.gun?.loose && this.gun.phase !== 'fire')) {
       // A dash gets him out of a swing he has started, or of taking aim; not of a shot let go and not yet gone.
+      this.dashAsked = 0;
       this.gun = null;
       this.swing = null;
       this.startDash(input);
@@ -491,6 +501,7 @@ export class MachiController {
     this.cast = null;
     this.snappedMove = this.snappedAim = null;
     this.dash = { t: 0, dir };
+    this.dashes++;
   }
 
   // Fast at first and slowing to a stop, like a skid: the speed falls in a

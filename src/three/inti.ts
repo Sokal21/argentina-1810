@@ -92,6 +92,8 @@ export class IntiFigure {
   private facing = 0;
   private going = 0;
   private wasDashing = false;
+  /** Which of her controller's dashes the last step showed: one slid straight from another starts afresh. */
+  private dashSeen = 0;
   /** Seconds into her dash, and since it ended. */
   private dashed = 0;
   private sinceDash = Infinity;
@@ -190,7 +192,7 @@ export class IntiFigure {
       const out = this.sinceDash < SLIDE.blendOut ? { blend: SLIDE.blendOut } : {};
       const paced = (name: string) => ({ pace: this.reach[name] ? Math.max(LEAST_PACE, this.going / this.reach[name]) : 1, ...out });
       if (fallen) motion.play(CLIPS.death, { once: true, afresh: !this.wasFallen });
-      else if (c.isDashing) motion.hold(CLIPS.dash, Math.min(1, this.dashed / dashTime) * SLIDE.until, { afresh: !this.wasDashing, blend: 0.05 });
+      else if (c.isDashing) motion.hold(CLIPS.dash, Math.min(1, this.dashed / dashTime) * SLIDE.until, { afresh: !(this.wasDashing && this.dashSeen === c.dashes), blend: 0.05 });
       else if (this.sinceDash < SLIDE.settle && !c.isAttacking) motion.hold(CLIPS.dash, SLIDE.until);
       else if (c.channelling === 'call') motion.play(CLIPS.call, { once: true, lasts: NAHUEL.call, afresh: !this.wasChanneling, blend: 0.08 });
       else if (c.isChanneling) motion.play(CLIPS.heal, { once: true, lasts: HEAL.time, afresh: !this.wasChanneling, blend: 0.08 });
@@ -255,9 +257,10 @@ export class IntiFigure {
       }
     }
     this.wasFallen = fallen;
-    this.dashed = c.isDashing ? (this.wasDashing ? this.dashed + dt : dt) : 0;
+    this.dashed = c.isDashing ? (this.wasDashing && this.dashSeen === c.dashes ? this.dashed + dt : dt) : 0;
     this.sinceDash = c.isDashing ? 0 : this.sinceDash + dt;
     this.wasDashing = c.isDashing;
+    this.dashSeen = c.dashes;
     this.wasChanneling = c.isChanneling;
     this.flash(doing.hurt ?? 0);
     this.group.position.copy(ground(c.x, c.y));

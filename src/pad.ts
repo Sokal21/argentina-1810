@@ -44,6 +44,10 @@ export const pad = {
 const A = 0, B = 1, X = 2, LB = 4, RB = 5, LT = 6, RT = 7, VIEW = 8, MENU = 9, L3 = 10, R3 = 11, UP = 12, DOWN = 13, LEFT = 14, RIGHT = 15;
 /** How little of a stick's push is taken as none; how far a stick goes to be a step in a menu, and how soon one held steps again (ms). */
 const SLACK = 0.25, STEP = 0.6, AGAIN = 260;
+/** How hard the stick is pushed toward full, past how little is taken as none: the left stick's push, walking more slowly when pushed less (pushed this far, `full`, it is all of it). */
+export function push(stick: Vec | null, full = 0.9): number {
+  return stick ? Math.max(0, Math.min(1, (Math.hypot(stick.x, stick.y) - SLACK) / (full - SLACK))) : 0;
+}
 /** After a grenade's button is let go: how long the attack is pressed for the game to see it, and the grenade still held for the throw to be made (ms). */
 /**
  * The old numbers of the keys it presses: Phaser knows a key by its number, which a key pressed by

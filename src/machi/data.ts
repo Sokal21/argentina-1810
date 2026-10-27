@@ -84,7 +84,9 @@ export const DASH_TIME = 0.32;    // seconds it lasts
 export const SHOULDER_TIME = 0.25; // seconds to bring a musket up to the shoulder
 export const SHOT_TIME = 0.45;     // seconds from the shot until the musket is slung again
 export const DEATH_FPS = 8;        // frames per second of her death
-export const DASH_COOLDOWN = 0.45; // seconds after one ends before the next can start
+export const DASH_COOLDOWN = 0.12; // seconds after one ends before the next can start (0.45 until the user asked to chain them, 26/10/2026)
+export const DASH_CHAIN = 0.7;     // how far through a dash (a share of it) another can be started straight from it
+export const DASH_BUFFER = 0.3;    // seconds a press is kept, if it cannot dash yet, to dash as soon as it can
 
 export const BOLT_SPEED = 380;  // sprite pixels per second along the ground (230 until the user asked for quicker, 25/10/2026)
 export const BOLT_RANGE = 390;  // ground distance it covers before fizzling out (260 until the user asked half as far again, 25/10/2026)

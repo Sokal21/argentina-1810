@@ -85,3 +85,32 @@ test('a dash cuts a cast short', () => {
   machi.update(DT, { ...idle, dash: true });
   expect(machi.isAttacking).toBe(false);
 });
+
+test('a press late in a dash dashes again straight from it; one early is kept until it can', () => {
+  const machi = new MachiController();
+  machi.update(DT, { ...idle, dx: 1, dash: true });
+  run(machi, DASH_TIME * 0.8, { ...idle, dx: 1 });
+  expect(machi.dashes).toBe(1);
+  machi.update(DT, { ...idle, dx: 1, dash: true });
+  expect(machi.dashes).toBe(2);
+  // Pressed again at once, too early to chain: it goes as soon as the dash is far enough through.
+  machi.update(DT, { ...idle, dx: 1, dash: true });
+  expect(machi.dashes).toBe(2);
+  run(machi, DASH_TIME * 0.75, { ...idle, dx: 1 });
+  expect(machi.dashes).toBe(3);
+  // And a press kept past its moment is forgotten.
+  while (machi.isDashing) machi.update(DT, idle);
+  run(machi, 1, idle);
+  expect(machi.dashes).toBe(3);
+});
+
+test('no dash begins, even one pressed for, while the game says there is no breath for it', () => {
+  const machi = new MachiController();
+  machi.mayDash = false;
+  machi.update(DT, { ...idle, dash: true });
+  run(machi, 0.5, idle);
+  expect(machi.isDashing).toBe(false);
+  machi.mayDash = true;
+  run(machi, DASH_COOLDOWN, idle);
+  expect(machi.dashes).toBe(0);
+});
