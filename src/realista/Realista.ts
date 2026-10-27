@@ -3,7 +3,7 @@ import { HitFX } from '../fx/HitFX';
 import type { Vec } from '../machi/controller';
 import { ISO_Y } from '../machi/data';
 import type { Footprint } from '../world/footprint';
-import { AIM, DYING, LIFE, LOWER, RealistaBrain, SLASH_TIME, type Bounds, type Deed } from './brain';
+import { AIM, DYING, GIRTH, LIFE, LOWER, RealistaBrain, SLASH_TIME, type Bounds, type Deed } from './brain';
 
 // The sheets, each a single row of square frames with his feet on the
 // bottom row. `ax` is where the middle of his body falls in a frame. All are
@@ -114,7 +114,7 @@ export class Realista {
   get ground(): Vec {
     return { x: this.brain.x, y: this.brain.y };
   }
-  readonly girth = 9;
+  readonly girth = GIRTH;
 
   /** His body as it appears on screen. */
   get body(): Footprint {
@@ -157,6 +157,8 @@ export class Realista {
 
   /** How he finds his way round what is in the way; see the brain. */
   set route(route: RealistaBrain['route']) { this.brain.route = route; }
+  /** The ground alight about him, which he keeps out of. */
+  set fires(fires: RealistaBrain['fires']) { this.brain.fires = fires; }
 
   /** Which way round the hero he comes at; see the brain. */
   set flank(side: { x: number; y: number }) { this.brain.flank = side; }

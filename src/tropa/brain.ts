@@ -1,5 +1,6 @@
 import type { Vec } from '../machi/controller';
 import { ISO_Y } from '../machi/data';
+import { outOf, skirt, type Flames } from '../machi/flames';
 
 // The rest of the king's men, each kind told apart by what it is given
 // here and nothing else: one brain serves them all. A kind may shoot, may
@@ -42,6 +43,10 @@ export interface Kind {
   rally?: { every: number; time: number; reach: number; lasts: number };
   /** Below half his life he comes on this many times faster. */
   fury?: number;
+  /** He comes straight in for his blow, not round to a side of her first as the others do. */
+  rushes?: boolean;
+  /** How much of what fire does (a grenade's blast, burning) he takes; all of it if not said. */
+  fire?: number;
   /** What bringing him down is worth, in experience and in reales. */
   worth: number;
   spoils: number;
@@ -52,14 +57,17 @@ export const KINDS = {
   // Two cuts at a time (Mixamo's Standing Melee Combo Attack, at its own pace: faster read as frantic):
   // straight before him first (frame 18 of 52), its point 50 off, then a backhand nearer (frame 32);
   // measured on the model.
-  sableador: { id: 'sableador', name: 'Sableador', life: 3, girth: 9, pace: 96, sight: 340, blow: { near: 44, time: 2.15, hit: 0.75, reach: 50, rest: 0.4, again: { hit: 1.33, reach: 40 } }, worth: 7, spoils: 4 },
+  // He comes straight in, swings as soon as he is within reach, and a quarter faster than the clip's own
+  // pace (at it he ran up and stood, the user found, 26/10/2026: 0.75, 2.15 and 1.33; near 44, rest 0.4).
+  sableador: { id: 'sableador', name: 'Sableador', life: 3, girth: 9, pace: 96, sight: 340, rushes: true, blow: { near: 48, time: 1.72, hit: 0.6, reach: 50, rest: 0.2, again: { hit: 1.06, reach: 40 } }, worth: 7, spoils: 4 },
   // Walks up slowly until whoever he is after is within his shot, then kneels and never moves again; shoots from further and oftener than anyone. Helpless up close.
   tirador: { id: 'tirador', name: 'Tirador', life: 2, girth: 11, pace: 30, stays: true, sight: 460, shot: { range: 440, aim: 1.1, lock: 0.3, reload: [1.6, 2.2], muzzle: 22 }, worth: 8, spoils: 5 },
   // Slow, hard to bring down, a wide sweep with his halberd, and a shout that quickens his men.
   // His blow is a heavy two-handed one (tools/blender/anims/golpe_pesado.py): long in the coming, to be
   // dodged; it sweeps across before him from his right, its head passing 100 to 110 from him (measured
   // on the model: its reach), and takes twice what any other blow or ball takes.
-  sargento: { id: 'sargento', name: 'Sargento', life: 8, girth: 11, pace: 30, sight: 320, blow: { near: 95, time: 1.3, hit: 0.5, reach: 110, rest: 0.8, damage: 2 }, rally: { every: 9, time: 2.0, reach: 260, lasts: 5 }, worth: 20, spoils: 12 },
+  // Fire does him less than half what it does others: one grenade all but killed him (the user, 26/10/2026).
+  sargento: { id: 'sargento', name: 'Sargento', life: 8, girth: 11, pace: 30, sight: 320, fire: 0.4, blow: { near: 95, time: 1.3, hit: 0.5, reach: 110, rest: 0.8, damage: 2 }, rally: { every: 9, time: 2.0, reach: 260, lasts: 5 }, worth: 20, spoils: 12 },
   // Whoever commands the column, and the hardest of them to bring down: a pistol from afar, a long
   // thrust up close, a lunge from between the two, a shout that quickens his men as the sergeant's
   // does, and more of his men called up now and again, his sabre raised; no blow moves him, his ball
@@ -78,6 +86,8 @@ export type KindName = keyof typeof KINDS;
 
 // How far to one side of her one heads while still well off, and how near one comes before turning straight in.
 const ROUND = 170, RING = 26, ARRIVED = 0.35; // how near he begins to go round her, how far outside his reach, and how near his side counts as reached
+/** How much faster than his walk one gets out of a fire. */
+export const FLEE = 1.6;
 export const DYING = 1.2;   // seconds he takes to fall
 export const RETURNS = 7;   // seconds until one who is not at a post is back
 /** How much faster one who has been rallied walks and reloads. */
@@ -114,6 +124,8 @@ export class TroopBrain {
   relentless = false;
   /** Seconds he is still after whoever struck him, however far off they are. */
   provoked = 0;
+  /** The ground alight about him, which he keeps out of (the field's, shared). */
+  fires: readonly Flames[] = [];
 
   /** Struck, or one of his own struck nearby: he goes after them for a while, wherever they are. */
   provoke(seconds: number): void {
@@ -173,6 +185,17 @@ export class TroopBrain {
     const to = her ? { x: her.x - this.x, y: (her.y - this.y) / ISO_Y } : null;
     const far = to ? Math.hypot(to.x, to.y) : Infinity;
 
+    // Whoever stands in fire gets out of it before anything else, even one who kneels to shoot.
+    if ((this.mode === 'stand' || this.mode === 'walk' || this.mode === 'aim') && k.pace) {
+      const out = outOf(this, this.fires, k.girth);
+      if (out) {
+        this.enter('walk');
+        this.look(out);
+        this.move(out.x * k.pace * haste * FLEE * dt, out.y * k.pace * haste * FLEE * dt);
+        return NOTHING;
+      }
+    }
+
     switch (this.mode) {
       case 'stand':
       case 'walk': {
@@ -191,9 +214,11 @@ export class TroopBrain {
         // One who shoots and is in range comes on slowly while he reloads; anyone else comes straight on.
         const hurt = k.fury && this.life <= this.max / 2 ? k.fury : 1;
         const pace = k.pace * haste * hurt * (k.shot && far <= k.shot.range ? 0.5 : 1);
-        const way = this.way(to, far, dt);
+        const found = this.way(to, far, dt);
         // Nowhere to go that comes nearer her: he stands and waits, his gun ready if he has one.
-        if (!way) { this.enter('stand'); return NOTHING; }
+        if (!found) { this.enter('stand'); return NOTHING; }
+        // Round any fire in his way.
+        const way = skirt(this, found, this.fires, k.girth);
         this.enter('walk');
         this.move(way.x * pace * dt, way.y * pace * dt);
         return NOTHING;
@@ -345,7 +370,7 @@ export class TroopBrain {
     const side = Math.atan2(this.flank.y, this.flank.x), at = Math.atan2(-to.y, -to.x);
     let turn = side - at;
     turn = Math.atan2(Math.sin(turn), Math.cos(turn));
-    if (far > ROUND || Math.abs(turn) < ARRIVED || (this.flank.x === 0 && this.flank.y === 0)) return { x: to.x / (far || 1), y: to.y / (far || 1) };
+    if (this.kind.rushes || far > ROUND || Math.abs(turn) < ARRIVED || (this.flank.x === 0 && this.flank.y === 0)) return { x: to.x / (far || 1), y: to.y / (far || 1) };
     // Round her, the short way, and in or out toward the ring.
     const out = { x: -to.x / far, y: -to.y / far }, sign = Math.sign(turn);
     const tx = -out.y * sign, ty = out.x * sign, pull = Math.max(-1, Math.min(1, (far - ring) / RING));

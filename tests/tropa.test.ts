@@ -181,3 +181,31 @@ describe('how each kind is drawn', () => {
     }
   });
 });
+
+describe('fire on the ground', () => {
+  const fire = { x: 0, y: 0, r: 48 };
+  const inside = (b: { x: number; y: number }, girth: number) => Math.hypot(b.x - fire.x, (b.y - fire.y) * 2) < fire.r + girth;
+
+  it('is got out of, before anything else, by any kind that walks', () => {
+    for (const kind of ['sableador', 'sargento', 'tirador'] as const) {
+      const b = new TroopBrain(KINDS[kind], 10, 0, () => 0.5);
+      b.fires = [fire];
+      run(b, { x: 30, y: 0 }, 3);
+      expect(inside(b, KINDS[kind].girth), kind).toBe(false);
+    }
+  });
+
+  it('is gone round on the way to her, not walked through', () => {
+    const b = brain('sableador', -200);
+    b.fires = [fire];
+    let through = false;
+    for (let t = 0; t < 6 && b.mode !== 'blow'; t += DT) { b.update(DT, { x: 120, y: 0 }); through ||= inside(b, 0); }
+    expect(through).toBe(false);
+    expect(b.mode).toBe('blow');
+  });
+
+  it('hurts a sergeant less than half as much as others', () => {
+    expect(KINDS.sargento.fire).toBeLessThan(0.5);
+    expect((KINDS.sableador as { fire?: number }).fire).toBeUndefined();
+  });
+});

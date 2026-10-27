@@ -178,3 +178,19 @@ describe('royalist soldier at a post', () => {
     expect(b.provoked).toBe(0);
   });
 });
+
+describe('a fusilier and fire', () => {
+  it('gets out of fire he stands in, and goes round it on his way to her', () => {
+    const fire = { x: 300, y: 400, r: 48 };
+    const b = new RealistaBrain(300, 400, undefined, fixed(0.5));
+    b.fires = [fire];
+    let through = false;
+    for (let t = 0; t < 8; t += DT) {
+      b.update(DT, { x: 300 + 400, y: 400 });
+      const far = Math.hypot(b.x - fire.x, (b.y - fire.y) / ISO_Y);
+      if (t > 2) through ||= far < fire.r;
+    }
+    expect(Math.hypot(b.x - fire.x, (b.y - fire.y) / ISO_Y)).toBeGreaterThan(fire.r);
+    expect(through).toBe(false);
+  });
+});

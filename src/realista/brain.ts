@@ -1,5 +1,6 @@
 import type { Vec } from '../machi/controller';
 import { ISO_Y } from '../machi/data';
+import { outOf, skirt, type Flames } from '../machi/flames';
 
 export const LIFE = 4;          // blows it takes to bring down
 export const WALK = 36;         // sprite pixels per second along the ground
@@ -19,6 +20,8 @@ export const SLASH_REST = 0.45; // seconds he stands before he can cut again
 export const MUZZLE = 30;       // height the ball leaves the barrel at
 export const DYING = 1.2;       // seconds he takes to fall
 export const RESPAWN = 7;       // seconds until he is back, so there is always one to fight
+export const GIRTH = 9;         // how far his body reaches from where he stands
+const FLEE = 1.6;               // how much faster than his walk he gets out of a fire
 /**
  * One who holds a post walks round it while nobody is about, rather than standing there waiting:
  * to a spot on his ground within `reach` of it, at `pace`, where he stands a while (`rest`, seconds)
@@ -116,6 +119,18 @@ export class RealistaBrain {
     const to = her ? { x: her.x - this.x, y: (her.y - this.y) / ISO_Y } : null;
     const far = to ? Math.hypot(to.x, to.y) : Infinity;
 
+    // Whoever stands in fire gets out of it before anything else.
+    if (this.mode === 'stand' || this.mode === 'walk' || this.mode === 'aim' || this.mode === 'lower') {
+      const out = outOf(this, this.fires, GIRTH);
+      if (out) {
+        const pace = WALK * FLEE * (this.quick > 0 ? 1.5 : 1);
+        this.enter('walk');
+        this.look(out);
+        this.move(out.x * pace * dt, out.y * pace * dt);
+        return NOTHING;
+      }
+    }
+
     switch (this.mode) {
       case 'stand':
       case 'walk': {
@@ -129,9 +144,11 @@ export class RealistaBrain {
         // Out of range he closes; in range and reloading he comes on more
         // slowly, so standing off does not keep him at bay for ever.
         const pace = (far > RANGE ? WALK : WALK * 0.5) * (this.quick > 0 ? 1.5 : 1);
-        const way = this.way(to, far, dt);
+        const found = this.way(to, far, dt);
         // Nowhere to go that comes nearer her: he stands and waits, his gun ready if he has one.
-        if (!way) { this.enter('stand'); return NOTHING; }
+        if (!found) { this.enter('stand'); return NOTHING; }
+        // Round any fire in his way.
+        const way = skirt(this, found, this.fires, GIRTH);
         this.enter('walk');
         this.move(way.x * pace * dt, way.y * pace * dt);
         return NOTHING;
@@ -213,7 +230,10 @@ export class RealistaBrain {
     if (this.alive) this.move(dx, dy);
   }
 
-  /** Finds the way to her round what is in the way, if he is given one: which way to go, or nothing if he cannot get to her. */
+  /** The ground alight about him, which he keeps out of (the field's, shared). */
+  fires: readonly Flames[] = [];
+
+    /** Finds the way to her round what is in the way, if he is given one: which way to go, or nothing if he cannot get to her. */
   route?: { way(at: Vec): Vec | null; reaches(at: Vec): boolean };
   /** How far he got over the last little while, to know when he has stuck. */
   private progress = { t: 0, x: 0, y: 0, stuck: 0 };

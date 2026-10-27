@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import { BALL, Bolts, EMBER, SHOT } from '../bolts';
 import { Realista } from '../realista/Realista';
 import { Trooper } from '../tropa/Trooper';
-import { KINDS, type KindName } from '../tropa/brain';
+import { KINDS, type Kind, type KindName } from '../tropa/brain';
+import type { Flames } from '../machi/flames';
 import { cheats, tune } from '../tuning';
 import { Charge, ULTIMATE } from '../machi/ultimate';
 import { RAGE, Rage } from '../machi/rage';
@@ -111,6 +112,8 @@ const CABRAL_LOCK = { reach: BALL.range, keep: BALL.range * 1.4 };
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
 /** The kinds of the king's men that have a model in 3D (three/realista.ts, LOOKS). */
 const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan']);
+/** How much of what fire does a foe takes: a soldier's kind may stand it better. */
+const fireproof = (foe: Foe): number => foe instanceof Trooper ? (KINDS[foe.kind] as Kind).fire ?? 1 : 1;
 /** With the gamepad a grenade lands this share of its reach straight ahead: all of it, as the musket aims. */
 const PAD_THROW = 1;
 /** With the gamepad, how fast the stick moves where a grenade held ready is to land, world units a second. */
@@ -253,6 +256,8 @@ export class GameScene extends Phaser.Scene {
   /** Grenades in the air, and the patches of ground left burning. */
   private grenades: Grenade[] = [];
   private fires: Fire[] = [];
+  /** The same, as the soldiers keep out of it: where each is and how far it reaches. */
+  private flames: Flames[] = [];
   /** Enemies on fire: how much longer each burns, and when it next hurts. */
   private alight = new Burning<Foe>();
   /** Embers drifting up from whatever is burning. */
@@ -1074,6 +1079,7 @@ export class GameScene extends Phaser.Scene {
       // it who is nearer it than the hero. Only the hero is found the way round to.
       const prey = feet && !drawn ? this.prey(realista) : undefined;
       realista.route = prey ? undefined : this.route;
+      realista.fires = this.flames;
       const deed = realista.update(dt * tune.foes, drawn ? this.nahuel.ground : prey?.body ?? feet);
       // On her map the 2D game draws over the 3D world; one drawn in 3D (one put in to try things out) is not drawn twice.
       if (this.overlaid && (realista instanceof Realista || IN_3D.has(realista.kind))) realista.sleep();
@@ -1533,11 +1539,12 @@ export class GameScene extends Phaser.Scene {
       if (glow > 0 && Math.random() < dt * EMBERS.shed) {
         this.embersUp.emitParticleAt(x + Phaser.Math.FloatBetween(-hw, hw), y + Phaser.Math.FloatBetween(-hh, hh), 1);
       }
-      if (hurt) this.wound(enemy, 0, -1, hurt, 'second');
+      if (hurt) this.wound(enemy, 0, -1, hurt * fireproof(enemy), 'second');
       if (hurt) this.sparks.emitParticleAt(x, y, 4);
     });
     for (const fire of this.fires.filter(f => f.t >= GRENADE.burns)) fire.shader?.destroy();
     this.fires = this.fires.filter(f => f.t < GRENADE.burns);
+    this.flames = this.fires.map(f => ({ x: f.x, y: f.y, r: GRENADE.radius }));
   }
 
   // Sets a patch of ground alight. The flames are a shader on a quad whose
@@ -1562,7 +1569,8 @@ export class GameScene extends Phaser.Scene {
     for (const enemy of this.foes) {
       const spot = enemy.ground;
       if (!enemy.alive || ground(at, spot) > radius + enemy.girth) continue;
-      this.wound(enemy, spot.x - at.x || 1, spot.y - at.y, damage, stat);
+      // A blast that sets things alight is fire, which some stand better than others.
+      this.wound(enemy, spot.x - at.x || 1, spot.y - at.y, damage * (sets ? fireproof(enemy) : 1), stat);
       if (sets) this.alight.ignite(enemy);
       const { x, y } = enemy.body;
       this.sparks.emitParticleAt(x, y, 10);
