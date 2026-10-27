@@ -28,6 +28,20 @@ describe('the sabre fighter', () => {
     expect(run(b, { x: 300, y: 0 }, 2).filter(d => d.cut !== undefined)).toEqual([{ cut: false }, { cut: false }]);
   });
 
+  it('catches whoever walks away from his blow, not whoever runs', () => {
+    const walked = (speed: number) => {
+      const b = brain('sableador');
+      const her = { x: 40, y: 0 };
+      for (let t = 0; t < 5 && b.mode !== 'blow'; t += DT) b.update(DT, her);
+      let cuts = 0;
+      for (let t = 0; t < 2; t += DT) { her.x += speed * DT; if (b.update(DT, her).cut) cuts++; }
+      return cuts;
+    };
+    // A hero walks at 126 in 3D, and runs at 1.6 times that.
+    expect(walked(126)).toBeGreaterThan(0);
+    expect(walked(126 * 1.6)).toBe(0);
+  });
+
   it('cuts twice in a blow, the second nearer', () => {
     const b = brain('sableador');
     for (let t = 0; t < 5 && b.mode !== 'blow'; t += DT) b.update(DT, { x: 30, y: 0 });

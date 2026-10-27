@@ -37,8 +37,11 @@ export interface Kind {
    * than `most` of those he called standing at once (the field keeps count).
    */
   call?: { first: number; every: number; time: number; at: number; many: number; most: number };
-  /** He strikes whoever is nearer than `near`: how long the whole blow takes, when in it it lands, how far it reaches, how long he stands before another, and how much life it takes (one if not said). */
-  blow?: { near: number; time: number; hit: number; reach: number; rest: number; damage?: number; again?: { hit: number; reach: number } };
+  /**
+   * He strikes whoever is nearer than `near`: how long the whole blow takes, when in it it lands, how far it reaches, how long he stands before another,
+   * and how much life it takes (one if not said); with `press`, he keeps after her as he swings, at that share of his pace, until his last cut lands.
+   */
+  blow?: { near: number; time: number; hit: number; reach: number; rest: number; damage?: number; again?: { hit: number; reach: number }; press?: number };
   /** He rallies those about him: how often, how long the shout takes, how far it carries, and for how long it quickens them. */
   rally?: { every: number; time: number; reach: number; lasts: number };
   /** Below half his life he comes on this many times faster. */
@@ -59,7 +62,9 @@ export const KINDS = {
   // measured on the model.
   // He comes straight in, swings as soon as he is within reach, and a quarter faster than the clip's own
   // pace (at it he ran up and stood, the user found, 26/10/2026: 0.75, 2.15 and 1.33; near 44, rest 0.4).
-  sableador: { id: 'sableador', name: 'Sableador', life: 3, girth: 9, pace: 96, sight: 340, rushes: true, blow: { near: 48, time: 1.72, hit: 0.6, reach: 50, rest: 0.2, again: { hit: 1.06, reach: 40 } }, worth: 7, spoils: 4 },
+  // His reach is half as long again, and he keeps after whoever steps back as he swings, a little faster
+  // than a hero walks: walking away no longer gets clear of him; a dodge does (reach 50 and 40 till then).
+  sableador: { id: 'sableador', name: 'Sableador', life: 3, girth: 9, pace: 96, sight: 340, rushes: true, blow: { near: 62, time: 1.72, hit: 0.6, reach: 75, rest: 0.2, again: { hit: 1.06, reach: 62 }, press: 1.35 }, worth: 7, spoils: 4 },
   // Walks up slowly until whoever he is after is within his shot, then kneels and never moves again; shoots from further and oftener than anyone. Helpless up close.
   tirador: { id: 'tirador', name: 'Tirador', life: 2, girth: 11, pace: 30, stays: true, sight: 460, shot: { range: 440, aim: 1.1, lock: 0.3, reload: [1.6, 2.2], muzzle: 22 }, worth: 8, spoils: 5 },
   // Slow, hard to bring down, a wide sweep with his halberd, and a shout that quickens his men.
@@ -237,6 +242,12 @@ export class TroopBrain {
       case 'blow': {
         const b = k.blow!;
         if (to && this.t < b.hit * 0.6) this.look(to);
+        // One who presses keeps after her until his last cut lands, as long as she is not already well within it.
+        if (to && b.press && this.t < (b.again?.hit ?? b.hit) && far > (this.done && b.again ? b.again.reach : b.reach) * 0.6) {
+          this.look(to);
+          const step = k.pace * b.press * haste * dt;
+          this.move(this.dir.x * step, this.dir.y * step);
+        }
         if (this.t >= b.time) { this.enter('stand'); this.rest = b.rest; }
         // A second cut, if his blow has one, once the first has landed.
         if (this.done && b.again && !this.twice && this.t >= b.again.hit) {
