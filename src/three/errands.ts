@@ -58,6 +58,9 @@ export class Errands {
   build(id: string): void {
     const place = this.places.get(id);
     if (!place || place.built) return;
+    // Another place where it stands already has one (a fire lit where it was built): that one.
+    const there = [...this.places.values()].find(p => p.built && p.x === place.x && p.y === place.y);
+    if (there) { place.built = there.built; return; }
     place.built = bonfire(id);
     place.built.position.copy(ground(place.x, place.y));
     this.group.add(place.built);

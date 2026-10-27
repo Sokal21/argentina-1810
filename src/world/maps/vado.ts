@@ -151,8 +151,12 @@ export const vadoDeLasVizcachas: WorldMap = {
   spots: [
     // The same ford with the village behind him: more come, and their captain last; fewer if all the village asked was done.
     { id: 'emboscada', name: 'El vado', plot: [62, 10], does: 'esperar a la columna con el pueblo', given: 'listo:emboscada', happening: 'planta:emboscada', note: 'Los paisanos están en los juncos. Ya vienen.', stand: { from: [62, 8], waves: [4, 5, 5], eased: { given: 'entera:emboscada', waves: [3, 4, 4] }, leader: { name: 'El capitán', kind: 'capitan' }, mix: COLUMN, won: 'aguanto:emboscada' } },
-    // The middle rise, where he is to be seen: the fire lit, the bell ringing behind. A vanguard comes to see whether it is true, unless everything was in place.
-    { id: 'rebato', name: 'La Loma del Medio', plot: [61, 21], does: 'encender la fogata y esperar el alba', given: 'listo:rebato', happening: 'planta:rebato', fire: true, note: 'La fogata prende. Atrás, lejos, empieza a sonar la campana.', stand: { from: [62, 17], waves: [4], eased: { given: 'entero:rebato', waves: [] }, won: 'aguanto:rebato' } },
+    // The rebato: each of the three fires built on the rises lit, where it was built, and a band like the
+    // one that held that rise come down from the ford to put it out (the user, 26/10/2026: all three, not
+    // the middle one alone; small fights, no captain). The bell rings once the three are burning.
+    { id: 'rebato_oeste', name: 'La fogata del Oeste', plot: [52, 20], does: 'prender la fogata', given: 'listo:rebato', happening: 'prende:oeste', fire: true, note: 'La fogata del Oeste prende. Desde el vado vienen a apagarla.', stand: { from: [50, 17], waves: [3], mix: ['tirador', 'fusilero', 'fusilero'], won: 'aguanto:oeste' } },
+    { id: 'rebato_medio', name: 'La fogata del Medio', plot: [63, 21], does: 'prender la fogata', given: 'listo:rebato', happening: 'prende:medio', fire: true, note: 'La fogata del Medio prende. Desde el vado vienen a apagarla.', stand: { from: [62, 17], waves: [4], mix: ['tirador', 'fusilero', 'fusilero', 'tirador'], won: 'aguanto:medio' } },
+    { id: 'rebato_este', name: 'La fogata del Este', plot: [75, 20], does: 'prender la fogata', given: 'listo:rebato', happening: 'prende:este', fire: true, note: 'La fogata del Este prende. Desde el vado vienen a apagarla.', stand: { from: [74, 17], waves: [3], mix: ['tirador', 'fusilero', 'fusilero'], won: 'aguanto:este' } },
     // The belfry: the bell comes down onto a cart, for whoever the village has sent for it.
     { id: 'campana', name: 'El campanario', plot: [121, 21], does: 'bajar la campana', given: 'acepto:campana', happening: 'bajada:campana', note: 'La campana está en la carreta. Pesa como un muerto.' },
     // The ford itself, where the column has to cross: whoever plants himself there, alone, has it come at him.

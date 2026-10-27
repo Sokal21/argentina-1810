@@ -222,15 +222,16 @@ a medias es llegar con menos.
 
 - **Hace falta:** haber hecho al menos dos de las tres de los frailes, y que
   la campana esté en el campanario.
-- **Tipo:** ir, y pelear o no.
+- **Tipo:** ir y pelear.
 - **Qué pasa:** a la noche se encienden las fogatas. Al amanecer la campana
   toca a rebato, fray Anselmo baja al vado con las carretas, y Cabral se
   para en la Loma del Medio, de uniforme, donde lo vean.
 - **Pasos:**
-  1. Encender las fogatas armadas.
-  2. Estar en la Loma del Medio cuando aclara.
-  3. Según las piezas (ver la tabla en el [resumen](README.md)): nada más,
-     o rechazar a la avanzada que manda el capitán.
+  1. Prender las tres fogatas armadas, una en cada loma. En cada una sube
+     desde el vado una banda chica, como la que guardaba la loma (sin el
+     capitán), a apagarla: hay que aguantarla. Se pelea siempre, haya o no
+     todas las piezas.
+  2. Con las tres ardiendo, termina.
 - **Deja:** la columna se retira. No muere nadie, o casi nadie. La posada,
   cerrada para Cabral.
 
@@ -272,7 +273,7 @@ pueblo" no queda cumplido por haber estado antes), `hablo:QUIEN`,
 | 7a | Los rehenes | `acepto:rehenes`: la pide don Braulio después de `hecha:fogatas` (y de la 6a, cuando exista) | `sabe:carretas`, mirando las carretas detrás de la capilla · `dijo:carretas` | **Hecha** |
 | 7b | La escolta | `acepto:escolta`: la pide fray Anselmo con las fogatas armadas, mientras no se hayan aceptado los rehenes | `lleva:carretas` · `llego:carretas`, en la Loma del Medio | **Hecha** |
 | 8a | La emboscada | `listo:emboscada`: dos de las tres del pueblo cumplidas | `planta:emboscada`, en el vado · tres oleadas y el capitán (`aguanto:emboscada`). Con las tres cumplidas vienen menos. Deja `final:emboscada` | **Hecha** |
-| 8b | El rebato | `listo:rebato`: dos de las tres de los frailes cumplidas, y la campana sin bajar | `planta:rebato`, en la Loma del Medio · rechazar a la avanzada, o nada si están las tres (`aguanto:rebato`). Deja `final:rebato` | **Hecha** |
+| 8b | El rebato | `listo:rebato`: dos de las tres de los frailes cumplidas, y la campana sin bajar | las tres `prende:LOMA`, donde se armaron, cada una con una banda chica que aguantar (`aguanto:LOMA`); siempre se pelea. Deja `final:rebato` | **Hecha** |
 | 8c | Solo en el vado | `planta:vado`: plantarse en el vado, cuando sea; no depende de nadie | aguantar tres oleadas (`aguanto:vado`). Deja `final:solo` | **Hecha** |
 
 Lo que el juego todavía no sabe hacer, y que varias misiones comparten:

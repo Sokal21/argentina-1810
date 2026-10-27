@@ -228,10 +228,14 @@ describe('the two ends with others', () => {
     expect(story.has('final:emboscada')).toBe(true);
   });
 
-  it("two of the friars' three ready the rebato, and all three make it whole", () => {
-    expect(play(...amparar, ...fogatas).isOpen('rebato')).toBe(true);
-    expect(play(...amparar, ...fogatas).has('entero:rebato')).toBe(false);
-    expect(play(...amparar, ...fogatas, ...escolta).has('entero:rebato')).toBe(true);
+  it("two of the friars' three ready the rebato, and it ends only once all three fires are lit and held", () => {
+    const story = play(...amparar, ...fogatas);
+    expect(story.isOpen('rebato')).toBe(true);
+    story.tell('prende:oeste'); story.tell('aguanto:oeste');
+    story.tell('prende:medio'); story.tell('aguanto:medio');
+    expect(story.has('final:rebato')).toBe(false);
+    story.tell('prende:este'); story.tell('aguanto:este');
+    expect(story.has('final:rebato')).toBe(true);
   });
 
   it('there is no rebato once the bell has come down, whatever else was done', () => {

@@ -67,13 +67,11 @@ venganza y no lo perdona: don Braulio le cierra la posada a Cabral.
 **Solo en el vado.** Si no se ganó a ninguno, Cabral defiende el vado a
 sablazos el tiempo que aguante.
 
-El rebato no sale siempre entero. Según cuántas piezas se consiguieron:
-
-| Piezas | Qué pasa |
-|---|---|
-| Todas (Mateo vivo, campana intacta, los seis heridos entregados, tres fogatas) | El capitán se retira sin un tiro |
-| Falta una o dos | Duda y manda una avanzada. Hay que rechazarla; si se la rechaza, se retiran |
-| Faltan casi todas | No se lo cree y cruza |
+El rebato no sale solo: al prender cada una de las tres fogatas, sube desde
+el vado una banda chica a apagarla, y hay que aguantarla. Con las tres
+ardiendo, el capitán se retira. (Al principio se pensó que según las piezas
+conseguidas hubiera más o menos pelea; el usuario prefirió, el 26/10/2026,
+que se pelee siempre en las tres lomas, peleas simples y sin el capitán.)
 
 Los dos caminos cumplen la orden. Lo que cambia es **qué clase de hombre fue
 Cabral para lograrlo**, y eso es la fama.

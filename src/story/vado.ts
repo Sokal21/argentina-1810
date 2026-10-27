@@ -157,8 +157,7 @@ export const VADO: Quest[] = [
     // The friars' end: with two of their three done and the bell still in its belfry.
     opens: ['listo:rebato'],
     steps: [
-      { says: 'Todo está listo para el rebato. Subí a la Loma del Medio y encendé la fogata.', when: ['planta:rebato'] },
-      { says: 'Quedate donde te vean, hasta que aclare.', when: ['aguanto:rebato'] },
+      { says: 'Todo está listo para el rebato. Prendé las tres fogatas, en la Loma del Oeste, la del Medio y la del Este, y que nadie las apague.', all: ['aguanto:oeste', 'aguanto:medio', 'aguanto:este'] },
     ],
     leaves: ['final:rebato'],
   },
@@ -200,7 +199,6 @@ export const RULES: Rule[] = [
   { then: 'listo:emboscada', of: ['hecha:entregar', 'hecha:campana', 'hecha:rehenes'], count: 2 },
   // The bell has to be in its belfry still to be rung.
   { then: 'listo:rebato', of: ['hecha:amparar', 'hecha:fogatas', 'hecha:escolta'], count: 2, unless: 'bajada:campana' },
-  // With all three pieces in place nobody has to fight at all.
-  { then: 'entero:rebato', of: ['hecha:amparar', 'hecha:fogatas', 'hecha:escolta'], count: 3, unless: 'bajada:campana' },
+  // With all three of the village's done, fewer come to the ford.
   { then: 'entera:emboscada', of: ['hecha:entregar', 'hecha:campana', 'hecha:rehenes'], count: 3 },
 ];

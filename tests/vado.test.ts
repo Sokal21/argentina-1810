@@ -82,8 +82,14 @@ test('whoever is drawn standing about has a sheet of whole frames, the size it s
 
 test('each place where something can be done is on ground that is walked, and its fire is on its own rise', () => {
   const spots = map.spots ?? [];
-  expect(spots.map(s => s.id).sort()).toEqual(['campana', 'carretas', 'emboscada', 'fogata_este', 'fogata_medio', 'fogata_oeste', 'rebato', 'vado']);
-  const rise = { fogata_oeste: '1', fogata_medio: '2', fogata_este: '3' } as Record<string, string>;
+  expect(spots.map(s => s.id).sort()).toEqual(['campana', 'carretas', 'emboscada', 'fogata_este', 'fogata_medio', 'fogata_oeste', 'rebato_este', 'rebato_medio', 'rebato_oeste', 'vado']);
+  const rise = { fogata_oeste: '1', fogata_medio: '2', fogata_este: '3', rebato_oeste: '1', rebato_medio: '2', rebato_este: '3' } as Record<string, string>;
+  // Each fire of the rebato is lit where it was built, and a band comes for it from ground that is walked.
+  for (const side of ['oeste', 'medio', 'este']) {
+    const lit = spots.find(s => s.id === `rebato_${side}`)!, built = spots.find(s => s.id === `fogata_${side}`)!;
+    expect(lit.plot).toEqual(built.plot);
+    expect(letterAt(map, ...lit.stand!.from), lit.id).toBeDefined();
+  }
   for (const spot of spots.filter(s => rise[s.id])) expect(letterAt(map, ...spot.plot), spot.id).toBe(rise[spot.id]);
   // Each rise is held: there is a guard to be beaten before anything is built on it.
   for (const letter of Object.values(rise)) expect(map.zones[letter].foes).toBeGreaterThan(0);

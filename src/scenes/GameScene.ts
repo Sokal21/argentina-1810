@@ -1270,7 +1270,10 @@ export class GameScene extends Phaser.Scene {
         this.board?.say(waves.come === 1 && stand.leader ? `${stand.leader.name}, y su columna.` : `Oleada ${waves.come} de ${waves.sizes.length}.`);
       } else if (coming === 'won') {
         this.battle = undefined;
+        // A fire held goes on burning; one of several held moves the count on the board.
+        if (at.fire) this.board?.say(`${at.name} sigue ardiendo.`);
         this.story?.tell(stand.won);
+        this.board?.refresh();
       }
     }
     // Somewhere safe, the flask is filled again.
