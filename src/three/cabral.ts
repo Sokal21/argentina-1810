@@ -249,6 +249,8 @@ export class CabralFigure {
     const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
     const steer = c.steer, look = steer ? Math.atan2(steer.x, steer.y) : null;
     const walking = Math.hypot(moved.x, moved.y) > 0.01;
+    // Not steered (a lock let go of as he backed away), his legs walk ahead again.
+    if (look === null) this.backwards = false;
     let twist = 0;
     if (look !== null && !fighting && !c.isDashing && !fallen && !c.isChanneling) {
       // Steered by the pointer: the legs walk ahead or backwards, nearer where he looks, and give a
