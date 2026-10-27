@@ -262,7 +262,8 @@ export class MachiController {
    * (`musketTimes.putBack`), as he puts it back after a shot, standing where he is.
    */
   lower(): void {
-    if (!this.gun || this.gun.phase === 'fire') return;
+    // A shot let go (and paid for) goes, even if the key is let go while the musket is still coming up.
+    if (!this.gun || this.gun.phase === 'fire' || this.gun.loose) return;
     const away = this.gun.kind === 'musket' ? this.kit.musketTimes?.putBack : undefined;
     if (!away) { this.gun = null; return; }
     this.gun.phase = 'fire';
@@ -343,8 +344,8 @@ export class MachiController {
       else return;
       this.t = 0;
     }
-    if (input.dash && !this.dash && this.dashWait === 0) {
-      // A dash gets him out of a swing he has started, or of taking aim.
+    if (input.dash && !this.dash && this.dashWait === 0 && !(this.gun?.loose && this.gun.phase !== 'fire')) {
+      // A dash gets him out of a swing he has started, or of taking aim; not of a shot let go and not yet gone.
       this.gun = null;
       this.swing = null;
       this.startDash(input);

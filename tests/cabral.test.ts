@@ -212,6 +212,23 @@ describe("Cabral's musket", () => {
     expect(shots).toBe(1);
   });
 
+  it('once let go, goes though its key is let go or a dash is asked for while it still comes up', () => {
+    for (const kind of ['musket', 'grenade'] as const) {
+      const kit = { ...CABRAL, musketTimes: { shoulder: 0.9, shot: 1.5, putBack: 1.1 } };
+      const c = new MachiController(undefined, kit);
+      c.shoulder({ x: c.x + 80, y: c.y }, kind);
+      c.update(DT, still);
+      c.fire();
+      // The key let go every step after, and a dash asked for once.
+      c.lower();
+      c.update(DT, { ...still, dash: true });
+      expect(c.isDashing).toBe(false);
+      let shots = 0;
+      for (let t = 0; t < 3 && c.isShouldering; t += DT) { c.lower(); c.update(DT, still); if (c.takeShot()) shots++; }
+      expect(shots, kind).toBe(1);
+    }
+  });
+
   it('is put away without a shot when lowered, or by a dash', () => {
     const c = new MachiController(undefined, CABRAL);
     const aim = { x: c.x + 80, y: c.y };
