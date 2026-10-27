@@ -111,7 +111,7 @@ const CABRAL_LOCK = { reach: BALL.range, keep: BALL.range * 1.4 };
 // the way points, and how long an arm let go is kept up waiting to go off.
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
 /** The kinds of the king's men that have a model in 3D (three/realista.ts, LOOKS). */
-const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan']);
+const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan', 'frontera']);
 /** How much of what fire does a foe takes: a soldier's kind may stand it better. */
 const fireproof = (foe: Foe): number => foe instanceof Trooper ? (KINDS[foe.kind] as Kind).fire ?? 1 : 1;
 /** With the gamepad a grenade lands this share of its reach straight ahead: all of it, as the musket aims. */
@@ -211,6 +211,8 @@ const STURDY = { at: [60, -120] as [number, number], life: 40 };
 const CHONCHONES: [number, number][] = [[110, -70], [-90, 80]];
 // And the royalist soldiers, who are all Cabral meets.
 const REALISTAS: [number, number][] = [[190, 50], [-170, -60], [40, 150]];
+// And the frontier soldiers of 1879, Inti's enemy, put in her forest to try them out (27 October 2026).
+const FRONTERA: [number, number][] = [[230, 20], [-210, -30]];
 // How far from the hero a soldier at a post is still seen to and drawn: well past the edge of the screen.
 const AWAKE = { x: 760, y: 460 };
 
@@ -494,7 +496,12 @@ export class GameScene extends Phaser.Scene {
     // A map that says who holds it is held by them, each at his post; otherwise a few to try things on.
     const map = this.map, held = his && map ? garrison(map) : [];
     this.posts.clear();
-    this.realistas = !his ? [] : held.length && map
+    this.realistas = !his ? at(FRONTERA, (x, y) => {
+      // Kept to the forest's ground, and back where he stood a while after he falls, as the chonchones.
+      const soldier = this.enlist('frontera', x, y, bounds).hold(this.walkable);
+      if (soldier instanceof Trooper) soldier.brain.returns = true;
+      return soldier;
+    }) : held.length && map
       ? held.map(post => {
         const soldier = this.enlist(post.kind, post.x, post.y, bounds).hold(this.walkable);
         this.posts.set(soldier, post);

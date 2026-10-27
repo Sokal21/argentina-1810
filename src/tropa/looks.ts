@@ -25,4 +25,6 @@ export const LOOKS: Record<KindName, Look> = {
   tirador: { aim: sheet('tirador', 'tiro', 86, 8, 28), death: sheet('tirador', 'muerte', 86, 10, 28), scale: 1, tall: 70 },
   sargento: { walk: sheet('sargento', 'marcha', 90, 8, 40, 7), blow: sheet('sargento', 'golpe', 90, 8, 40), rally: sheet('sargento', 'grito', 90, 6, 40), death: sheet('sargento', 'muerte', 90, 10, 40), scale: 1.33, tall: 104 },
   capitan: { walk: sheet('capitan', 'marcha', 90, 8, 38, 8), blow: sheet('capitan', 'estocada', 90, 8, 38), aim: sheet('capitan', 'tiro', 90, 6, 38), death: sheet('capitan', 'muerte', 90, 10, 38), scale: 1.36, tall: 106 },
+  // Drawn only in 3D (Inti's forest draws him there): the captain's sheets stand in, never shown, for the 2D game's sake.
+  frontera: { walk: sheet('capitan', 'marcha', 90, 8, 38, 8), blow: sheet('capitan', 'estocada', 90, 8, 38), aim: sheet('capitan', 'tiro', 90, 6, 38), death: sheet('capitan', 'muerte', 90, 10, 38), scale: 1.1, tall: 86 },
 };

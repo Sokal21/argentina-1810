@@ -58,6 +58,9 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
     lunge: { clip: 'estocada', wind: 4 / 41, lands: 9 / 41, point: 0.15, ...KINDS.capitan.lunge },
     rally: { clip: 'grito', time: KINDS.capitan.rally.time, reach: KINDS.capitan.rally.reach },
     call: { clip: 'grito', time: KINDS.capitan.call.time } },
+  // The frontier soldier of 1879 (Tripo from turnaround A, 27 October 2026), as tall as the fusiliers:
+  // the fusilier's musket clips, and his bayonet thrust landing at frame 22 of 62 (Mixamo's Bayonet Stab).
+  frontera: { url: 'frontera/3d/soldado_animado.glb', drawn: 78, blow: { clip: 'bayoneta', lands: 22 / 62, hit: KINDS.frontera.blow.hit } },
 };
 /** Seconds of his aim spent drawing the musket from his back; the rest he holds it levelled. */
 const DRAW = Math.min(0.45, AIM * 0.55);
@@ -296,8 +299,11 @@ class Figure {
     // One who kneels to shoot never puts his musket away: he falls with it.
     const inHand = this.look?.kneels ? true : mode === 'aim' ? t >= DRAW * DRAWN_AT : this.fired !== null && this.fired < SHOT * SLUNG;
     const back = this.body.getObjectByName('mosquete'), hand = this.body.getObjectByName('mosquete_mano'), sabre = this.body.getObjectByName('sable');
-    if (back) back.visible = !inHand;
+    // One with a bayonet thrusts with his rifle in both fists, a rifle of its own.
+    const fixed = this.body.getObjectByName('fusil_bayoneta'), stabbing = !!fixed && mode === 'blow';
+    if (back) back.visible = !inHand && !stabbing;
     if (hand) hand.visible = inHand;
+    if (fixed) fixed.visible = stabbing;
     if (sabre) sabre.visible = !musket;
     // One with a pistol has it in his left hand and his sabre in his right, both always: the sabre
     // as it hangs, or as his thrust holds it (by the little finger's side), while he thrusts.

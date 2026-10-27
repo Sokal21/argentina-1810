@@ -24,7 +24,7 @@ import { View } from './view';
 interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge']; dives?: boolean }
 
 /** The kinds of the king's men, named as the game names them. */
-const KIND_NAMES: Record<string, string> = { sargento: 'Sargento', capitan: 'El capitán', sableador: 'Sableador', tirador: 'Tirador' };
+const KIND_NAMES: Record<string, string> = { sargento: 'Sargento', capitan: 'El capitán', sableador: 'Sableador', tirador: 'Tirador', frontera: 'Soldado de frontera' };
 /** Whoever keeps a house or stands about a map, named as the story names them. */
 const KEEPER_NAMES: Record<string, string> = { braulio: 'Don Braulio', anselmo: 'Fray Anselmo', tobias: 'Tobías', mateo: 'Mateo' };
 
@@ -34,9 +34,6 @@ const WHO: Who[] = [
   // her to choose among: 81 tall, as her 2D drawing.
   { name: 'Inti', url: 'machi/3d/inti_animado.glb', drawn: 81 },
   { name: 'Realista', url: 'realista/3d/realista_animado.glb', drawn: ROYALIST },
-  // The frontier soldier of 1879, the enemy of Inti's arc (Tripo from turnaround A, 27 October 2026):
-  // the royalist's clips and musket, a bayonet fixed on it, and Mixamo's Bayonet Stab. Not in the game yet.
-  { name: 'Soldado de frontera', url: 'frontera/3d/soldado_animado.glb', drawn: ROYALIST },
   ...Object.entries(LOOKS).map(([kind, look]) => ({ name: KIND_NAMES[kind] ?? kind, url: look.url, drawn: look.drawn, kneels: !!look.kneels, pistol: !!look.pistol, lunge: look.lunge })),
   ...Object.values(MODELS).flatMap(b => b.inside?.keepers ?? [])
     .map(k => ({ name: KEEPER_NAMES[k.who] ?? k.who, url: k.url, drawn: k.drawn })),

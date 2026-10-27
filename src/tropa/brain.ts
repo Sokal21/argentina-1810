@@ -87,6 +87,11 @@ export const KINDS = {
     // Fire does him a fifth of what it does others, as it does the sergeant (the user, 26/10/2026).
     fire: 0.2, fury: 1.5, worth: 80, spoils: 60,
   },
+  // The frontier soldier of 1879, Inti's enemy (27 October 2026): a modern rifle, breech-loaded, so
+  // he shoots from further and oftener than the royalists, and quicker to the aim; up close, his
+  // bayonet (Mixamo's Bayonet Stab, its point furthest out at frame 22 of 62, some 66 off at his
+  // height: played half as fast again, it lands at 0.6 s and he is back on guard by 1.1).
+  frontera: { id: 'frontera', name: 'Soldado de frontera', life: 4, girth: 9, pace: 36, sight: 380, shot: { range: 300, aim: 0.7, lock: 0.2, reload: [1.4, 2.0], muzzle: 30 }, blow: { near: 50, time: 1.1, hit: 0.6, reach: 62, rest: 0.5 }, worth: 9, spoils: 6 },
 } satisfies Record<string, Kind>;
 export type KindName = keyof typeof KINDS;
 
