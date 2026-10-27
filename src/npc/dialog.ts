@@ -259,6 +259,16 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
     input.disabled = true;
     return;
   }
+  // Turned by something that has happened: his say about it, once, and nothing more after.
+  const turned = npc.turned && talk.happened(npc.turned.given) ? npc.turned : undefined;
+  if (turned) {
+    const heard = talk.lines.some(line => line.who === 'npc' && line.text === turned.says);
+    if (!heard) talk.lines.push({ who: 'npc', text: turned.says });
+    void speak('npc', heard ? turned.then : turned.says, true);
+    note.textContent = `${npc.name} no tiene más nada para vos.`;
+    input.disabled = true;
+    return;
+  }
   void speak('npc', last?.text ?? talk.npc.greets, true).then(offer);
   if (!script) input.focus();
 }

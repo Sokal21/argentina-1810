@@ -247,6 +247,12 @@ export const ANSELMO: Npc = {
   ],
   greets: 'Ave María Purísima. Pase, hijo, que acá no se le cierra la puerta a nadie.',
   closed: 'Fray Anselmo no contesta. Tiene el rosario entre las manos y reza en voz baja, por vos.',
+  // The bell taken down from his belfry: a sermon, not a fit of anger, and then nothing more (the user's pick, A of three, 26/10/2026).
+  turned: {
+    given: 'bajada:campana',
+    says: 'Cuarenta años llamó a misa esa campana, hijo. Tocó cuando nacía un chico y cuando se lo enterraba. Tocó por tu Tobías cuando lo creímos muerto. Ahora el páramo va a amanecer callado, y el que se lleva la voz de un pueblo no sabe todo lo que se lleva. La puerta sigue abierta, porque es de Dios y no mía. Pero a mí no me pidas nada más.',
+    then: 'Fray Anselmo no levanta la vista del breviario. La puerta sigue abierta; él ya no tiene nada para vos.',
+  },
   portrait: 'anselmo/retrato.png',
   sprite: 'anselmo/sprite.png',
   // Turning the key over, listening.

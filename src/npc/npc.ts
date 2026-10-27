@@ -21,6 +21,12 @@ export interface Npc {
   greets: string;
   /** What whoever comes back gets from them once they have had enough: they do not talk again. */
   closed: string;
+  /**
+   * Once something has happened, they have their say about it the next time they are spoken to, and
+   * nothing more is had from them after: what they say then (once), and what whoever comes back gets.
+   * They do not throw anyone out; they only have no more to give.
+   */
+  turned?: { given: string; says: string; then: string };
   /** Their picture in a conversation and on the ground, once they have been drawn. */
   portrait?: string;
   sprite?: string;
