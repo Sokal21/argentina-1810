@@ -408,6 +408,8 @@ export const ANSELMO: Script = {
       given: 'hecha:fogatas',
       until: 'acepto:rehenes',
       asks: 'escolta',
+      // Brought up by him, the fires built (not lit: they are lit at the rebato). The user's pick, A of three, 26/10/2026.
+      opens: 'Me dijeron que las tres fogatas ya están armadas en las lomas. Dios te lo pague, hijo. Falta lo más difícil. Tengo seis soldados del rey heridos en la capilla. Si el capitán los ve vivos en la Loma del Medio, va a saber que acá no se mata a nadie, y a lo mejor no cruza. Pero son dos carretas, de noche, y en el pueblo las andan buscando. Yo no puedo defenderlas.',
       options: [
         {
           says: 'Yo las llevo, padre. A esos hombres no los toca nadie mientras yo camine al lado.',

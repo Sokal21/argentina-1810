@@ -181,10 +181,17 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
     close();
   };
 
+  const heard = (words: string) => talk.lines.some(line => line.who === 'npc' && line.text === words);
   // What can be said now, where it is chosen: each on a line, also taken by its number.
   const offer = () => {
     if (!script) return;
     const beat = talk.over || ended ? undefined : offered(script, talk.trust, talk.lines, key => talk.took(key), talk.happened);
+    // A moment that has words of its own to bring it up has them said first, the first time it comes up.
+    if (beat?.opens && !heard(beat.opens)) {
+      talk.lines.push({ who: 'npc', text: beat.opens });
+      void speak('npc', beat.opens, true).then(offer);
+      return;
+    }
     options.replaceChildren(...(beat?.options ?? []).map((option, n) => {
       const button = Object.assign(document.createElement('button'), { textContent: option.says });
       button.dataset.n = String(n + 1);
@@ -269,6 +276,9 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
     input.disabled = true;
     return;
   }
-  void speak('npc', last?.text ?? talk.npc.greets, true).then(offer);
+  // A moment that brings itself up is brought up at once, without the last thing said before it.
+  const next = script ? offered(script, talk.trust, talk.lines, key => talk.took(key), talk.happened) : undefined;
+  if (next?.opens && !heard(next.opens)) offer();
+  else void speak('npc', last?.text ?? talk.npc.greets, true).then(offer);
   if (!script) input.focus();
 }

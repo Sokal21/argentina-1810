@@ -37,6 +37,11 @@ export interface Beat {
    * they ask has been taken on. Nobody loses a mission for having answered something else first.
    */
   asks?: string;
+  /**
+   * What they say to bring this moment up (a request made once an errand is done): said before its
+   * options the first time it comes up, not again if it is asked over.
+   */
+  opens?: string;
   options: Option[];
 }
 
