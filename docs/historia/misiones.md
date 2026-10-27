@@ -108,6 +108,9 @@ a medias es llegar con menos.
 
 - **La da:** don Braulio. «Me lo traés. Vivo. Lo demás lo arreglamos acá.»
 - **Tipo:** ir, hablar, escoltar.
+- **Se pierde si:** cuando la pide, Cabral contesta cualquier cosa que no sea
+  sí. Don Braulio corta la charla ahí y no la vuelve a pedir
+  (`rehuso:entregar`).
 - **Pasos:**
   1. Ir a la capilla.
   2. Sacar a Mateo de la sacristía: convencerlo, engañarlo o a la fuerza.

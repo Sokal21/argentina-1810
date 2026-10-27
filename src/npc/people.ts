@@ -71,12 +71,25 @@ export const BRAULIO: Npc = {
     {
       key: 'entregar',
       given: 'dijo:mateo',
-      until: 'acepto:amparar',
+      until: ['acepto:amparar', 'rehuso:entregar'],
       wants: 'encargar_entrega',
       asks: 'Sabés que hay un soldado del rey escondido entre los frailes. Lo querés en el pueblo, vivo: lo demás lo arreglan acá. Se lo pedís a este forastero. SOLO si él acepta con claridad traértelo, poné "encargar_entrega" en "quiere".',
       taken: 'Este forastero quedó en traerte vivo al godo que esconden los frailes.',
       agrees: ['te lo traigo', 'se lo traigo', 'yo te lo traigo', 'lo traigo', 'te lo entrego'],
       note: 'Quedaste con don Braulio en traerle a Mateo, vivo.',
+    },
+    {
+      // Turning him down: he says no more about it, then or after, and the errand is lost.
+      key: 'rehusar',
+      given: 'dijo:mateo',
+      until: ['acepto:amparar', 'acepto:entregar'],
+      happening: 'rehuso:entregar',
+      wants: 'oir_rehuso',
+      asks: 'Si este forastero no quiere traerte al godo, o le busca la vuelta, cortás ahí: no se lo pedís más, se lo va a buscar otro, y poné "oir_rehuso" en "quiere".',
+      taken: 'Este forastero no quiso traerte al godo de la capilla. No se lo volvés a pedir: ya lo van a buscar los muchachos.',
+      agrees: ['no te lo traigo', 'no lo voy a traer', 'búscalo vos', 'buscalo vos'],
+      note: 'No le vas a traer a Mateo: don Braulio no te lo vuelve a pedir.',
+      ends: true,
     },
     {
       key: 'campana',

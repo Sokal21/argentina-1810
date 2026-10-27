@@ -130,6 +130,21 @@ describe('what was written for each of them', () => {
     expect(offered(script, talk.trust, talk.lines, key => talk.took(key))?.asks).toBeUndefined();
   });
 
+  it('lets don Braulio be turned down about the deserter: the talk ends there and he never asks again', async () => {
+    const script = SCRIPTS.braulio;
+    const talk = new Talk(PEOPLE.braulio, 'cabral', scripted(script));
+    const happened = new Set(['dijo:mateo']);
+    talk.happened = h => happened.has(h);
+    const now = () => offered(script, talk.trust, talk.lines, key => talk.took(key), talk.happened);
+    for (let turn = 0; turn < 20 && now()?.id !== 'entregar'; turn++) await talk.say(best(now()!.options).says);
+    expect(now()?.id).toBe('entregar');
+    const turn = await talk.say('Ese hombre le salvó la vida a tu hijo.');
+    expect(turn.agreed.map(e => [e.key, e.happening, e.ends])).toEqual([['rehusar', 'rehuso:entregar', true]]);
+    happened.add('rehuso:entregar');
+    // Not even when there is nothing else left to say.
+    for (let turn = 0; turn < 20 && now(); turn++) { expect(now()!.id).not.toBe('entregar'); await talk.say(best(now()!.options).says); }
+  });
+
   it('has don Braulio wait for the news only once there is news, and takes it when it is told', async () => {
     const script = SCRIPTS.braulio;
     const talk = new Talk(PEOPLE.braulio, 'cabral', scripted(script));

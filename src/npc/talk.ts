@@ -52,7 +52,7 @@ export class Talk {
 
   /** What they have to ask now: whatever of theirs is not waiting on something that has yet to happen. */
   private get asking(): Errand[] {
-    return (this.npc.errands ?? []).filter(e => (!e.given || this.happened(e.given)) && !(e.until && this.happened(e.until)));
+    return (this.npc.errands ?? []).filter(e => (!e.given || this.happened(e.given)) && !(e.until !== undefined && [e.until].flat().some(h => this.happened(h))));
   }
   over = false;
   /** How much of their trust is how their side stands with the hero, as last reckoned. */

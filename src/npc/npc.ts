@@ -50,8 +50,8 @@ export interface Errand {
   key: string;
   /** Something that has to have happened before they can ask it, if anything: news cannot be told before it is known. */
   given?: string;
-  /** And something after which they no longer ask it: nobody is sent to look for a boy who has been found. */
-  until?: string;
+  /** And something after which they no longer ask it (or any of these): nobody is sent to look for a boy who has been found. */
+  until?: string | string[];
   /** What its being taken on is, to the story; `acepto:KEY` if unsaid. */
   happening?: string;
   /** The word the model answers with when the other has just taken it on. */
@@ -66,6 +66,8 @@ export interface Errand {
   agrees?: string[];
   /** Shown to the player when it is taken on. */
   note: string;
+  /** Taking it on ends the talk there: nothing more is offered this time (a request turned down). */
+  ends?: boolean;
 }
 
 export interface Favour {

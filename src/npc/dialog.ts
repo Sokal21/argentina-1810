@@ -184,7 +184,7 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
   // What can be said now, where it is chosen: each on a line, also taken by its number.
   const offer = () => {
     if (!script) return;
-    const beat = talk.over ? undefined : offered(script, talk.trust, talk.lines, key => talk.took(key), talk.happened);
+    const beat = talk.over || ended ? undefined : offered(script, talk.trust, talk.lines, key => talk.took(key), talk.happened);
     options.replaceChildren(...(beat?.options ?? []).map((option, n) => {
       const button = Object.assign(document.createElement('button'), { textContent: option.says });
       button.dataset.n = String(n + 1);
@@ -199,12 +199,14 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
   };
 
   let busy = false;
+  // A request turned down ends the talk there, this time.
+  let ended = false;
   const submit = (e: Event) => {
     e.preventDefault();
     void tell(input.value.trim());
   };
   const tell = async (said: string) => {
-    if (!said || busy || talk.over) return;
+    if (!said || busy || talk.over || ended) return;
     busy = true;
     input.value = '';
     input.disabled = true;
@@ -226,6 +228,7 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
       for (const errand of turn.agreed) {
         effects.agreed?.(errand.key, errand.happening);
         note.textContent = errand.note;
+        if (errand.ends) ended = true;
       }
       if (turn.over) { note.textContent = `${talk.npc.name} no quiere saber más nada con vos.`; effects.closed?.(); }
     } catch (error) {
@@ -235,8 +238,8 @@ export function openDialog(game: Phaser.Game, hero: Hero, npc: Npc, effects: Eff
       console.error(error);
     }
     busy = false;
-    input.disabled = talk.over;
-    if (!talk.over && !script) input.focus();
+    input.disabled = talk.over || ended;
+    if (!input.disabled && !script) input.focus();
     offer();
   };
 

@@ -75,7 +75,7 @@ export const BRAULIO: Script = {
     {
       id: 'entregar',
       given: 'dijo:mateo',
-      until: 'acepto:amparar',
+      until: ['acepto:amparar', 'rehuso:entregar'],
       after: ['saludo'],
       asks: 'entregar',
       options: [
@@ -85,15 +85,18 @@ export const BRAULIO: Script = {
           animo: 1,
           quiere: 'encargar_entrega',
         },
+        // Anything but yes is a no: he does not ask twice, and sends others for him.
         {
           says: '¿Y qué le van a hacer?',
-          answer: 'Lo que se le hace a un godo en un pueblo que enterró a los suyos. No preguntes lo que ya sabés.',
+          answer: 'Lo que se le hace a un godo en un pueblo que enterró a los suyos. Si tenés que preguntarlo, no sos el que lo va a traer. Ya irán los muchachos.',
           animo: 0,
+          quiere: 'oir_rehuso',
         },
         {
           says: 'Ese hombre le salvó la vida a tu hijo.',
-          answer: 'Y los suyos casi se la quitan. Una cosa no paga la otra.',
+          answer: 'Y los suyos casi se la quitan. Una cosa no paga la otra. Está bien: no te lo pido más. Ya irán los muchachos.',
           animo: -1,
+          quiere: 'oir_rehuso',
         },
       ],
     },
