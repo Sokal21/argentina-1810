@@ -195,7 +195,8 @@ export const vadoDeLasVizcachas: WorldMap = {
         // Its candles: light without a hearth.
         fires: [[200, 97, 0, 0]], light: 200,
       } },
-    // Beside the chapel, a little apart, where the bell can be lowered onto a cart in front of it.
-    { name: 'El campanario', plot: [121, 20], wide: 30, deep: 22, tall: 96, colour: 0x7a5b3c, sprite: 'edificios/campanario.png', base: [[0, 283], [87, 312], [162, 299], [75, 270]] },
+    // Beside the chapel, a little apart, where the bell can be lowered onto a cart in front of it. Its
+    // base is its 3D model's (buildings.ts), stone and eaves, not its drawing's, which let Cabral into the stone.
+    { name: 'El campanario', plot: [121, 20], wide: 30, deep: 22, tall: 96, colour: 0x7a5b3c, sprite: 'edificios/campanario.png', base: [[-1, 271], [41, 332], [163, 311], [121, 250]] },
   ],
 };
