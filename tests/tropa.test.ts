@@ -218,8 +218,9 @@ describe('fire on the ground', () => {
     expect(b.mode).toBe('blow');
   });
 
-  it('hurts a sergeant less than half as much as others', () => {
-    expect(KINDS.sargento.fire).toBeLessThan(0.5);
+  it('hurts a sergeant and the captain a fifth as much as others', () => {
+    expect(KINDS.sargento.fire).toBe(0.2);
+    expect(KINDS.capitan.fire).toBe(0.2);
     expect((KINDS.sableador as { fire?: number }).fire).toBeUndefined();
   });
 });

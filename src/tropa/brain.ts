@@ -71,8 +71,8 @@ export const KINDS = {
   // His blow is a heavy two-handed one (tools/blender/anims/golpe_pesado.py): long in the coming, to be
   // dodged; it sweeps across before him from his right, its head passing 100 to 110 from him (measured
   // on the model: its reach), and takes twice what any other blow or ball takes.
-  // Fire does him less than half what it does others: one grenade all but killed him (the user, 26/10/2026).
-  sargento: { id: 'sargento', name: 'Sargento', life: 8, girth: 11, pace: 30, sight: 320, fire: 0.4, blow: { near: 95, time: 1.3, hit: 0.5, reach: 110, rest: 0.8, damage: 2 }, rally: { every: 9, time: 2.0, reach: 260, lasts: 5 }, worth: 20, spoils: 12 },
+  // Fire does him a fifth of what it does others: one grenade all but killed him (the user, 26/10/2026).
+  sargento: { id: 'sargento', name: 'Sargento', life: 8, girth: 11, pace: 30, sight: 320, fire: 0.2, blow: { near: 95, time: 1.3, hit: 0.5, reach: 110, rest: 0.8, damage: 2 }, rally: { every: 9, time: 2.0, reach: 260, lasts: 5 }, worth: 20, spoils: 12 },
   // Whoever commands the column, and the hardest of them to bring down: a pistol from afar, a long
   // thrust up close, a lunge from between the two, a shout that quickens his men as the sergeant's
   // does, and more of his men called up now and again, his sabre raised; no blow moves him, his ball
@@ -84,7 +84,8 @@ export const KINDS = {
     blow: { near: 52, time: 1.0, hit: 0.4, reach: 60, rest: 0.5, damage: 2 },
     lunge: { from: 90, to: 220, charge: 0.6, dash: 170, hit: 0.95, reach: 60, time: 1.95, every: 5 },
     rally: { every: 12, time: 2.0, reach: 260, lasts: 5 }, call: { first: 8, every: 18, time: 2.0, at: 0.6, many: 2, most: 4 },
-    fury: 1.5, worth: 80, spoils: 60,
+    // Fire does him a fifth of what it does others, as it does the sergeant (the user, 26/10/2026).
+    fire: 0.2, fury: 1.5, worth: 80, spoils: 60,
   },
 } satisfies Record<string, Kind>;
 export type KindName = keyof typeof KINDS;
