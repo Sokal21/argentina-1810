@@ -228,6 +228,8 @@ class Figure {
     // (first seen so, or seen again), he is lying there, his blood spread.
     if (mode === 'dying' && afresh) this.blood.splash(this.id, ground(x, y, DRAWN * 0.62 * UPRIGHT));
     if (mode === 'dying' && afresh && this.look?.kneels) this.flung.throw(this.body);
+    // One with a bayonet has his rifle in his fists as he falls, and lets it fly as the rifleman does.
+    if (mode === 'dying' && afresh && this.body.getObjectByName('fusil_bayoneta')) this.flung.throw(this.body, 'fusil_bayoneta');
     if (alive(mode) || this.buried) this.flung.back();
     this.flung.update(dt);
     if (mode === 'gone' && afresh && this.modeWas !== 'dying') m.hold('muerte', 1);
@@ -300,7 +302,7 @@ class Figure {
     const inHand = this.look?.kneels ? true : mode === 'aim' ? t >= DRAW * DRAWN_AT : this.fired !== null && this.fired < SHOT * SLUNG;
     const back = this.body.getObjectByName('mosquete'), hand = this.body.getObjectByName('mosquete_mano'), sabre = this.body.getObjectByName('sable');
     // One with a bayonet thrusts with his rifle in both fists, a rifle of its own.
-    const fixed = this.body.getObjectByName('fusil_bayoneta'), stabbing = !!fixed && mode === 'blow';
+    const fixed = this.body.getObjectByName('fusil_bayoneta'), stabbing = !!fixed && (mode === 'blow' || !alive(mode));
     if (back) back.visible = !inHand && !stabbing;
     if (hand) hand.visible = inHand;
     if (fixed) fixed.visible = stabbing;
