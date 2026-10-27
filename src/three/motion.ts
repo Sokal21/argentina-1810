@@ -5,7 +5,11 @@ import * as THREE from 'three';
 /** Seconds one clip takes to blend into the next. */
 const BLEND = 0.15;
 /** Points a clip is looked at in, to measure its stride. */
-const SAMPLES = 48;
+const SAMPLES = 48;/**
+ * The bones of the legs (Tripo's rig), which a clip of walking or running can be laid over another with;
+ * how far over it they are laid (the mixer averages by weight: this many to one); how fast they come and go.
+ */
+const LEGS = /^(Pelvis|[LR]_(Thigh|Calf|Foot|ToeBase)\w*)$/, LEG_WEIGHT = 20, LEG_EASE = 10;
 
 export interface Play {
   /** Played once and held on its last frame, rather than looped. */
@@ -25,6 +29,8 @@ export class Motion {
   private readonly clips = new Map<string, THREE.AnimationClip>();
   private playing: THREE.AnimationAction | null = null;
   private name = '';
+  /** A clip's legs laid over what is playing, and how far over it they are now and are to be. */
+  private feet: { action: THREE.AnimationAction; weight: number; want: number } | null = null;
 
   constructor(private readonly body: THREE.Object3D) {
     this.mixer = new THREE.AnimationMixer(body);
@@ -120,12 +126,38 @@ export class Motion {
     if (this.name === name && this.playing && clip) this.playing.time = Math.max(0, Math.min(1, share)) * clip.duration;
   }
 
+  /**
+   * Lays the legs of a clip of walking or running over whatever is playing, at a pace (a blow struck
+   * while he keeps after her: the blow above, his feet running under it), or takes them off (null).
+   */
+  legs(name: string | null, pace = 1): void {
+    if (!name) { if (this.feet) this.feet.want = 0; return; }
+    const clip = this.clips.get(name);
+    if (!clip) return;
+    const legs = `${name}:piernas`;
+    if (!this.clips.has(legs)) this.clips.set(legs, new THREE.AnimationClip(legs, clip.duration, clip.tracks.filter(t => LEGS.test(t.name.split('.')[0]))));
+    const action = this.mixer.clipAction(this.clips.get(legs)!);
+    if (this.feet?.action !== action) {
+      this.feet?.action.stop();
+      action.reset().setEffectiveWeight(0).play();
+      this.feet = { action, weight: 0, want: LEG_WEIGHT };
+    }
+    this.feet.want = LEG_WEIGHT;
+    action.timeScale = pace;
+  }
+
   /** Moves the clip playing on by so many seconds: two of one kind side by side, not in step. */
   shift(seconds: number): void {
     if (this.playing) this.playing.time = (this.playing.time + seconds) % this.playing.getClip().duration;
   }
 
   update(dt: number): void {
+    const feet = this.feet;
+    if (feet) {
+      feet.weight += (feet.want - feet.weight) * Math.min(1, dt * LEG_EASE);
+      if (feet.want === 0 && feet.weight < 0.05) { feet.action.stop(); this.feet = null; }
+      else feet.action.setEffectiveWeight(feet.weight);
+    }
     this.mixer.update(dt);
   }
 }

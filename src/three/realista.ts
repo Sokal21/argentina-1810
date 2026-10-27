@@ -237,6 +237,9 @@ class Figure {
     if (alive(mode) && !alive(this.modeWas ?? 'stand')) { this.blood.clear(this.id); this.buried = false; }
     if (mode === 'aim') this.down = true;
     else if (mode === 'walk') this.down = false;
+    // Keeping after her as he swings, his feet run under his blow rather than slide.
+    if (mode === 'blow' && this.look?.run && this.going > 20) m.legs(this.look.run, this.runReach ? Math.max(0.35, this.going / this.runReach) : 1);
+    else m.legs(null);
     if (mode === 'dying') m.play('muerte', { once: true, afresh, blend: 0.08 });
     else if (mode === 'gone') m.play('muerte', { once: true });
     else if (this.look?.kneels && this.down) {
