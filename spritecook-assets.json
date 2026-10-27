@@ -2748,6 +2748,16 @@
       "asset_id": "b7c7d65a-c2f9-425c-b8df-e35de071583e",
       "label": "frontier line soldier (1879) concept, soldado_c",
       "file": "assets/frontera/concept/soldado_c.png"
+    },
+    {
+      "asset_id": "75040737-a097-4bdd-8124-3f95dec860d3",
+      "label": "frontier soldier HD turnaround for Tripo, giro_a (from concept soldado_a)",
+      "file": "assets/frontera/3d/giro_a.png"
+    },
+    {
+      "asset_id": "e3273a09-30ba-4870-bab1-435356351640",
+      "label": "frontier soldier HD turnaround for Tripo, giro_b (from concept soldado_a)",
+      "file": "assets/frontera/3d/giro_b.png"
     }
   ]
 }

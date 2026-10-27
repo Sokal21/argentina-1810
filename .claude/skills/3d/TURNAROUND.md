@@ -4,6 +4,13 @@ The picture a 3D model is generated from. The game's sprites are 82 px, far too 
 generator would invent half the character. So first one HD sheet of the character in four views.
 Approved for Cabral on 17 October 2026 (sheet C, `assets/cabral/3d/giro_c.png`).
 
+## A new character's concept
+
+Made in HD from the start (`pixel: false`, as the sheet below), not as a pixel sprite: the game is
+3D, and a pixel concept only has to be redrawn in HD for the sheet (the user, 27 October 2026, with
+the frontier soldier). Three variations, the existing characters as style for its proportions, shown
+beside them to choose.
+
 ## Generating it
 `generate_game_art`, one call, two variations (48 credits):
 - `model: gemini-3-pro-image`, `pixel: false`, `aspect_ratio: 16:9`, `resolution: 2K`,
