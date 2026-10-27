@@ -9,7 +9,7 @@ export const STRIKE = {
   cost: 35,
   cooldown: 4,
   range: 240,   // how far from her the patch can be, along the ground (160 until the user asked for half as far again)
-  radius: 45,   // of the patch
+  radius: 68,   // of the patch (45 until the user asked for it half as wide again, 27/10/2026)
   delay: 0.8,   // seconds between marking it and the bolt
   damage: 2,
 };
