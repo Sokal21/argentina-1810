@@ -2,12 +2,12 @@ import { ISO_Y } from './data';
 import type { Vec } from './controller';
 
 export const MANA = 100;
-export const REGEN = 3;   // mana back per second (6 until the user found it came back too fast)
+export const REGEN = 4;   // mana back per second (6 until the user found it came back too fast; 3 too slow, 27/10/2026)
 
 /** Lightning called down on a patch of ground, a moment after it is marked. */
 export const STRIKE = {
   cost: 35,
-  cooldown: 4,
+  cooldown: 3,  // seconds (4 until the user asked for it a little shorter, 27/10/2026)
   range: 240,   // how far from her the patch can be, along the ground (160 until the user asked for half as far again)
   radius: 68,   // of the patch (45 until the user asked for it half as wide again, 27/10/2026)
   delay: 0.8,   // seconds between marking it and the bolt
