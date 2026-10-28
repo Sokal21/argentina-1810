@@ -8,6 +8,8 @@ import { Spirit } from './spirit';
 import { Stench } from './stench';
 import { RISE, Rising } from './rising';
 import { Vomit } from './vomit';
+import { Shots } from './shot';
+import { SHOT as BALLS } from '../bolts';
 import { CABRAL_DRESS, model } from './figure';
 import { Fling } from './fling';
 import { Motion } from './motion';
@@ -25,7 +27,7 @@ import { UPRIGHT } from './space';
 // kinds of the king's men with a model of their own, whoever keeps a house), and a model's clips are
 // read off its file, so a new character or a new clip is here as soon as the game has it.
 
-interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge']; dives?: boolean; stench?: boolean; vomits?: boolean }
+interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge']; dives?: boolean; stench?: boolean; vomits?: boolean; revolver?: boolean }
 
 /** The kinds of the king's men, named as the game names them. */
 const KIND_NAMES: Record<string, string> = { sargento: 'Sargento', capitan: 'El capitán', sableador: 'Sableador', tirador: 'Tirador', frontera: 'Soldado de frontera' };
@@ -54,7 +56,7 @@ const WHO: Who[] = [
   // 2026): the captain's clips on him (Mixamo's captures again, as tools/mocap/README.md has them), his
   // sabre in his right hand, his revolver in his left; his slash, Mixamo's Sword And Shield Slash; his
   // signal to his battery keyed by hand (anims/senal.py). A head over the captain. Not in the game yet.
-  { name: 'Roca', url: 'roca/3d/roca_animado.glb', drawn: 100, pistol: true },
+  { name: 'Roca', url: 'roca/3d/roca_animado.glb', drawn: 100, pistol: true, revolver: true },
   { name: 'Buey', url: 'cosas/3d/buey/buey_animado.glb', drawn: 72 },
   // Inti's nahuel: Quaternius's wolf (CC0) in the slate blue of her spirit, its eyes her spells' cyan; its
   // own clips. A puma of ours was tried on the wolf's and the sabre-tooth's skeletons and keyed by hand
@@ -122,6 +124,15 @@ const risings = new Map<Who, Rising>();
 /** His retching, played on his scream (three/vomit.ts): the spray and the pool it leaves, in its cone. */
 const RETCH = 'vomitar';
 const vomits = new Map<Who, Vomit>();
+/**
+ * Roca's burst (his fight's second phase, docs/historia/inti/README.md): his shot played, and as it
+ * goes off his revolver fanned across a cone before him, `shots` balls `apart` seconds apart, from
+ * one side of `cone` (degrees) to the other; each a ball as the royalists' are (three/shot.ts).
+ */
+const BURST = 'rafaga', FAN = { shots: 5, apart: 0.09, cone: 50, at: 14 / 49 };
+/** Where his revolver's muzzle is, in its own units (props.py's REVOLVER_MUZZLE). */
+const REVOLVER_MUZZLE = new THREE.Vector3(0.21, 0, 0.042);
+
 /** The clips a character stands and walks with, listed first. */
 const FIRST = ['reposo_mixamo', 'caminata_mixamo', 'caminata_atras'];
 /** How fast the cart goes in the gallery, world units a second (the 2D game's carts go 40 to 46). */
@@ -142,6 +153,8 @@ floor.receiveShadow = true;
 view.scene.add(floor);
 view.follow(new THREE.Vector3(0, 30, 0));
 
+const balls = new Shots(view.camera, () => null, () => {}, false, BALLS);
+view.scene.add(balls.group);
 const spirits: Spirit[] = [];
 const stenches: Stench[] = [];
 const loaded = new Map<Who, { body: THREE.Group; motion: Motion; clips: string[]; flung: Fling; home: number }>();
@@ -205,6 +218,7 @@ function length(name: string): number {
   const t = w ? timing(w, name) : undefined;
   if (t?.lasts) return t.lasts;
   if (name === LUNGE) return shown.find(x => x.lunge)?.lunge?.time ?? 2;
+  if (name === BURST) return 2.2;
   if (name === RETCH) return Math.max(...shown.map(x => vomits.get(x)?.lasts ?? 0), 0);
   if (name === RISEN) return Math.max(...shown.map(x => risings.get(x)?.lasts ?? 0), 0);
   for (const w of shown) { const it = loaded.get(w); if (it?.motion.has(name)) return it.motion.seconds(name); }
@@ -219,10 +233,10 @@ async function show(list: Who[]): Promise<void> {
   all.forEach((it, i) => { it.body.position.x = it.home = (i - (all.length - 1) / 2) * APART; view.scene.add(it.body); });
   // Their clips: with several, those any of them has (each one lacking a clip stands as he is).
   const names = [...new Set([...all.flatMap(it => it.clips), ...(list.some(w => w.lunge) ? [LUNGE] : []), ...(list.some(w => w.dives) ? [DIVE, BITE, DOWNED] : []),
-    ...(all.some(it => it.motion.has('mosquete_descolgar')) ? [SLUNG_AGAIN] : []), ...(all.some(it => it.motion.has('levantarse')) ? [RISEN] : []), ...(list.some(w => w.vomits) ? [RETCH] : [])])];
+    ...(all.some(it => it.motion.has('mosquete_descolgar')) ? [SLUNG_AGAIN] : []), ...(all.some(it => it.motion.has('levantarse')) ? [RISEN] : []), ...(list.some(w => w.vomits) ? [RETCH] : []), ...(list.some(w => w.revolver) ? [BURST] : [])])];
   if (!names.includes(clip)) clip = names[0] ?? 'reposo_mixamo';
   clipsBar.replaceChildren();
-  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE || n === DOWNED || n === SLUNG_AGAIN || n === RISEN || n === RETCH;
+  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE || n === DOWNED || n === SLUNG_AGAIN || n === RISEN || n === RETCH || n === BURST;
   const ordered = [...names.filter(playing), ...names.filter(n => !playing(n))];
   for (const name of ordered) {
     const b = button(clipsBar, name, () => { play(name); for (const x of clipsBar.children) x.classList.toggle('on', x === b); });
@@ -253,6 +267,7 @@ function play(name: string): void {
     if ((name === DIVE || name === BITE || name === DOWNED) && w.dives) { hunt(it.body, name === BITE, name === DOWNED); continue; }
     if (name === SLUNG_AGAIN && it.motion.has('mosquete_descolgar')) { slungAgain(it.motion, 0, true); continue; }
     if (name === RISEN && it.motion.has('levantarse')) { rise(w, it.body, it.motion); continue; }
+    if (name === BURST && w.revolver) { it.motion.play('tiro', { once: true, afresh: true, blend: 0.12 }); continue; }
     if (name === RETCH && w.vomits) {
       let vomit = vomits.get(w);
       if (!vomit) { vomit = new Vomit(it.body, w.drawn * UPRIGHT); vomits.set(w, vomit); view.scene.add(vomit.group); }
@@ -296,6 +311,21 @@ function risen(w: Who, body: THREE.Object3D, motion: Motion, into: number): void
   if (into < RISE.warn + up) motion.play('levantarse', { once: true, blend: 0 });
   else if (into < RISE.warn + up + SCREAM) motion.play('grito', { once: true, lasts: SCREAM, blend: 0.15 });
   else motion.play('reposo', { blend: 0.25 });
+}
+
+/** His revolver fanned across the cone as his shot goes off: each ball as its moment comes. */
+function fan(body: THREE.Object3D, motion: Motion, into: number, dt: number): void {
+  const first = FAN.at * motion.seconds('tiro');
+  for (let i = 0; i < FAN.shots; i++) {
+    const at = first + i * FAN.apart;
+    if (!(into - dt < at && into >= at)) continue;
+    const gun = body.getObjectByName('pistola');
+    if (!gun) return;
+    body.updateMatrixWorld(true);
+    const muzzle = REVOLVER_MUZZLE.clone().applyMatrix4(gun.matrixWorld);
+    const angle = turn + THREE.MathUtils.degToRad(-FAN.cone / 2 + FAN.cone * i / (FAN.shots - 1));
+    balls.fire(muzzle, new THREE.Vector3(Math.sin(angle), 0, Math.cos(angle)));
+  }
 }
 
 /** What each carries, shown as the game shows it for the clip: which musket, the sabre, the grenade. */
@@ -459,6 +489,7 @@ view.renderer.setAnimationLoop(() => {
     if (!it) continue;
     if (clip === SLUNG_AGAIN && it.motion.has('mosquete_descolgar')) slungAgain(it.motion, into);
     if (clip === RISEN) { risings.get(w)?.update(dt); risen(w, it.body, it.motion, into); }
+    if (clip === BURST && w.revolver) fan(it.body, it.motion, into, dt);
     if (clip === RETCH && w.vomits) { vomits.get(w)?.update(dt); if (into > SCREAM) it.motion.play('reposo', { blend: 0.25 }); }
     it.motion.update(dt);
     it.flung.update(dt);
@@ -468,6 +499,7 @@ view.renderer.setAnimationLoop(() => {
   step(dt);
   for (const s of spirits) s.update(dt);
   for (const s of stenches) s.update(dt);
+  balls.update(dt);
   told.textContent = `${shown.length > 1 ? 'Todos' : shown[0]?.name ?? ''} — ${clip}${paused ? ' (pausa)' : ''}`;
   view.draw();
 });
