@@ -174,6 +174,17 @@ describe("Roca's spotter", () => {
     expect(KINDS.observador.pace).toBeGreaterThan(115);
   });
 
+  it('does not stick against the edge as she comes at him: he gets away along it', () => {
+    const b = brain('observador');
+    // Ground only within 400 of the middle; he stands at its edge, she comes at him from the middle.
+    b.ground = (x, y) => Math.hypot(x, y / 0.5) < 400;
+    b.x = 380;
+    const her = { x: 240, y: 0 };
+    const start = { x: b.x, y: b.y };
+    run(b, her, 1.5);
+    expect(Math.hypot(b.x - start.x, b.y - start.y)).toBeGreaterThan(80);
+  });
+
   it('stops now and then to call a salvo down where she stands, scattered and concentrated in turn', () => {
     const b = brain('observador');
     const salvoes: { kind: string; x: number; y: number }[] = [];

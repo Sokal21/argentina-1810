@@ -19,7 +19,7 @@ export const HEAL = {
   cost: 45,
   cooldown: 8,
   time: 1,      // seconds she stands rooted
-  amount: 1,    // of her life (2 until the user found it healed too much)
+  amount: 2,    // of her life (2, then 1 when the user found it healed too much; 2 again, 28/10/2026: too little)
 };
 
 export type Ability = 'strike' | 'heal';

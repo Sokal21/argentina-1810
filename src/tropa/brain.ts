@@ -405,13 +405,21 @@ export class TroopBrain {
     if (sg && this.signalling <= 0 && far > f.keep * 0.5) { this.enter('signal'); this.done = false; return NOTHING; }
     let way: Vec;
     if (far < f.keep) {
-      way = { x: -to.x / (far || 1), y: -to.y / (far || 1) };
+      // Away from her, by whichever way is open: straight off from her ran him into the edge, where he
+      // stuck (the user, 28/10/2026). Of the ways round him clear for a good few steps, the one that
+      // takes him furthest from her; round her, if she has him against the edge.
+      way = this.openWay(to) ?? { x: -to.x / (far || 1), y: -to.y / (far || 1) };
       this.bound = null;
     } else {
-      // A spot about, away from her side: chosen afresh now and then, or once reached.
+      // A spot about, away from her side, on ground he can walk: chosen afresh now and then, or once reached.
       if (!this.bound || this.bounding <= 0 || Math.hypot(this.bound.x - this.x, (this.bound.y - this.y) / ISO_Y) < 20) {
-        const a = Math.atan2(-to.y, -to.x) + (this.rnd() - 0.5) * 2.4, d = 120 + this.rnd() * 160;
-        this.bound = { x: this.x + Math.cos(a) * d, y: this.y + Math.sin(a) * d * ISO_Y };
+        this.bound = null;
+        for (let tries = 0; tries < 10 && !this.bound; tries++) {
+          const a = Math.atan2(-to.y, -to.x) + (this.rnd() - 0.5) * (2.4 + tries * 0.4), d = 120 + this.rnd() * 160;
+          const spot = { x: this.x + Math.cos(a) * d, y: this.y + Math.sin(a) * d * ISO_Y };
+          if (this.clearTo({ x: Math.cos(a), y: Math.sin(a) }, d)) this.bound = spot;
+        }
+        this.bound ??= { x: this.x - to.x * 0.5, y: this.y - to.y * 0.5 * ISO_Y };
         this.bounding = f.wander;
       }
       const bx = this.bound.x - this.x, by = (this.bound.y - this.y) / ISO_Y, len = Math.hypot(bx, by) || 1;
@@ -419,16 +427,50 @@ export class TroopBrain {
     }
     const x0 = this.x, y0 = this.y;
     this.move(way.x * k.pace * dt, way.y * k.pace * dt);
-    // Kept from where he would go by the edge: along it, then, the way that is further from her.
-    if (Math.hypot(this.x - x0, this.y - y0) < k.pace * dt * 0.3) {
-      const side = { x: -way.y, y: way.x }, sign = side.x * to.x + side.y * to.y > 0 ? -1 : 1;
-      this.move(side.x * sign * k.pace * dt, side.y * sign * k.pace * dt);
-      this.bound = null;
-    }
+    // Kept from where he would go by the edge all the same: another way, next step.
+    if (Math.hypot(this.x - x0, this.y - y0) < k.pace * dt * 0.3) this.bound = null;
     this.look(Math.hypot(this.x - x0, this.y - y0) > 0.01 ? { x: this.x - x0, y: (this.y - y0) / ISO_Y } : to);
     this.enter('walk');
     return NOTHING;
   }
+
+  /** How far ahead along a way the ground is looked at, to tell whether it is open. */
+  private static readonly LOOK = 90;
+
+  /** Whether the ground is walkable along a way (along the ground, not foreshortened) for so far. */
+  private clearTo(way: Vec, far: number): boolean {
+    const on = this.ground;
+    if (!on) return true;
+    for (let d = 20; d < far + 20; d += 20) {
+      const at = Math.min(d, far);
+      if (!on(this.x + way.x * at, this.y + way.y * at * ISO_Y)) return false;
+    }
+    return true;
+  }
+
+  /**
+   * The open way that takes him furthest from her (`to`, her offset along the ground), of sixteen
+   * round him: one clear for LOOK, scored by how far from her its end is. None open: null.
+   */
+  private openWay(to: Vec): Vec | null {
+    const from = (way: Vec) => Math.hypot(to.x - way.x * TroopBrain.LOOK, to.y - way.y * TroopBrain.LOOK);
+    const open: Vec[] = [];
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2, way = { x: Math.cos(a), y: Math.sin(a) };
+      if (this.clearTo(way, TroopBrain.LOOK)) open.push(way);
+    }
+    if (!open.length) return null;
+    const most = Math.max(...open.map(from));
+    // Of those nearly as good as the best, the one nearest the way he took: two as good as each
+    // other, he turned from one to the other every step and stood shaking where he was; this way he
+    // keeps on, turning as the edge turns him.
+    const good = open.filter(way => from(way) >= most * 0.8), kept = this.fled;
+    const best = kept ? good.reduce((a, b) => (b.x * kept.x + b.y * kept.y > a.x * kept.x + a.y * kept.y ? b : a)) : good.reduce((a, b) => (from(b) > from(a) ? b : a));
+    this.fled = best;
+    return best;
+  }
+  /** The way he last fled by. */
+  private fled: Vec | null = null;
 
   /** Struck by something travelling along (dx, dy) on screen. */
   hit(dx: number, dy: number, amount = 1): void {
