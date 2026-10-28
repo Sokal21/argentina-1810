@@ -12,6 +12,7 @@ diseñar a alguien que conviva con ellos.
 | **Chonchón** | Cabeza voladora de un kalku. Enemigo | [chonchon.md](chonchon.md) |
 | **Soldado realista** | Infante español. Enemigo: dispara de lejos, sable de cerca | [realista.md](realista.md) |
 | **La tropa realista** | Sableador, tirador, sargento y capitán. Enemigos | [tropa.md](tropa.md) |
+| **El apestado** | Soldado de frontera muerto de peste y levantado. Tanque del arco de Inti: sale de la tierra, vomita un charco que frena | [apestado.md](apestado.md) |
 
 La historia de Cabral, con su gente, sus misiones y su mapa, está en
 [`docs/historia/`](../historia/).
