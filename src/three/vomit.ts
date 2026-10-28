@@ -19,7 +19,7 @@ const POOL = { body: '#4f6420', splash: '#728f2a', bright: '#a3cf3c', thick: 0.8
 
 interface Drop { sprite: THREE.Sprite; v: THREE.Vector3 }
 
-/** The pool's picture: the cone from its apex at the bottom middle, blotched, ragged at its edges, thinning outward. */
+/** The pool's picture: the cone from its apex at the top middle (laid flat, that is the end at his feet), blotched, ragged at its edges, thinning outward. */
 let pooled: THREE.Texture | null = null;
 function poolPicture(): THREE.Texture {
   if (pooled) return pooled;
@@ -37,7 +37,7 @@ function poolPicture(): THREE.Texture {
       const r = (big[0] + rnd() * (big[1] - big[0])) * (0.6 + 0.6 * d);
       g.globalAlpha = alpha * (1 - 0.45 * d);
       g.beginPath();
-      g.arc(size / 2 + Math.sin(a) * d * size * 0.92, size - 4 - Math.cos(a) * d * size * 0.92, r, 0, Math.PI * 2);
+      g.arc(size / 2 + Math.sin(a) * d * size * 0.92, 4 + Math.cos(a) * d * size * 0.92, r, 0, Math.PI * 2);
       g.fill();
     }
   };
@@ -64,7 +64,7 @@ export class Vomit {
     const reach = tall * VOMIT.reach;
     const material = flat('#ffffff');
     Object.assign(material, { map: poolPicture(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
-    // A square the cone's reach on a side, its apex at the bottom middle of its picture, laid flat
+    // A square the cone's reach on a side, its apex at the top middle of its picture, laid flat
     // with that apex at the pivot and the cone along +Z.
     this.pool = new THREE.Mesh(new THREE.PlaneGeometry(reach, reach).rotateX(-Math.PI / 2).translate(0, 0, reach / 2), material);
     this.pool.receiveShadow = true;
