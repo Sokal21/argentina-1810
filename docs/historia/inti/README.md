@@ -58,8 +58,8 @@ Si morís → Küyen te devuelve al pueblo, todo de cero
 
 - **Tres mejoras por recorrido:** al matar al primer jefe, a mitad del segundo tramo y antes de
   entrar al jefe final.
-- **Las mejoras te las da siempre un mapuche que te ayuda** (por ahora el mismo en los dos caminos).
-  Su nombre está por definir.
+- **Las mejoras te las da siempre Ayelén** («alegría»), una mujer mapuche que te ayuda, por ahora la
+  misma en los dos caminos. Elegido por el usuario: un nombre mapuche muy usado hoy.
 - **Las habitaciones son escenarios fijos que se repiten con enemigos al azar**, y la cantidad de
   cada tramo también sale al azar dentro de lo dicho. Algunos lugares se hacen más estrechos (un
   apestado tapando el paso, un charco que cubre todo el ancho).
@@ -74,7 +74,7 @@ juego lo gasta al azar entre los enemigos que tocan.
 ## Las recompensas (a pensar mejor)
 
 Al estilo de Hades: te ofrecen elegir entre algunas cosas, que van alternando. Por ahora son tres por
-recorrido (ver arriba) y te las da el mapuche que te ayuda. Lo dicho hasta ahora:
+recorrido (ver arriba) y te las da Ayelén. Lo dicho hasta ahora:
 una curación, maná, un arma. **Propuesta**, para ordenar ideas:
 
 - **Lo inmediato:** curación, maná lleno, más vida máxima por lo que queda del recorrido.
@@ -123,8 +123,7 @@ por pensar), y el Wekufe, una pelea pura. **Los dos jefes intermedios están por
 ## Lo que falta decidir
 
 1. Los dos jefes intermedios: uno del camino del capitán y uno del camino del demonio.
-2. El nombre del mapuche que te ayuda y te da las mejoras.
-3. El próximo enemigo (baqueano, lancero o artilleros).
-4. Las recompensas: cuáles, cuántas por vez y cómo se eligen.
-5. Las habitaciones: cuántas, cómo son y cómo se pasa de una a la siguiente.
-6. Las caras humanas del jefe y de la señora.
+2. El próximo enemigo (baqueano, lancero o artilleros).
+3. Las recompensas: cuáles, cuántas por vez y cómo se eligen.
+4. Las habitaciones: cuántas, cómo son y cómo se pasa de una a la siguiente.
+5. Las caras humanas del jefe y de la señora.
