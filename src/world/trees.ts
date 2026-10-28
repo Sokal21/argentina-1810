@@ -14,6 +14,7 @@ export const DEPTH = 5;
 const WALLED = [1, 0.85, 0.7, 0.6, 0.5]; // chance of a tree in a plot of the wall, by how far in it is
 const TWICE = 0.5;               // chance of a second tree in the plots right at the edge
 const SCATTERED = 0.12;          // chance of a tree in a plot of a zone that is not safe
+const OPEN_SOUTH = 4;            // plots south of a clearing left bare, between it and the camera
 
 export interface Tree {
   /** The foot of its trunk, in world pixels. */
@@ -69,8 +70,21 @@ export function plantTrees(map: WorldMap, kinds: number, seed = 1): Tree[] {
       flipped: chance(col, row, s + 3) < 0.5,
     });
   };
+  // Round a clearing the monte stands back a plot, so its crowns do not close over it; and south of it,
+  // between it and the camera, it is left bare a few plots deep, or its trees stand before the clearing
+  // and hide it (the user found it full of trees, 28/10/2026).
+  const open = (col: number, row: number) => {
+    const letter = letterAt(map, col, row);
+    return letter !== undefined && !!map.zones[letter].open;
+  };
+  const byOpen = (col: number, row: number) => {
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (open(col + dc, row + dr)) return true;
+    for (let up = 1; up <= OPEN_SOUTH; up++) for (let dc = -1; dc <= 1; dc++) if (open(col + dc, row - up)) return true;
+    return false;
+  };
   map.plots.forEach((line, row) => [...line].forEach((letter, col) => {
     const d = far[row][col];
+    if (d > 0 && byOpen(col, row)) return;
     if (d === 0) {
       if (!map.zones[letter].safe && !map.zones[letter].open && chance(col, row, seed + 4) < SCATTERED) plant(col, row, STANDING, 0);
     } else if (d <= DEPTH) {

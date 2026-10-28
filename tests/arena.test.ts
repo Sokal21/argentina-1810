@@ -18,8 +18,17 @@ test('it is round and no wider than its reach either way, with nothing in it', (
   expect(letterAt(map, ...map.start)).toBe('E');
 });
 
-test('no tree stands in the clearing: the monte only closes it round', async () => {
+test('no tree stands in the clearing, nor in the plots right about it: the monte only closes it round, a plot back', async () => {
   const { plantTrees } = await import('../src/world/trees');
-  const { zoneAt } = await import('../src/world/zones');
-  expect(plantTrees(map, 3).filter(t => zoneAt(map, t.x, t.y)?.open)).toEqual([]);
+  const near = (x: number, y: number) => {
+    const col = Math.floor(x / PLOT_W), row = Math.floor(y / PLOT_H);
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (letterAt(map, col + dc, row + dr) !== undefined) return true;
+    return false;
+  };
+  expect(plantTrees(map, 3).filter(t => near(t.x, t.y))).toEqual([]);
+});
+
+test('she comes in inside the clearing itself, at its south edge', () => {
+  expect(map.zones[letterAt(map, ...map.start)!].open).toBe(true);
+  expect(letterAt(map, map.start[0], map.start[1] + 1)).toBeUndefined();
 });
