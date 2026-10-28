@@ -1816,10 +1816,10 @@ export class GameScene extends Phaser.Scene {
   // Something reached her. Mid-dash, or while she cannot be hurt again, it
   // does nothing; returns whether it counted.
   private hurt(amount = 1): boolean {
-    if (cheats.unhurt || this.machi.isDashing || !this.vitals.hit(this.wrath.active, amount)) return false;
+    // While she heals no blow nor ball hurts her (the user, 27/10/2026): she stands still a second for it.
+    if (cheats.unhurt || this.machi.isDashing || this.abilities.isHealing || !this.vitals.hit(this.wrath.active, amount)) return false;
     // Being hurt angers him.
     if (this.hero === 'cabral') this.fury.gain(WOUND * this.growth.gives('flow'));
-    // A hit never breaks the healing ritual (the user, 27/10/2026).
     this.flash = 1;
     if (!this.vitals.standing) this.fall();
     return true;
