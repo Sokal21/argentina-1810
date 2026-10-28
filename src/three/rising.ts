@@ -14,13 +14,17 @@ export const RISE = { warn: 0.8, out: 0.45, settle: 3.2 };
 const MOUND = { long: 0.95, wide: 0.55, high: 0.14, earth: '#5b4630', dark: '#382a1c', clod: '#6b5338' };
 /** The clods thrown as it breaks: how many, how big (shares of his height), how fast up and out, how heavy. */
 const CLODS = { count: 12, size: [0.03, 0.06], up: [50, 95], out: [15, 45], fall: 260 };
-/** The dust: how many puffs, how long one lasts, how big (shares of his height), how thick, its colour. */
-const DUST = { kept: 14, life: [0.6, 1.3], size: [0.15, 0.3], thick: 0.5, colour: '#8a7656' };
+/**
+ * The dust, which hides the joins (the mound breaking, him showing, the earth settling): how many puffs,
+ * how long one lasts, how big (shares of his height), how thick, its colour; how many thrown up at once
+ * as the mound breaks, and how many a second while it stirs, while he comes up and while it settles.
+ */
+const DUST = { kept: 44, life: [0.8, 1.8], size: [0.2, 0.42], thick: 0.6, colour: '#8a7656', burst: 20, stirs: 8, rises: 16, settles: 6 };
 /** How far down he lies at first, a share of his height: under the ground, all but his back. */
 const DEPTH = 0.3;
 
 interface Clod { mesh: THREE.Mesh; v: THREE.Vector3; spin: THREE.Vector3; flying: boolean }
-interface Puff { sprite: THREE.Sprite; t: number; life: number; size: number }
+interface Puff { sprite: THREE.Sprite; t: number; life: number; size: number; out: THREE.Vector3 }
 
 /** A puff's picture: soft, fading to its edge. */
 let soft: THREE.Texture | null = null;
@@ -66,7 +70,7 @@ export class Rising {
     for (let i = 0; i < DUST.kept; i++) {
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: puff(), color: DUST.colour, transparent: true, depthWrite: false, opacity: 0 }));
       this.group.add(sprite);
-      this.dust.push({ sprite, t: 0, life: 0, size: 0 });
+      this.dust.push({ sprite, t: 0, life: 0, size: 0, out: new THREE.Vector3() });
     }
     this.group.visible = false;
   }
@@ -136,7 +140,7 @@ export class Rising {
         c.spin.set(Math.random() * 8, Math.random() * 8, Math.random() * 8);
         c.flying = c.mesh.visible = true;
       }
-      for (let i = 0; i < DUST.kept / 2; i++) this.puff(r, true);
+      for (let i = 0; i < DUST.burst; i++) this.puff(r, true);
     }
     for (const c of this.clods) {
       if (!c.mesh.visible) continue;
@@ -151,14 +155,17 @@ export class Rising {
       }
       c.mesh.visible = c.mesh.position.y > -c.mesh.scale.x;
     }
-    // Dust off it while it stirs, and while he comes up out of it.
-    if (t < RISE.warn + this.rises * RISE.out && Math.random() < dt * (t < RISE.warn ? 6 : 12)) this.puff(r, false);
+    // Dust off it while it stirs, while he gets up out of it, and as it settles.
+    const rate = t < RISE.warn ? DUST.stirs : t < RISE.warn + this.rises ? DUST.rises : settle < 0.5 ? DUST.settles : 0;
+    if (Math.random() < dt * rate) this.puff(r, false);
     for (const d of this.dust) {
       if (!d.sprite.visible) continue;
       d.t += dt;
       const k = d.t / d.life;
       if (k >= 1) { d.sprite.visible = false; continue; }
-      d.sprite.position.y += tall * 0.25 * dt;
+      // Rolling out over the ground and rising a little, slowing as it goes.
+      d.sprite.position.addScaledVector(d.out, dt * (1 - k));
+      d.sprite.position.y += tall * 0.12 * dt;
       d.sprite.material.opacity = DUST.thick * Math.min(1, k * 4) * (1 - k);
       d.sprite.scale.setScalar(d.size * (1 + k));
     }
@@ -167,9 +174,11 @@ export class Rising {
   private puff(r: (a: number[]) => number, burst: boolean): void {
     const d = this.dust.find(x => !x.sprite.visible);
     if (!d) return;
-    const tall = this.tall, a = Math.random() * Math.PI * 2, out = burst ? 0.35 : 0.2;
-    d.t = 0; d.life = r(DUST.life); d.size = tall * r(DUST.size);
-    d.sprite.position.set(Math.cos(a) * tall * MOUND.wide * out, tall * MOUND.high, Math.sin(a) * tall * MOUND.long * out);
+    const tall = this.tall, a = Math.random() * Math.PI * 2, out = burst ? 0.35 : 0.25 * Math.random();
+    d.t = 0; d.life = r(DUST.life); d.size = tall * r(DUST.size) * (burst ? 1.2 : 1);
+    d.sprite.position.set(Math.cos(a) * tall * MOUND.wide * out, tall * (MOUND.high + 0.1 * Math.random()), Math.sin(a) * tall * MOUND.long * out);
+    // Thrown out from the mound, faster when it breaks.
+    d.out.set(Math.cos(a), 0, Math.sin(a)).multiplyScalar(tall * (burst ? r([0.5, 0.9]) : r([0.1, 0.3])));
     d.sprite.material.opacity = 0;
     d.sprite.visible = true;
   }
