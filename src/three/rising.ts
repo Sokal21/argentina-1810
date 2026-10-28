@@ -4,16 +4,20 @@ import { flat } from './paint';
 // The plague-dead soldier coming up out of the earth near her: first the ground swells into a mound,
 // stirring and letting off a breath of dust (the warning, so she has a moment); then it breaks, clods
 // of earth thrown off, and he pushes himself up out of it from lying face down (his `levantarse`),
-// sunk in the ground at first and rising as he gets up; then the broken mound settles back to a patch
-// of turned earth, and is gone. It shows the mound and the earth; how deep he is still sunk is asked
+// sunk in the ground at first and rising as he gets up, more earth and stones thrown off him as he
+// comes; then the broken mound and what was thrown from it sink back into the ground, and are gone. It shows the mound and the earth; how deep he is still sunk is asked
 // of it (`sunk`), and whoever draws him puts him that far down.
 
 /** How long the ground swells before he breaks out, how long he takes to come up out of it (a share of his getting up), how long the earth takes to settle. */
 export const RISE = { warn: 0.8, out: 0.45, settle: 3.2 };
 /** The mound: how long and wide (shares of his height, along him and across), how high it swells, and its earths. */
-const MOUND = { long: 0.95, wide: 0.55, high: 0.14, earth: '#5b4630', dark: '#382a1c', clod: '#6b5338' };
-/** The clods thrown as it breaks: how many, how big (shares of his height), how fast up and out, how heavy. */
-const CLODS = { count: 12, size: [0.03, 0.06], up: [50, 95], out: [15, 45], fall: 260 };
+const MOUND = { long: 0.95, wide: 0.55, high: 0.14, earth: '#5b4630', clod: '#6b5338', stone: '#77736a' };
+/**
+ * The clods and stones thrown off it, a few at a time from the first stirring to his being out of it
+ * (`stirring` pushed off as it swells, `breaking` thrown as it breaks, `coming` as he comes up), each
+ * left lying where it falls: how big (shares of his height), how fast up and out, how heavy.
+ */
+const CLODS = { stirring: 7, breaking: 12, coming: 9, size: [0.025, 0.06], up: [50, 95], out: [15, 45], fall: 260 };
 /**
  * The dust, which hides the joins (the mound breaking, him showing, the earth settling): how many puffs,
  * how long one lasts, how big (shares of his height), how thick, its colour; how many thrown up at once
@@ -23,7 +27,7 @@ const DUST = { kept: 44, life: [0.8, 1.8], size: [0.2, 0.42], thick: 0.6, colour
 /** How far down he lies at first, a share of his height: under the ground, all but his back. */
 const DEPTH = 0.3;
 
-interface Clod { mesh: THREE.Mesh; v: THREE.Vector3; spin: THREE.Vector3; flying: boolean }
+interface Clod { mesh: THREE.Mesh; v: THREE.Vector3; spin: THREE.Vector3; flying: boolean; at: number; force: number }
 interface Puff { sprite: THREE.Sprite; t: number; life: number; size: number; out: THREE.Vector3 }
 
 /** A puff's picture: soft, fading to its edge. */
@@ -43,7 +47,6 @@ function puff(): THREE.Texture {
 export class Rising {
   readonly group = new THREE.Group();
   private readonly mound: THREE.Mesh;
-  private readonly patch: THREE.Mesh;
   private readonly clods: Clod[] = [];
   private readonly dust: Puff[] = [];
   private time = -1;
@@ -54,19 +57,19 @@ export class Rising {
     this.mound = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 7, 0, Math.PI * 2, 0, Math.PI / 2), flat(MOUND.earth));
     this.mound.castShadow = this.mound.receiveShadow = true;
     this.group.add(this.mound);
-    // The turned earth under it, left when it settles.
-    this.patch = new THREE.Mesh(new THREE.CircleGeometry(1, 18).rotateX(-Math.PI / 2),
-      new THREE.MeshBasicMaterial({ color: MOUND.dark, transparent: true, depthWrite: false }));
-    this.patch.position.y = 0.4;
-    this.patch.scale.set(tall * MOUND.wide * 0.6, 1, tall * MOUND.long * 0.6);
-    this.group.add(this.patch);
     const clod = new THREE.DodecahedronGeometry(1, 0);
-    for (let i = 0; i < CLODS.count; i++) {
-      const mesh = new THREE.Mesh(clod, flat(i % 3 ? MOUND.clod : MOUND.earth));
+    // When each is thrown, and how hard: pushed off as it swells, thrown as it breaks, as he comes up.
+    const when = [
+      ...Array.from({ length: CLODS.stirring }, (_, i) => [RISE.warn * (0.3 + 0.65 * i / CLODS.stirring), 0.35]),
+      ...Array.from({ length: CLODS.breaking }, () => [RISE.warn, 1]),
+      ...Array.from({ length: CLODS.coming }, (_, i) => [RISE.warn + rises * RISE.out * (0.15 + 0.85 * i / CLODS.coming), 0.6]),
+    ];
+    when.forEach(([at, force], i) => {
+      const mesh = new THREE.Mesh(clod, flat(i % 4 === 0 ? MOUND.stone : i % 2 ? MOUND.clod : MOUND.earth));
       mesh.castShadow = true;
       this.group.add(mesh);
-      this.clods.push({ mesh, v: new THREE.Vector3(), spin: new THREE.Vector3(), flying: false });
-    }
+      this.clods.push({ mesh, v: new THREE.Vector3(), spin: new THREE.Vector3(), flying: false, at, force });
+    });
     for (let i = 0; i < DUST.kept; i++) {
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: puff(), color: DUST.colour, transparent: true, depthWrite: false, opacity: 0 }));
       this.group.add(sprite);
@@ -126,22 +129,19 @@ export class Rising {
     const spread = grown * (1 + 0.15 * settle);
     this.mound.scale.set(tall * MOUND.wide * 0.5 * spread, Math.max(0.01, tall * MOUND.high * swell), tall * MOUND.long * 0.5 * spread);
     this.mound.visible = swell > 0.01;
-    // The turned earth spreads with it, and is the last to go, fading.
-    const left = settle > 0.5 ? 1 - (settle - 0.5) / 0.5 : 1;
-    this.patch.scale.set(tall * MOUND.wide * 0.6 * spread, 1, tall * MOUND.long * 0.6 * spread);
-    (this.patch.material as THREE.MeshBasicMaterial).opacity = 0.75 * Math.min(1, t / RISE.warn) * left * left;
-    // It breaks: the clods thrown off it, the dust thrown up.
-    if (was < RISE.warn && t >= RISE.warn) {
-      for (const c of this.clods) {
-        const a = Math.random() * Math.PI * 2, s = tall * r(CLODS.size);
-        c.mesh.scale.setScalar(s);
-        c.mesh.position.set(Math.cos(a) * tall * MOUND.wide * 0.25, tall * MOUND.high * 0.6, Math.sin(a) * tall * MOUND.long * 0.3);
-        c.v.set(Math.cos(a) * r(CLODS.out), r(CLODS.up), Math.sin(a) * r(CLODS.out));
-        c.spin.set(Math.random() * 8, Math.random() * 8, Math.random() * 8);
-        c.flying = c.mesh.visible = true;
-      }
-      for (let i = 0; i < DUST.burst; i++) this.puff(r, true);
+    // Clods and stones thrown off it, each in its time, from wherever the mound is by then.
+    for (const c of this.clods) {
+      if (!(was < c.at && t >= c.at)) continue;
+      const a = Math.random() * Math.PI * 2, s = tall * r(CLODS.size);
+      c.mesh.scale.setScalar(s);
+      c.mesh.position.set(Math.cos(a) * tall * MOUND.wide * 0.25 * spread, tall * MOUND.high * swell * 0.6, Math.sin(a) * tall * MOUND.long * 0.3 * spread);
+      c.v.set(Math.cos(a) * r(CLODS.out), r(CLODS.up), Math.sin(a) * r(CLODS.out)).multiplyScalar(c.force);
+      c.v.y *= 1 / Math.sqrt(c.force);
+      c.spin.set(Math.random() * 8, Math.random() * 8, Math.random() * 8);
+      c.flying = c.mesh.visible = true;
     }
+    // It breaks: the dust thrown up.
+    if (was < RISE.warn && t >= RISE.warn) for (let i = 0; i < DUST.burst; i++) this.puff(r, true);
     for (const c of this.clods) {
       if (!c.mesh.visible) continue;
       if (c.flying) {
