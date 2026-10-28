@@ -2,6 +2,8 @@
 
 **El primer arco de historia. Protagonista: Cabral.**
 
+El segundo arco, el de Inti, está en [inti/README.md](inti/README.md).
+
 Acá está la historia entera antes de programar nada: qué pasa, quién es
 quién, qué misiones hay y cómo es el mapa. De estos documentos salen después
 las mecánicas (ítems, misiones, fama, bandos).
