@@ -18,14 +18,18 @@ test('it is round and no wider than its reach either way, with nothing in it', (
   expect(letterAt(map, ...map.start)).toBe('E');
 });
 
-test('no tree stands in the clearing, nor in the plots right about it: the monte only closes it round, a plot back', async () => {
+test('no tree stands in the clearing; its edge is marked by young trees right on it, low ones along its south', async () => {
   const { plantTrees } = await import('../src/world/trees');
-  const near = (x: number, y: number) => {
-    const col = Math.floor(x / PLOT_W), row = Math.floor(y / PLOT_H);
-    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (letterAt(map, col + dc, row + dr) !== undefined) return true;
-    return false;
-  };
-  expect(plantTrees(map, 3).filter(t => near(t.x, t.y))).toEqual([]);
+  const { zoneAt } = await import('../src/world/zones');
+  const trees = plantTrees(map, 2);
+  expect(trees.filter(t => zoneAt(map, t.x, t.y))).toEqual([]);
+  // Those within a few pixels of the clearing are its edge: young, and low on its south side.
+  const onEdge = trees.filter(t => [[0, -10], [0, 10], [-10, 0], [10, 0]].some(([dx, dy]) => zoneAt(map, t.x + dx, t.y + dy)?.open));
+  expect(onEdge.length).toBeGreaterThan(20);
+  expect(onEdge.every(t => t.kind === 1)).toBe(true);
+  const south = onEdge.filter(t => zoneAt(map, t.x, t.y - 10)?.open);
+  expect(south.length).toBeGreaterThan(0);
+  expect(Math.max(...south.map(t => t.size))).toBeLessThan(1);
 });
 
 test('she comes in inside the clearing itself, at its south edge', () => {
