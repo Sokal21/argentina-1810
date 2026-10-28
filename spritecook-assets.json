@@ -2813,6 +2813,16 @@
       "asset_id": "75a0e71f-d655-4c7c-aeca-90eb2846f86e",
       "label": "Julio Argentino Roca concept, grey with plumed bicorne (from roca_c), roca_f",
       "file": "assets/roca/concept/roca_f.png"
+    },
+    {
+      "asset_id": "ff41905b-0da8-4b6f-928f-00f9d8845309",
+      "label": "Roca HD turnaround for Tripo, giro_a (from concept roca_d)",
+      "file": "assets/roca/3d/giro_a.png"
+    },
+    {
+      "asset_id": "c3ec335b-52a4-4bdc-87c8-f1073ed47cdc",
+      "label": "Roca HD turnaround for Tripo, giro_b (from concept roca_d)",
+      "file": "assets/roca/3d/giro_b.png"
     }
   ]
 }
