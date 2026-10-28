@@ -241,6 +241,8 @@ const LURK = { near: 260, at: 120, again: 520, lost: 600, after: 3 };
  * screen in from each side); and goes on after them for `for` seconds once off it.
  */
 const ON_SCREEN = { edge: 0.12, for: 2 };
+/** How many frontier riflemen aim at her at once, at most: all of them at once was a hail of shot (the user, 28/10/2026). */
+const AIMING = 2;
 // How far from the hero a soldier at a post is still seen to and drawn: well past the edge of the screen.
 const AWAKE = { x: 760, y: 460 };
 
@@ -1117,7 +1119,11 @@ export class GameScene extends Phaser.Scene {
     const safe = !!this.map && !!zoneAt(this.map, this.machi.x, this.machi.y)?.safe;
     if (safe && !this.safeWas) for (const realista of this.realistas) if (!realista.alive) this.due.add(realista);
     this.safeWas = safe;
+    // The frontier riflemen take turns to aim: no more than AIMING at once.
+    let aiming = this.realistas.filter(r => r instanceof Trooper && r.kind === 'frontera' && r.brain.mode === 'aim').length;
     for (const realista of this.realistas) {
+      const wasAiming = realista instanceof Trooper && realista.brain.mode === 'aim';
+      if (realista instanceof Trooper && realista.kind === 'frontera') realista.brain.mayAim = aiming < AIMING;
       // One too far off to be seen or to see is left as he is. If he is due up, he is back at his
       // post where nobody saw him come; one of a wave, with no post, is taken off the field.
       const post = this.posts.get(realista), at = realista.ground;
@@ -1141,6 +1147,7 @@ export class GameScene extends Phaser.Scene {
       realista.route = prey ? undefined : this.route;
       realista.fires = this.flames;
       const deed = realista.update(dt * tune.foes, drawn ? this.nahuel.ground : prey?.body ?? feet);
+      if (realista instanceof Trooper && realista.kind === 'frontera' && !wasAiming && realista.brain.mode === 'aim') aiming++;
       // On her map the 2D game draws over the 3D world; one drawn in 3D (one put in to try things out) is not drawn twice.
       if (this.overlaid && (realista instanceof Realista || IN_3D.has(realista.kind))) realista.sleep();
       if (realista.alive) awake.push(realista);

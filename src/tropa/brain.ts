@@ -19,7 +19,7 @@ export interface Kind {
   /** Further than this he does not notice anyone. */
   sight: number;
   /** He shoots: from how far, how long he aims (the warning), how long before the shot his aim stops following, how long until he can again, how high the ball leaves from, and how long he stands after it (lowering his pistol: walking, his feet slid). */
-  shot?: { range: number; aim: number; lock: number; reload: [number, number]; muzzle: number; after?: number; damage?: number };
+  shot?: { range: number; aim: number; lock: number; reload: [number, number]; muzzle: number; after?: number; damage?: number; first?: [number, number] };
   /** Once whoever he is after is within his shot he walks no more: down on one knee, he stays, and no blow moves him. */
   stays?: boolean;
   /** No blow moves him, nor puts him off his aim. */
@@ -117,7 +117,8 @@ export const KINDS = {
   // height: played half as fast again, it lands at 0.6 s and he is back on guard by 1.1).
   // Hunting her he comes on at nearly her walk (115 in 3D): at his own pace she walked away from the
   // fight (the user, 27/10/2026); running she still gets clear of him for a while.
-  frontera: { id: 'frontera', name: 'Soldado de frontera', life: 4, girth: 9, pace: 36, hunt: 2.8, sight: 380, shot: { range: 300, aim: 0.7, lock: 0.2, reload: [1.4, 2.0], muzzle: 30 }, blow: { near: 50, time: 1.1, hit: 0.6, reach: 62, rest: 0.5 }, worth: 9, spoils: 6 },
+  // His first shot comes 2 to 5 s after he has seen her, each his own, so that she is not met by a volley.
+  frontera: { id: 'frontera', name: 'Soldado de frontera', life: 4, girth: 9, pace: 36, hunt: 2.8, sight: 380, shot: { range: 300, aim: 0.7, lock: 0.2, reload: [1.4, 2.0], muzzle: 30, first: [2, 5] }, blow: { near: 50, time: 1.1, hit: 0.6, reach: 62, rest: 0.5 }, worth: 9, spoils: 6 },
   // The plague-dead soldier, Inti's arc's tank (27 October 2026, docs/personajes/apestado.md): he comes
   // up out of the earth near her (the ground heaving 0.8 s, then his getting up, Mixamo's Zombie Stand
   // Up played in 3 s); slow and hard to bring down, and no blow moves him; up close a heavy swipe
@@ -127,11 +128,13 @@ export const KINDS = {
   // still, he charges (else she kept well away from him, the user found): he roars, then runs at her
   // straight the way he was looking, and swipes as he reaches her, as heavily as his swipe.
   apestado: {
-    id: 'apestado', name: 'Apestado', life: 14, girth: 13, pace: 26, sight: 420, steady: true, rushes: true,
+    // Quicker on his feet, and retching from further, oftener and sooner than at first (pace 26, retching
+    // from 80 to 220 every 7 s, for 2 s): alone he was too easily killed (the user, 28/10/2026).
+    id: 'apestado', name: 'Apestado', life: 14, girth: 13, pace: 34, sight: 420, steady: true, rushes: true,
     blow: { near: 60, time: 2.0, hit: 1.3, reach: 72, rest: 0.6, damage: 3 },
     // He keeps turning after her until a little after he has set off (the user, 27/10/2026).
     lunge: { from: 150, to: 380, charge: 0.7, dash: 240, hit: 1.75, reach: 72, time: 2.7, every: 8, track: 0.3 },
-    retch: { from: 80, to: 220, time: 2.0, every: 7, tall: APESTADO_DRAWN / Math.sqrt(1 - ISO_Y * ISO_Y) },
+    retch: { from: 80, to: 320, time: 1.5, every: 4.5, tall: APESTADO_DRAWN / Math.sqrt(1 - ISO_Y * ISO_Y) },
     rises: { time: 3.8, under: 1.2 }, worth: 25, spoils: 12,
   },
   // Roca's artillery spotter (28 October 2026): quick on his feet and keeping away from her, he stops
@@ -189,6 +192,8 @@ export class TroopBrain {
   /** As in the fusilier: back by himself after a while, or only when called; after whoever he seeks however far; kept to ground he can walk. */
   returns = true;
   relentless = false;
+  /** Whether he may raise his gun now: whoever commands the field lets only so many aim at once. */
+  mayAim = true;
   /** Seconds he is still after whoever struck him, however far off they are. */
   provoked = 0;
   /** The ground alight about him, which he keeps out of (the field's, shared). */
@@ -227,7 +232,7 @@ export class TroopBrain {
     this.home = { x, y };
     this.life = this.max = kind.life;
     // Neither shot nor shout comes the moment he is first seen.
-    this.reload = 0.8 + this.rnd() * 0.8;
+    this.reload = this.firstShot();
     this.shout = 2 + this.rnd() * 3;
     this.calling = kind.call?.first ?? 0;
   }
@@ -294,7 +299,7 @@ export class TroopBrain {
           return { retch: { x: this.x, y: this.y, dx: this.dir.x, dy: this.dir.y } };
         }
         if (k.lunge && this.lunging <= 0 && this.still <= 0 && far >= k.lunge.from && far <= k.lunge.to) { this.enter('lunge'); this.done = false; return NOTHING; }
-        if (k.shot && far <= k.shot.range && this.reload <= 0) { this.enter('aim'); return NOTHING; }
+        if (k.shot && far <= k.shot.range && this.reload <= 0 && this.mayAim) { this.enter('aim'); return NOTHING; }
         if (!k.pace || this.still > 0 || (k.stays && k.shot && far <= k.shot.range)) { this.enter('stand'); return NOTHING; }
         // One who shoots and is in range comes on slowly while he reloads; anyone else comes straight on.
         const hurt = k.fury && this.life <= this.max / 2 ? k.fury : 1, hunting = this.relentless && k.hunt ? k.hunt : 1;
@@ -590,11 +595,17 @@ export class TroopBrain {
     else if (on(this.x, y)) this.y = y;
   }
 
+  /** How long before his first shot, once he is on the field. */
+  private firstShot(): number {
+    const first = this.kind.shot?.first;
+    return first ? first[0] + this.rnd() * (first[1] - first[0]) : 0.8 + this.rnd() * 0.8;
+  }
+
   private respawn(): void {
     this.x = this.home.x;
     this.y = this.home.y;
     this.life = this.max;
-    this.reload = 0.8 + this.rnd() * 0.8;
+    this.reload = this.firstShot();
     this.rest = 0;
     this.still = 0;
     this.lunging = 3;

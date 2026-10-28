@@ -12,8 +12,8 @@ describe("the plague-dead soldier's pool", () => {
   it('lies before him, from a little off to well beyond, not at his feet nor behind him', () => {
     expect(inPool(pool(), ahead(tall * 0.2))).toBe(false);
     expect(inPool(pool(), ahead(tall * 1.2))).toBe(true);
-    expect(inPool(pool(), ahead(tall * 2.2))).toBe(true);
-    expect(inPool(pool(), ahead(tall * 2.6))).toBe(false);
+    expect(inPool(pool(), ahead(tall * 3.0))).toBe(true);
+    expect(inPool(pool(), ahead(tall * 3.5))).toBe(false);
     expect(inPool(pool(), ahead(-tall))).toBe(false);
   });
 

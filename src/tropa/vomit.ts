@@ -10,7 +10,9 @@ import { ISO_Y } from '../machi/data';
  * is thrown and until when (seconds); how long the pool lies before it dries, and how long it takes
  * drying.
  */
-export const VOMIT = { near: 0.4, reach: 2.4, wide: [0.75, 1.8], from: 0.55, to: 1.55, lies: 5, dries: 2.6 };
+// Quicker and longer than at first (thrown from 0.55 s to 1.55, 2.4 long, lying 5 s): alone he was too
+// easily killed (the user, 28/10/2026).
+export const VOMIT = { near: 0.4, reach: 3.2, wide: [0.75, 1.9], from: 0.25, to: 0.95, lies: 7, dries: 2.6 };
 /** How wide the pool is (a share of his height) at a share `d` of the way from its near end to its far end. */
 export const wideAt = (d: number) => VOMIT.wide[0] + (VOMIT.wide[1] - VOMIT.wide[0]) * d;
 

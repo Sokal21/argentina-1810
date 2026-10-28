@@ -166,6 +166,21 @@ describe('the frontier soldier', () => {
   });
 });
 
+describe('the frontier rifleman', () => {
+  it('takes his first shot 2 to 5 s after he has seen her, and raises his gun only when let', () => {
+    const b = brain('frontera');
+    b.relentless = true;
+    const at: number[] = [];
+    for (let t = 0; t < 2; t += DT) { b.update(DT, { x: 200, y: 0 }); if (b.mode === 'aim') at.push(t); }
+    expect(at).toEqual([]);
+    const held = brain('frontera');
+    held.relentless = true;
+    held.mayAim = false;
+    for (let t = 0; t < 8; t += DT) held.update(DT, { x: 200, y: 0 });
+    expect(held.mode).not.toBe('aim');
+  });
+});
+
 describe("Roca's spotter", () => {
   it('runs off from her when she comes near, faster than she walks', () => {
     const b = brain('observador');
@@ -197,6 +212,11 @@ describe("Roca's spotter", () => {
 });
 
 describe('the plague-dead soldier', () => {
+  it('retches from as far off as 320, oftener than every 5 s', () => {
+    expect(KINDS.apestado.retch.to).toBeGreaterThanOrEqual(320);
+    expect(KINDS.apestado.retch.every).toBeLessThan(5);
+  });
+
   it('comes up out of the earth, not to be struck while under it, and only then goes for her', () => {
     const b = brain('apestado');
     b.rise(100, 0, { x: 0, y: 0 });
