@@ -21,7 +21,7 @@ const SPRAY = { kept: 90, rate: 70, up: [-30, 40], size: [0.035, 0.07], fall: 42
 const POOL = { body: '#4f6420', splash: '#728f2a', bright: '#a3cf3c', thick: 0.88 };
 
 /** Its bubbles: how many kept, how many rise a second, how long one swells before it bursts, how big (a share of his height), their colour. */
-const BUBBLES = { kept: 24, rate: 9, swell: [0.35, 0.8], size: [0.025, 0.06], colour: '#b4d85a' };
+const BUBBLES = { kept: 44, rate: 18, swell: [0.4, 0.9], size: [0.06, 0.13], colour: '#d2f070' };
 
 interface Drop { sprite: THREE.Sprite; v: THREE.Vector3 }
 interface Bubble { sprite: THREE.Sprite; t: number; life: number; size: number }
@@ -60,10 +60,10 @@ function bubble(): THREE.Texture {
   const size = 16, canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const g = canvas.getContext('2d')!;
-  g.fillStyle = 'rgba(255,255,255,0.25)';
+  g.fillStyle = 'rgba(255,255,255,0.45)';
   g.beginPath(); g.arc(8, 8, 6, 0, Math.PI * 2); g.fill();
-  g.strokeStyle = 'rgba(255,255,255,0.95)';
-  g.lineWidth = 1.5;
+  g.strokeStyle = 'rgba(255,255,255,1)';
+  g.lineWidth = 2;
   g.beginPath(); g.arc(8, 8, 6, 0, Math.PI * 2); g.stroke();
   g.fillStyle = '#ffffff';
   g.fillRect(5, 5, 2, 2);
@@ -259,7 +259,7 @@ export class Vomit {
       // Swelling, then a last moment bursting: wider and gone.
       if (k >= 1.15) { b.sprite.visible = false; continue; }
       b.sprite.scale.setScalar(b.size * (k < 1 ? Math.sqrt(k) : 1 + (k - 1) * 4));
-      b.sprite.material.opacity = k < 1 ? 0.9 : 0.9 * (1 - (k - 1) / 0.15);
+      b.sprite.material.opacity = k < 1 ? 1 : 1 - (k - 1) / 0.15;
     }
   }
 }
