@@ -42,6 +42,10 @@ const WHO: Who[] = [
   // The ox that is to draw the carts (not in the game yet): 72 to the tips of its horns, a little
   // under Cabral. Tripo's model on Quaternius's bull's skeleton (CC0, tools/blender/fit_to_bull.py),
   // playing the bull's own clips: carried over onto Tripo's own rig, its walk came out strange.
+  // The plague-dead soldier of Inti's arc (Tripo from turnaround A, 27 October 2026), a tank: Mixamo's
+  // zombie clips on him, two deaths to choose between. Not in the game yet; drawn a head over the
+  // frontier soldier he was.
+  { name: 'Apestado', url: 'apestado/3d/apestado_animado.glb', drawn: 88 },
   { name: 'Buey', url: 'cosas/3d/buey/buey_animado.glb', drawn: 72 },
   // Inti's nahuel: Quaternius's wolf (CC0) in the slate blue of her spirit, its eyes her spells' cyan; its
   // own clips. A puma of ours was tried on the wolf's and the sabre-tooth's skeletons and keyed by hand
@@ -75,7 +79,7 @@ const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   granada_sacar: { lasts: DRAW }, granada_lanzar: { lasts: SHOT },
   tajo: { lasts: 0.5 }, 'Realista:tajo': { lasts: 0.8 }, 'Sableador:tajo': { once: true },
   barrido: { once: true }, estocada: { once: true }, zarpazo: { once: true }, 'El capitán:grito': { lasts: 2.0 }, grito: { lasts: 2.0 }, tiro: { once: true },
-  muerte: { once: true }, rodada_mixamo: { once: true }, beber: { once: true },
+  muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, rodada_mixamo: { once: true }, beber: { once: true },
 };
 /**
  * The clips the game plays: any whose name is written in quotes in the 3D game's code. Found there,
