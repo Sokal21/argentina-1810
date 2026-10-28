@@ -120,18 +120,18 @@ Por ahora, **un jefe intermedio por camino** y el final (decidido). Los finales 
 pelea no es solo matarlo (además hay que hacer algo, por ejemplo romper el pacto; la mecánica está
 por pensar), y el Wekufe, una pelea pura.
 
-### Camino del capitán: la batería Krupp y el sargento Ibáñez (decidido)
+### Camino del capitán: la batería Krupp e Ibáñez (decidido)
 
-Un cañón Krupp en una loma, con el sargento artillero Ibáñez y sus ayudantes. **Una pelea por fases**
-(al usuario le encantó que tenga fases), **sin chonchones**: es una pelea del ejército.
+**Dos fases, sin chonchones**: es una pelea del ejército. **La batería no se ve** (ni loma ni cañón):
+es una mecánica sobre el mapa. A partes del lugar les cae una batería de cañonazos: el piso se marca
+y a los dos segundos caen los obuses (explosión, fuego, humo). Quedarse quieta mata.
 
-- **El cañón:** marca círculos en el piso y a los dos segundos cae el obús (explosión, fuego, humo).
-  Quedarse quieta mata.
-- **El sargento y sus dos ayudantes:** cargan y disparan. Para callar el cañón hay que matar al
-  sargento o a los dos ayudantes.
-- **La escolta:** fusileros que defienden la loma.
-- **Segunda fase:** sin ayudantes, el sargento agarra el sable y baja a pelear él mismo.
-- **Lo que enseña:** moverse leyendo el piso, y elegir cuándo subir a la loma.
+Lo único que se ve de ellos es, al entrar, **Ibáñez**, que te grita:
+
+> «¡Conocerán la pólvora, mapuches traga plomo! ¡Traguen plomo!»
+
+Falta definir: cómo se gana cada fase (sobrevivir un tiempo, vencer a la escolta, que Ibáñez baje a
+pelear), qué cambia de la primera a la segunda, y si Ibáñez es sargento o capitán.
 
 ### Camino del demonio
 
@@ -140,7 +140,7 @@ gigante; o el coronel apestado).
 
 ## Lo que falta decidir
 
-1. El jefe intermedio del camino del demonio, y los detalles de la batería (cuántas fases, números).
+1. El jefe intermedio del camino del demonio, y cómo se gana cada fase de la batería.
 2. El próximo enemigo (baqueano, lancero o artilleros).
 3. Las recompensas: cuáles, cuántas por vez y cómo se eligen.
 4. Las habitaciones: cuántas, cómo son y cómo se pasa de una a la siguiente.
