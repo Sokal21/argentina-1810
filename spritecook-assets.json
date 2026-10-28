@@ -2783,6 +2783,21 @@
       "asset_id": "2e5f1dac-7328-4c5b-b3f0-16a05de350ef",
       "label": "plague-dead soldier HD turnaround for Tripo, giro_b (from concept apestado_c)",
       "file": "assets/apestado/3d/giro_b.png"
+    },
+    {
+      "asset_id": "f6a38c5e-a18b-4263-8ec6-63455348ee6d",
+      "label": "Julio Argentino Roca (1879) concept, roca_a",
+      "file": "assets/roca/concept/roca_a.png"
+    },
+    {
+      "asset_id": "dffe03c8-2cca-49ce-b1ec-5d822f8ced67",
+      "label": "Julio Argentino Roca (1879) concept, roca_b",
+      "file": "assets/roca/concept/roca_b.png"
+    },
+    {
+      "asset_id": "d8b6dced-8973-48d2-9b56-315e494c00c3",
+      "label": "Julio Argentino Roca (1879) concept, roca_c",
+      "file": "assets/roca/concept/roca_c.png"
     }
   ]
 }
