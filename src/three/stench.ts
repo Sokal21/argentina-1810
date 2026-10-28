@@ -5,10 +5,10 @@ import * as THREE from 'three';
 // Not lit and not shining (his sores shine; this is only foul air): drawn over what is behind it,
 // half seen through. The puffs are left in the world, so that walking he trails them.
 
-/** The puffs: how many kept, how long one lasts, how far behind him it is carried a second, how much it rises, how big it starts and ends. */
-const PUFF = { kept: 26, life: [1.6, 2.8], drift: [14, 26], rise: [3, 9], size: [12, 22], swell: 2.4 };
+/** The puffs: how many kept, how long one lasts, how far behind him it is carried a second, how much it rises, how big it starts (a share of his height) and how many times that it ends. */
+const PUFF = { kept: 34, life: [1.8, 3], drift: [16, 30], rise: [4, 10], size: [0.22, 0.38], swell: 2.2 };
 /** Their colours (one of them each), how thick at most, and where on him they are let off, as shares of his height. */
-const CLOUD = { colours: ['#5f7236', '#6d7f3e', '#4b5a2b'], thick: 0.32, from: [0.25, 0.9] };
+const CLOUD = { colours: ['#8da24a', '#7a8f3e', '#9fb35a'], thick: 0.75, from: [0.3, 0.85] };
 
 interface Puff { sprite: THREE.Sprite; t: number; life: number; drift: number; rise: number; size: number; spin: number }
 
@@ -21,7 +21,7 @@ function puff(): THREE.Texture {
   const g = canvas.getContext('2d')!;
   for (const [x, y, r] of [[16, 16, 15], [11, 13, 9], [21, 18, 9], [15, 21, 8]]) {
     const soft = g.createRadialGradient(x, y, 0, x, y, r);
-    soft.addColorStop(0, 'rgba(255,255,255,0.55)');
+    soft.addColorStop(0, 'rgba(255,255,255,0.9)');
     soft.addColorStop(1, 'rgba(255,255,255,0)');
     g.fillStyle = soft;
     g.fillRect(0, 0, size, size);
@@ -70,7 +70,7 @@ export class Stench {
         s.material.rotation += p.spin * dt;
         s.scale.setScalar(p.size * (1 + (PUFF.swell - 1) * k));
       } else if (power > 0.05 && Math.random() < dt * PUFF.kept / 2.2) {
-        p.t = 0; p.life = r(PUFF.life); p.drift = r(PUFF.drift); p.rise = r(PUFF.rise); p.size = r(PUFF.size);
+        p.t = 0; p.life = r(PUFF.life); p.drift = r(PUFF.drift); p.rise = r(PUFF.rise); p.size = r(PUFF.size) * this.tall;
         p.spin = (Math.random() - 0.5) * 0.8;
         s.position.copy(this.at)
           .addScaledVector(side, (Math.random() - 0.5) * this.tall * 0.35)
