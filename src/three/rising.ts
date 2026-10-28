@@ -9,7 +9,7 @@ import { flat } from './paint';
 // of it (`sunk`), and whoever draws him puts him that far down.
 
 /** How long the ground swells before he breaks out, how long he takes to come up out of it (a share of his getting up), how long the earth takes to settle. */
-export const RISE = { warn: 0.8, out: 0.45, settle: 2.4 };
+export const RISE = { warn: 0.8, out: 0.45, settle: 3.2 };
 /** The mound: how long and wide (shares of his height, along him and across), how high it swells, and its earths. */
 const MOUND = { long: 0.95, wide: 0.55, high: 0.14, earth: '#5b4630', dark: '#382a1c', clod: '#6b5338' };
 /** The clods thrown as it breaks: how many, how big (shares of his height), how fast up and out, how heavy. */
@@ -113,14 +113,19 @@ export class Rising {
       const k = t / RISE.warn;
       swell = k * k * (1 + 0.12 * Math.sin(t * 38) * k);
     } else {
-      settle = Math.min(1, (t - RISE.warn - this.rises * RISE.out) / RISE.settle);
-      swell = 1 - Math.max(0, settle) * 0.85;
+      settle = Math.max(0, Math.min(1, (t - RISE.warn - this.rises * RISE.out) / RISE.settle));
+      // Sinking back into the ground, slowly to the last.
+      swell = 1 - Math.min(1, settle / 0.75) * (2 - Math.min(1, settle / 0.75));
     }
-    this.mound.scale.set(tall * MOUND.wide * 0.5 * (1 + 0.15 * settle), Math.max(0.01, tall * MOUND.high * swell), tall * MOUND.long * 0.5 * (1 + 0.15 * settle));
-    // It fades into the ground as it settles, the patch with it.
-    const left = settle > 0.7 ? 1 - (settle - 0.7) / 0.3 : 1;
-    this.mound.visible = left > 0.05;
-    (this.patch.material as THREE.MeshBasicMaterial).opacity = 0.75 * Math.min(1, t / RISE.warn) * left;
+    // It spreads from a small swelling as it rises, and a little more as it sinks.
+    const grown = 0.25 + 0.75 * (1 - (1 - Math.min(1, t / RISE.warn)) ** 2);
+    const spread = grown * (1 + 0.15 * settle);
+    this.mound.scale.set(tall * MOUND.wide * 0.5 * spread, Math.max(0.01, tall * MOUND.high * swell), tall * MOUND.long * 0.5 * spread);
+    this.mound.visible = swell > 0.01;
+    // The turned earth spreads with it, and is the last to go, fading.
+    const left = settle > 0.5 ? 1 - (settle - 0.5) / 0.5 : 1;
+    this.patch.scale.set(tall * MOUND.wide * 0.6 * spread, 1, tall * MOUND.long * 0.6 * spread);
+    (this.patch.material as THREE.MeshBasicMaterial).opacity = 0.75 * Math.min(1, t / RISE.warn) * left * left;
     // It breaks: the clods thrown off it, the dust thrown up.
     if (was < RISE.warn && t >= RISE.warn) {
       for (const c of this.clods) {
@@ -140,8 +145,11 @@ export class Rising {
         c.mesh.position.addScaledVector(c.v, dt);
         c.mesh.rotation.x += c.spin.x * dt; c.mesh.rotation.y += c.spin.y * dt; c.mesh.rotation.z += c.spin.z * dt;
         if (c.mesh.position.y <= c.mesh.scale.x * 0.5) { c.mesh.position.y = c.mesh.scale.x * 0.5; c.flying = false; }
+      } else if (settle > 0.3) {
+        // Lying, they sink into the ground with the mound.
+        c.mesh.position.y = c.mesh.scale.x * (0.5 - 1.6 * Math.min(1, (settle - 0.3) / 0.6));
       }
-      c.mesh.visible = left > 0.05;
+      c.mesh.visible = c.mesh.position.y > -c.mesh.scale.x;
     }
     // Dust off it while it stirs, and while he comes up out of it.
     if (t < RISE.warn + this.rises * RISE.out && Math.random() < dt * (t < RISE.warn ? 6 : 12)) this.puff(r, false);
