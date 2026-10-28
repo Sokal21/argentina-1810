@@ -2758,6 +2758,31 @@
       "asset_id": "e3273a09-30ba-4870-bab1-435356351640",
       "label": "frontier soldier HD turnaround for Tripo, giro_b (from concept soldado_a)",
       "file": "assets/frontera/3d/giro_b.png"
+    },
+    {
+      "asset_id": "2527d988-64ec-4db1-9fba-3548ab838f63",
+      "label": "plague-dead frontier soldier (apestado) concept, apestado_a",
+      "file": "assets/apestado/concept/apestado_a.png"
+    },
+    {
+      "asset_id": "a8b0e50a-ffb8-4dbb-92a9-c04b4108ffa2",
+      "label": "plague-dead frontier soldier (apestado) concept, apestado_b",
+      "file": "assets/apestado/concept/apestado_b.png"
+    },
+    {
+      "asset_id": "ca23e31c-e1f1-45d9-82a1-260a452520be",
+      "label": "plague-dead frontier soldier (apestado) concept, apestado_c",
+      "file": "assets/apestado/concept/apestado_c.png"
+    },
+    {
+      "asset_id": "6bc38dad-8bf1-44ce-ac4f-0730c19f082a",
+      "label": "plague-dead soldier HD turnaround for Tripo, giro_a (from concept apestado_c)",
+      "file": "assets/apestado/3d/giro_a.png"
+    },
+    {
+      "asset_id": "2e5f1dac-7328-4c5b-b3f0-16a05de350ef",
+      "label": "plague-dead soldier HD turnaround for Tripo, giro_b (from concept apestado_c)",
+      "file": "assets/apestado/3d/giro_b.png"
     }
   ]
 }
