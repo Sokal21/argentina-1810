@@ -1915,8 +1915,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * The pools the plague-dead retch: standing in one she is slowed and plagued; the plague takes her
-   * life a little at a time, by no blow (it neither breaks her healing nor guards her from the next).
+   * The pools the plague-dead retch: standing in one she is slowed and plagued; the plague drains her
+   * life little by little, by no blow (it neither breaks her healing nor guards her from the next).
    */
   private retched(dt: number): void {
     const feet = { x: this.machi.x, y: this.machi.y };
@@ -1924,10 +1924,10 @@ export class GameScene extends Phaser.Scene {
     this.pools = this.pools.filter(pool => pool.t < VOMIT.to + VOMIT.lies + VOMIT.dries);
     this.mired = this.vitals.standing && !this.machi.isDashing && this.pools.some(pool => inPool(pool, feet));
     if (this.mired) this.plague.catch();
-    const bitten = this.plague.update(dt);
-    if (bitten > 0 && !cheats.unhurt && this.vitals.standing) {
-      this.vitals.sap(bitten);
-      this.flash = Math.max(this.flash, 0.5);
+    // Drained little by little, seen going from her life; no flash of a blow (she throbs green, three/inti.ts).
+    const drained = this.plague.update(dt);
+    if (drained > 0 && !cheats.unhurt && this.vitals.standing) {
+      this.vitals.sap(drained);
       if (!this.vitals.standing) this.fall();
     }
   }

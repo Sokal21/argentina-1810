@@ -33,10 +33,11 @@ describe("the plague-dead soldier's pool", () => {
 describe('the plague', () => {
   const run = (p: Plague, seconds: number) => { let taken = 0; for (let t = 0; t < seconds; t += 0.02) taken += p.update(0.02); return taken; };
 
-  it('takes a point of life every few seconds for as long as it lasts, then no more', () => {
+  it('drains its whole amount little by little over its time, then no more', () => {
     const p = new Plague();
     p.catch();
-    expect(run(p, PLAGUE.lasts + 2)).toBe(PLAGUE.damage * Math.floor(PLAGUE.lasts / PLAGUE.every));
+    expect(run(p, PLAGUE.lasts / 2)).toBeCloseTo(PLAGUE.damage / 2, 2);
+    expect(run(p, PLAGUE.lasts)).toBeCloseTo(PLAGUE.damage / 2, 2);
     expect(p.on).toBe(false);
   });
 

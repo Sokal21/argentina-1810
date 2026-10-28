@@ -16,13 +16,12 @@ export const wideAt = (d: number) => VOMIT.wide[0] + (VOMIT.wide[1] - VOMIT.wide
 
 /**
  * What it does to her (the user, 27/10/2026): slowed while she stands in it, to this share of her
- * pace; and once she has stepped in it, plagued: a point of her life every `every` seconds for `lasts`
- * (one point, as it stands)
- * (stepping in again starts it over, it does not add up), which neither breaks her healing nor
- * guards her from the next blow. Her healing ritual rids her of it.
+ * pace; and once she has stepped in it, plagued for `lasts` seconds, her life drained little by little
+ * all the while, `damage` of it in all, so that she sees it go (two points at first, in bites, was too
+ * much; then one in a bite). Stepping in again starts it over, it does not add up; it neither breaks
+ * her healing nor guards her from the next blow, and her healing ritual rids her of it.
  */
-// It took two points at first (every 3 s for 6 s): too much, the user found (27/10/2026); now one.
-export const PLAGUE = { slow: 0.6, every: 3, lasts: 4, damage: 1 };
+export const PLAGUE = { slow: 0.6, lasts: 4, damage: 1 };
 
 /**
  * How far past the pool's drawn edges it still catches her, a share of his height: its splashes and
@@ -58,10 +57,9 @@ export function inPool(pool: Pool, at: Vec): boolean {
   return across <= wideAt(d) * pool.tall * 0.45 * rounded + margin;
 }
 
-/** The plague on her: how long it has left and until its next bite. */
+/** The plague on her: how long it has left. */
 export class Plague {
   left = 0;
-  private bite = 0;
 
   get on(): boolean {
     return this.left > 0;
@@ -69,7 +67,6 @@ export class Plague {
 
   /** She stepped in it: plagued afresh, for all of its time. */
   catch(): void {
-    if (!this.on) this.bite = PLAGUE.every;
     this.left = PLAGUE.lasts;
   }
 
@@ -78,13 +75,11 @@ export class Plague {
     this.left = 0;
   }
 
-  /** Time passes; says how much life it takes this step. */
+  /** Time passes; says how much life it drains this step. */
   update(dt: number): number {
     if (!this.on) return 0;
-    this.left = Math.max(0, this.left - dt);
-    this.bite -= dt;
-    if (this.bite > 1e-6) return 0;
-    this.bite += PLAGUE.every;
-    return PLAGUE.damage;
+    const spent = Math.min(dt, this.left);
+    this.left -= spent;
+    return PLAGUE.damage * spent / PLAGUE.lasts;
   }
 }
