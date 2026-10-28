@@ -227,6 +227,12 @@ const COLUMN = {
 // Each of the plague-dead comes up out of the earth near her once she is within `near` of where he
 // lies, `at` from her toward it; and lies in wait again once he is down and she is `again` off.
 const LURK = { near: 260, at: 120, again: 520 };
+/**
+ * Whoever is on screen sees the hero, however far his own sight reaches (the user, 27/10/2026: they
+ * stood about while she was in plain view): all but those at its very edges (`edge`, a share of the
+ * screen in from each side); and goes on after them for `for` seconds once off it.
+ */
+const ON_SCREEN = { edge: 0.12, for: 2 };
 // How far from the hero a soldier at a post is still seen to and drawn: well past the edge of the screen.
 const AWAKE = { x: 760, y: 460 };
 
@@ -1108,6 +1114,7 @@ export class GameScene extends Phaser.Scene {
         realista.sleep();
         continue;
       }
+      if (realista.alive && this.onScreen(at)) realista.provoke(ON_SCREEN.for);
       const drawn = feet && this.nahuel.lures(realista.ground, feet);
       // Whatever is being brought along is fair game: some go for it whatever, and anyone goes for
       // it who is nearer it than the hero. Only the hero is found the way round to.
@@ -1810,6 +1817,13 @@ export class GameScene extends Phaser.Scene {
 
   // She is defeated: she falls dead where she stands, everything in the air
   // bursts, and after a while she is back where she started.
+  /** Whether a spot of the ground is on screen, short of its very edges (ON_SCREEN). */
+  private onScreen(at: Vec): boolean {
+    if (this.three) return this.three.sees(at, -ON_SCREEN.edge * 2);
+    const view = this.cameras.main.worldView, inX = view.width * ON_SCREEN.edge, inY = view.height * ON_SCREEN.edge;
+    return at.x > view.x + inX && at.x < view.right - inX && at.y > view.y + inY && at.y < view.bottom - inY;
+  }
+
   /** Lays Roca's column about her where she is now (COLUMN): the riflemen at their posts, the plague-dead under the ground. */
   private muster(): void {
     this.mustered = true;
