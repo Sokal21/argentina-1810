@@ -2823,6 +2823,21 @@
       "asset_id": "c3ec335b-52a4-4bdc-87c8-f1073ed47cdc",
       "label": "Roca HD turnaround for Tripo, giro_b (from concept roca_d)",
       "file": "assets/roca/3d/giro_b.png"
+    },
+    {
+      "asset_id": "2bbcc2c1-864a-4433-a66f-fa726265c9a0",
+      "label": "Roca's artillery spotter (1879) concept, observador_a",
+      "file": "assets/observador/concept/observador_a.png"
+    },
+    {
+      "asset_id": "a7303a78-5197-41be-9132-e8fd56b60881",
+      "label": "Roca's artillery spotter (1879) concept, observador_b",
+      "file": "assets/observador/concept/observador_b.png"
+    },
+    {
+      "asset_id": "fd485adb-677e-4a28-bcb7-4b2d6506d009",
+      "label": "Roca's artillery spotter (1879) concept, observador_c",
+      "file": "assets/observador/concept/observador_c.png"
     }
   ]
 }
