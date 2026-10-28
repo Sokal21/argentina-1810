@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { BALL, type BoltKind } from '../bolts';
 import { ISO_Y } from '../machi/data';
 import { MUSKET } from '../machi/musket';
+import { Billboards } from './billboards';
 import { retire } from './paint';
 import { ground } from './space';
 
@@ -15,14 +16,36 @@ const FLASH = { colour: '#ffd27a', light: 9, reach: 160, life: 0.08, size: 9 };
 // and spread wide, it did not seem to come from the muzzle.
 const SMOKE = { puffs: 10, life: 1.4, from: 1.5, to: 12, rise: 14, jet: 170, spread: 10, colour: '#b9b2a3' };
 const STREAK = { length: 46, colour: '#fff1c4' };
+/**
+ * A tracer (Roca's burst, the user's "balas trazadoras"): the ball a hot glowing head, and behind it a
+ * trail of glow thinning and dimming along its streak, all added as light. How many glows are kept in
+ * all, how big the head and how big the trail at its start, how many glows in a trail, how long it is,
+ * and its colours, from the head back.
+ */
+const TRACER = { kept: 160, head: 9, trail: 6, glows: 7, length: 70, colours: ['#fff2c0', '#ffc860', '#ff8a2a', '#e0501a'] };
 const BLAST = { life: 0.45, colour: '#ffb45a', dust: 10, dustColour: '#a0906a', dustLife: 0.9 };
 /** A ball striking someone: specks of blood flung on the way it went and falling, and a puff of dust off his coat. */
 const WOUND = { specks: 14, colours: ['#8a1410', '#b0201a', '#5a0c08'], speed: [40, 130], up: [30, 90], fall: 380, life: [0.45, 0.8], dust: 4, dustColour: '#9a8f7a' };
 
+/** A tracer's glow: a soft round light, white at its heart. */
+let soft: THREE.Texture | null = null;
+function softGlow(): THREE.Texture {
+  if (soft) return soft;
+  const size = 32, canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const g = canvas.getContext('2d')!, light = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  light.addColorStop(0, 'rgba(255,255,255,1)');
+  light.addColorStop(0.3, 'rgba(255,255,255,0.7)');
+  light.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = light;
+  g.fillRect(0, 0, size, size);
+  return soft = new THREE.CanvasTexture(canvas);
+}
+
 /** Where a ball, flying from one spot of the 2D ground to another, strikes something: or null. */
 export type Strikes = (from: { x: number; y: number }, to: { x: number; y: number }) => { x: number; y: number } | null;
 
-interface Ball { at: THREE.Vector3; way: THREE.Vector3; flown: number; streak: THREE.Line }
+interface Ball { at: THREE.Vector3; way: THREE.Vector3; flown: number; streak: THREE.Line; glows: number[] }
 interface Puff { mesh: THREE.Mesh; t: number; life: number; v: THREE.Vector3; from: number; to: number; falls?: boolean }
 
 export class Shots {
@@ -34,6 +57,8 @@ export class Shots {
   private puffs: Puff[] = [];
   private blasts: { ring: THREE.LineLoop; t: number }[] = [];
   private readonly puffShape = new THREE.IcosahedronGeometry(1, 0);
+  /** The tracers' glows, one mesh for all of them (only for one that fires tracers). */
+  private readonly tracers: Billboards | null;
 
   /**
    * `bursts`: whether a ball bursts where it strikes, as his does; a royalist's only stops there.
@@ -42,7 +67,10 @@ export class Shots {
   constructor(
     private readonly camera: THREE.Camera, private readonly strikes: Strikes, private readonly blasted: (at: { x: number; y: number }) => void,
     private readonly bursts = true, private readonly kind: Pick<BoltKind, 'speed' | 'range'> = BALL,
+    tracers = false,
   ) {
+    this.tracers = tracers ? new Billboards(TRACER.kept, softGlow(), true) : null;
+    if (this.tracers) this.group.add(this.tracers.mesh);
     this.light.castShadow = false;
     this.flash = new THREE.Mesh(new THREE.CircleGeometry(1, 6), new THREE.MeshBasicMaterial({
       color: FLASH.colour, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -70,7 +98,18 @@ export class Shots {
       new THREE.LineBasicMaterial({ color: STREAK.colour, transparent: true }));
     streak.frustumCulled = false;
     this.group.add(streak);
-    this.balls.push({ at: muzzle.clone(), way: flat, flown: 0, streak });
+    // A tracer's glows, its head first: as many as are free.
+    const glows: number[] = [];
+    if (this.tracers) {
+      for (let i = 0; i < TRACER.glows; i++) {
+        const g = this.tracers.free();
+        if (g < 0) break;
+        this.tracers.colour(g, TRACER.colours[Math.min(TRACER.colours.length - 1, Math.floor(i * TRACER.colours.length / TRACER.glows))]);
+        this.tracers.put(g, muzzle, 0, 0);
+        glows.push(g);
+      }
+    }
+    this.balls.push({ at: muzzle.clone(), way: flat, flown: 0, streak, glows });
   }
 
   /**
@@ -140,7 +179,16 @@ export class Shots {
       p.setXYZ(0, tail.x, tail.y, tail.z);
       p.setXYZ(1, to.x, to.y, to.z);
       p.needsUpdate = true;
+      // Its glows along its streak, from its head back, thinning and dimming.
+      const behind = Math.min(TRACER.length, ball.flown);
+      ball.glows.forEach((g, i) => {
+        const k = i / Math.max(1, TRACER.glows - 1);
+        const at = to.clone().addScaledVector(ball.way, -behind * k);
+        this.tracers?.put(g, at, i === 0 ? TRACER.head : TRACER.trail * (1 - k * 0.7), i === 0 ? 1 : 0.9 * (1 - k));
+      });
     }
+    for (const ball of this.balls.filter(b => b.flown >= this.kind.range)) for (const g of ball.glows) this.tracers?.hide(g);
+    this.tracers?.commit();
     for (const ball of this.balls.filter(b => b.flown >= this.kind.range)) {
       retire(this.group, [ball.streak], true);
     }

@@ -154,7 +154,8 @@ floor.receiveShadow = true;
 view.scene.add(floor);
 view.follow(new THREE.Vector3(0, 30, 0));
 
-const balls = new Shots(view.camera, () => null, () => {}, false, BALLS);
+// Roca's balls are tracers (the user, 28/10/2026).
+const balls = new Shots(view.camera, () => null, () => {}, false, BALLS, true);
 view.scene.add(balls.group);
 const spirits: Spirit[] = [];
 const stenches: Stench[] = [];

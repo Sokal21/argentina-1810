@@ -57,8 +57,8 @@ export class Billboards {
   private readonly live: boolean[];
   private changed = false;
 
-  /** Room for `room` copies, each of the picture `map` (none: a plain square of its colour). */
-  constructor(readonly room: number, map?: THREE.Texture) {
+  /** Room for `room` copies, each of the picture `map` (none: a plain square of its colour); `lit`, added to what is behind them, as light is. */
+  constructor(readonly room: number, map?: THREE.Texture, lit = false) {
     const square = new THREE.PlaneGeometry(1, 1);
     this.geometry.setIndex(square.getIndex());
     this.geometry.setAttribute('position', square.getAttribute('position'));
@@ -78,6 +78,7 @@ export class Billboards {
       fragmentShader: unlitShader(fragment),
       transparent: true,
       depthWrite: false,
+      blending: lit ? THREE.AdditiveBlending : THREE.NormalBlending,
     });
     this.mesh = new THREE.Mesh(this.geometry, material);
     this.mesh.frustumCulled = false;
