@@ -30,6 +30,12 @@ const EDGE = { many: 2, side: 1.3, south: 0.6, into: 6, every: 55, back: 70 };
  * clump, at most. Along its south edge, low ones: `south`, smallest and largest.
  */
 const RING = { side: [0.9, 2.6], old: 0.35, apart: [30, 85], back: 45, clump: 3, south: [0.35, 0.85] };
+/**
+ * The monte round a round clearing, out to `far` from its edge: `each` tries a plot, `thick` the
+ * chance of a tree at each; south of it, young trees `low` at its edge growing a size every `grows`
+ * further off, to `tallest`.
+ */
+const BELT = { far: 700, each: 3, thick: 0.75, low: 0.35, grows: 420, tallest: 1.5 };
 
 export interface Tree {
   /** The foot of its trunk, in world pixels. */
@@ -126,14 +132,8 @@ export function plantTrees(map: WorldMap, kinds: number, seed = 1): Tree[] {
     for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (open(col + dc, row + dr)) return true;
     return false;
   };
-  // A round clearing (map.round) has its edge marked along its circle instead, and the monte comes up
-  // to it over what of its plots lies outside the circle, but on its south side, before the camera.
+  // A round clearing (map.round) has its edge marked along its circle instead, and the monte about it (BELT).
   const round = map.round;
-  const outside = (x: number, y: number, by: number) => {
-    if (!round) return false;
-    const dx = x - round.x, dy = (y - round.y) / (PLOT_H / PLOT_W);
-    return Math.hypot(dx, dy) > reachOf(round, Math.atan2(dy, dx)) + by;
-  };
   const southOf = (y: number) => !!round && y > round.y + round.reach * (PLOT_H / PLOT_W) * 0.2;
   if (round) {
     // Round its edge, unevenly spaced, now one, now a clump, each its own size and a little further
@@ -152,17 +152,35 @@ export function plantTrees(map: WorldMap, kinds: number, seed = 1): Tree[] {
       }
     }
   }
+  // Round a round clearing, the monte itself, thick, out to where it is no longer seen (BELT): grown
+  // trees north of it and at its sides; south of it, between it and the camera, young ones growing
+  // with how far they stand from its edge, low by it and taller further off, so that it is a wood
+  // there too and not bare ground (the user, 28/10/2026), yet none stands before the clearing.
+  const beyond = (x: number, y: number) => {
+    const dx = x - round!.x, dy = (y - round!.y) / (PLOT_H / PLOT_W);
+    return Math.hypot(dx, dy) - reachOf(round!, Math.atan2(dy, dx));
+  };
   map.plots.forEach((line, row) => [...line].forEach((letter, col) => {
     const d = far[row][col];
-    if (round && d === 0) {
-      // Of a plot of the clearing, what lies outside its circle: the monte, on all but its south side.
-      for (let n = 0; n < 2; n++) {
-        const x = (col + chance(col, row, seed + 500 + n)) * PLOT_W, y = (row + chance(col, row, seed + 510 + n)) * PLOT_H;
-        if (outside(x, y, EDGE.back) && !southOf(y)) trees.push({ x: Math.floor(x), y: Math.floor(y), kind: Math.floor(chance(col, row, seed + 520 + n) * kinds), size: WALL * (1 + (chance(col, row, seed + 530 + n) * 2 - 1) * UNEVEN), flipped: chance(col, row, seed + 540 + n) < 0.5 });
+    if (round) {
+      const mid = beyond((col + 0.5) * PLOT_W, (row + 0.5) * PLOT_H);
+      if (mid < BELT.far) {
+        for (let n = 0; n < BELT.each; n++) {
+          if (chance(col, row, seed + 600 + n) > BELT.thick) continue;
+          const x = (col + chance(col, row, seed + 500 + n)) * PLOT_W, y = (row + chance(col, row, seed + 510 + n)) * PLOT_H;
+          const off = beyond(x, y) - EDGE.into - RING.back;
+          if (off < 0) continue;
+          const u = chance(col, row, seed + 530 + n), flipped = chance(col, row, seed + 540 + n) < 0.5;
+          if (southOf(y)) {
+            const size = Math.min(BELT.tallest, BELT.low + off / BELT.grows) * (1 + (u * 2 - 1) * UNEVEN);
+            trees.push({ x: Math.floor(x), y: Math.floor(y), kind: size > 1.2 && chance(col, row, seed + 520 + n) < 0.5 ? 0 : young, size, flipped });
+          } else {
+            trees.push({ x: Math.floor(x), y: Math.floor(y), kind: Math.floor(chance(col, row, seed + 520 + n) * kinds), size: WALL * (0.6 + 0.5 * u), flipped });
+          }
+        }
+        return;
       }
-      return;
     }
-    if (round && d === 1 && touches(col, row)) return;
     if (d === 1 && touches(col, row)) { edge(col, row); return; }
     if (d > 0 && byOpen(col, row)) return;
     if (d === 0) {
