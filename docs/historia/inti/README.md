@@ -78,19 +78,17 @@ una curación, maná, un arma. **Propuesta**, para ordenar ideas:
 Falta decidir cuántas se ofrecen por vez, cómo se eligen (con el mouse y con el joystick) y cómo
 conviven con el crecimiento (experiencia, niveles) y los ítems que ya existen.
 
-## Cuando Inti muere (decidido; falta la entidad)
+## Cuando Inti muere: Küyen (decidido)
 
 Al morir no hay solo una pantalla de derrota: se cuenta lo que pasó («el demonio arrasó el pueblo»,
-«la columna pasó»), **pero una entidad mapuche le da a Inti una oportunidad más**, y el recorrido
-vuelve a empezar. Es la explicación del reinicio dentro de la historia.
+«la columna pasó»), **pero Küyen, la luna, le da a Inti una oportunidad más**, y el recorrido vuelve
+a empezar. Es la explicación del reinicio dentro de la historia: el ciclo de la luna es volver a
+empezar, y cada noche es otra oportunidad. Elegida por el usuario el 27/10/2026 entre Ñuke Mapu,
+Pillán y Küyen.
 
-**La entidad está por definir.** Candidatas (propuesta):
-
-- **Ñuke Mapu**, la Madre Tierra. Los apestados salen de la tierra corrompidos por el demonio; Inti
-  vuelve de la tierra, bendecida. La misma imagen, al revés.
-- **Pillán**, los espíritus de los antepasados ligados a los volcanes y al trueno. Inti llama al rayo:
-  su poder ya viene de ahí.
-- **Küyen**, la luna. Su ciclo es volver a empezar: cada noche, otra oportunidad.
+**Propuesta, para pensar cómo se ve:** la pantalla oscurece sobre lo que pasó; sale la luna, su luz
+cae sobre Inti y la devuelve al pueblo, de noche. Podría ser su luz plateada la que marque todo lo
+de Küyen en el juego.
 
 ## Los enemigos
 
@@ -121,9 +119,8 @@ Cada tramo termina en uno distinto. Para discutir:
 
 ## Lo que falta decidir
 
-1. La entidad mapuche que le da otra oportunidad.
-2. Cuántos tramos tiene cada camino, y qué jefe cierra cada uno.
-3. El próximo enemigo (baqueano, lancero o artilleros).
-4. Las recompensas: cuáles, cuántas por vez y cómo se eligen.
-5. Las habitaciones: cuántas, cómo son y cómo se pasa de una a la siguiente.
-6. Las caras humanas del jefe y de la señora.
+1. Cuántos tramos tiene cada camino, y qué jefe cierra cada uno.
+2. El próximo enemigo (baqueano, lancero o artilleros).
+3. Las recompensas: cuáles, cuántas por vez y cómo se eligen.
+4. Las habitaciones: cuántas, cómo son y cómo se pasa de una a la siguiente.
+5. Las caras humanas del jefe y de la señora.
