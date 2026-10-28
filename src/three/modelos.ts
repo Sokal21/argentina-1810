@@ -7,6 +7,7 @@ import { ChonchonBrain } from '../chonchon/brain';
 import { Spirit } from './spirit';
 import { Stench } from './stench';
 import { RISE, Rising } from './rising';
+import { Vomit } from './vomit';
 import { CABRAL_DRESS, model } from './figure';
 import { Fling } from './fling';
 import { Motion } from './motion';
@@ -24,7 +25,7 @@ import { UPRIGHT } from './space';
 // kinds of the king's men with a model of their own, whoever keeps a house), and a model's clips are
 // read off its file, so a new character or a new clip is here as soon as the game has it.
 
-interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge']; dives?: boolean; stench?: boolean }
+interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge']; dives?: boolean; stench?: boolean; vomits?: boolean }
 
 /** The kinds of the king's men, named as the game names them. */
 const KIND_NAMES: Record<string, string> = { sargento: 'Sargento', capitan: 'El capitán', sableador: 'Sableador', tirador: 'Tirador', frontera: 'Soldado de frontera' };
@@ -48,7 +49,7 @@ const WHO: Who[] = [
   // The plague-dead soldier of Inti's arc (Tripo from turnaround A, 27 October 2026), a tank: Mixamo's
   // zombie clips on him, two deaths to choose between, and his retching (a cough captured lying down, stood up), his crawls and his getting up out of the ground. Not in the game yet; drawn a head over the
   // frontier soldier he was; in the cloud of his stench.
-  { name: 'Apestado', url: 'apestado/3d/apestado_animado.glb', drawn: 88, stench: true },
+  { name: 'Apestado', url: 'apestado/3d/apestado_animado.glb', drawn: 88, stench: true, vomits: true },
   { name: 'Buey', url: 'cosas/3d/buey/buey_animado.glb', drawn: 72 },
   // Inti's nahuel: Quaternius's wolf (CC0) in the slate blue of her spirit, its eyes her spells' cyan; its
   // own clips. A puma of ours was tried on the wolf's and the sabre-tooth's skeletons and keyed by hand
@@ -113,6 +114,9 @@ const DOWNED = 'derribado', STRIKES = [0.8, 1.4], AGAIN = 3.5;
  */
 const RISEN = 'salir_de_la_tierra', SCREAM = 2.0;
 const risings = new Map<Who, Rising>();
+/** His retching, played on his scream (three/vomit.ts): the spray and the pool it leaves, in its cone. */
+const RETCH = 'vomitar';
+const vomits = new Map<Who, Vomit>();
 /** The clips a character stands and walks with, listed first. */
 const FIRST = ['reposo_mixamo', 'caminata_mixamo', 'caminata_atras'];
 /** How fast the cart goes in the gallery, world units a second (the 2D game's carts go 40 to 46). */
@@ -196,6 +200,7 @@ function length(name: string): number {
   const t = w ? timing(w, name) : undefined;
   if (t?.lasts) return t.lasts;
   if (name === LUNGE) return shown.find(x => x.lunge)?.lunge?.time ?? 2;
+  if (name === RETCH) return Math.max(...shown.map(x => vomits.get(x)?.lasts ?? 0), 0);
   if (name === RISEN) return Math.max(...shown.map(x => risings.get(x)?.lasts ?? 0), 0);
   for (const w of shown) { const it = loaded.get(w); if (it?.motion.has(name)) return it.motion.seconds(name); }
   return 2;
@@ -209,10 +214,10 @@ async function show(list: Who[]): Promise<void> {
   all.forEach((it, i) => { it.body.position.x = it.home = (i - (all.length - 1) / 2) * APART; view.scene.add(it.body); });
   // Their clips: with several, those any of them has (each one lacking a clip stands as he is).
   const names = [...new Set([...all.flatMap(it => it.clips), ...(list.some(w => w.lunge) ? [LUNGE] : []), ...(list.some(w => w.dives) ? [DIVE, BITE, DOWNED] : []),
-    ...(all.some(it => it.motion.has('mosquete_descolgar')) ? [SLUNG_AGAIN] : []), ...(all.some(it => it.motion.has('levantarse')) ? [RISEN] : [])])];
+    ...(all.some(it => it.motion.has('mosquete_descolgar')) ? [SLUNG_AGAIN] : []), ...(all.some(it => it.motion.has('levantarse')) ? [RISEN] : []), ...(list.some(w => w.vomits) ? [RETCH] : [])])];
   if (!names.includes(clip)) clip = names[0] ?? 'reposo_mixamo';
   clipsBar.replaceChildren();
-  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE || n === DOWNED || n === SLUNG_AGAIN || n === RISEN;
+  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE || n === DOWNED || n === SLUNG_AGAIN || n === RISEN || n === RETCH;
   const ordered = [...names.filter(playing), ...names.filter(n => !playing(n))];
   for (const name of ordered) {
     const b = button(clipsBar, name, () => { play(name); for (const x of clipsBar.children) x.classList.toggle('on', x === b); });
@@ -237,11 +242,20 @@ function play(name: string): void {
     it.body.position.y = it.body.position.z = 0;
     it.body.visible = true;
     risings.get(w)?.update(Infinity);
+    vomits.get(w)?.stop();
     if (shown.length === 1) view.follow(new THREE.Vector3(0, w.drawn * 0.5, 0));
     if (name === LUNGE && w.lunge) { act(it.body); continue; }
     if ((name === DIVE || name === BITE || name === DOWNED) && w.dives) { hunt(it.body, name === BITE, name === DOWNED); continue; }
     if (name === SLUNG_AGAIN && it.motion.has('mosquete_descolgar')) { slungAgain(it.motion, 0, true); continue; }
     if (name === RISEN && it.motion.has('levantarse')) { rise(w, it.body, it.motion); continue; }
+    if (name === RETCH && w.vomits) {
+      let vomit = vomits.get(w);
+      if (!vomit) { vomit = new Vomit(it.body, w.drawn * UPRIGHT); vomits.set(w, vomit); view.scene.add(vomit.group); }
+      it.body.rotation.y = turn;
+      vomit.start();
+      it.motion.play('grito', { once: true, lasts: SCREAM, afresh: true, blend: 0.12 });
+      continue;
+    }
     const c = it.motion.has(name) ? name : 'reposo_mixamo';
     it.motion.play(c, { once: !!t.lasts || !!t.once, lasts: t.lasts, afresh: true, blend: 0.12 });
     // One who holds his musket in both hands lets it fall from them as he falls, as in the game.
@@ -433,13 +447,14 @@ view.renderer.setAnimationLoop(() => {
   last = now;
   into += dt;
   // A clip played once starts over after a moment held on its end, while "repetir" is on.
-  const once = clip !== LUNGE && (clip === RISEN || shown.some(w => timing(w, clip)));
+  const once = clip !== LUNGE && (clip === RISEN || clip === RETCH || shown.some(w => timing(w, clip)));
   if (loop && once && into > length(clip) + 0.8) play(clip);
   for (const w of shown) {
     const it = loaded.get(w);
     if (!it) continue;
     if (clip === SLUNG_AGAIN && it.motion.has('mosquete_descolgar')) slungAgain(it.motion, into);
     if (clip === RISEN) { risings.get(w)?.update(dt); risen(w, it.body, it.motion, into); }
+    if (clip === RETCH && w.vomits) { vomits.get(w)?.update(dt); if (into > SCREAM) it.motion.play('reposo', { blend: 0.25 }); }
     it.motion.update(dt);
     it.flung.update(dt);
     it.body.rotation.y = turn;
