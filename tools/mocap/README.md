@@ -60,3 +60,5 @@ with `tools/blender/retarget_rot.py`.
 | Scary Zombie Pack (zombie crawl, running crawl) | the plague-dead soldier's crawls on the ground, `arrastre` and `arrastre_rapido`, `--gait --ground` |
 | Zombie Stand Up.fbx | "Zombie Stand Up": the plague-dead soldier getting up out of the ground, from lying face down, `--name levantarse --ground` |
 | Scary Zombie Pack (zombie run) | the plague-dead soldier's run as he charges, `--name carrera --gait --feet` |
+
+Julio Argentino Roca (assets/roca/3d, 28/10/2026) has the captain's clips made again on his rig, as the rows above say: breathing_idle, walking, Falling Back Death (eased), Stabbing (al_frente, sabre by the little finger, aim 9), Handgun (mirrored, al_frente with the pistol in his left hand, aim 14) and Standing Taunt Battlecry; built with `--front +x --carries sabre,pistol@L_Hand,sabre@R_Hand@little`.

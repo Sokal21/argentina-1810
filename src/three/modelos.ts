@@ -50,6 +50,10 @@ const WHO: Who[] = [
   // zombie clips on him, two deaths to choose between, and his retching (a cough captured lying down, stood up), his crawls and his getting up out of the ground. Not in the game yet; drawn a head over the
   // frontier soldier he was; in the cloud of his stench.
   { name: 'Apestado', url: 'apestado/3d/apestado_animado.glb', drawn: 88, stench: true, vomits: true },
+  // Julio Argentino Roca, the last boss of his road in Inti's arc (Tripo from turnaround A, 28 October
+  // 2026): the captain's clips on him (Mixamo's captures again, as tools/mocap/README.md has them), his
+  // sabre in his right hand, his pistol in his left. A head over the captain. Not in the game yet.
+  { name: 'Roca', url: 'roca/3d/roca_animado.glb', drawn: 100, pistol: true },
   { name: 'Buey', url: 'cosas/3d/buey/buey_animado.glb', drawn: 72 },
   // Inti's nahuel: Quaternius's wolf (CC0) in the slate blue of her spirit, its eyes her spells' cyan; its
   // own clips. A puma of ours was tried on the wolf's and the sabre-tooth's skeletons and keyed by hand
