@@ -176,6 +176,21 @@ describe('the plague-dead soldier', () => {
     expect((deeds[0] as { retch: { dx: number } }).retch.dx).toBeCloseTo(1);
   });
 
+  it('charges her now and then from well off: roars, then runs straight at her and swipes as he reaches her', () => {
+    const b = brain('apestado');
+    const l = KINDS.apestado.lunge;
+    b.relentless = true;
+    for (let t = 0; t < 12 && b.mode !== 'lunge'; t += DT) b.update(DT, { x: 300, y: 0 });
+    expect(b.mode).toBe('lunge');
+    const x = b.x;
+    run(b, { x: 300, y: 0 }, l.charge - 0.05);
+    expect(b.x).toBe(x);
+    const deeds = run(b, { x: 300, y: 0 }, l.time - l.charge);
+    // Much faster than he walks.
+    expect((b.x - x) / (l.hit - l.charge)).toBeGreaterThan(KINDS.apestado.pace * 4);
+    expect(deeds.filter(d => d.cut !== undefined)).toEqual([{ cut: true }]);
+  });
+
   it('swipes heavily up close, slow in the coming, and is not moved by a blow', () => {
     const b = brain('apestado');
     const blow = KINDS.apestado.blow;

@@ -59,3 +59,4 @@ with `tools/blender/retarget_rot.py`.
 | Laying Severe Cough.fbx | "Laying Severe Cough": the plague-dead soldier's retching. Captured lying down: retargeted as it is (`anims/aparte/tos_acostado.glb`), then `tools/blender/upper_from.py` stands its spine, arms and head on his standing's legs (`--name vomito`) |
 | Scary Zombie Pack (zombie crawl, running crawl) | the plague-dead soldier's crawls on the ground, `arrastre` and `arrastre_rapido`, `--gait --ground` |
 | Zombie Stand Up.fbx | "Zombie Stand Up": the plague-dead soldier getting up out of the ground, from lying face down, `--name levantarse --ground` |
+| Scary Zombie Pack (zombie run) | the plague-dead soldier's run as he charges, `--name carrera --gait --feet` |

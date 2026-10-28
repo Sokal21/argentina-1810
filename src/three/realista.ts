@@ -33,7 +33,7 @@ export const DRAWN = 78;
  * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
  * the pace that lands it when his brain does.
  */
-export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number }; lunge?: { clip: string; wind: number; lands: number; point: number; charge: number; hit: number; dash: number; time: number }; call?: { clip: string; time: number }; walk?: string; idle?: string; retch?: { clip: string; time: number }; rises?: { clip: string; up: number }; stench?: boolean }> = {
+export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number }; lunge?: { clip: string; wind: number; lands: number; point: number; charge: number; hit: number; dash: number; time: number }; call?: { clip: string; time: number }; walk?: string; idle?: string; retch?: { clip: string; time: number }; rises?: { clip: string; up: number }; stench?: boolean; charge?: { roar: string; run: string; blow: string; lands: number; swing: number } }> = {
   // Lean and quick, a little under the fusiliers (Tripo from turnaround A, 23 October 2026).
   // His two cuts at the pace that lands the first when his brain does (frame 18 of 52); his run.
   sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76, blow: { clip: 'tajo', lands: 18 / 52, hit: KINDS.sableador.blow.hit }, run: 'carrera' },
@@ -70,7 +70,10 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
   apestado: { url: 'apestado/3d/apestado_animado.glb', drawn: APESTADO_DRAWN, walk: 'caminata', idle: 'reposo', stench: true,
     blow: { clip: 'golpe', lands: 20 / 48, hit: KINDS.apestado.blow.hit },
     retch: { clip: 'grito', time: KINDS.apestado.retch.time },
-    rises: { clip: 'levantarse', up: KINDS.apestado.rises.time - RISE.warn } },
+    rises: { clip: 'levantarse', up: KINDS.apestado.rises.time - RISE.warn },
+    // His charge (his brain's lunge): roaring while he gathers himself, then Mixamo's zombie run, and his
+    // swipe begun `swing` seconds before he reaches her so that it lands as he does.
+    charge: { roar: 'grito', run: 'carrera', blow: 'golpe', lands: 20 / 48, swing: 0.5 } },
 };
 /** Seconds of his aim spent drawing the musket from his back; the rest he holds it levelled. */
 const DRAW = Math.min(0.45, AIM * 0.55);
@@ -151,6 +154,8 @@ class Figure {
   private readonly reach: number;
   /** How far a stride of his run carries him, played at its own pace: his run is paced by it, so his feet do not slide. */
   private readonly runReach: number;
+  /** How far a stride of his charge carries him (one who charges: his look's `charge`). */
+  private readonly chargeReach: number;
   /** The warning at his muzzle while he aims, glow and glint: seen through him too, aiming away, since it is there to be dodged by. */
   readonly warning = new THREE.Group();
   private readonly glow = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -205,6 +210,7 @@ class Figure {
     if (look?.rises) { this.rising = new Rising(tall, look.rises.up); this.around.push(this.rising.group); }
     if (look?.retch) for (let i = 0; i < 2; i++) { const v = new Vomit(this.body, tall); this.vomits.push(v); this.around.push(v.group); }
     this.runReach = look?.run ? this.motion.reach(look.run, 'L_Foot') * shape.scale.x : 0;
+    this.chargeReach = look?.charge ? this.motion.reach(look.charge.run, 'L_Foot') * shape.scale.x : 0;
     this.warning.add(this.glow, this.halo, this.star);
     this.warning.visible = false;
   }
@@ -299,6 +305,14 @@ class Figure {
       const { clip, lands, hit } = this.look.blow;
       // Eased in from his guard: the clip begins with the weapon already dropped back to be swung.
       m.play(clip, { once: true, pace: (lands * m.seconds(clip)) / hit, afresh, blend: 0.2 });
+    } else if (mode === 'lunge' && this.look?.charge && KINDS.apestado.lunge) {
+      // Roaring, then running at her, then his swipe landing as he reaches her.
+      const { roar, run, blow, lands, swing } = this.look.charge, { charge, hit } = KINDS.apestado.lunge;
+      if (t < charge) m.play(roar, { once: true, afresh, blend: 0.15 });
+      else if (t < hit - swing) m.play(run, { pace: this.chargeReach ? Math.max(0.6, this.going / this.chargeReach) : 1, blend: 0.12 });
+      else m.play(blow, { once: true, pace: (lands * m.seconds(blow)) / swing, blend: 0.1 });
+      if (t >= charge && this.lungedAt < charge) this.dust?.cloud(ground(x, y));
+      this.lungedAt = t;
     } else if (mode === 'lunge' && this.look?.lunge) {
       // Held drawn back while he gathers himself, his point put out as he is about to go, held out as he
       // slides in, and the thrust played out from there once he has reached her.

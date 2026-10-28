@@ -22,6 +22,13 @@ export const wideAt = (d: number) => VOMIT.wide[0] + (VOMIT.wide[1] - VOMIT.wide
  */
 export const PLAGUE = { slow: 0.6, every: 3, lasts: 6, damage: 1 };
 
+/**
+ * How far past the pool's drawn edges it still catches her, a share of his height: its splashes and
+ * its ragged rim reach that far, and drawn as big as it is it felt too small for what is seen (the
+ * user, 27/10/2026). Its ends, rounded off, are taken no narrower than `ends` of its width.
+ */
+const MARGIN = 0.14, ENDS = 0.45;
+
 /** One pool: where he stood, the way he faced (along the ground, not foreshortened), how tall he is, how long since he began to retch. */
 export interface Pool { x: number; y: number; dx: number; dy: number; tall: number; t: number }
 
@@ -41,12 +48,12 @@ export function inPool(pool: Pool, at: Vec): boolean {
   if (!lying(pool)) return false;
   const x = at.x - pool.x, y = (at.y - pool.y) / ISO_Y;
   const ahead = x * pool.dx + y * pool.dy, across = Math.abs(x * pool.dy - y * pool.dx);
-  const near = pool.tall * VOMIT.near, long = pool.tall * (VOMIT.reach - VOMIT.near) * spread(pool.t);
-  if (ahead < near || ahead > near + long) return false;
+  const margin = pool.tall * MARGIN, near = pool.tall * VOMIT.near, long = pool.tall * (VOMIT.reach - VOMIT.near) * spread(pool.t);
+  if (ahead < near - margin || ahead > near + long + margin) return false;
   // Its ends are rounded off as the picture's are: narrower toward each.
-  const d = (ahead - near) / (pool.tall * (VOMIT.reach - VOMIT.near));
-  const rounded = Math.sqrt(Math.max(0, 1 - Math.abs(2 * d - 1) ** 2.4));
-  return across <= wideAt(d) * pool.tall * 0.45 * rounded;
+  const d = Math.max(0, Math.min(1, (ahead - near) / (pool.tall * (VOMIT.reach - VOMIT.near))));
+  const rounded = Math.max(ENDS, Math.sqrt(Math.max(0, 1 - Math.abs(2 * d - 1) ** 2.4)));
+  return across <= wideAt(d) * pool.tall * 0.45 * rounded + margin;
 }
 
 /** The plague on her: how long it has left and until its next bite. */

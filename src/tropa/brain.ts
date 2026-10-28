@@ -107,10 +107,13 @@ export const KINDS = {
   // Up played in 3 s); slow and hard to bring down, and no blow moves him; up close a heavy swipe
   // (Mixamo's zombie attack, his hand furthest out at frame 20 of 48, some 53 off: played so it lands
   // at 1.3 s, long in the coming, to be dodged) taking 3 of her 5; and from further off he retches a
-  // pool before him that slows and plagues her, played on his scream.
+  // pool before him that slows and plagues her, played on his scream. Now and then, from further off
+  // still, he charges (else she kept well away from him, the user found): he roars, then runs at her
+  // straight the way he was looking, and swipes as he reaches her, as heavily as his swipe.
   apestado: {
     id: 'apestado', name: 'Apestado', life: 14, girth: 13, pace: 26, sight: 420, steady: true, rushes: true,
     blow: { near: 60, time: 2.0, hit: 1.3, reach: 72, rest: 0.6, damage: 3 },
+    lunge: { from: 150, to: 380, charge: 0.7, dash: 240, hit: 1.75, reach: 72, time: 2.7, every: 8 },
     retch: { from: 80, to: 220, time: 2.0, every: 7, tall: APESTADO_DRAWN / Math.sqrt(1 - ISO_Y * ISO_Y) },
     rises: { time: 3.8, under: 1.2 }, worth: 25, spoils: 12,
   },
