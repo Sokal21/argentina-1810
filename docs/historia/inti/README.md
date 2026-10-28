@@ -164,6 +164,21 @@ Falta definir: cuándo termina la primera fase (sobrevivir un tiempo, vencer a l
 Roca en la segunda (y si los cañonazos siguen cayendo), y qué queda roto cuando escapa (la guerra,
 el pacto).
 
+**Hecho hasta ahora (28/10/2026)**, a la vista en `modelos.html`:
+
+- **Roca** (`assets/roca/3d`): concepto D (canoso, bicornio con penacho, banda celeste y blanca), con
+  las animaciones del capitán, un revólver grande (`props.revolver`), su sablazo (Sword And Shield
+  Slash), la señal a la batería hecha a mano (`senal`) y la ráfaga en abanico (`rafaga`) con balas
+  trazadoras.
+- **El observador** (`assets/observador/3d`): banderas roja y blanca, reposo, carrera, señas hechas a
+  mano y la muerte del fusilero (falta que suelte las banderas).
+- **La batería** (`tropa/battery.ts`, `three/battery.ts`): salvas desperdigada (sin superponerse),
+  concentrada y la de Roca (concentrada, la mitad de ancha); aviso con el círculo rojo que se llena,
+  explosión, humo, cráter distinto cada vez y sacudida de cámara.
+
+Falta: meterlo al juego (el cerebro de Roca y del observador, las fases, el daño de los obuses, la
+vibración del joystick), la retirada de Roca y la habitación.
+
 ### El jefe intermedio del camino de Roca
 
 Por definir. Propuestas que quedaron: el baqueano de las boleadoras (con perros y una segunda fase
