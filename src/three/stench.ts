@@ -49,8 +49,8 @@ export class Stench {
   }
 
   update(dt: number): void {
-    // None let off by a body taken off the scene.
-    const power = this.body.parent ? this.power : 0;
+    // None let off by a body taken off the scene, or not drawn (still under the ground).
+    const power = this.body.parent && this.body.visible ? this.power : 0;
     this.body.getWorldPosition(this.at);
     // Behind him: his front is +Z, turned as he is.
     const turn = this.body.getWorldQuaternion(new THREE.Quaternion());

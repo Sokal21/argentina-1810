@@ -6,6 +6,7 @@ import { ChonchonFigure, DRAWN as CHONCHON } from './chonchon';
 import { ChonchonBrain } from '../chonchon/brain';
 import { Spirit } from './spirit';
 import { Stench } from './stench';
+import { RISE, Rising } from './rising';
 import { CABRAL_DRESS, model } from './figure';
 import { Fling } from './fling';
 import { Motion } from './motion';
@@ -106,6 +107,12 @@ const LUNGE = 'estocada_a_fondo', LUNGE_FROM = 180;
 const DIVE = 'en_picada', DIVE_FROM = 150, BITE = 'en_mordida', BITE_FROM = 30;
 /** Or brought down: struck once and again, as her orbs strike it (red, flashing), falling, sinking; and back up for another go. */
 const DOWNED = 'derribado', STRIKES = [0.8, 1.4], AGAIN = 3.5;
+/**
+ * The plague-dead soldier coming up out of the earth, whole (three/rising.ts): the ground swelling,
+ * breaking, him getting up out of it sunk at first, his scream, and the earth settling.
+ */
+const RISEN = 'salir_de_la_tierra', SCREAM = 2.0;
+const risings = new Map<Who, Rising>();
 /** The clips a character stands and walks with, listed first. */
 const FIRST = ['reposo_mixamo', 'caminata_mixamo', 'caminata_atras'];
 /** How fast the cart goes in the gallery, world units a second (the 2D game's carts go 40 to 46). */
@@ -189,6 +196,7 @@ function length(name: string): number {
   const t = w ? timing(w, name) : undefined;
   if (t?.lasts) return t.lasts;
   if (name === LUNGE) return shown.find(x => x.lunge)?.lunge?.time ?? 2;
+  if (name === RISEN) return Math.max(...shown.map(x => risings.get(x)?.lasts ?? 0), 0);
   for (const w of shown) { const it = loaded.get(w); if (it?.motion.has(name)) return it.motion.seconds(name); }
   return 2;
 }
@@ -201,10 +209,10 @@ async function show(list: Who[]): Promise<void> {
   all.forEach((it, i) => { it.body.position.x = it.home = (i - (all.length - 1) / 2) * APART; view.scene.add(it.body); });
   // Their clips: with several, those any of them has (each one lacking a clip stands as he is).
   const names = [...new Set([...all.flatMap(it => it.clips), ...(list.some(w => w.lunge) ? [LUNGE] : []), ...(list.some(w => w.dives) ? [DIVE, BITE, DOWNED] : []),
-    ...(all.some(it => it.motion.has('mosquete_descolgar')) ? [SLUNG_AGAIN] : [])])];
+    ...(all.some(it => it.motion.has('mosquete_descolgar')) ? [SLUNG_AGAIN] : []), ...(all.some(it => it.motion.has('levantarse')) ? [RISEN] : [])])];
   if (!names.includes(clip)) clip = names[0] ?? 'reposo_mixamo';
   clipsBar.replaceChildren();
-  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE || n === DOWNED || n === SLUNG_AGAIN;
+  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE || n === DOWNED || n === SLUNG_AGAIN || n === RISEN;
   const ordered = [...names.filter(playing), ...names.filter(n => !playing(n))];
   for (const name of ordered) {
     const b = button(clipsBar, name, () => { play(name); for (const x of clipsBar.children) x.classList.toggle('on', x === b); });
@@ -226,11 +234,14 @@ function play(name: string): void {
     if (!it) continue;
     const t = timing(w, name) ?? {};
     it.body.position.x = it.home;
-    it.body.position.z = 0;
+    it.body.position.y = it.body.position.z = 0;
+    it.body.visible = true;
+    risings.get(w)?.update(Infinity);
     if (shown.length === 1) view.follow(new THREE.Vector3(0, w.drawn * 0.5, 0));
     if (name === LUNGE && w.lunge) { act(it.body); continue; }
     if ((name === DIVE || name === BITE || name === DOWNED) && w.dives) { hunt(it.body, name === BITE, name === DOWNED); continue; }
     if (name === SLUNG_AGAIN && it.motion.has('mosquete_descolgar')) { slungAgain(it.motion, 0, true); continue; }
+    if (name === RISEN && it.motion.has('levantarse')) { rise(w, it.body, it.motion); continue; }
     const c = it.motion.has(name) ? name : 'reposo_mixamo';
     it.motion.play(c, { once: !!t.lasts || !!t.once, lasts: t.lasts, afresh: true, blend: 0.12 });
     // One who holds his musket in both hands lets it fall from them as he falls, as in the game.
@@ -244,6 +255,28 @@ function slungAgain(motion: Motion, into: number, afresh = false): void {
   if (into < UNSLING) motion.play('mosquete_descolgar', { once: true, lasts: UNSLING, afresh, blend: 0.12 });
   else if (into < UNSLING + HOLD) motion.play('mosquete_apuntar', { blend: 0.1 });
   else motion.play('mosquete_guardar', { once: true, lasts: SLING, blend: 0.1 });
+}
+
+/** The ground swelling where he is to come up: his rising started, him not drawn until he breaks out. */
+function rise(w: Who, body: THREE.Object3D, motion: Motion): void {
+  let rising = risings.get(w);
+  if (!rising) { rising = new Rising(w.drawn * UPRIGHT, motion.seconds('levantarse')); risings.set(w, rising); view.scene.add(rising.group); }
+  rising.start(body.position, turn);
+  body.visible = false;
+  motion.play('reposo', { afresh: true });
+}
+
+/** Coming up out of the earth, so far `into` it: unseen, getting up out of it (sunk), screaming, standing. */
+function risen(w: Who, body: THREE.Object3D, motion: Motion, into: number): void {
+  const rising = risings.get(w);
+  if (!rising) return;
+  const up = motion.seconds('levantarse');
+  body.visible = rising.out || into >= RISE.warn;
+  body.position.y = into < RISE.warn + up ? -rising.sunk : 0;
+  if (into < RISE.warn) return;
+  if (into < RISE.warn + up) motion.play('levantarse', { once: true, blend: 0 });
+  else if (into < RISE.warn + up + SCREAM) motion.play('grito', { once: true, lasts: SCREAM, blend: 0.15 });
+  else motion.play('reposo', { blend: 0.25 });
 }
 
 /** What each carries, shown as the game shows it for the clip: which musket, the sabre, the grenade. */
@@ -400,12 +433,13 @@ view.renderer.setAnimationLoop(() => {
   last = now;
   into += dt;
   // A clip played once starts over after a moment held on its end, while "repetir" is on.
-  const once = clip !== LUNGE && shown.some(w => timing(w, clip));
+  const once = clip !== LUNGE && (clip === RISEN || shown.some(w => timing(w, clip)));
   if (loop && once && into > length(clip) + 0.8) play(clip);
   for (const w of shown) {
     const it = loaded.get(w);
     if (!it) continue;
     if (clip === SLUNG_AGAIN && it.motion.has('mosquete_descolgar')) slungAgain(it.motion, into);
+    if (clip === RISEN) { risings.get(w)?.update(dt); risen(w, it.body, it.motion, into); }
     it.motion.update(dt);
     it.flung.update(dt);
     it.body.rotation.y = turn;
