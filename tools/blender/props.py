@@ -212,30 +212,31 @@ def pistol(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object
 
 
 def revolver(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object:
-    """A cavalry officer's revolver of the 1870s, for Roca: held as the pistol is, and like it named
-    `pistola`, its length along its +X and its muzzle where the pistol's is (PISTOL_MUZZLE), so it is
-    aimed and fired as the pistol is. A blued barrel over the thumb, the drum behind it, the frame
-    with its hammer, and a wooden grip down through the fist, curved back."""
+    """A heavy cavalry revolver of the 1870s, for Roca: big and mean (the user, 28/10/2026, found the
+    first too small to read), held as the pistol is and like it named `pistola`, its length along its
+    +X from the grip in the fist (0) and its top along +Z. Its muzzle is further out than the
+    pistol's, at REVOLVER_MUZZLE, for the game to fire from. A long, thick blued barrel with a rib
+    along its top and the ejector rod under it, a fat drum, the frame with a high hammer spur and its
+    trigger guard, and a heavy wooden grip down through the fist, capped in brass, with its ring."""
     parts = []
-    bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.0055, depth=0.085, location=(0.0875, 0, 0.032), rotation=(0, math.pi / 2, 0))
-    barrel = bpy.context.active_object
-    barrel.name = 'cano_revolver'
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    barrel.data.materials.append(material('hierro', IRON))
-    parts.append(barrel)
-    # The drum, fatter than the barrel, along it.
-    bpy.ops.mesh.primitive_cylinder_add(vertices=10, radius=0.013, depth=0.03, location=(0.03, 0, 0.026), rotation=(0, math.pi / 2, 0))
-    drum = bpy.context.active_object
-    drum.name = 'tambor'
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    drum.data.materials.append(material('acero', STEEL))
-    parts.append(drum)
-    # The frame under the barrel and round the drum, its hammer behind, its trigger guard under.
-    parts.append(box('armazon', (0.05, 0.012, 0.012), (0.035, 0, 0.012), IRON, 'hierro'))
-    parts.append(box('martillo', (0.012, 0.008, 0.016), (0.008, 0, 0.038), IRON, 'hierro', turn=0.4))
-    parts.append(box('guardamonte', (0.022, 0.006, 0.006), (0.028, 0, -0.002), IRON, 'hierro'))
-    # The grip, down through the fist and curved back.
-    parts.append(box('culata_revolver', (0.022, 0.016, 0.06), (-0.006, 0, -0.006), WOOD, 'madera', turn=-0.35))
+
+    def rod(name, radius, depth, at, colour, mat, sides=10):
+        bpy.ops.mesh.primitive_cylinder_add(vertices=sides, radius=radius, depth=depth, location=at, rotation=(0, math.pi / 2, 0))
+        o = bpy.context.active_object
+        o.name = name
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        o.data.materials.append(material(mat, colour))
+        parts.append(o)
+
+    rod('cano_revolver', 0.0085, 0.15, (0.135, 0, 0.042), IRON, 'hierro')
+    parts.append(box('costilla', (0.15, 0.006, 0.006), (0.135, 0, 0.052), IRON, 'hierro'))
+    rod('baqueta', 0.004, 0.11, (0.12, 0, 0.028), STEEL, 'acero', sides=6)
+    rod('tambor', 0.02, 0.045, (0.04, 0, 0.034), STEEL, 'acero', sides=12)
+    parts.append(box('armazon', (0.075, 0.016, 0.02), (0.035, 0, 0.018), IRON, 'hierro'))
+    parts.append(box('martillo', (0.018, 0.01, 0.026), (0.006, 0, 0.05), IRON, 'hierro', turn=0.5))
+    parts.append(box('guardamonte', (0.034, 0.008, 0.008), (0.032, 0, -0.004), IRON, 'hierro'))
+    parts.append(box('culata_revolver', (0.032, 0.022, 0.085), (-0.012, 0, -0.012), WOOD, 'madera', turn=-0.35))
+    parts.append(box('casquillo', (0.036, 0.024, 0.012), (-0.028, 0, -0.054), BRASS, 'bronce', turn=-0.35))
     for p in parts:
         p.select_set(True)
     bpy.context.view_layer.objects.active = parts[0]
@@ -255,6 +256,9 @@ def revolver(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Obje
     gun.matrix_world = world
     return gun
 
+
+# Where the revolver's muzzle is, along it and over its middle line (its own units), as PISTOL_MUZZLE is the pistol's.
+REVOLVER_MUZZLE = (0.21, 0.042)
 
 # How far along a pistol its muzzle is, and how high over its middle line (pistol's own units).
 PISTOL_MUZZLE = (0.13, 0.032)
