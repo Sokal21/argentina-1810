@@ -134,8 +134,11 @@ Lo único que se ve de ellos es, al entrar, **el mismísimo Julio Argentino Roca
 
 Las dos fases (el usuario):
 
-1. **La batería.** Roca te ataca con los cañonazos, desde lejos.
-2. **Roca salta a la batalla** y te pelea él mismo.
+1. **La batería.** Roca te ataca con los cañonazos, desde lejos. Es el desafío de la pelea: los
+   cañonazos vienen en salvas de dos clases, **una zona grande concentrada** o **muchos desperdigados**
+   por el lugar.
+2. **Roca salta a la batalla** y te pelea él mismo. Los cañonazos siguen, pero **distintos: en zonas
+   más chicas y muchos menos**, porque ahora el peligro es él.
 
 **Si lo vencés, no lo matás: Roca escapa.**
 
