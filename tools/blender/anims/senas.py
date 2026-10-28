@@ -6,6 +6,8 @@ to point before him (there: fire), the white held high; again, and down.
 
 Said in the rig's own axes (keyframes.py): +X forward, +Y his left, +Z up. The flags are props.py's
 signal_flag, built with `--carries signal_flag@R_Hand@roja,signal_flag@L_Hand@blanca`.
+Its legs, keyed here, stand stiff: the game's clip is this one's upper body over his breathing
+idle's hips and legs (tools/blender/upper_from.py), as tools/mocap/README.md says.
 """
 import os
 import sys
