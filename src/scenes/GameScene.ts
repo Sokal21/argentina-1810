@@ -37,7 +37,7 @@ import { playMusic } from '../music';
 import { RUN, Stamina } from '../machi/stamina';
 import { Water } from '../fx/water';
 import { Country, loadCountry, loadFences, raiseBuildings, raiseFences } from '../world/country';
-import { bosquePatagonico } from '../world/maps/bosque';
+import { arenaDeRoca } from '../world/maps/arena';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
 import { garrison, type Post } from '../world/garrison';
@@ -159,7 +159,8 @@ const inZone = (c: Carried, p: Vec) => { const z = zoneOf(c); return Math.hypot(
 const RING_FADE = 6;       // how quickly the ring and its words ease in and out, a second            // seconds between one keeping of the game and the next
 const FIELD = { width: 1280, height: 800 }; // the bare field, in sprite pixels
 // The map each hero walks; one who has none fights on the bare field.
-const MAPS: Partial<Record<Hero, WorldMap>> = { inti: bosquePatagonico, cabral: vadoDeLasVizcachas };
+// Inti's first map is the clearing where she fights Roca's battery, for now (the user, 28/10/2026); her forest is kept (maps/bosque.ts).
+const MAPS: Partial<Record<Hero, WorldMap>> = { inti: arenaDeRoca, cabral: vadoDeLasVizcachas };
 // Where a map's enemies wait, in plots from where the hero arrives: out of the camp.
 const HUNT: [number, number] = [11, 0];
 const TILE_W = 32, TILE_H = 16; // ground diamond, in sprite pixels
