@@ -12,7 +12,7 @@ import { flat } from './paint';
  * its near end and at its far end (all shares of his height); when in his scream it is thrown and
  * until when (seconds); how long the pool lies before it dries, and how long it takes drying.
  */
-export const VOMIT = { near: 0.4, reach: 1.7, wide: [0.75, 1.7], from: 0.55, to: 1.55, lies: 5, dries: 1.5 };
+export const VOMIT = { near: 0.4, reach: 2.4, wide: [0.75, 1.8], from: 0.55, to: 1.55, lies: 5, dries: 1.5 };
 /** How wide the pool is (a share of his height) at a share `d` of the way from its near end to its far end. */
 const wideAt = (d: number) => VOMIT.wide[0] + (VOMIT.wide[1] - VOMIT.wide[0]) * d;
 /** The spray: how many drops kept, thrown a second, how fast, how big (a share of his height), how heavy; its colours. */
@@ -32,10 +32,19 @@ function poolPicture(): THREE.Texture {
   // Seeded, so it is the same pool every time.
   let seed = 7;
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  // How far out its edge lies at a share `d` of its length, on one side: rounded off at both ends
+  // (as an ellipse's end), and ragged, unevenly on each side.
+  const ragged = [0, 1].map(() => [1, 2, 3].map(() => [rnd() * 6.3, 3 + rnd() * 9]));
+  const edge = (d: number, side: number) => {
+    const rounded = Math.sqrt(Math.max(0, 1 - Math.abs(2 * d - 1) ** 2.4));
+    const rag = ragged[side].reduce((sum, [phase, often], i) => sum + Math.sin(d * often + phase) * 0.09 / (i + 1), 0);
+    return Math.max(0, rounded * (0.88 + rag));
+  };
   const blob = (colour: string, n: number, big: [number, number], alpha: number, far = 1) => {
     g.fillStyle = colour;
     for (let i = 0; i < n; i++) {
-      const d = rnd() * far, across = (rnd() * 2 - 1) * (1 - 0.12 * rnd());
+      const d = rnd() * far, sideways = rnd() * 2 - 1;
+      const across = sideways * edge(d, sideways < 0 ? 0 : 1) * (1 - 0.12 * rnd());
       const r = (big[0] + rnd() * (big[1] - big[0])) * (0.8 + 0.5 * d);
       g.globalAlpha = alpha * (1 - 0.4 * d);
       g.beginPath();
@@ -46,6 +55,15 @@ function poolPicture(): THREE.Texture {
   blob(POOL.body, 320, [6, 14], 0.95);
   blob(POOL.splash, 140, [3, 9], 0.9);
   blob(POOL.bright, 40, [1.5, 4], 0.85, 0.9);
+  // Splashes thrown off past its edges, small.
+  g.fillStyle = POOL.splash;
+  for (let i = 0; i < 70; i++) {
+    const d = rnd(), sideways = rnd() < 0.5 ? -1 : 1, past = 1 + 0.06 + rnd() * 0.18;
+    g.globalAlpha = 0.85;
+    g.beginPath();
+    g.arc(size / 2 + sideways * edge(d, sideways < 0 ? 0 : 1) * past * (wideAt(d) / VOMIT.wide[1]) * size * 0.45, 8 + d * (size - 16), 1 + rnd() * 3, 0, Math.PI * 2);
+    g.fill();
+  }
   g.globalAlpha = 1;
   const texture = new THREE.CanvasTexture(canvas);
   texture.magFilter = texture.minFilter = THREE.NearestFilter;
