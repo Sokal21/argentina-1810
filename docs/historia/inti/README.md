@@ -118,11 +118,29 @@ Ideas (propuesta), que pueden ser enemigos comunes o jefes según el tramo:
 
 Por ahora, **un jefe intermedio por camino** y el final (decidido). Los finales son el capitán, cuya
 pelea no es solo matarlo (además hay que hacer algo, por ejemplo romper el pacto; la mecánica está
-por pensar), y el Wekufe, una pelea pura. **Los dos jefes intermedios están por definir.**
+por pensar), y el Wekufe, una pelea pura.
+
+### Camino del capitán: la batería Krupp y el sargento Ibáñez (decidido)
+
+Un cañón Krupp en una loma, con el sargento artillero Ibáñez y sus ayudantes. **Una pelea por fases**
+(al usuario le encantó que tenga fases), **sin chonchones**: es una pelea del ejército.
+
+- **El cañón:** marca círculos en el piso y a los dos segundos cae el obús (explosión, fuego, humo).
+  Quedarse quieta mata.
+- **El sargento y sus dos ayudantes:** cargan y disparan. Para callar el cañón hay que matar al
+  sargento o a los dos ayudantes.
+- **La escolta:** fusileros que defienden la loma.
+- **Segunda fase:** sin ayudantes, el sargento agarra el sable y baja a pelear él mismo.
+- **Lo que enseña:** moverse leyendo el piso, y elegir cuándo subir a la loma.
+
+### Camino del demonio
+
+El jefe intermedio está por definir (propuestas: el kalku, cuya cabeza vuela como un chonchón
+gigante; o el coronel apestado).
 
 ## Lo que falta decidir
 
-1. Los dos jefes intermedios: uno del camino del capitán y uno del camino del demonio.
+1. El jefe intermedio del camino del demonio, y los detalles de la batería (cuántas fases, números).
 2. El próximo enemigo (baqueano, lancero o artilleros).
 3. Las recompensas: cuáles, cuántas por vez y cómo se eligen.
 4. Las habitaciones: cuántas, cómo son y cómo se pasa de una a la siguiente.
