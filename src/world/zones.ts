@@ -4,6 +4,8 @@
 // The ground is drawn foreshortened, so a plot is twice as wide as it is tall.
 
 export const PLOT_W = 128, PLOT_H = 64; // one plot, in world pixels
+/** How much the ground is foreshortened down the screen (machi/data.ts's ISO_Y): a plot is twice as wide as tall. */
+const FORESHORTENED = PLOT_H / PLOT_W;
 
 /** Marks a plot nobody walks through: country too thick to cross. */
 export const WILD = '.';
@@ -178,6 +180,12 @@ export interface WorldMap {
   objectives: Objective[];
   /** Open country: no forest is planted on it, and what cannot be crossed is only shaded. */
   bare?: boolean;
+  /**
+   * The ground that can be walked is round, not as its plots make it: only what lies within `reach`
+   * (along the ground, not foreshortened) of this spot, in world pixels. Its plots cover the circle;
+   * of them, only the circle is walked (a clearing of plots came out a square or a diamond).
+   */
+  round?: { x: number; y: number; reach: number };
   buildings?: Building[];
   /** Who can be talked to, by the name the game knows them under, and the plot each stands in. */
   people?: {
@@ -216,7 +224,10 @@ export function letterAt(map: WorldMap, col: number, row: number): string | unde
 /** The zone a spot on the ground is in, if anyone can stand there. */
 export function zoneAt(map: WorldMap, x: number, y: number): Zone | undefined {
   const letter = letterAt(map, Math.floor(x / PLOT_W), Math.floor(y / PLOT_H));
-  return letter === undefined ? undefined : map.zones[letter];
+  if (letter === undefined) return undefined;
+  const r = map.round;
+  if (r && Math.hypot(x - r.x, (y - r.y) / FORESHORTENED) > r.reach) return undefined;
+  return map.zones[letter];
 }
 
 /**

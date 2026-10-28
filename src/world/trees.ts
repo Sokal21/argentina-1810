@@ -14,14 +14,15 @@ export const DEPTH = 5;
 const WALLED = [1, 0.85, 0.7, 0.6, 0.5]; // chance of a tree in a plot of the wall, by how far in it is
 const TWICE = 0.5;               // chance of a second tree in the plots right at the edge
 const SCATTERED = 0.12;          // chance of a tree in a plot of a zone that is not safe
-const OPEN_SOUTH = 4;            // plots south of a clearing left bare, between it and the camera
+const OPEN_SOUTH = 8;            // plots south of a clearing left bare, between it and the camera (4 let the tallest stand before it)
 /**
  * A clearing's edge, marked so it is seen where the ground can be walked and where not (the user,
  * 28/10/2026: the monte stood back, its edge was a wall nobody could see): young trees along it, so
  * many to a plot's side, as big as `side`; and along its south edge, before the camera, `south`, low,
- * so as to mark it and hide nothing. How far into the thick country they stand, in world pixels.
+ * so as to mark it and hide nothing. How far into the thick country they stand, in world pixels; round
+ * a round clearing, how far apart along its circle, and how far behind it the monte begins.
  */
-const EDGE = { many: 2, side: 1.3, south: 0.6, into: 6 };
+const EDGE = { many: 2, side: 1.3, south: 0.6, into: 6, every: 55, back: 70 };
 
 export interface Tree {
   /** The foot of its trunk, in world pixels. */
@@ -86,7 +87,7 @@ export function plantTrees(map: WorldMap, kinds: number, seed = 1): Tree[] {
   };
   const byOpen = (col: number, row: number) => {
     for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (open(col + dc, row + dr)) return true;
-    for (let up = 1; up <= OPEN_SOUTH; up++) for (let dc = -1; dc <= 1; dc++) if (open(col + dc, row - up)) return true;
+    for (let up = 1; up <= OPEN_SOUTH; up++) for (let dc = -2; dc <= 2; dc++) if (open(col + dc, row - up)) return true;
     return false;
   };
   // A plot of thick country next to a clearing: young trees along each side of it that meets the
@@ -118,8 +119,30 @@ export function plantTrees(map: WorldMap, kinds: number, seed = 1): Tree[] {
     for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (open(col + dc, row + dr)) return true;
     return false;
   };
+  // A round clearing (map.round) has its edge marked along its circle instead, and the monte comes up
+  // to it over what of its plots lies outside the circle, but on its south side, before the camera.
+  const round = map.round;
+  const outside = (x: number, y: number, by: number) => !!round && Math.hypot(x - round.x, (y - round.y) / (PLOT_H / PLOT_W)) > round.reach + by;
+  const southOf = (y: number) => !!round && y > round.y + round.reach * (PLOT_H / PLOT_W) * 0.2;
+  if (round) {
+    const many = Math.round((2 * Math.PI * round.reach) / EDGE.every);
+    for (let i = 0; i < many; i++) {
+      const a = (i + (chance(i, 0, seed + 400) - 0.5) * 0.4) / many * Math.PI * 2;
+      const x = round.x + Math.cos(a) * (round.reach + EDGE.into), y = round.y + Math.sin(a) * (round.reach + EDGE.into) * (PLOT_H / PLOT_W);
+      trees.push({ x: Math.floor(x), y: Math.floor(y), kind: young, size: (southOf(y) ? EDGE.south : EDGE.side) * (1 + (chance(i, 1, seed + 401) * 2 - 1) * UNEVEN), flipped: chance(i, 2, seed + 402) < 0.5 });
+    }
+  }
   map.plots.forEach((line, row) => [...line].forEach((letter, col) => {
     const d = far[row][col];
+    if (round && d === 0) {
+      // Of a plot of the clearing, what lies outside its circle: the monte, on all but its south side.
+      for (let n = 0; n < 2; n++) {
+        const x = (col + chance(col, row, seed + 500 + n)) * PLOT_W, y = (row + chance(col, row, seed + 510 + n)) * PLOT_H;
+        if (outside(x, y, EDGE.back) && !southOf(y)) trees.push({ x: Math.floor(x), y: Math.floor(y), kind: Math.floor(chance(col, row, seed + 520 + n) * kinds), size: WALL * (1 + (chance(col, row, seed + 530 + n) * 2 - 1) * UNEVEN), flipped: chance(col, row, seed + 540 + n) < 0.5 });
+      }
+      return;
+    }
+    if (round && d === 1 && touches(col, row)) return;
     if (d === 1 && touches(col, row)) { edge(col, row); return; }
     if (d > 0 && byOpen(col, row)) return;
     if (d === 0) {

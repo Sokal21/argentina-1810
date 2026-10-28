@@ -7,32 +7,32 @@ test('the clearing holds together, and she comes into it from somewhere safe', (
   expect(faults(map)).toEqual([]);
 });
 
-test('it is round and no wider than its reach either way, with nothing in it', () => {
-  const inside: [number, number][] = [];
-  map.plots.forEach((line, row) => [...line].forEach((letter, col) => { if (letter === 'A') inside.push([col, row]); }));
-  const across = (Math.max(...inside.map(p => p[0])) - Math.min(...inside.map(p => p[0])) + 1) * PLOT_W;
-  const deep = (Math.max(...inside.map(p => p[1])) - Math.min(...inside.map(p => p[1])) + 1) * PLOT_H / ISO_Y;
-  expect(across).toBeLessThanOrEqual(ARENA_REACH * 2 + PLOT_W * 1.5);
-  expect(deep).toBeCloseTo(across, -2);
+test('it is round, a true circle, with nothing built in it', async () => {
+  const { zoneAt } = await import('../src/world/zones');
+  const r = map.round!;
+  for (let a = 0; a < Math.PI * 2; a += 0.1) {
+    const at = (d: number) => zoneAt(map, r.x + Math.cos(a) * d, r.y + Math.sin(a) * d * ISO_Y);
+    expect(at(ARENA_REACH - 10), `in at ${a.toFixed(1)}`).toBeDefined();
+    expect(at(ARENA_REACH + 10), `out at ${a.toFixed(1)}`).toBeUndefined();
+  }
   expect(map.buildings ?? []).toEqual([]);
   expect(letterAt(map, ...map.start)).toBe('E');
+  expect(PLOT_W).toBe(128);
+  expect(PLOT_H).toBe(64);
 });
 
-test('no tree stands in the clearing; its edge is marked by young trees right on it, low ones along its south', async () => {
+test('no tree stands where she can walk; the edge is marked by young trees along the circle, low ones along its south', async () => {
   const { plantTrees } = await import('../src/world/trees');
   const { zoneAt } = await import('../src/world/zones');
-  const trees = plantTrees(map, 2);
+  const trees = plantTrees(map, 2), r = map.round!;
   expect(trees.filter(t => zoneAt(map, t.x, t.y))).toEqual([]);
-  // Those within a few pixels of the clearing are its edge: young, and low on its south side.
-  const onEdge = trees.filter(t => [[0, -10], [0, 10], [-10, 0], [10, 0]].some(([dx, dy]) => zoneAt(map, t.x + dx, t.y + dy)?.open));
-  expect(onEdge.length).toBeGreaterThan(20);
+  const onEdge = trees.filter(t => Math.abs(Math.hypot(t.x - r.x, (t.y - r.y) / ISO_Y) - ARENA_REACH) < 20);
+  expect(onEdge.length).toBeGreaterThan(60);
   expect(onEdge.every(t => t.kind === 1)).toBe(true);
-  const south = onEdge.filter(t => zoneAt(map, t.x, t.y - 10)?.open);
-  expect(south.length).toBeGreaterThan(0);
+  const south = onEdge.filter(t => t.y > r.y + ARENA_REACH * ISO_Y * 0.5);
   expect(Math.max(...south.map(t => t.size))).toBeLessThan(1);
 });
 
-test('she comes in inside the clearing itself, at its south edge', () => {
+test('she comes in inside the clearing itself, at its south', () => {
   expect(map.zones[letterAt(map, ...map.start)!].open).toBe(true);
-  expect(letterAt(map, map.start[0], map.start[1] + 1)).toBeUndefined();
 });

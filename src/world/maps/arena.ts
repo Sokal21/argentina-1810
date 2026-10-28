@@ -2,32 +2,34 @@ import { PLOT_H, PLOT_W, type WorldMap } from '../zones';
 import { ISO_Y } from '../../machi/data';
 
 // Where Inti fights Roca's battery (docs/historia/inti/README.md, 28 October 2026): a round clearing
-// in the monte, not large, with nothing in it to hide behind (the user: she gets out of the shells'
-// way by moving); the battery and Roca beyond its edge. She comes in at its south edge, the safe
-// ground every map begins on (a neck through the monte to it hid her among the trees). Her first map for now, in place of her forest (maps/bosque.ts).
+// in the monte, with nothing in it to hide behind (the user: she gets out of the shells' way by
+// moving); the battery and Roca beyond its edge. Its ground is a true circle (the map's `round`), not
+// as its plots make it: of plots alone it came out a square or a diamond. She comes in at its south
+// edge, the safe ground every map begins on. Her first map for now, in place of her forest
+// (maps/bosque.ts).
 
 /**
  * How far the clearing reaches from its middle, in the ground's units (the great salvo is 130 across
- * its middle): 400 at first, too small (the user, 28/10/2026); now some 9 plots across, not 7.
+ * its middle): 400 at first, then 510, both too small (the user, 28/10/2026).
  */
-export const ARENA_REACH = 510;
-/** The map in plots: how wide and deep, and the clearing's middle. */
-const COLS = 21, ROWS = 21, MIDDLE: [number, number] = [10, 9];
-/** How many plots south of the middle she comes in. */
-const ENTRY = 4;
+export const ARENA_REACH = 750;
+/** The map in plots: how wide and deep, and the clearing's middle plot. */
+const COLS = 31, ROWS = 31, MIDDLE: [number, number] = [15, 13];
+/** The middle of the clearing, in world pixels: the middle of its middle plot. */
+const CENTRE = { x: (MIDDLE[0] + 0.5) * PLOT_W, y: (MIDDLE[1] + 0.5) * PLOT_H };
+/** How many plots south of the middle she comes in: its plot's middle well within the circle. */
+const ENTRY = 5;
 
 function plots(): string[] {
   const rows: string[] = [];
   for (let r = 0; r < ROWS; r++) {
     let line = '';
     for (let c = 0; c < COLS; c++) {
-      // A plot is in the clearing if its middle is, measured along the ground (down the screen
-      // foreshortened), give or take a quarter of a plot: at the reach itself the plots came out a diamond.
-      const dx = (c - MIDDLE[0]) * PLOT_W, dy = (r - MIDDLE[1]) * PLOT_H / ISO_Y;
-      const inside = Math.hypot(dx, dy) <= ARENA_REACH + PLOT_W / 4;
-      // Where she comes in: the clearing's southmost plot.
+      // A plot belongs to the clearing if any of it is within the circle: its nearest point to the middle.
+      const nx = Math.max(c * PLOT_W, Math.min(CENTRE.x, (c + 1) * PLOT_W)), ny = Math.max(r * PLOT_H, Math.min(CENTRE.y, (r + 1) * PLOT_H));
+      const inside = Math.hypot(nx - CENTRE.x, (ny - CENTRE.y) / ISO_Y) <= ARENA_REACH;
       const entry = c === MIDDLE[0] && r === MIDDLE[1] + ENTRY;
-      line += entry && inside ? 'E' : inside ? 'A' : '.';
+      line += entry ? 'E' : inside ? 'A' : '.';
     }
     rows.push(line);
   }
@@ -43,6 +45,7 @@ export const arenaDeRoca: WorldMap = {
     A: { name: 'El claro de la batería', open: true },
   },
   plots: plots(),
+  round: { ...CENTRE, reach: ARENA_REACH },
   start: [MIDDLE[0], MIDDLE[1] + ENTRY],
   objectives: [],
 };
