@@ -170,6 +170,8 @@ view.scene.add(balls.group);
  */
 const SALVOES: Record<string, SalvoKind> = { bombardeo_desperdigado: 'scattered', bombardeo_concentrado: 'concentrated' };
 const CALL = { at: 15 / 46, ahead: 240 };
+/** How long a spotter's flag is from his fist to its far end, in its own units (props.signal_flag). */
+const FLAG_LONG = 0.28;
 /** Roca calling a salvo himself in his fight's second phase, with his sabre (his `senal`), and how far before him it falls. */
 const ROCA_SALVO = 'senal_salva', ROCA_CALL = { at: 26 / 48, ahead: 180 };
 const battery = new Battery3D();
@@ -315,6 +317,8 @@ function play(name: string): void {
     // One who holds his musket in both hands lets it fall from them as he falls, as in the game.
     it.flung.back();
     if (w.kneels && c === 'muerte') it.flung.throw(it.body);
+    // The spotter lets both his flags fly from his hands (props.signal_flag: their poles 0.28 long).
+    if (w.spots && c === 'muerte') for (const flag of ['bandera_roja', 'bandera_blanca']) it.flung.throw(it.body, flag, FLAG_LONG);
   }
 }
 

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * A musket let go of as he falls, as a stick of two ends (butt and muzzle) held their length apart:
+ * A musket (or anything long held, a flag) let go of as he falls, as a stick of two ends (butt and muzzle) held their length apart:
  * kept in his hands a moment as he starts to fall, then let go going the way his hands went, pulled
  * down (world units a second squared: a man is 78 tall), each end bouncing off the ground on its own,
  * so it tips and clatters over before it lies still.
@@ -18,6 +18,8 @@ interface Stick {
   held: THREE.Object3D;
   at: THREE.Matrix4;
   field: THREE.Object3D;
+  /** How long it is, in its own units: from where it is held to its far end along its +X. */
+  long: number;
   /** Its ends now and a step ago, in the field's space. */
   ends: [THREE.Vector3, THREE.Vector3];
   was: [THREE.Vector3, THREE.Vector3];
@@ -30,37 +32,43 @@ interface Stick {
   lying: boolean;
 }
 
-/** One figure's musket, let fall from his hands and put back in them; in the game and in the gallery alike. */
+/**
+ * What one figure holds, let fall from his hands and put back in them: his musket, or a spotter's two
+ * flags, each falling on its own; in the game and in the gallery alike.
+ */
 export class Fling {
-  private stick: Stick | null = null;
+  private sticks: Stick[] = [];
 
   /** `floor` is how high the ground stands under a spot of the field. */
   constructor(private readonly floor: (at: THREE.Vector3) => number) {}
 
-  /** The musket, once out of his hands. */
-  get gun(): THREE.Object3D | null {
-    return this.stick && this.stick.gun.parent === this.stick.field ? this.stick.gun : null;
+  /** What has been let go of, once out of his hands. */
+  get guns(): THREE.Object3D[] {
+    return this.sticks.filter(s => s.gun.parent === s.field).map(s => s.gun);
   }
 
-  /** He begins to fall: his musket is let go of in a moment. */
-  throw(body: THREE.Object3D, name = 'mosquete_mano'): void {
+  /** He begins to fall: what he holds by that name (`long` in its own units) is let go of in a moment. */
+  throw(body: THREE.Object3D, name = 'mosquete_mano', long = DROP.length): void {
     const gun = body.getObjectByName(name), field = body.parent;
-    if (!gun?.parent || !field || this.stick) return;
-    const ends = endsOf(gun, field);
-    this.stick = {
-      gun, held: gun.parent, at: gun.matrix.clone(), field, ends, was: [ends[0].clone(), ends[1].clone()],
+    if (!gun?.parent || !field || this.sticks.some(s => s.gun === gun)) return;
+    const ends = endsOf(gun, field, long);
+    this.sticks.push({
+      gun, held: gun.parent, at: gun.matrix.clone(), field, long, ends, was: [ends[0].clone(), ends[1].clone()],
       length: ends[0].distanceTo(ends[1]), scale: new THREE.Vector3(), up: new THREE.Vector3(), t: 0, lying: false,
-    };
+    });
   }
 
   update(dt: number): void {
-    const s = this.stick;
-    if (!s || s.lying || dt <= 0) return;
+    for (const s of this.sticks) this.fall(s, dt);
+  }
+
+  private fall(s: Stick, dt: number): void {
+    if (s.lying || dt <= 0) return;
     s.t += dt;
     if (s.t < DROP.hold) {
       // Still in his hands: its ends followed, so it leaves them going as they went.
       s.was = s.ends;
-      s.ends = endsOf(s.gun, s.field);
+      s.ends = endsOf(s.gun, s.field, s.long);
       return;
     }
     if (s.gun.parent !== s.field) this.free(s, dt);
@@ -71,16 +79,16 @@ export class Fling {
 
   /** Back in his hands, as he is up again (or taken off the field, it with him). */
   back(): void {
-    const s = this.stick;
-    if (!s) return;
-    s.held.add(s.gun);
-    s.at.decompose(s.gun.position, s.gun.quaternion, s.gun.scale);
-    this.stick = null;
+    for (const s of this.sticks) {
+      s.held.add(s.gun);
+      s.at.decompose(s.gun.position, s.gun.quaternion, s.gun.scale);
+    }
+    this.sticks = [];
   }
 
   /** Out of his hands into the field, going as his hands went over the last frame. */
   private free(s: Stick, dt: number): void {
-    const ends = endsOf(s.gun, s.field);
+    const ends = endsOf(s.gun, s.field, s.long);
     // The last frame's way, as a step's: what an end went in `dt`, over the steps `dt` is now taken in.
     const h = dt / DROP.steps;
     s.was = [0, 1].map(i => ends[i].clone().sub(ends[i].clone().sub(s.ends[i]).multiplyScalar(h / dt))) as Stick['was'];
@@ -132,10 +140,10 @@ export class Fling {
   }
 }
 
-/** A musket's butt and muzzle, in `field`'s space. */
-function endsOf(gun: THREE.Object3D, field: THREE.Object3D): [THREE.Vector3, THREE.Vector3] {
+/** A musket's butt and muzzle (or a flag's foot and tip, `long` apart in its own units), in `field`'s space. */
+function endsOf(gun: THREE.Object3D, field: THREE.Object3D, long: number): [THREE.Vector3, THREE.Vector3] {
   gun.updateWorldMatrix(true, false);
   field.updateWorldMatrix(true, false);
   const toField = field.matrixWorld.clone().invert().multiply(gun.matrixWorld);
-  return [new THREE.Vector3(0, 0, 0).applyMatrix4(toField), new THREE.Vector3(DROP.length, 0, 0).applyMatrix4(toField)];
+  return [new THREE.Vector3(0, 0, 0).applyMatrix4(toField), new THREE.Vector3(long, 0, 0).applyMatrix4(toField)];
 }

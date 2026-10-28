@@ -221,7 +221,7 @@ class Figure {
    */
   rest(who: Royalist): void {
     this.body.visible = this.warning.visible = false;
-    if (this.flung.gun) this.flung.gun.visible = false;
+    for (const gun of this.flung.guns) gun.visible = false;
     this.resting = true;
     if (alive(who.mind.mode) && this.modeWas && !alive(this.modeWas)) {
       this.blood.clear(this.id);
@@ -373,7 +373,7 @@ class Figure {
     // Under the earth he is not seen until it breaks; then he comes up out of it, sunk at first.
     const unseen = mode === 'rise' && t < RISE.warn;
     this.body.visible = !this.buried && !unseen;
-    if (this.flung.gun) this.flung.gun.visible = true;
+    for (const gun of this.flung.guns) gun.visible = true;
     this.body.position.copy(ground(x, y));
     if (mode === 'rise' && this.rising) this.body.position.y -= this.rising.sunk;
     this.body.rotation.y = this.facing;
