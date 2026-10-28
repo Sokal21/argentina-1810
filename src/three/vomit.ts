@@ -12,7 +12,7 @@ import { flat } from './paint';
  * its near end and at its far end (all shares of his height); when in his scream it is thrown and
  * until when (seconds); how long the pool lies before it dries, and how long it takes drying.
  */
-export const VOMIT = { near: 0.4, reach: 2.4, wide: [0.75, 1.8], from: 0.55, to: 1.55, lies: 5, dries: 1.5 };
+export const VOMIT = { near: 0.4, reach: 2.4, wide: [0.75, 1.8], from: 0.55, to: 1.55, lies: 5, dries: 2.6 };
 /** How wide the pool is (a share of his height) at a share `d` of the way from its near end to its far end. */
 const wideAt = (d: number) => VOMIT.wide[0] + (VOMIT.wide[1] - VOMIT.wide[0]) * d;
 /** The spray: how many drops kept, thrown a second, how fast, how big (a share of his height), how heavy; its colours. */
@@ -20,7 +20,55 @@ const SPRAY = { kept: 90, rate: 70, up: [-30, 40], size: [0.035, 0.07], fall: 42
 /** The pool's colours: its body, its splashes, a few sickly bright spots; how thick it lies. */
 const POOL = { body: '#4f6420', splash: '#728f2a', bright: '#a3cf3c', thick: 0.88 };
 
+/** Its bubbles: how many kept, how many rise a second, how long one swells before it bursts, how big (a share of his height), their colour. */
+const BUBBLES = { kept: 24, rate: 9, swell: [0.35, 0.8], size: [0.025, 0.06], colour: '#b4d85a' };
+
 interface Drop { sprite: THREE.Sprite; v: THREE.Vector3 }
+interface Bubble { sprite: THREE.Sprite; t: number; life: number; size: number }
+
+/**
+ * The order the pool dries in, a grey for each point of it: patches here and there, its edges and
+ * its ends sooner, its heart last. Where the grey is under how far it has dried, it is gone.
+ */
+let ordered: THREE.Texture | null = null;
+function dryOrder(): THREE.Texture {
+  if (ordered) return ordered;
+  const size = 64, canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const g = canvas.getContext('2d')!;
+  const heart = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size * 0.6);
+  heart.addColorStop(0, '#d0d0d0');
+  heart.addColorStop(1, '#202020');
+  g.fillStyle = heart;
+  g.fillRect(0, 0, size, size);
+  let seed = 11;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 90; i++) {
+    const v = Math.floor(rnd() * 255);
+    g.fillStyle = `rgba(${v},${v},${v},0.35)`;
+    g.beginPath();
+    g.arc(rnd() * size, rnd() * size, 2 + rnd() * 7, 0, Math.PI * 2);
+    g.fill();
+  }
+  return ordered = new THREE.CanvasTexture(canvas);
+}
+
+/** A bubble's picture: a thin pale ring with a glint, clear within. */
+let bubbled: THREE.Texture | null = null;
+function bubble(): THREE.Texture {
+  if (bubbled) return bubbled;
+  const size = 16, canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const g = canvas.getContext('2d')!;
+  g.fillStyle = 'rgba(255,255,255,0.25)';
+  g.beginPath(); g.arc(8, 8, 6, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = 'rgba(255,255,255,0.95)';
+  g.lineWidth = 1.5;
+  g.beginPath(); g.arc(8, 8, 6, 0, Math.PI * 2); g.stroke();
+  g.fillStyle = '#ffffff';
+  g.fillRect(5, 5, 2, 2);
+  return bubbled = new THREE.CanvasTexture(canvas);
+}
 
 /** The pool's picture: the cut cone, its near end along the top (laid flat, the end toward him), blotched, ragged at its edges, thinning outward. */
 let pooled: THREE.Texture | null = null;
@@ -78,6 +126,9 @@ export class Vomit {
   private readonly turned = new THREE.Group();
   private readonly pool: THREE.Mesh;
   private readonly drops: Drop[] = [];
+  private readonly bubbles: Bubble[] = [];
+  /** How far it has dried, 0 to 1, as the pool's shader reads it. */
+  private readonly dried = { value: 0 };
   private readonly mouth = new THREE.Vector3();
   private time = -1;
 
@@ -86,6 +137,15 @@ export class Vomit {
     const long = tall * (VOMIT.reach - VOMIT.near), wide = tall * VOMIT.wide[1];
     const material = flat('#ffffff');
     Object.assign(material, { map: poolPicture(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+    // Drying, it goes unevenly: wherever the order it dries in is under how far it has dried.
+    const order = dryOrder();
+    material.onBeforeCompile = shader => {
+      shader.uniforms.dried = this.dried;
+      shader.uniforms.order = { value: order };
+      shader.fragmentShader = 'uniform float dried;\nuniform sampler2D order;\n' + shader.fragmentShader.replace('#include <map_fragment>',
+        '#include <map_fragment>\n  if (texture2D(order, vMapUv).g < dried * 1.05) discard;');
+    };
+    material.customProgramCacheKey = () => 'vomit-pool';
     // As long as the pool and as wide as its far end, its near end (the top of its picture) laid at
     // the pivot and the rest along +Z.
     this.pool = new THREE.Mesh(new THREE.PlaneGeometry(wide, long).rotateX(-Math.PI / 2).translate(0, 0, long / 2), material);
@@ -99,6 +159,12 @@ export class Vomit {
       sprite.visible = false;
       this.group.add(sprite);
       this.drops.push({ sprite, v: new THREE.Vector3() });
+    }
+    for (let i = 0; i < BUBBLES.kept; i++) {
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: bubble(), color: BUBBLES.colour, transparent: true, depthWrite: false }));
+      sprite.visible = false;
+      this.turned.add(sprite);
+      this.bubbles.push({ sprite, t: 0, life: 0, size: 0 });
     }
     this.group.visible = false;
   }
@@ -119,7 +185,9 @@ export class Vomit {
     this.pivot.position.z = this.tall * VOMIT.near;
     this.pivot.scale.set(0.5, 1, 0.001);
     (this.pool.material as THREE.MeshToonMaterial).opacity = POOL.thick;
+    this.dried.value = 0;
     for (const d of this.drops) d.sprite.visible = false;
+    for (const b of this.bubbles) b.sprite.visible = false;
     this.group.visible = true;
   }
 
@@ -137,8 +205,9 @@ export class Vomit {
     const k = Math.max(0, Math.min(1, (t - VOMIT.from - 0.1) / (VOMIT.to - VOMIT.from)));
     const grown = Math.max(0.001, 1 - (1 - k) ** 2);
     this.pivot.scale.set(0.5 + 0.5 * grown, 1, grown);
-    const dry = (t - VOMIT.to - VOMIT.lies) / VOMIT.dries;
-    (this.pool.material as THREE.MeshToonMaterial).opacity = POOL.thick * (dry > 0 ? 1 - dry : 1);
+    const dry = Math.max(0, Math.min(1, (t - VOMIT.to - VOMIT.lies) / VOMIT.dries));
+    this.dried.value = dry;
+    this.bubble(dt, grown, dry);
     // The spray, from his mouth (a little before his head), into the cone.
     const head = this.body.getObjectByName('Head');
     const ahead = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.turned.rotation.y);
@@ -166,6 +235,31 @@ export class Vomit {
       d.v.y -= SPRAY.fall * dt;
       d.sprite.position.addScaledVector(d.v, dt);
       if (d.sprite.position.y <= 0) d.sprite.visible = false;
+    }
+  }
+
+  /** Bubbles rising in the pool here and there, swelling and bursting; fewer as it dries. */
+  private bubble(dt: number, grown: number, dry: number): void {
+    const tall = this.tall, r = (a: number[]) => a[0] + Math.random() * (a[1] - a[0]);
+    if (grown > 0.2 && Math.random() < dt * BUBBLES.rate * (1 - dry)) {
+      const b = this.bubbles.find(x => !x.sprite.visible);
+      if (b) {
+        // Somewhere well within it, as far as it has spread.
+        const along = 0.1 + Math.random() * 0.8;
+        b.sprite.position.set((Math.random() - 0.5) * wideAt(along) * tall * 0.7 * (0.5 + 0.5 * grown), 1.5,
+          this.pivot.position.z + along * (VOMIT.reach - VOMIT.near) * tall * grown);
+        b.t = 0; b.life = r(BUBBLES.swell); b.size = tall * r(BUBBLES.size);
+        b.sprite.visible = true;
+      }
+    }
+    for (const b of this.bubbles) {
+      if (!b.sprite.visible) continue;
+      b.t += dt;
+      const k = b.t / b.life;
+      // Swelling, then a last moment bursting: wider and gone.
+      if (k >= 1.15) { b.sprite.visible = false; continue; }
+      b.sprite.scale.setScalar(b.size * (k < 1 ? Math.sqrt(k) : 1 + (k - 1) * 4));
+      b.sprite.material.opacity = k < 1 ? 0.9 : 0.9 * (1 - (k - 1) / 0.15);
     }
   }
 }
