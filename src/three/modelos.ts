@@ -9,6 +9,8 @@ import { Stench } from './stench';
 import { RISE, Rising } from './rising';
 import { Vomit } from './vomit';
 import { Shots } from './shot';
+import { Battery3D } from './battery';
+import { plan, type SalvoKind } from '../tropa/battery';
 import { SHOT as BALLS } from '../bolts';
 import { CABRAL_DRESS, model } from './figure';
 import { Fling } from './fling';
@@ -27,7 +29,7 @@ import { UPRIGHT } from './space';
 // kinds of the king's men with a model of their own, whoever keeps a house), and a model's clips are
 // read off its file, so a new character or a new clip is here as soon as the game has it.
 
-interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge']; dives?: boolean; stench?: boolean; vomits?: boolean; revolver?: boolean }
+interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge']; dives?: boolean; stench?: boolean; vomits?: boolean; revolver?: boolean; spots?: boolean }
 
 /** The kinds of the king's men, named as the game names them. */
 const KIND_NAMES: Record<string, string> = { sargento: 'Sargento', capitan: 'El capitán', sableador: 'Sableador', tirador: 'Tirador', frontera: 'Soldado de frontera' };
@@ -60,7 +62,7 @@ const WHO: Who[] = [
   // Roca's artillery spotter (Tripo from turnaround B, 28 October 2026): a red flag in his right hand and
   // a white in his left (props.signal_flag); Mixamo's breathing idle, Running and the fusilier's fall,
   // and his signals to the battery keyed by hand (anims/senas.py). Not in the game yet.
-  { name: 'Observador', url: 'observador/3d/observador_animado.glb', drawn: 76 },
+  { name: 'Observador', url: 'observador/3d/observador_animado.glb', drawn: 76, spots: true },
   { name: 'Buey', url: 'cosas/3d/buey/buey_animado.glb', drawn: 72 },
   // Inti's nahuel: Quaternius's wolf (CC0) in the slate blue of her spirit, its eyes her spells' cyan; its
   // own clips. A puma of ours was tried on the wolf's and the sabre-tooth's skeletons and keyed by hand
@@ -161,6 +163,18 @@ view.follow(new THREE.Vector3(0, 30, 0));
 // Roca's balls are tracers (the user, 28/10/2026).
 const balls = new Shots(view.camera, () => null, () => {}, false, BALLS, true);
 view.scene.add(balls.group);
+/**
+ * The battery's two salvoes of the first phase of Roca's fight, called down by his spotter: his
+ * signals played, and as his red flag points (`at`, a share of them) a salvo aimed `ahead` before
+ * him (tropa/battery.ts plans it, three/battery.ts shows it), the camera shaken by each blast.
+ */
+const SALVOES: Record<string, SalvoKind> = { bombardeo_desperdigado: 'scattered', bombardeo_concentrado: 'concentrated' };
+const CALL = { at: 15 / 46, ahead: 240 };
+const battery = new Battery3D();
+view.scene.add(battery.group);
+battery.blasted = blast => view.jolt(blast.great ? 0.45 : 0.25, blast.great ? 6 : 3, true);
+/** Where the view is held while a salvo falls (it must be followed each frame for the shake to die away). */
+let framed: THREE.Vector3 | null = null;
 const spirits: Spirit[] = [];
 const stenches: Stench[] = [];
 const loaded = new Map<Who, { body: THREE.Group; motion: Motion; clips: string[]; flung: Fling; home: number }>();
@@ -225,6 +239,7 @@ function length(name: string): number {
   if (t?.lasts) return t.lasts;
   if (name === LUNGE) return shown.find(x => x.lunge)?.lunge?.time ?? 2;
   if (name === BURST) return 2.2;
+  if (SALVOES[name]) return 6;
   if (name === RETCH) return Math.max(...shown.map(x => vomits.get(x)?.lasts ?? 0), 0);
   if (name === RISEN) return Math.max(...shown.map(x => risings.get(x)?.lasts ?? 0), 0);
   for (const w of shown) { const it = loaded.get(w); if (it?.motion.has(name)) return it.motion.seconds(name); }
@@ -239,10 +254,10 @@ async function show(list: Who[]): Promise<void> {
   all.forEach((it, i) => { it.body.position.x = it.home = (i - (all.length - 1) / 2) * APART; view.scene.add(it.body); });
   // Their clips: with several, those any of them has (each one lacking a clip stands as he is).
   const names = [...new Set([...all.flatMap(it => it.clips), ...(list.some(w => w.lunge) ? [LUNGE] : []), ...(list.some(w => w.dives) ? [DIVE, BITE, DOWNED] : []),
-    ...(all.some(it => it.motion.has('mosquete_descolgar')) ? [SLUNG_AGAIN] : []), ...(all.some(it => it.motion.has('levantarse')) ? [RISEN] : []), ...(list.some(w => w.vomits) ? [RETCH] : []), ...(list.some(w => w.revolver) ? [BURST] : [])])];
+    ...(all.some(it => it.motion.has('mosquete_descolgar')) ? [SLUNG_AGAIN] : []), ...(all.some(it => it.motion.has('levantarse')) ? [RISEN] : []), ...(list.some(w => w.vomits) ? [RETCH] : []), ...(list.some(w => w.revolver) ? [BURST] : []), ...(list.some(w => w.spots) ? Object.keys(SALVOES) : [])])];
   if (!names.includes(clip)) clip = names[0] ?? 'reposo_mixamo';
   clipsBar.replaceChildren();
-  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE || n === DOWNED || n === SLUNG_AGAIN || n === RISEN || n === RETCH || n === BURST;
+  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE || n === DOWNED || n === SLUNG_AGAIN || n === RISEN || n === RETCH || n === BURST || !!SALVOES[n];
   const ordered = [...names.filter(playing), ...names.filter(n => !playing(n))];
   for (const name of ordered) {
     const b = button(clipsBar, name, () => { play(name); for (const x of clipsBar.children) x.classList.toggle('on', x === b); });
@@ -273,6 +288,12 @@ function play(name: string): void {
     if ((name === DIVE || name === BITE || name === DOWNED) && w.dives) { hunt(it.body, name === BITE, name === DOWNED); continue; }
     if (name === SLUNG_AGAIN && it.motion.has('mosquete_descolgar')) { slungAgain(it.motion, 0, true); continue; }
     if (name === RISEN && it.motion.has('levantarse')) { rise(w, it.body, it.motion); continue; }
+    if (SALVOES[name] && w.spots) {
+      it.motion.play('senas', { once: true, afresh: true, blend: 0.12 });
+      framed = new THREE.Vector3(Math.sin(turn) * CALL.ahead / 2, w.drawn * 0.5, Math.cos(turn) * CALL.ahead / 2);
+      view.apply({ ...view.look, far: 1.1 });
+      continue;
+    }
     if (name === BURST && w.revolver) { it.motion.play('rafaga', { once: true, afresh: true, blend: 0.12 }); continue; }
     if (name === RETCH && w.vomits) {
       let vomit = vomits.get(w);
@@ -496,6 +517,11 @@ view.renderer.setAnimationLoop(() => {
     if (clip === SLUNG_AGAIN && it.motion.has('mosquete_descolgar')) slungAgain(it.motion, into);
     if (clip === RISEN) { risings.get(w)?.update(dt); risen(w, it.body, it.motion, into); }
     if (clip === BURST && w.revolver) fan(it.body, it.motion, into, dt);
+    // As his red flag points, the salvo: aimed before him, on the 2D ground.
+    if (SALVOES[clip] && w.spots) {
+      const at = CALL.at * it.motion.seconds('senas');
+      if (into - dt < at && into >= at) battery.salvo(plan(SALVOES[clip], { x: Math.sin(turn) * CALL.ahead, y: Math.cos(turn) * CALL.ahead * ISO_Y }));
+    }
     if (clip === RETCH && w.vomits) { vomits.get(w)?.update(dt); if (into > SCREAM) it.motion.play('reposo', { blend: 0.25 }); }
     it.motion.update(dt);
     it.flung.update(dt);
@@ -506,6 +532,8 @@ view.renderer.setAnimationLoop(() => {
   for (const s of spirits) s.update(dt);
   for (const s of stenches) s.update(dt);
   balls.update(dt);
+  battery.update(dt);
+  if (framed && SALVOES[clip]) view.follow(framed, dt);
   told.textContent = `${shown.length > 1 ? 'Todos' : shown[0]?.name ?? ''} — ${clip}${paused ? ' (pausa)' : ''}`;
   view.draw();
 });
