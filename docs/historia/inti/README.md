@@ -132,10 +132,16 @@ Lo único que se ve de ellos es, al entrar, **el mismísimo Julio Argentino Roca
 
 > «¡Conocerán la pólvora, mapuches traga plomo! ¡Traguen plomo!»
 
+Las dos fases (el usuario):
+
+1. **La batería.** Roca te ataca con los cañonazos, desde lejos.
+2. **Roca salta a la batalla** y te pelea él mismo.
+
 **Si lo vencés, no lo matás: Roca escapa.**
 
-Falta definir: cómo se gana cada fase (sobrevivir un tiempo, vencer a la escolta), qué cambia de la
-primera a la segunda, y qué queda roto cuando escapa (la guerra, el pacto).
+Falta definir: cuándo termina la primera fase (sobrevivir un tiempo, vencer a la escolta), cómo pelea
+Roca en la segunda (y si los cañonazos siguen cayendo), y qué queda roto cuando escapa (la guerra,
+el pacto).
 
 ### El jefe intermedio del camino de Roca
 
