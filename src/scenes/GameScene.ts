@@ -213,14 +213,16 @@ const CHONCHONES: [number, number][] = [[110, -70], [-90, 80]];
 // And the royalist soldiers, who are all Cabral meets.
 const REALISTAS: [number, number][] = [[190, 50], [-170, -60], [40, 150]];
 /**
- * Inti's forest as Roca's column has come into it, east of her camp (27 October 2026, the user's
- * "a real fight" in place of things to try out on): frontier riflemen holding a line in twos and
- * threes, each at his post, and the plague-dead lying in wait under the ground between, each to come
- * up near her as she goes on; a second, smaller knot of them further in.
+ * Inti's forest as Roca's column has come into it (27 October 2026, the user's "a real fight" in
+ * place of things to try out on), laid about her wherever she is as the game begins, so that it
+ * begins at once: frontier riflemen holding a line in twos and threes off to the east of her, each at
+ * his post, one on her flank behind; two of the plague-dead under the ground close by, to come up at
+ * once, and one a little further; a second, smaller knot further east. Each as offsets from her,
+ * moved to the nearest ground that can be walked.
  */
 const COLUMN = {
-  riflemen: [[780, -110], [840, 60], [770, 220], [470, -300], [1300, -70], [1250, 150]] as [number, number][],
-  plagued: [[380, -60], [430, 170], [1080, 40]] as [number, number][],
+  riflemen: [[360, -120], [400, 40], [340, 190], [-320, -170], [720, -60], [680, 150]] as [number, number][],
+  plagued: [[170, -50], [190, 130], [520, 40]] as [number, number][],
 };
 // Each of the plague-dead comes up out of the earth near her once she is within `near` of where he
 // lies, `at` from her toward it; and lies in wait again once he is down and she is `again` off.
@@ -375,6 +377,8 @@ export class GameScene extends Phaser.Scene {
   private pools: Pool[] = [];
   private readonly plague = new Plague();
   private mired = false;
+  /** Whether Roca's column has been laid about her yet (COLUMN). */
+  private mustered = true;
   /** The post each soldier who holds one stands at. */
   private posts = new Map<Soldier, Post>();
   /**
@@ -518,17 +522,9 @@ export class GameScene extends Phaser.Scene {
     this.lurkers = [];
     this.pools = [];
     this.plague.cure();
-    this.realistas = !his ? at(COLUMN.riflemen, (x, y) => {
-      // Each at his post, as a garrison's men: up again once she has rested in her camp.
-      const soldier = this.enlist('frontera', x, y, bounds).hold(this.walkable);
-      this.posts.set(soldier, { x, y, letter: 'B', kind: 'frontera' });
-      return soldier;
-    }).concat(at(COLUMN.plagued, (x, y) => {
-      const soldier = this.enlist('apestado', x, y, bounds).hold(this.walkable);
-      // Under the earth until she comes near.
-      if (soldier instanceof Trooper) { soldier.brain.vanish(); this.lurkers.push({ soldier, spot: { x, y }, armed: true }); }
-      return soldier;
-    })) : held.length && map
+    // Hers is laid about her once she is where the game begins (muster), wherever that is.
+    this.mustered = his || !map;
+    this.realistas = !his ? [] : held.length && map
       ? held.map(post => {
         const soldier = this.enlist(post.kind, post.x, post.y, bounds).hold(this.walkable);
         this.posts.set(soldier, post);
@@ -1093,6 +1089,7 @@ export class GameScene extends Phaser.Scene {
     if (this.indoors?.indoors) this.route?.toward(null);
     else this.route?.toward(this.machi);
     // Come somewhere safe, every one fallen is due to be up again.
+    if (!this.mustered) this.muster();
     this.lurk();
     this.retched(dt);
     const safe = !!this.map && !!zoneAt(this.map, this.machi.x, this.machi.y)?.safe;
@@ -1813,6 +1810,43 @@ export class GameScene extends Phaser.Scene {
 
   // She is defeated: she falls dead where she stands, everything in the air
   // bursts, and after a while she is back where she started.
+  /** Lays Roca's column about her where she is now (COLUMN): the riflemen at their posts, the plague-dead under the ground. */
+  private muster(): void {
+    this.mustered = true;
+    const bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
+    const near = ([dx, dy]: [number, number]): Vec | null => {
+      // The nearest ground that can be walked, round about the spot, out to a few plots.
+      const x0 = this.machi.x + dx, y0 = this.machi.y + dy;
+      for (let r = 0; r <= 240; r += 24) {
+        for (let a = 0; a < 16; a++) {
+          const x = x0 + Math.cos(a * Math.PI / 8) * r, y = y0 + Math.sin(a * Math.PI / 8) * r * ISO_Y;
+          if (this.walkable(x, y)) return { x, y };
+          if (r === 0) break;
+        }
+      }
+      return null;
+    };
+    const enlist = (kind: KindName, offset: [number, number]): Trooper | null => {
+      const at = near(offset);
+      if (!at) return null;
+      const soldier = this.enlist(kind, at.x, at.y, bounds).hold(this.walkable);
+      if (!(soldier instanceof Trooper)) return null;
+      this.realistas.push(soldier);
+      this.physics.add.overlap(this.bolts.bodies, soldier.zone, this.struck);
+      return soldier;
+    };
+    for (const offset of COLUMN.riflemen) {
+      // Each at his post, as a garrison's men: up again once she has rested in her camp.
+      const soldier = enlist('frontera', offset);
+      if (soldier) this.posts.set(soldier, { ...soldier.ground, letter: 'B', kind: 'frontera' });
+    }
+    for (const offset of COLUMN.plagued) {
+      // Under the earth until she comes near.
+      const soldier = enlist('apestado', offset);
+      if (soldier) { soldier.brain.vanish(); this.lurkers.push({ soldier, spot: soldier.ground, armed: true }); }
+    }
+  }
+
   /**
    * The plague-dead lying in wait: one comes up out of the earth near her once she is near where he
    * lies, between her and there; until then he is nowhere to be seen. Down again, he lies in wait
