@@ -63,7 +63,10 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
     call: { clip: 'grito', time: KINDS.capitan.call.time } },
   // The frontier soldier of 1879 (Tripo from turnaround A, 27 October 2026), as tall as the fusiliers:
   // the fusilier's musket clips, and his bayonet thrust landing at frame 22 of 62 (Mixamo's Bayonet Stab).
-  frontera: { url: 'frontera/3d/soldado_animado.glb', drawn: 78, blow: { clip: 'bayoneta', lands: 22 / 62, hit: KINDS.frontera.blow.hit } },
+  // His run (Mixamo's Running) as he hunts her, and under his bayonet charge: the thrust held drawn back
+  // (frame 10) while he gathers himself, its point put out as he goes, thrust as he reaches her.
+  frontera: { url: 'frontera/3d/soldado_animado.glb', drawn: 78, blow: { clip: 'bayoneta', lands: 22 / 62, hit: KINDS.frontera.blow.hit }, run: 'carrera',
+    lunge: { clip: 'bayoneta', wind: 10 / 62, lands: 22 / 62, point: 0.2, ...KINDS.frontera.lunge } },
   // The plague-dead soldier (docs/personajes/apestado.md): Mixamo's zombie clips, his stench about him;
   // his swipe landing at frame 20 of 48; his retching on his scream; coming up out of the earth, his
   // getting up played over what is left of his rising once the ground has broken.
@@ -286,7 +289,7 @@ class Figure {
     if (mode === 'aim') this.down = true;
     else if (mode === 'walk') this.down = false;
     // Keeping after her as he swings, his feet run under his blow rather than slide.
-    if (mode === 'blow' && this.look?.run && this.going > 20) m.legs(this.look.run, this.runReach ? Math.max(0.35, this.going / this.runReach) : 1);
+    if ((mode === 'blow' || mode === 'lunge') && this.look?.run && this.going > 20) m.legs(this.look.run, this.runReach ? Math.max(0.35, this.going / this.runReach) : 1);
     else m.legs(null);
     if (mode === 'dying') m.play('muerte', { once: true, afresh, blend: 0.08 });
     else if (mode === 'gone') m.play('muerte', { once: true });
@@ -365,7 +368,7 @@ class Figure {
     const inHand = this.look?.kneels ? true : mode === 'aim' ? t >= DRAW * DRAWN_AT : this.fired !== null && this.fired < SHOT * SLUNG;
     const back = this.body.getObjectByName('mosquete'), hand = this.body.getObjectByName('mosquete_mano'), sabre = this.body.getObjectByName('sable');
     // One with a bayonet thrusts with his rifle in both fists, a rifle of its own.
-    const fixed = this.body.getObjectByName('fusil_bayoneta'), stabbing = !!fixed && (mode === 'blow' || !alive(mode));
+    const fixed = this.body.getObjectByName('fusil_bayoneta'), stabbing = !!fixed && (mode === 'blow' || mode === 'lunge' || !alive(mode));
     if (back) back.visible = !inHand && !stabbing;
     if (hand) hand.visible = inHand;
     if (fixed) fixed.visible = stabbing;

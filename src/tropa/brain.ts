@@ -118,7 +118,11 @@ export const KINDS = {
   // Hunting her he comes on at nearly her walk (115 in 3D): at his own pace she walked away from the
   // fight (the user, 27/10/2026); running she still gets clear of him for a while.
   // His first shot comes 2 to 5 s after he has seen her, each his own, so that she is not met by a volley.
-  frontera: { id: 'frontera', name: 'Soldado de frontera', life: 4, girth: 9, pace: 36, hunt: 2.8, sight: 380, shot: { range: 300, aim: 0.7, lock: 0.2, reload: [1.4, 2.0], muzzle: 30, first: [2, 5] }, blow: { near: 50, time: 1.1, hit: 0.6, reach: 62, rest: 0.5 }, worth: 9, spoils: 6 },
+  // And now and then, from 90 to 240 off, he charges her with his bayonet (the user, 28/10/2026): the
+  // red glint at his point as he gathers himself, then he runs at her, turning after her a moment,
+  // and thrusts as he reaches her.
+  frontera: { id: 'frontera', name: 'Soldado de frontera', life: 4, girth: 9, pace: 36, hunt: 2.8, sight: 380, shot: { range: 300, aim: 0.7, lock: 0.2, reload: [1.4, 2.0], muzzle: 30, first: [2, 5] }, blow: { near: 50, time: 1.1, hit: 0.6, reach: 62, rest: 0.5 },
+    lunge: { from: 90, to: 240, charge: 0.5, dash: 200, hit: 1.1, reach: 62, time: 1.7, every: 6, track: 0.25 }, worth: 9, spoils: 6 },
   // The plague-dead soldier, Inti's arc's tank (27 October 2026, docs/personajes/apestado.md): he comes
   // up out of the earth near her (the ground heaving 0.8 s, then his getting up, Mixamo's Zombie Stand
   // Up played in 3 s); slow and hard to bring down, and no blow moves him; up close a heavy swipe

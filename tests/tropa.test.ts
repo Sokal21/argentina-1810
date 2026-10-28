@@ -167,6 +167,22 @@ describe('the frontier soldier', () => {
 });
 
 describe('the frontier rifleman', () => {
+  it('charges her now and then with his bayonet: gathers himself, runs at her and thrusts as he reaches her', () => {
+    const b = brain('frontera');
+    const l = KINDS.frontera.lunge;
+    b.relentless = true;
+    b.mayAim = false;
+    // She keeps 180 ahead of him until he charges, then stands.
+    for (let t = 0; t < 10 && b.mode !== 'lunge'; t += DT) b.update(DT, { x: b.x + 180, y: 0 });
+    expect(b.mode).toBe('lunge');
+    const x = b.x, her = { x: b.x + 180, y: 0 };
+    run(b, her, l.charge - 0.05);
+    expect(b.x).toBe(x);
+    const deeds = run(b, her, l.time - l.charge);
+    expect(b.x).toBeGreaterThan(x + 60);
+    expect(deeds.filter(d => d.cut !== undefined)).toEqual([{ cut: true }]);
+  });
+
   it('takes his first shot 2 to 5 s after he has seen her, and raises his gun only when let', () => {
     const b = brain('frontera');
     b.relentless = true;
