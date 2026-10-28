@@ -211,6 +211,51 @@ def pistol(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object
     return gun
 
 
+def revolver(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object:
+    """A cavalry officer's revolver of the 1870s, for Roca: held as the pistol is, and like it named
+    `pistola`, its length along its +X and its muzzle where the pistol's is (PISTOL_MUZZLE), so it is
+    aimed and fired as the pistol is. A blued barrel over the thumb, the drum behind it, the frame
+    with its hammer, and a wooden grip down through the fist, curved back."""
+    parts = []
+    bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.0055, depth=0.085, location=(0.0875, 0, 0.032), rotation=(0, math.pi / 2, 0))
+    barrel = bpy.context.active_object
+    barrel.name = 'cano_revolver'
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    barrel.data.materials.append(material('hierro', IRON))
+    parts.append(barrel)
+    # The drum, fatter than the barrel, along it.
+    bpy.ops.mesh.primitive_cylinder_add(vertices=10, radius=0.013, depth=0.03, location=(0.03, 0, 0.026), rotation=(0, math.pi / 2, 0))
+    drum = bpy.context.active_object
+    drum.name = 'tambor'
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    drum.data.materials.append(material('acero', STEEL))
+    parts.append(drum)
+    # The frame under the barrel and round the drum, its hammer behind, its trigger guard under.
+    parts.append(box('armazon', (0.05, 0.012, 0.012), (0.035, 0, 0.012), IRON, 'hierro'))
+    parts.append(box('martillo', (0.012, 0.008, 0.016), (0.008, 0, 0.038), IRON, 'hierro', turn=0.4))
+    parts.append(box('guardamonte', (0.022, 0.006, 0.006), (0.028, 0, -0.002), IRON, 'hierro'))
+    # The grip, down through the fist and curved back.
+    parts.append(box('culata_revolver', (0.022, 0.016, 0.06), (-0.006, 0, -0.006), WOOD, 'madera', turn=-0.35))
+    for p in parts:
+        p.select_set(True)
+    bpy.context.view_layer.objects.active = parts[0]
+    bpy.ops.object.join()
+    gun = bpy.context.active_object
+    gun.name = 'pistola'
+    wrist, way, length, palm, _, _ = hand(armature, bone)
+    fist(armature, bone)
+    grip = wrist + way * length * 0.42 + palm * length * 0.18
+    across = way.cross(palm).normalized()
+    thumb = across if across.x > 0 else -across
+    gun.matrix_world = Matrix.Translation(grip) @ Matrix((way, thumb.cross(way), thumb)).transposed().to_4x4()
+    world = gun.matrix_world.copy()
+    gun.parent = armature
+    gun.parent_type = 'BONE'
+    gun.parent_bone = bone
+    gun.matrix_world = world
+    return gun
+
+
 # How far along a pistol its muzzle is, and how high over its middle line (pistol's own units).
 PISTOL_MUZZLE = (0.13, 0.032)
 
