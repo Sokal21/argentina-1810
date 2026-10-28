@@ -9,18 +9,20 @@ import { ISO_Y } from '../machi/data';
 /**
  * The kinds of salvo. In the first phase, the challenge: `scattered`, many small shells strewn about
  * the place, each its own mark, staggered; or `concentrated`, one great mark where all of them fall
- * together, one blast after another over it. In the second, with Roca fighting, `small`: a few,
- * small. For each: how many shells, how far they are strewn from where it is aimed, how wide a blast
+ * together, one blast after another over it. In the second, with Roca fighting, `small`: one of
+ * those, half as wide. For each: how many shells, how far they are strewn from where it is aimed, how wide a blast
  * is, how long its mark shows before it lands, how much later the last lands than the first, and how
  * much life a blast takes. All in the ground's units.
  */
 // Its marks come quicker than at first (1.6 s, 2 and 1.4): they were too easy to get out of, the great
 // one above all (the user, 28/10/2026). From the middle of the great one she must cover its width,
 // 130, in 1.3 s: walking (115 a second in 3D) just; with a dash, surely.
+// `gathered`: all of it in one mark. Roca's own, called with his sabre in the second phase, is a
+// concentrated salvo half as wide (the user, 28/10/2026).
 export const SALVO = {
-  scattered: { shells: 9, spread: 240, radius: 36, warn: 1.1, stagger: 0.7, damage: 1 },
-  concentrated: { shells: 7, spread: 0, radius: 130, warn: 1.3, stagger: 0.4, damage: 2 },
-  small: { shells: 3, spread: 120, radius: 30, warn: 1.0, stagger: 0.3, damage: 1 },
+  scattered: { shells: 9, spread: 240, radius: 36, warn: 1.1, stagger: 0.7, damage: 1, gathered: false },
+  concentrated: { shells: 7, spread: 0, radius: 130, warn: 1.3, stagger: 0.4, damage: 2, gathered: true },
+  small: { shells: 5, spread: 0, radius: 65, warn: 1.0, stagger: 0.3, damage: 1, gathered: true },
 };
 export type SalvoKind = keyof typeof SALVO;
 /** How far apart, at least, the edges of two marks of a salvo are. */
@@ -39,7 +41,7 @@ export function plan(kind: SalvoKind, at: Vec, rnd: () => number = Math.random):
     const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * far;
     return { x: at.x + Math.cos(a) * d, y: at.y + Math.sin(a) * d * ISO_Y };
   };
-  if (kind === 'concentrated') {
+  if (s.gathered) {
     // One great mark; inside it, one blast after another, the last over all of it.
     const marks = [{ x: at.x, y: at.y, r: s.radius, shows: 0, lands: s.warn }];
     const blasts: Blast[] = [];
