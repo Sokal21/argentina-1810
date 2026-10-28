@@ -16,7 +16,8 @@ La campaña del ejército de Roca (1879) llega al sur. Con la columna viene **la
 enfermedades que traen los soldados diezman a la gente. Historia argentina en sentido amplio: el
 juego no se ata a 1810.
 
-**El pacto.** El general del ejército hizo un pacto con **el Wekufe**, la criatura maléfica de la
+**El pacto.** **Julio Argentino Roca**, el general que manda la campaña, hizo un pacto con **el
+Wekufe**, la criatura maléfica de la
 peste. El demonio le presta sus muertos y sus espíritus, y a cambio se alimenta de la peste y de la
 destrucción que trae la campaña. Por eso los **apestados** (soldados muertos de peste y levantados)
 y los **chonchones** pelean del lado del ejército. Todos son aliados y se pueden mezclar en un mismo
@@ -26,11 +27,11 @@ combate.
 
 Todos están en el mismo pueblo. Dos personas le piden a Inti cosas distintas, y las dos tienen razón:
 
-- **El jefe de la tribu:** hay que **matar al capitán**. Sin él se acaba la guerra y se rompe el pacto.
+- **El jefe de la tribu:** hay que **matar a Roca**. Sin él se acaba la guerra y se rompe el pacto.
 - **Una señora:** el monstruo está demasiado fuerte por todas las muertes. Para quitar la peste hay
   que **atacar al demonio**, y con eso el pueblo va a poder lograr lo demás.
 
-Son **dos arcos separados**: Inti elige un camino, y matar al capitán o matar al demonio termina el
+Son **dos arcos separados**: Inti elige un camino, y matar a Roca o matar al demonio termina el
 arco por ese lado.
 
 **Propuesta:** darle a cada pedido una cara chica y humana, como pide el método
@@ -39,20 +40,20 @@ jefe con hijos en la guerra o gente perdida en un ataque.
 
 ## Cómo se juega: un recorrido (decidido)
 
-No es por misiones: es desafío. Lo difícil es **atravesar el camino** hasta el capitán o el demonio:
+No es por misiones: es desafío. Lo difícil es **atravesar el camino** hasta Roca o el demonio:
 hay que aprender a pelear y llegar con recursos.
 
 Para empezar (el usuario, 27/10/2026), **un jefe intermedio de cada lado** y el final:
 
 ```
-Pueblo: el jefe o la señora → elegís camino
+Pueblo: el jefe (Roca) o la señora (el Wekufe) → elegís camino
   │
   ├─ Tramo 1: 1 o 2 habitaciones → JEFE 1
   │                                  └─ mejora al matarlo
   ├─ Tramo 2: 2 a 4 habitaciones (dificultad en aumento)
   │            └─ mejora en el medio
   │                                  └─ mejora antes de entrar al jefe
-  └─ JEFE FINAL: EL CAPITÁN / EL WEKUFE
+  └─ JEFE FINAL: ROCA / EL WEKUFE
 Si morís → Küyen te devuelve al pueblo, todo de cero
 ```
 
@@ -116,11 +117,11 @@ Ideas (propuesta), que pueden ser enemigos comunes o jefes según el tramo:
 
 ## Los jefes
 
-Por ahora, **un jefe intermedio por camino** y el final (decidido). Los finales son el capitán, cuya
+Por ahora, **un jefe intermedio por camino** y el final (decidido). Los finales son Roca, cuya
 pelea no es solo matarlo (además hay que hacer algo, por ejemplo romper el pacto; la mecánica está
 por pensar), y el Wekufe, una pelea pura.
 
-### Camino del capitán: la batería Krupp de Roca (decidido)
+### Camino de Roca: su batería Krupp (decidido)
 
 **Dos fases, sin chonchones**: es una pelea del ejército. **La batería no se ve** (ni loma ni cañón):
 es una mecánica sobre el mapa. A partes del lugar les cae una batería de cañonazos: el piso se marca
@@ -131,7 +132,8 @@ Lo único que se ve de ellos es, al entrar, **el mismísimo Julio Argentino Roca
 > «¡Conocerán la pólvora, mapuches traga plomo! ¡Traguen plomo!»
 
 Falta definir: cómo se gana cada fase (sobrevivir un tiempo, vencer a la escolta), qué cambia de la
-primera a la segunda, y si Roca es también el general del pacto (y por lo tanto el jefe final).
+primera a la segunda. Es la primera vez que se lo ve: Roca te bombardea de lejos y te grita; recién
+al final del camino se lo enfrenta cara a cara.
 
 ### Camino del demonio
 
