@@ -2838,6 +2838,16 @@
       "asset_id": "fd485adb-677e-4a28-bcb7-4b2d6506d009",
       "label": "Roca's artillery spotter (1879) concept, observador_c",
       "file": "assets/observador/concept/observador_c.png"
+    },
+    {
+      "asset_id": "49033fee-1e5c-4e34-b5d6-a8a62276acb9",
+      "label": "spotter HD turnaround for Tripo, giro_a (from concept observador_c)",
+      "file": "assets/observador/3d/giro_a.png"
+    },
+    {
+      "asset_id": "100c1d1b-cec0-4397-8b51-17c99b491ed6",
+      "label": "spotter HD turnaround for Tripo, giro_b (from concept observador_c)",
+      "file": "assets/observador/3d/giro_b.png"
     }
   ]
 }
