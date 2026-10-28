@@ -19,6 +19,8 @@ const COLS = 31, ROWS = 31, MIDDLE: [number, number] = [15, 13];
 const CENTRE = { x: (MIDDLE[0] + 0.5) * PLOT_W, y: (MIDDLE[1] + 0.5) * PLOT_H };
 /** How many plots south of the middle she comes in: its plot's middle well within the circle. */
 const ENTRY = 5;
+/** How far in and out its edge wobbles, at most. */
+const WOBBLE = 70;
 
 function plots(): string[] {
   const rows: string[] = [];
@@ -27,7 +29,7 @@ function plots(): string[] {
     for (let c = 0; c < COLS; c++) {
       // A plot belongs to the clearing if any of it is within the circle: its nearest point to the middle.
       const nx = Math.max(c * PLOT_W, Math.min(CENTRE.x, (c + 1) * PLOT_W)), ny = Math.max(r * PLOT_H, Math.min(CENTRE.y, (r + 1) * PLOT_H));
-      const inside = Math.hypot(nx - CENTRE.x, (ny - CENTRE.y) / ISO_Y) <= ARENA_REACH;
+      const inside = Math.hypot(nx - CENTRE.x, (ny - CENTRE.y) / ISO_Y) <= ARENA_REACH + WOBBLE;
       const entry = c === MIDDLE[0] && r === MIDDLE[1] + ENTRY;
       line += entry ? 'E' : inside ? 'A' : '.';
     }
@@ -45,7 +47,8 @@ export const arenaDeRoca: WorldMap = {
     A: { name: 'El claro de la batería', open: true },
   },
   plots: plots(),
-  round: { ...CENTRE, reach: ARENA_REACH },
+  // Its edge wobbling in and out a little, so as not to look drawn (the user, 28/10/2026).
+  round: { ...CENTRE, reach: ARENA_REACH, wobble: WOBBLE },
   start: [MIDDLE[0], MIDDLE[1] + ENTRY],
   objectives: [],
 };

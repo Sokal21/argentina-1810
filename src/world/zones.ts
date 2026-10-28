@@ -185,7 +185,7 @@ export interface WorldMap {
    * (along the ground, not foreshortened) of this spot, in world pixels. Its plots cover the circle;
    * of them, only the circle is walked (a clearing of plots came out a square or a diamond).
    */
-  round?: { x: number; y: number; reach: number };
+  round?: { x: number; y: number; reach: number; wobble?: number };
   buildings?: Building[];
   /** Who can be talked to, by the name the game knows them under, and the plot each stands in. */
   people?: {
@@ -221,12 +221,26 @@ export function letterAt(map: WorldMap, col: number, row: number): string | unde
   return letter === undefined || letter === WILD ? undefined : letter;
 }
 
+/**
+ * How far a round map's ground reaches the way of `angle` (radians, along the ground): its reach, and
+ * if it `wobble`s, in and out by up to that much, smoothly, so that its edge is not a drawn circle.
+ */
+export function reachOf(round: NonNullable<WorldMap['round']>, angle: number): number {
+  const w = round.wobble ?? 0;
+  if (!w) return round.reach;
+  // A few slow waves of their own, round the circle a whole number of times so that they meet.
+  return round.reach + w * (0.5 * Math.sin(3 * angle + 1.3) + 0.3 * Math.sin(5 * angle + 4.1) + 0.2 * Math.sin(8 * angle + 2.2));
+}
+
 /** The zone a spot on the ground is in, if anyone can stand there. */
 export function zoneAt(map: WorldMap, x: number, y: number): Zone | undefined {
   const letter = letterAt(map, Math.floor(x / PLOT_W), Math.floor(y / PLOT_H));
   if (letter === undefined) return undefined;
   const r = map.round;
-  if (r && Math.hypot(x - r.x, (y - r.y) / FORESHORTENED) > r.reach) return undefined;
+  if (r) {
+    const dx = x - r.x, dy = (y - r.y) / FORESHORTENED;
+    if (Math.hypot(dx, dy) > reachOf(r, Math.atan2(dy, dx))) return undefined;
+  }
   return map.zones[letter];
 }
 
