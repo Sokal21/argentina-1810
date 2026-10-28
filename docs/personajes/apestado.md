@@ -17,15 +17,20 @@ with the user on 27 October 2026; not in the game yet, shown in `modelos.html` a
 Concept C of three (`assets/apestado/concept/`), turnaround A (`assets/apestado/3d/giro_a.png`),
 Tripo's model and rig (`assets/apestado/3d/tripo/`); asset ids in `spritecook-assets.json`.
 
-## How he fights (to be built)
-- **He comes up out of the earth near her** (the user: walking up he would always be seen far off
-  and easily kept away from). The ground heaves, clods and stones pushed off it, dust (the warning,
-  0.8 s); it breaks and he gets up out of it, sunk at first; he screams. `three/rising.ts`, `RISE`.
-- **A tank**: slow, a great deal of life, his blow up close (`golpe`).
-- **His retching**, played on his scream: a spray into a cone before him and a pool there, broad,
-  bubbling, lying 5 s and soaking away unevenly. **Whoever stands in it is slowed.** The pool's
-  shape is `VOMIT` in `three/vomit.ts`, for the game to slow her by the same shape that is seen.
-- Crawls (`arrastre`, `arrastre_rapido`), perhaps once he is badly hurt: fallen, still coming.
+## How he fights (in Inti's forest since 27 October 2026; numbers in `KINDS.apestado`, `PLAGUE`, `LURK`)
+- **He comes up out of the earth near her**, a few at a time as she goes on (the user: walking up he
+  would always be seen far off). The ground heaves, clods and stones pushed off it, dust (the warning,
+  0.8 s); it breaks and he gets up out of it, sunk at first, not to be struck while under it.
+  `three/rising.ts`. Left behind off screen for 3 s, he sinks and comes up again before her.
+- **A tank**: slow, 14 of life, no blow moves him; his swipe lands at 1.3 s and takes 3 of her 5,
+  pushing her nowhere (he wants her close).
+- **His charge**, now and then from 150 to 380 off (else she kept away): he roars, runs at her
+  (turning after her 0.3 s into it) and swipes as he reaches her.
+- **His retching**, played on his scream, from 80 to 220 off: a pool before him (`tropa/vomit.ts`,
+  the same shape the game reckons). Standing in it she walks at 60%; stepping in it plagues her:
+  half a point of life drained little by little over 4 s (stepping in again starts it over), which
+  neither breaks her healing nor guards her from a blow; her healing rids her of it. Plagued she
+  throbs green and smokes.
 
 ## His clips (`assets/apestado/3d/apestado_animado.glb`)
 Mixamo's, retargeted (`tools/mocap/README.md`): `reposo`, `caminata`, `golpe`, `grito`,
