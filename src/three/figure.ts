@@ -60,6 +60,9 @@ export function figure(dress: Dress): THREE.Mesh {
   return body;
 }
 
+/** How strongly what a model says shines is lit by its own light. */
+const SHINE = 4;
+
 /**
  * Someone's model, made ready by tools/blender/prepare_model.py: one unit tall, feet at the
  * origin, front along +Z, its texture in a few flat colours. It is given the game's flat,
@@ -77,6 +80,15 @@ export async function model(url: string, drawn: number): Promise<THREE.Group> {
       was.map.minFilter = was.map.magFilter = THREE.NearestFilter;
       material.map = was.map;
     } else material.color.copy(was.color);
+    // What the model says shines (tools/blender/glow.py: the plague-dead soldier's sores) is lit by a
+    // light of its own, whatever the sun does. Laid as a light map rather than as its glow, which
+    // is the whole body's own: its red when struck, its fire in a rage.
+    if (was.emissiveMap) {
+      was.emissiveMap.minFilter = was.emissiveMap.magFilter = THREE.NearestFilter;
+      was.emissiveMap.channel = was.map?.channel ?? 0;
+      material.lightMap = was.emissiveMap;
+      material.lightMapIntensity = SHINE;
+    }
     // Thin things (a blade) are drawn from both sides, as the model asks.
     material.side = was.side;
     node.material = material;
@@ -105,6 +117,8 @@ export function flashes(body: THREE.Object3D): (amount: number, burn?: number) =
     const was = node.material as THREE.MeshToonMaterial;
     const material = was.vertexColors ? flat() : flat(was.color);
     material.map = was.map;
+    material.lightMap = was.lightMap;
+    material.lightMapIntensity = was.lightMapIntensity;
     material.side = was.side;
     node.material = material;
     own.push(material);

@@ -33,6 +33,12 @@ now gives 1K only on this account (2K needs a higher plan): 1376×768 is enough 
   pixels, past none of the world's passes, their ~10 000 triangles cost nothing; collapsed, Cabral's
   showed dark creases and slivers (an empanada, a stone, a wedge across a bar's channel).
 
+- **What shines** (27 October 2026, the plague-dead soldier's sores): after `decimate.py`,
+  `Blender -b --python tools/blender/glow.py -- X.glb X.glb --colors R,G,B/R,G,B [--to R,G,B]` repaints
+  those colours of the flattened palette (`flatten` prints it) and gives them as the model's emissive
+  texture; `model()` in `figure.ts` lays it as a light map, lit `SHINE` whatever the sun does (its
+  glow stays the body's own, for the red of a blow and the fire of a rage).
+
 ## Checking it
 `Blender -b --python tools/blender/turntable.py -- NAME.glb DIR`, then
 `python3 tools/turntable_sheet.py DIR assets/NAME/3d/giro_modelo.png --sprite assets/NAME/frente.png`.
