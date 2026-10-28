@@ -62,3 +62,4 @@ with `tools/blender/retarget_rot.py`.
 | Scary Zombie Pack (zombie run) | the plague-dead soldier's run as he charges, `--name carrera --gait --feet` |
 
 Julio Argentino Roca (assets/roca/3d, 28/10/2026) has the captain's clips made again on his rig, as the rows above say: breathing_idle, walking, Falling Back Death (eased), Stabbing (al_frente, sabre by the little finger, aim 9), Handgun (mirrored, al_frente with the pistol in his left hand, aim 14) and Standing Taunt Battlecry; built with `--front +x --carries sabre,revolver@L_Hand,sabre@R_Hand@little` (his revolver, props.revolver, in place of the pistol: named and aimed as the pistol is).
+| Sword And Shield Slash.fbx | "Sword And Shield Slash": Roca's sabre slash, wide and one-handed (his revolver in the other), `--name sablazo --feet` |
