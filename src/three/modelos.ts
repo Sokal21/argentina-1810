@@ -90,7 +90,7 @@ const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   granada_sacar: { lasts: DRAW }, granada_lanzar: { lasts: SHOT },
   tajo: { lasts: 0.5 }, 'Realista:tajo': { lasts: 0.8 }, 'Sableador:tajo': { once: true },
   barrido: { once: true }, estocada: { once: true }, zarpazo: { once: true }, 'El capitán:grito': { lasts: 2.0 }, grito: { lasts: 2.0 }, tiro: { once: true },
-  muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, rodada_mixamo: { once: true }, beber: { once: true },
+  muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, rafaga: { once: true }, rodada_mixamo: { once: true }, beber: { once: true },
 };
 /**
  * The clips the game plays: any whose name is written in quotes in the 3D game's code. Found there,
@@ -125,8 +125,9 @@ const risings = new Map<Who, Rising>();
 const RETCH = 'vomitar';
 const vomits = new Map<Who, Vomit>();
 /**
- * Roca's burst (his fight's second phase, docs/historia/inti/README.md): his shot played, and as it
- * goes off his revolver fanned across a cone before him, `shots` balls `apart` seconds apart, from
+ * Roca's burst (his fight's second phase, docs/historia/inti/README.md): his burst played (his shot
+ * with his body swept from his right to his left, anims/abanico.py), and as it goes off his revolver
+ * fanned across the cone before him, from his right, `shots` balls `apart` seconds apart, from
  * one side of `cone` (degrees) to the other; each a ball as the royalists' are (three/shot.ts).
  */
 const BURST = 'rafaga', FAN = { shots: 5, apart: 0.09, cone: 50, at: 14 / 49 };
@@ -267,7 +268,7 @@ function play(name: string): void {
     if ((name === DIVE || name === BITE || name === DOWNED) && w.dives) { hunt(it.body, name === BITE, name === DOWNED); continue; }
     if (name === SLUNG_AGAIN && it.motion.has('mosquete_descolgar')) { slungAgain(it.motion, 0, true); continue; }
     if (name === RISEN && it.motion.has('levantarse')) { rise(w, it.body, it.motion); continue; }
-    if (name === BURST && w.revolver) { it.motion.play('tiro', { once: true, afresh: true, blend: 0.12 }); continue; }
+    if (name === BURST && w.revolver) { it.motion.play('rafaga', { once: true, afresh: true, blend: 0.12 }); continue; }
     if (name === RETCH && w.vomits) {
       let vomit = vomits.get(w);
       if (!vomit) { vomit = new Vomit(it.body, w.drawn * UPRIGHT); vomits.set(w, vomit); view.scene.add(vomit.group); }
@@ -315,7 +316,7 @@ function risen(w: Who, body: THREE.Object3D, motion: Motion, into: number): void
 
 /** His revolver fanned across the cone as his shot goes off: each ball as its moment comes. */
 function fan(body: THREE.Object3D, motion: Motion, into: number, dt: number): void {
-  const first = FAN.at * motion.seconds('tiro');
+  const first = FAN.at * motion.seconds('rafaga');
   for (let i = 0; i < FAN.shots; i++) {
     const at = first + i * FAN.apart;
     if (!(into - dt < at && into >= at)) continue;
