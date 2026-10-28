@@ -144,8 +144,12 @@ Las dos fases (el usuario):
 - **Los obuses también lastiman a los enemigos**: a los suyos (soldados, apestados), no solo a Inti.
 - **Para pasar de fase hay que matar al observador** (elegido por el usuario): un soldado con catalejo
   y banderas que le marca a la batería dónde tirar, **y que corre rápido**: hay que meterse bajo el
-  fuego para alcanzarlo. Cuando cae, la batería queda ciega, **vuelve a verse Roca** y dice algo (la
-  frase está por definir), y salta a la batalla.
+  fuego para alcanzarlo. Cuando cae, la batería queda ciega, **vuelve a verse Roca**, que dice:
+
+  > «¡Inútiles! Si quiero el desierto limpio, voy a tener que limpiarlo yo mismo. ¡Ni tu luna te va a
+  > salvar ahora!»
+
+  y salta a la batalla.
 
 **Si lo vencés, no lo matás: Roca escapa.**
 
@@ -168,10 +172,9 @@ Por definir. Propuestas: el kalku, cuya cabeza vuela como un chonchón gigante; 
 
 ## Lo que falta decidir
 
-1. Lo que dice Roca cuando cae el observador, antes de saltar a la batalla.
-2. **Pendientes, para después de Roca:** los otros tres jefes: el intermedio del camino de Roca, el
+1. **Pendientes, para después de Roca:** los otros tres jefes: el intermedio del camino de Roca, el
    intermedio del camino del demonio y el Wekufe.
-3. El próximo enemigo (baqueano, lancero o artilleros).
-4. Las recompensas: cuáles, cuántas por vez y cómo se eligen.
-5. Las habitaciones: cuántas, cómo son y cómo se pasa de una a la siguiente.
-6. Las caras humanas del jefe y de la señora.
+2. El próximo enemigo (baqueano, lancero o artilleros).
+3. Las recompensas: cuáles, cuántas por vez y cómo se eligen.
+4. Las habitaciones: cuántas, cómo son y cómo se pasa de una a la siguiente.
+5. Las caras humanas del jefe y de la señora.
