@@ -117,11 +117,12 @@ Ideas (propuesta), que pueden ser enemigos comunes o jefes según el tramo:
 
 ## Los jefes
 
-Por ahora, **un jefe intermedio por camino** y el final (decidido). Los finales son Roca, cuya
-pelea no es solo matarlo (además hay que hacer algo, por ejemplo romper el pacto; la mecánica está
-por pensar), y el Wekufe, una pelea pura.
+Por ahora, **un jefe intermedio por camino** y el final (decidido).
 
-### Camino de Roca: su batería Krupp (decidido)
+### El final del camino de Roca: su batería Krupp (decidido)
+
+**Es muy importante que el jefe final sea Roca** (el usuario). Su pelea es la de su batería: la
+pelea en la que, además de pelear, hay algo más.
 
 **Dos fases, sin chonchones**: es una pelea del ejército. **La batería no se ve** (ni loma ni cañón):
 es una mecánica sobre el mapa. A partes del lugar les cae una batería de cañonazos: el piso se marca
@@ -131,18 +132,27 @@ Lo único que se ve de ellos es, al entrar, **el mismísimo Julio Argentino Roca
 
 > «¡Conocerán la pólvora, mapuches traga plomo! ¡Traguen plomo!»
 
+**Si lo vencés, no lo matás: Roca escapa.**
+
 Falta definir: cómo se gana cada fase (sobrevivir un tiempo, vencer a la escolta), qué cambia de la
-primera a la segunda. Es la primera vez que se lo ve: Roca te bombardea de lejos y te grita; recién
-al final del camino se lo enfrenta cara a cara.
+primera a la segunda, y qué queda roto cuando escapa (la guerra, el pacto).
 
-### Camino del demonio
+### El jefe intermedio del camino de Roca
 
-El jefe intermedio está por definir (propuestas: el kalku, cuya cabeza vuela como un chonchón
-gigante; o el coronel apestado).
+Por definir. Propuestas que quedaron: el baqueano de las boleadoras (con perros y una segunda fase
+escondido en el monte) o el comandante de caballería.
+
+### El final del camino del demonio: el Wekufe
+
+Una pelea pura, alimentado por la peste y la destrucción.
+
+### El jefe intermedio del camino del demonio
+
+Por definir. Propuestas: el kalku, cuya cabeza vuela como un chonchón gigante; o el coronel apestado.
 
 ## Lo que falta decidir
 
-1. El jefe intermedio del camino del demonio, y cómo se gana cada fase de la batería.
+1. Los dos jefes intermedios, y cómo se gana cada fase de la batería de Roca.
 2. El próximo enemigo (baqueano, lancero o artilleros).
 3. Las recompensas: cuáles, cuántas por vez y cómo se eligen.
 4. Las habitaciones: cuántas, cómo son y cómo se pasa de una a la siguiente.
