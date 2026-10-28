@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Billboards } from './billboards';
-import { ground } from './space';
+import { drape, ground } from './space';
 import type { Blast, Mark } from '../tropa/battery';
 
 // Roca's battery's shells, seen (tropa/battery.ts plans where and when they fall): each one's mark on
@@ -18,7 +18,7 @@ const FIRE = { puffs: 8, life: [0.35, 0.6], colours: ['#ffd25a', '#ff9a2a', '#ff
 const SMOKE = { puffs: 7, life: [1.4, 2.2], colours: ['#3a342e', '#4a423a', '#2c2824'], rise: 26, thick: 0.75 };
 const SCORCH = { lies: 3, fades: 2, thick: 0.9 };
 
-interface Shown { mark: Mark; ring: THREE.LineLoop; fill: THREE.Mesh }
+interface Shown { mark: Mark; ring: THREE.LineLoop; fill: THREE.Mesh; reveal: { value: number } }
 interface Puff { i: number; at: THREE.Vector3; v: THREE.Vector3; t: number; life: number; size: number; grows: number }
 
 /** A soft round picture, white at its heart. */
@@ -106,8 +106,6 @@ export class Battery3D {
   blasted: (blast: Blast) => void = () => {};
   private readonly fire = new Billboards(220, softGlow(), true);
   private readonly smoke = new Billboards(160, softGlow());
-  private readonly square = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-  private readonly circle = new THREE.CircleGeometry(1, 28).rotateX(-Math.PI / 2);
   private readonly loop = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 41 }, (_, i) => {
     const a = (i / 40) * Math.PI * 2;
     return new THREE.Vector3(Math.cos(a), 0, Math.sin(a));
@@ -128,11 +126,23 @@ export class Battery3D {
     const start = this.time;
     for (const mark of marks) {
       const m = { ...mark, shows: start + mark.shows, lands: start + mark.lands };
-      const ring = new THREE.LineLoop(this.loop, new THREE.LineBasicMaterial({ color: MARK.colour, transparent: true, opacity: 0, depthWrite: false }));
-      const fill = new THREE.Mesh(this.circle, new THREE.MeshBasicMaterial({ color: MARK.colour, transparent: true, opacity: 0, depthWrite: false }));
-      for (const o of [ring, fill]) { o.position.copy(ground(m.x, m.y, 0.8)); o.renderOrder = 3; this.group.add(o); }
-      ring.scale.setScalar(m.r);
-      this.marks.push({ mark: m, ring, fill });
+      // Each laid over the ground where it falls (drape), whole: its fill shown as far out as it has
+      // filled (a flat ring at one height was cut through wherever the ground swelled over it).
+      const at = ground(m.x, m.y), place = new THREE.Matrix4().makeTranslation(at.x, at.y, at.z);
+      const ringShape = this.loop.clone().scale(m.r, 1, m.r), fillShape = new THREE.RingGeometry(0.001, m.r, 32, 6).rotateX(-Math.PI / 2);
+      drape(ringShape, place, 1.4);
+      drape(fillShape, place, 1.2);
+      const reveal = { value: 0 }, material = new THREE.MeshBasicMaterial({ color: MARK.colour, transparent: true, opacity: 0, depthWrite: false });
+      material.onBeforeCompile = shader => {
+        shader.uniforms.reveal = reveal;
+        shader.vertexShader = 'varying float vOut;\n' + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vOut = length(position.xz);');
+        shader.fragmentShader = 'uniform float reveal;\nvarying float vOut;\n' + shader.fragmentShader.replace('void main() {', 'void main() {\n  if (vOut > reveal) discard;');
+      };
+      material.customProgramCacheKey = () => 'battery-mark';
+      const ring = new THREE.LineLoop(ringShape, new THREE.LineBasicMaterial({ color: MARK.colour, transparent: true, opacity: 0, depthWrite: false }));
+      const fill = new THREE.Mesh(fillShape, material);
+      for (const o of [ring, fill]) { o.position.copy(at); o.renderOrder = 3; this.group.add(o); }
+      this.marks.push({ mark: m, ring, fill, reveal });
     }
     for (const blast of blasts) this.waiting.push({ ...blast, at: start + blast.at });
   }
@@ -142,17 +152,24 @@ export class Battery3D {
     const t = this.time;
     // The marks: showing, their fill closing on their ring as the shell comes, their ring beating at the last.
     for (const shown of this.marks) {
-      const { mark, ring, fill } = shown;
+      const { mark, ring, fill, reveal } = shown;
       const k = (t - mark.shows) / (mark.lands - mark.shows);
       const seen = k >= 0 && k < 1;
       ring.visible = fill.visible = seen;
       if (!seen) continue;
-      fill.scale.setScalar(Math.max(0.01, mark.r * k));
+      reveal.value = mark.r * k;
       (fill.material as THREE.MeshBasicMaterial).opacity = MARK.fill * (0.5 + 0.5 * k);
       const beat = k > 0.6 ? 0.6 + 0.4 * Math.sin(t * MARK.beat) : 1;
       (ring.material as THREE.LineBasicMaterial).opacity = MARK.ring * Math.min(1, k * 4) * beat;
     }
-    for (const gone of this.marks.filter(s => t >= s.mark.lands)) this.group.remove(gone.ring, gone.fill);
+    for (const gone of this.marks.filter(s => t >= s.mark.lands)) {
+      this.group.remove(gone.ring, gone.fill);
+      // Each mark's shapes were its own, laid over the ground where it fell.
+      gone.ring.geometry.dispose();
+      gone.fill.geometry.dispose();
+      (gone.ring.material as THREE.Material).dispose();
+      (gone.fill.material as THREE.Material).dispose();
+    }
     this.marks = this.marks.filter(s => t < s.mark.lands);
     // The blasts whose moment has come.
     for (const blast of this.waiting.filter(b => t >= b.at)) this.blast(blast);
@@ -170,6 +187,7 @@ export class Battery3D {
       const material = s.mesh.material as THREE.MeshBasicMaterial;
       material.map?.dispose();
       material.dispose();
+      s.mesh.geometry.dispose();
     }
     this.scorches = this.scorches.filter(s => s.t < SCORCH.lies + SCORCH.fades);
   }
@@ -206,10 +224,11 @@ export class Battery3D {
         v: new THREE.Vector3(Math.cos(a) * 10, SMOKE.rise * (0.6 + Math.random() * 0.8), Math.sin(a) * 10), t: 0, life: rand(SMOKE.life), size: r * (0.4 + Math.random() * 0.3), grows: 1.6 });
     }
     // The crater left where it fell, its own, a while.
-    const scorch = new THREE.Mesh(this.square, new THREE.MeshBasicMaterial({ map: crater(), transparent: true, opacity: SCORCH.thick, depthWrite: false }));
-    scorch.position.copy(ground(blast.x, blast.y, 0.6));
+    const scorch = new THREE.Mesh(new THREE.PlaneGeometry(r * CRATER.wide, r * CRATER.wide, 8, 8).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: crater(), transparent: true, opacity: SCORCH.thick, depthWrite: false }));
+    scorch.position.copy(ground(blast.x, blast.y));
     scorch.rotation.y = Math.random() * Math.PI * 2;
-    scorch.scale.set(r * CRATER.wide, 1, r * CRATER.wide);
+    scorch.updateMatrixWorld(true);
+    drape(scorch.geometry, scorch.matrixWorld, 0.9);
     scorch.renderOrder = 2;
     this.group.add(scorch);
     this.scorches.push({ mesh: scorch, t: 0 });

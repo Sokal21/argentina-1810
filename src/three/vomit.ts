@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { flat } from './paint';
 import { Billboards } from './billboards';
+import { drape, heightAt } from './space';
+import { ISO_Y } from '../machi/data';
 import { VOMIT, wideAt } from '../tropa/vomit';
 
 // Its shape is the game's own (tropa/vomit.ts), so that the pool she is slowed in is the pool seen.
@@ -130,6 +132,8 @@ export class Vomit {
   private readonly froth = new Billboards(BUBBLES.kept, bubble());
   private readonly bubbles: Bubble[] = [];
   /** How far it has dried, 0 to 1, as the pool's shader reads it. */
+  /** How far it has spread, 0 to 1, as the pool's shader reads it. */
+  private readonly grown = { value: 0 };
   private readonly dried = { value: 0 };
   private readonly mouth = new THREE.Vector3();
   private head: THREE.Object3D | null = null;
@@ -145,19 +149,23 @@ export class Vomit {
     Object.assign(material, { map: poolPicture(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
     // Drying, it goes unevenly: wherever the order it dries in is under how far it has dried.
     const order = dryOrder();
+    // Spreading, it is shown only as far out from its near end (the top of its picture) as it has
+    // spread: laid over the ground whole, it could not be grown by stretching it.
     material.onBeforeCompile = shader => {
       shader.uniforms.dried = this.dried;
+      shader.uniforms.grown = this.grown;
       shader.uniforms.order = { value: order };
-      shader.fragmentShader = 'uniform float dried;\nuniform sampler2D order;\n' + shader.fragmentShader.replace('#include <map_fragment>',
-        '#include <map_fragment>\n  if (texture2D(order, vMapUv).g < dried * 1.05) discard;');
+      shader.fragmentShader = 'uniform float dried;\nuniform float grown;\nuniform sampler2D order;\n' + shader.fragmentShader.replace('#include <map_fragment>',
+        '#include <map_fragment>\n  if (texture2D(order, vMapUv).g < dried * 1.05 || 1.0 - vMapUv.y > grown) discard;');
     };
     material.customProgramCacheKey = () => 'vomit-pool';
     // As long as the pool and as wide as its far end, its near end (the top of its picture) laid at
     // the pivot and the rest along +Z.
-    this.pool = new THREE.Mesh(new THREE.PlaneGeometry(wide, long).rotateX(-Math.PI / 2).translate(0, 0, long / 2), material);
+    // Fine enough to be laid over the ground's swells (drape).
+    this.pool = new THREE.Mesh(new THREE.PlaneGeometry(wide, long, 10, 16).rotateX(-Math.PI / 2).translate(0, 0, long / 2), material);
     this.pool.receiveShadow = true;
     this.pivot.add(this.pool);
-    this.pivot.position.y = 0.5;
+    this.pivot.position.y = 0;
     this.group.add(this.turned);
     this.turned.add(this.pivot);
     for (let i = 0; i < SPRAY.kept; i++) {
@@ -187,7 +195,10 @@ export class Vomit {
     // Only the pool is turned his way: the drops are reckoned in the world's axes.
     this.turned.rotation.y = turn;
     this.pivot.position.z = this.tall * VOMIT.near;
-    this.pivot.scale.set(0.5, 1, 0.001);
+    // Laid over the ground where it falls, a little above it, whole; shown as it spreads.
+    this.group.updateMatrixWorld(true);
+    drape(this.pool.geometry, this.pool.matrixWorld, 1.2);
+    this.grown.value = 0;
     (this.pool.material as THREE.MeshToonMaterial).opacity = POOL.thick;
     this.dried.value = 0;
     this.spray.hideAll();
@@ -211,7 +222,7 @@ export class Vomit {
     // The pool spreads out from his feet while he retches, quickly at first.
     const k = Math.max(0, Math.min(1, (t - VOMIT.from - 0.1) / (VOMIT.to - VOMIT.from)));
     const grown = Math.max(0.001, 1 - (1 - k) ** 2);
-    this.pivot.scale.set(0.5 + 0.5 * grown, 1, grown);
+    this.grown.value = grown;
     const dry = Math.max(0, Math.min(1, (t - VOMIT.to - VOMIT.lies) / VOMIT.dries));
     this.dried.value = dry;
     this.bubble(dt, grown, dry);
@@ -258,6 +269,9 @@ export class Vomit {
         const along = 0.1 + Math.random() * 0.8;
         b.at.set((Math.random() - 0.5) * wideAt(along) * tall * 0.7 * (0.5 + 0.5 * grown), 1.5,
           this.pivot.position.z + along * (VOMIT.reach - VOMIT.near) * tall * grown);
+        // On the pool, wherever the ground under it lies.
+        const world = this.turned.localToWorld(b.at.clone());
+        b.at.y = heightAt(world.x, world.z * ISO_Y) - this.group.position.y + 2.5;
         b.t = 0; b.life = r(BUBBLES.swell); b.size = tall * r(BUBBLES.size);
         this.froth.put(i, b.at, 0);
       }

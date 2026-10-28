@@ -29,6 +29,24 @@ export function ground(x: number, y: number, height = 0): THREE.Vector3 {
   return new THREE.Vector3(x, lie(x, y) + height, y / ISO_Y);
 }
 
+/**
+ * Lays something flat on the ground as it lies, like a sheet laid over it: each of its points (a flat
+ * shape, its points at 0 up) raised or lowered to `lift` over the ground under it, where it is placed
+ * (`place`: where it stands in the world, turned about the upright only, not scaled). A flat thing at
+ * one height was cut through by the ground's swells wherever they rose over it.
+ */
+export function drape(geometry: THREE.BufferGeometry, place: THREE.Matrix4, lift: number): void {
+  const p = geometry.getAttribute('position') as THREE.BufferAttribute, v = new THREE.Vector3();
+  const base = new THREE.Vector3().setFromMatrixPosition(place).y;
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i).setY(0).applyMatrix4(place);
+    p.setY(i, lie(v.x, v.z * ISO_Y) + lift - base);
+  }
+  p.needsUpdate = true;
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+}
+
 /** A way, or a distance, along the 2D game's ground, along the 3D ground: level, whatever the ground does. */
 export function along(dx: number, dy: number): THREE.Vector3 {
   return new THREE.Vector3(dx, 0, dy / ISO_Y);
