@@ -2798,6 +2798,21 @@
       "asset_id": "d8b6dced-8973-48d2-9b56-315e494c00c3",
       "label": "Julio Argentino Roca (1879) concept, roca_c",
       "file": "assets/roca/concept/roca_c.png"
+    },
+    {
+      "asset_id": "90ea8e74-9158-43e4-84e8-ece4fe74551f",
+      "label": "Julio Argentino Roca concept, grey with plumed bicorne (from roca_c), roca_d",
+      "file": "assets/roca/concept/roca_d.png"
+    },
+    {
+      "asset_id": "64dc363e-8bad-4153-b791-90de8d7b57c1",
+      "label": "Julio Argentino Roca concept, grey with plumed bicorne (from roca_c), roca_e",
+      "file": "assets/roca/concept/roca_e.png"
+    },
+    {
+      "asset_id": "75a0e71f-d655-4c7c-aeca-90eb2846f86e",
+      "label": "Julio Argentino Roca concept, grey with plumed bicorne (from roca_c), roca_f",
+      "file": "assets/roca/concept/roca_f.png"
     }
   ]
 }
