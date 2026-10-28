@@ -6,12 +6,15 @@ import { ISO_Y } from '../../machi/data';
 // way by moving); the battery and Roca beyond its edge. She comes in at its south edge, the safe
 // ground every map begins on (a neck through the monte to it hid her among the trees). Her first map for now, in place of her forest (maps/bosque.ts).
 
-/** How far the clearing reaches from its middle, in the ground's units (the great salvo is 130 across its middle). */
-export const ARENA_REACH = 400;
+/**
+ * How far the clearing reaches from its middle, in the ground's units (the great salvo is 130 across
+ * its middle): 400 at first, too small (the user, 28/10/2026); now some 9 plots across, not 7.
+ */
+export const ARENA_REACH = 510;
 /** The map in plots: how wide and deep, and the clearing's middle. */
 const COLS = 21, ROWS = 21, MIDDLE: [number, number] = [10, 9];
 /** How many plots south of the middle she comes in. */
-const ENTRY = 3;
+const ENTRY = 4;
 
 function plots(): string[] {
   const rows: string[] = [];
