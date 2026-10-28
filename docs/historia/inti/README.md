@@ -150,6 +150,13 @@ Las dos fases (el usuario):
   > salvar ahora!»
 
   y salta a la batalla.
+- **Cómo pelea Roca en la segunda fase** (decidido):
+  - **Revólver:** una ráfaga en cono, varios tiros abiertos que se esquivan saliendo del cono.
+  - **Sable:** de cerca, con un **alcance considerable**, y una **carga con el destello rojo** de los
+    realistas (la estocada a fondo del capitán realista: el aviso rojo, y se tira encima).
+  - **Llama a la batería:** levanta el sable y cae una salva, chica, sobre donde está ella.
+  - **Escapa cuando muere:** al quedarse sin vida no cae, se retira. Cómo es su retirada está por
+    ver (anotado para después).
 
 **Si lo vencés, no lo matás: Roca escapa.**
 
