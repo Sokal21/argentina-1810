@@ -212,12 +212,18 @@ const STURDY = { at: [60, -120] as [number, number], life: 40 };
 const CHONCHONES: [number, number][] = [[110, -70], [-90, 80]];
 // And the royalist soldiers, who are all Cabral meets.
 const REALISTAS: [number, number][] = [[190, 50], [-170, -60], [40, 150]];
-// And the frontier soldiers of 1879, Inti's enemy, put in her forest to try them out (27 October 2026).
-const FRONTERA: [number, number][] = [[230, 20], [-210, -30]];
-// And the plague-dead, lurking under her forest (27 October 2026): each comes up out of the earth near
-// her once she is within `near` of where he lies, `at` from her toward it; and lies in wait again once
-// he is down and she is `again` off.
-const APESTADOS: [number, number][] = [[40, 230], [-260, 160]];
+/**
+ * Inti's forest as Roca's column has come into it, east of her camp (27 October 2026, the user's
+ * "a real fight" in place of things to try out on): frontier riflemen holding a line in twos and
+ * threes, each at his post, and the plague-dead lying in wait under the ground between, each to come
+ * up near her as she goes on; a second, smaller knot of them further in.
+ */
+const COLUMN = {
+  riflemen: [[780, -110], [840, 60], [770, 220], [470, -300], [1300, -70], [1250, 150]] as [number, number][],
+  plagued: [[380, -60], [430, 170], [1080, 40]] as [number, number][],
+};
+// Each of the plague-dead comes up out of the earth near her once she is within `near` of where he
+// lies, `at` from her toward it; and lies in wait again once he is down and she is `again` off.
 const LURK = { near: 260, at: 120, again: 520 };
 // How far from the hero a soldier at a post is still seen to and drawn: well past the edge of the screen.
 const AWAKE = { x: 760, y: 460 };
@@ -498,25 +504,26 @@ export class GameScene extends Phaser.Scene {
     const field = this.map ? middle([this.map.start[0] + HUNT[0], this.map.start[1] + HUNT[1]]) : this.start;
     const at = <T>(spots: [number, number][], make: (x: number, y: number) => T): T[] =>
       spots.map(([dx, dy]) => make(field.x + dx, field.y + dy));
-    this.enemies = his ? [] : at(CUBES, (x, y) => new Enemy(this, x, y));
+    // Without a map, a few stand-ins to try things out on; on her map, Roca's column (COLUMN).
+    this.enemies = his || this.map ? [] : at(CUBES, (x, y) => new Enemy(this, x, y));
     // One that takes a great deal of killing, to try things out on.
-    if (!his) this.enemies.push(new Enemy(this, field.x + STURDY.at[0], field.y + STURDY.at[1], STURDY.life));
+    if (!his && !this.map) this.enemies.push(new Enemy(this, field.x + STURDY.at[0], field.y + STURDY.at[1], STURDY.life));
     // The physics engine reports a bolt's spot on the ground entering an
     // enemy's; the bolt ends there and the enemy takes the hit.
     const bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
-    this.chonchones = his ? [] : at(CHONCHONES, (x, y) => new Chonchon(this, x, y, bounds));
+    this.chonchones = his || this.map ? [] : at(CHONCHONES, (x, y) => new Chonchon(this, x, y, bounds));
     // A map that says who holds it is held by them, each at his post; otherwise a few to try things on.
     const map = this.map, held = his && map ? garrison(map) : [];
     this.posts.clear();
     this.lurkers = [];
     this.pools = [];
     this.plague.cure();
-    this.realistas = !his ? at(FRONTERA, (x, y) => {
-      // Kept to the forest's ground, and back where he stood a while after he falls, as the chonchones.
+    this.realistas = !his ? at(COLUMN.riflemen, (x, y) => {
+      // Each at his post, as a garrison's men: up again once she has rested in her camp.
       const soldier = this.enlist('frontera', x, y, bounds).hold(this.walkable);
-      if (soldier instanceof Trooper) soldier.brain.returns = true;
+      this.posts.set(soldier, { x, y, letter: 'B', kind: 'frontera' });
       return soldier;
-    }).concat(at(APESTADOS, (x, y) => {
+    }).concat(at(COLUMN.plagued, (x, y) => {
       const soldier = this.enlist('apestado', x, y, bounds).hold(this.walkable);
       // Under the earth until she comes near.
       if (soldier instanceof Trooper) { soldier.brain.vanish(); this.lurkers.push({ soldier, spot: { x, y }, armed: true }); }
