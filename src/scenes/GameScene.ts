@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { BALL, Bolts, EMBER, SHOT } from '../bolts';
 import { Realista } from '../realista/Realista';
 import { Trooper } from '../tropa/Trooper';
+import { inPool, Plague, PLAGUE, VOMIT, type Pool } from '../tropa/vomit';
 import { KINDS, type Kind, type KindName } from '../tropa/brain';
 import type { Flames } from '../machi/flames';
 import { cheats, tune } from '../tuning';
@@ -111,7 +112,7 @@ const CABRAL_LOCK = { reach: BALL.range, keep: BALL.range * 1.4 };
 // the way points, and how long an arm let go is kept up waiting to go off.
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
 /** The kinds of the king's men that have a model in 3D (three/realista.ts, LOOKS). */
-const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan', 'frontera']);
+const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan', 'frontera', 'apestado']);
 /** How much of what fire does a foe takes: a soldier's kind may stand it better. */
 const fireproof = (foe: Foe): number => foe instanceof Trooper ? (KINDS[foe.kind] as Kind).fire ?? 1 : 1;
 /** With the gamepad a grenade lands this share of its reach straight ahead: all of it, as the musket aims. */
@@ -213,6 +214,11 @@ const CHONCHONES: [number, number][] = [[110, -70], [-90, 80]];
 const REALISTAS: [number, number][] = [[190, 50], [-170, -60], [40, 150]];
 // And the frontier soldiers of 1879, Inti's enemy, put in her forest to try them out (27 October 2026).
 const FRONTERA: [number, number][] = [[230, 20], [-210, -30]];
+// And the plague-dead, lurking under her forest (27 October 2026): each comes up out of the earth near
+// her once she is within `near` of where he lies, `at` from her toward it; and lies in wait again once
+// he is down and she is `again` off.
+const APESTADOS: [number, number][] = [[40, 230], [-260, 160]];
+const LURK = { near: 260, at: 120, again: 520 };
 // How far from the hero a soldier at a post is still seen to and drawn: well past the edge of the screen.
 const AWAKE = { x: 760, y: 460 };
 
@@ -357,6 +363,12 @@ export class GameScene extends Phaser.Scene {
   private enemies: Enemy[] = [];
   private chonchones: Chonchon[] = [];
   private realistas: Soldier[] = [];
+  /** The plague-dead lying in wait under the ground: each, where he lies, and whether he is yet to come up. */
+  private lurkers: { soldier: Trooper; spot: Vec; armed: boolean }[] = [];
+  /** The pools they have retched, and the plague on the hero from stepping in one; whether she stands in one now. */
+  private pools: Pool[] = [];
+  private readonly plague = new Plague();
+  private mired = false;
   /** The post each soldier who holds one stands at. */
   private posts = new Map<Soldier, Post>();
   /**
@@ -496,12 +508,20 @@ export class GameScene extends Phaser.Scene {
     // A map that says who holds it is held by them, each at his post; otherwise a few to try things on.
     const map = this.map, held = his && map ? garrison(map) : [];
     this.posts.clear();
+    this.lurkers = [];
+    this.pools = [];
+    this.plague.cure();
     this.realistas = !his ? at(FRONTERA, (x, y) => {
       // Kept to the forest's ground, and back where he stood a while after he falls, as the chonchones.
       const soldier = this.enlist('frontera', x, y, bounds).hold(this.walkable);
       if (soldier instanceof Trooper) soldier.brain.returns = true;
       return soldier;
-    }) : held.length && map
+    }).concat(at(APESTADOS, (x, y) => {
+      const soldier = this.enlist('apestado', x, y, bounds).hold(this.walkable);
+      // Under the earth until she comes near.
+      if (soldier instanceof Trooper) { soldier.brain.vanish(); this.lurkers.push({ soldier, spot: { x, y }, armed: true }); }
+      return soldier;
+    })) : held.length && map
       ? held.map(post => {
         const soldier = this.enlist(post.kind, post.x, post.y, bounds).hold(this.walkable);
         this.posts.set(soldier, post);
@@ -974,7 +994,8 @@ export class GameScene extends Phaser.Scene {
     const running = this.stamina.update(dt, standing && !this.machi.isDashing && !backing && (this.keys.running || touch.run || pad.run), this.machi.isMoving);
     // With the gamepad he walks as fast as the stick is pushed: all the way over, his full walk.
     const pushed = pad.on && !running && pad.stick ? PAD_CREEP + (1 - PAD_CREEP) * push(pad.stick) : 1;
-    this.machi.pace = tune.speed * (this.wrath.active ? RAGE.pace : 1) * (running ? RUN : pushed);
+    // Standing in a plague-dead soldier's pool she is slowed (tropa/vomit.ts).
+    this.machi.pace = tune.speed * (this.wrath.active ? RAGE.pace : 1) * (running ? RUN : pushed) * (this.mired ? PLAGUE.slow : 1);
     this.machi.haste = this.wrath.active ? RAGE.haste : 1;
     const from = { x: this.machi.x, y: this.machi.y };
     // A dodge is paid for when it begins, once: a press the hero could not act on costs nothing.
@@ -1065,6 +1086,8 @@ export class GameScene extends Phaser.Scene {
     if (this.indoors?.indoors) this.route?.toward(null);
     else this.route?.toward(this.machi);
     // Come somewhere safe, every one fallen is due to be up again.
+    this.lurk();
+    this.retched(dt);
     const safe = !!this.map && !!zoneAt(this.map, this.machi.x, this.machi.y)?.safe;
     if (safe && !this.safeWas) for (const realista of this.realistas) if (!realista.alive) this.due.add(realista);
     this.safeWas = safe;
@@ -1097,6 +1120,9 @@ export class GameScene extends Phaser.Scene {
       }
       if (deed.cut && prey) { prey.body.strike(); this.sparks.emitParticleAt(prey.body.x, prey.body.y - 20, 6); }
       else if (deed.cut && !drawn) this.hurt(realista instanceof Trooper ? realista.brain.kind.blow?.damage ?? 1 : 1);
+      // A plague-dead soldier retches: his pool is laid before him.
+      const retch = (deed as { retch?: { x: number; y: number; dx: number; dy: number } }).retch;
+      if (retch && realista instanceof Trooper && realista.brain.kind.retch) this.pools.push({ ...retch, tall: realista.brain.kind.retch.tall, t: 0 });
       // A captain calls up more of his men.
       const call = (deed as { call?: { many: number; most: number } }).call;
       if (call && realista instanceof Trooper) this.reinforce(realista, call);
@@ -1320,6 +1346,8 @@ export class GameScene extends Phaser.Scene {
         // His rage, dying down over its last moments as the 2D game's glow does.
         rage: this.wrath.active ? Math.min(1, this.wrath.left / 0.8) : 0,
         fallen: !this.vitals.standing, dashTime: this.machi.kit.dash?.time ?? 0.5, trail: true,
+        // The plague on her, fading over its last second.
+        sick: Math.min(1, this.plague.left),
       }, this.realistas.filter((r): r is Realista | Trooper => r instanceof Realista || IN_3D.has(r.kind)));
       // Framed a little above his feet, so his body is in the middle.
       // Her orbs are drawn in 3D, lit: in flight, and those her kills leave on the ground.
@@ -1689,7 +1717,8 @@ export class GameScene extends Phaser.Scene {
       pointer: this.hero === 'inti' ? this.strikeSpot(dt, keys.strike) : at,
       at,
       free: standing && !this.machi.isDashing,
-      hurt: this.vitals.life < this.vitals.max,
+      // Plagued, she may heal to be rid of it, whatever her life.
+      hurt: this.vitals.life < this.vitals.max || this.plague.on,
     });
 
     if (events.healing) this.machi.channel(HEAL.time);
@@ -1698,6 +1727,8 @@ export class GameScene extends Phaser.Scene {
     }
     if (events.healed) {
       this.vitals.heal(HEAL.amount * this.growth.gives('second'));
+      // Her power rids her of the plague (the user, 27/10/2026).
+      this.plague.cure();
       // In 3D it is seen there (three/healing.ts), as she heals and as it is done.
       if (this.overlaid) this.three?.healed();
       for (let i = 0; i < (this.overlaid ? 0 : 24); i++) {
@@ -1775,8 +1806,52 @@ export class GameScene extends Phaser.Scene {
 
   // She is defeated: she falls dead where she stands, everything in the air
   // bursts, and after a while she is back where she started.
+  /**
+   * The plague-dead lying in wait: one comes up out of the earth near her once she is near where he
+   * lies, between her and there; until then he is nowhere to be seen. Down again, he lies in wait
+   * once she is well away.
+   */
+  private lurk(): void {
+    const her = { x: this.machi.x, y: this.machi.y };
+    for (const lurker of this.lurkers) {
+      const { soldier, spot } = lurker, brain = soldier.brain;
+      const off = ground(her, spot);
+      if (!lurker.armed) {
+        if (brain.mode === 'gone' && off > LURK.again) { lurker.armed = true; this.three?.bury(soldier); }
+        continue;
+      }
+      this.three?.bury(soldier);
+      if (off > LURK.near || !this.vitals.standing) continue;
+      // From her toward where he lay, as far as the ground there can be walked; where he lay, if not.
+      const dx = spot.x - her.x, dy = (spot.y - her.y) / ISO_Y, far = Math.hypot(dx, dy) || 1;
+      let up = { x: her.x + dx / far * LURK.at, y: her.y + dy / far * LURK.at * ISO_Y };
+      if (!this.walkable(up.x, up.y)) up = spot;
+      brain.rise(up.x, up.y, her);
+      lurker.armed = false;
+    }
+  }
+
+  /**
+   * The pools the plague-dead retch: standing in one she is slowed and plagued; the plague takes her
+   * life a little at a time, by no blow (it neither breaks her healing nor guards her from the next).
+   */
+  private retched(dt: number): void {
+    const feet = { x: this.machi.x, y: this.machi.y };
+    for (const pool of this.pools) pool.t += dt;
+    this.pools = this.pools.filter(pool => pool.t < VOMIT.to + VOMIT.lies + VOMIT.dries);
+    this.mired = this.vitals.standing && !this.machi.isDashing && this.pools.some(pool => inPool(pool, feet));
+    if (this.mired) this.plague.catch();
+    const bitten = this.plague.update(dt);
+    if (bitten > 0 && !cheats.unhurt && this.vitals.standing) {
+      this.vitals.sap(bitten);
+      this.flash = Math.max(this.flash, 0.5);
+      if (!this.vitals.standing) this.fall();
+    }
+  }
+
   private fall(): void {
     this.machi.fall();
+    this.plague.cure();
     this.abilities.reset();
     this.fury.reset();
     this.embers.clear();

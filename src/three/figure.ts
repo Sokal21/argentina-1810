@@ -103,14 +103,15 @@ export async function model(url: string, drawn: number): Promise<THREE.Group> {
   return scene;
 }
 
-/** The red a body flashes when struck, as the 2D game's HitFX; and the fire it burns with in a rage. */
-const HURT = new THREE.Color('#ff2a1f'), BURN = new THREE.Color('#ff6a18');
+/** The red a body flashes when struck, as the 2D game's HitFX; the fire it burns with in a rage; the green of the plague on it. */
+const HURT = new THREE.Color('#ff2a1f'), BURN = new THREE.Color('#ff6a18'), SICK = new THREE.Color('#7fd02a');
 
 /**
  * Gives a body materials of its own (a copy of a model shares them with every other copy) and
- * returns how to flash it red when struck (0 none, 1 full), and how strongly it burns, in a rage.
+ * returns how to flash it red when struck (0 none, 1 full), how strongly it burns, in a rage, and how
+ * green the plague turns it.
  */
-export function flashes(body: THREE.Object3D): (amount: number, burn?: number) => void {
+export function flashes(body: THREE.Object3D): (amount: number, burn?: number, sick?: number) => void {
   const own: THREE.MeshToonMaterial[] = [];
   body.traverse(node => {
     if (!(node instanceof THREE.Mesh)) return;
@@ -123,13 +124,14 @@ export function flashes(body: THREE.Object3D): (amount: number, burn?: number) =
     node.material = material;
     own.push(material);
   });
-  let shown = -1, burnt = -1;
-  const glow = new THREE.Color();
-  return (amount, burn = 0) => {
-    if (amount === shown && burn === burnt) return;
+  let shown = -1, burnt = -1, sickened = -1;
+  const glow = new THREE.Color(), part = new THREE.Color();
+  return (amount, burn = 0, sick = 0) => {
+    if (amount === shown && burn === burnt && sick === sickened) return;
     shown = amount;
     burnt = burn;
-    glow.copy(HURT).multiplyScalar(amount).add(BURN.clone().multiplyScalar(burn));
+    sickened = sick;
+    glow.copy(HURT).multiplyScalar(amount).add(part.copy(BURN).multiplyScalar(burn)).add(part.copy(SICK).multiplyScalar(sick));
     for (const material of own) material.emissive.copy(glow);
   };
 }

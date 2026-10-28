@@ -155,6 +155,39 @@ describe('the captain', () => {
   });
 });
 
+describe('the plague-dead soldier', () => {
+  it('comes up out of the earth, not to be struck while under it, and only then goes for her', () => {
+    const b = brain('apestado');
+    b.rise(100, 0, { x: 0, y: 0 });
+    expect(b.mode).toBe('rise');
+    b.hit(1, 0);
+    expect(b.life).toBe(KINDS.apestado.life);
+    run(b, { x: 0, y: 0 }, KINDS.apestado.rises.time - 0.1);
+    expect([b.mode, b.x]).toEqual(['rise', 100]);
+    run(b, { x: 0, y: 0 }, 0.5);
+    expect(b.mode).not.toBe('rise');
+  });
+
+  it('retches at her from a little off, the way he faces, and not again for a while', () => {
+    const b = brain('apestado');
+    const deeds: Deed[] = [];
+    for (let t = 0; t < 4; t += DT) { const d = b.update(DT, { x: 150, y: 0 }); if ((d as { retch?: unknown }).retch) deeds.push(d); }
+    expect(deeds.length).toBe(1);
+    expect((deeds[0] as { retch: { dx: number } }).retch.dx).toBeCloseTo(1);
+  });
+
+  it('swipes heavily up close, slow in the coming, and is not moved by a blow', () => {
+    const b = brain('apestado');
+    const blow = KINDS.apestado.blow;
+    expect(blow.damage).toBe(3);
+    expect(blow.hit).toBeGreaterThan(1);
+    for (let t = 0; t < 2 && b.mode !== 'blow'; t += DT) b.update(DT, { x: 40, y: 0 });
+    b.hit(1, 0);
+    expect(b.x).toBe(0);
+    expect(run(b, { x: 40, y: 0 }, blow.time).filter(d => d.cut !== undefined)).toEqual([{ cut: true }]);
+  });
+});
+
 describe('any of them', () => {
   it('falls when it has taken all it can, and one who holds a post stays down until called back', () => {
     const b = brain('sableador');

@@ -33,6 +33,16 @@ export class Vitals {
     return true;
   }
 
+  /**
+   * Takes life by a sickness rather than a blow: whatever guards against blows does not guard against
+   * it, nor does it guard against the next blow.
+   */
+  sap(amount: number): void {
+    if (!this.standing) return;
+    this.life -= amount;
+    if (this.life <= 0) this.fallen = 0;
+  }
+
   /** Gives back life, up to the most it can have. */
   heal(amount: number): void {
     if (this.standing) this.life = Math.min(this.max, this.life + amount);

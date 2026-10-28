@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { AIM, MUZZLE, SLASH_TIME, type Mode as RealistaMode } from '../realista/brain';
-import { KINDS, type Mode as TroopMode } from '../tropa/brain';
+import { APESTADO_DRAWN, KINDS, type Mode as TroopMode } from '../tropa/brain';
+import { RISE, Rising } from './rising';
+import { Stench } from './stench';
+import { Vomit } from './vomit';
 import { Blood } from './blood';
 import { Dust } from './dust';
 import { Shouts } from './shout';
@@ -30,7 +33,7 @@ export const DRAWN = 78;
  * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
  * the pace that lands it when his brain does.
  */
-export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number }; lunge?: { clip: string; wind: number; lands: number; point: number; charge: number; hit: number; dash: number; time: number }; call?: { clip: string; time: number } }> = {
+export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number }; lunge?: { clip: string; wind: number; lands: number; point: number; charge: number; hit: number; dash: number; time: number }; call?: { clip: string; time: number }; walk?: string; idle?: string; retch?: { clip: string; time: number }; rises?: { clip: string; up: number }; stench?: boolean }> = {
   // Lean and quick, a little under the fusiliers (Tripo from turnaround A, 23 October 2026).
   // His two cuts at the pace that lands the first when his brain does (frame 18 of 52); his run.
   sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76, blow: { clip: 'tajo', lands: 18 / 52, hit: KINDS.sableador.blow.hit }, run: 'carrera' },
@@ -61,6 +64,13 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
   // The frontier soldier of 1879 (Tripo from turnaround A, 27 October 2026), as tall as the fusiliers:
   // the fusilier's musket clips, and his bayonet thrust landing at frame 22 of 62 (Mixamo's Bayonet Stab).
   frontera: { url: 'frontera/3d/soldado_animado.glb', drawn: 78, blow: { clip: 'bayoneta', lands: 22 / 62, hit: KINDS.frontera.blow.hit } },
+  // The plague-dead soldier (docs/personajes/apestado.md): Mixamo's zombie clips, his stench about him;
+  // his swipe landing at frame 20 of 48; his retching on his scream; coming up out of the earth, his
+  // getting up played over what is left of his rising once the ground has broken.
+  apestado: { url: 'apestado/3d/apestado_animado.glb', drawn: APESTADO_DRAWN, walk: 'caminata', idle: 'reposo', stench: true,
+    blow: { clip: 'golpe', lands: 20 / 48, hit: KINDS.apestado.blow.hit },
+    retch: { clip: 'grito', time: KINDS.apestado.retch.time },
+    rises: { clip: 'levantarse', up: KINDS.apestado.rises.time - RISE.warn } },
 };
 /** Seconds of his aim spent drawing the musket from his back; the rest he holds it levelled. */
 const DRAW = Math.min(0.45, AIM * 0.55);
@@ -174,6 +184,13 @@ class Figure {
   /** Which he is, to his blood. */
   private static count = 0;
   private readonly id = Figure.count++;
+  /** The plague-dead soldier's: his stench, the earth he comes up out of, his pools (two, one drying while he lays the next). */
+  private readonly stench: Stench | null = null;
+  private readonly rising: Rising | null = null;
+  private readonly vomits: Vomit[] = [];
+  private retched = 0;
+  /** What of his is drawn apart from his body (the stench, the earth, the pools): put in the scene with him. */
+  readonly around: THREE.Object3D[] = [];
 
   constructor(shape: THREE.Group, private readonly blood: Blood, private readonly look?: (typeof LOOKS)[string], private readonly shouts?: Shouts, private readonly dust?: Dust) {
     this.body = clone(shape) as THREE.Group;
@@ -182,7 +199,11 @@ class Figure {
     this.flash = flashes(this.body);
     // Seen through whatever hides him, in red: behind a tree or a house he is not to be lost.
     seenThrough(this.body);
-    this.reach = this.motion.reach('caminata_mixamo', 'L_Foot') * shape.scale.x;
+    this.reach = this.motion.reach(look?.walk ?? 'caminata_mixamo', 'L_Foot') * shape.scale.x;
+    const tall = (look?.drawn ?? DRAWN) * UPRIGHT;
+    if (look?.stench) { this.stench = new Stench(this.body, tall); this.around.push(this.stench.group); }
+    if (look?.rises) { this.rising = new Rising(tall, look.rises.up); this.around.push(this.rising.group); }
+    if (look?.retch) for (let i = 0; i < 2; i++) { const v = new Vomit(this.body, tall); this.vomits.push(v); this.around.push(v.group); }
     this.runReach = look?.run ? this.motion.reach(look.run, 'L_Foot') * shape.scale.x : 0;
     this.warning.add(this.glow, this.halo, this.star);
     this.warning.visible = false;
@@ -215,6 +236,14 @@ class Figure {
     if (mode !== 'dying' && mode !== 'gone') {
       const turn = Math.atan2(Math.sin(want - this.facing), Math.cos(want - this.facing));
       this.facing += turn * Math.min(1, dt * TURN);
+    }
+    // Coming up out of the earth, or retching, he is at once the way his brain has him: his pool lies the way it was aimed.
+    if ((mode === 'rise' || mode === 'retch') && mode !== this.modeWas) this.facing = want;
+    if (mode === 'rise' && mode !== this.modeWas) this.rising?.start(ground(x, y), this.facing);
+    if (mode === 'retch' && mode !== this.modeWas && this.vomits.length) {
+      this.body.position.copy(ground(x, y));
+      this.body.rotation.y = this.facing;
+      this.vomits[this.retched++ % this.vomits.length].start(this.facing);
     }
     const pistol = this.look?.pistol;
     if (pistol && this.modeWas === 'aim' && mode !== 'aim' && alive(mode)) this.smoking = 0;
@@ -291,9 +320,16 @@ class Figure {
       // Rings of red flung out over the ground as he roars, as far as his shout carries.
       if (afresh) this.shouts?.shout(ground(x, y), reach);
     }
+    else if (mode === 'retch' && this.look?.retch) m.play(this.look.retch.clip, { once: true, lasts: this.look.retch.time, afresh, blend: 0.2 });
+    else if (mode === 'rise' && this.look?.rises) {
+      // Lying under the earth until it breaks, then getting up out of it over the rest of his rising.
+      const { clip, up } = this.look.rises;
+      if (t < RISE.warn) m.hold(clip, 0, { afresh });
+      else m.play(clip, { once: true, lasts: up, afresh: t - dt < RISE.warn, blend: 0 });
+    }
     else if (mode === 'walk' && this.look?.run) m.play(this.look.run, { pace: this.runReach ? Math.max(0.35, this.going / this.runReach) : 1 });
-    else if (mode === 'walk') m.play('caminata_mixamo', { pace: this.reach ? Math.max(0.35, this.going / this.reach) : 1 });
-    else m.play('reposo_mixamo');
+    else if (mode === 'walk') m.play(this.look?.walk ?? 'caminata_mixamo', { pace: this.reach ? Math.max(0.35, this.going / this.reach) : 1 });
+    else m.play(this.look?.idle ?? 'reposo_mixamo');
     m.update(dt);
     this.modeWas = mode;
     // The musket on his back or in his hands, and the sabre put away while he has it up.
@@ -316,10 +352,16 @@ class Figure {
     this.clock += dt;
     const throb = who.hasted && alive(mode) ? HASTE.low + (HASTE.high - HASTE.low) * (0.5 + 0.5 * Math.sin(this.clock * HASTE.beat)) : 0;
     this.flash(Math.max(who.hurt, throb));
-    this.body.visible = !this.buried;
+    // Under the earth he is not seen until it breaks; then he comes up out of it, sunk at first.
+    const unseen = mode === 'rise' && t < RISE.warn;
+    this.body.visible = !this.buried && !unseen;
     if (this.flung.gun) this.flung.gun.visible = true;
     this.body.position.copy(ground(x, y));
+    if (mode === 'rise' && this.rising) this.body.position.y -= this.rising.sunk;
     this.body.rotation.y = this.facing;
+    this.rising?.update(dt);
+    for (const v of this.vomits) v.update(dt);
+    if (this.stench) { this.stench.power = alive(mode) ? 1 : 0; this.stench.update(dt); }
     this.warn(who, mode, t);
   }
 
@@ -440,7 +482,7 @@ export class Royalists {
     for (const [who, figure] of this.figures) {
       if (everyone.includes(who)) continue;
       figure.bury();
-      this.group.remove(figure.body, figure.warning);
+      this.group.remove(figure.body, figure.warning, ...figure.around);
       this.figures.delete(who);
     }
     for (const who of everyone) {
@@ -452,7 +494,7 @@ export class Royalists {
         if (!shape) continue;
         figure = new Figure(shape, this.blood, kind ? LOOKS[kind] : undefined, this.shouts, this.dust);
         this.figures.set(who, figure);
-        this.group.add(figure.body, figure.warning);
+        this.group.add(figure.body, figure.warning, ...figure.around);
       }
       if (seen(who.mind.x, who.mind.y)) figure.update(dt, who);
       else figure.rest(who);

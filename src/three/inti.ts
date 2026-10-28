@@ -4,7 +4,8 @@ import { HEAL } from '../machi/abilities';
 import { NAHUEL } from '../nahuel/brain';
 import { flashes, model } from './figure';
 import { Motion } from './motion';
-import { along, ground, heading } from './space';
+import { along, ground, heading, UPRIGHT } from './space';
+import { MIASMA, Stench } from './stench';
 import { seenThrough } from './xray';
 import type { Doing } from './cabral';
 
@@ -64,6 +65,8 @@ const HIP_SHARE = 0;
  * said neither, and she blended into standing and at once into running, a jolt).
  */
 const SLIDE = { until: 0.7, blendOut: 0.25, settle: 0.08 };
+/** How green the plague turns her, at its faintest and its strongest (a blow's red is 1), and how fast it throbs (radians a second). */
+const SICK = { low: 0.12, high: 0.4, beat: 5 };
 /** How long her call to the lightning is shown, in seconds. */
 const STRIKE_TIME = 0.9;
 /** How fast she turns, per second; how quickly what she is taken to go at follows how fast she goes. */
@@ -75,7 +78,12 @@ export class IntiFigure {
   readonly group = new THREE.Group();
   private shaped: THREE.Group | null = null;
   private motion: Motion | null = null;
-  private flash: (amount: number) => void = () => {};
+  private flash: (amount: number, burn?: number, sick?: number) => void = () => {};
+  /** What of hers is drawn in the world apart from her (the plague's smoke, left where it rose): put in the scene beside her. */
+  readonly around = new THREE.Group();
+  /** The smoke rising off her while the plague is on her, and the seconds she has been drawn, for its green to throb by. */
+  private miasma: Stench | null = null;
+  private clock = 0;
   private reach: Record<string, number> = {};
   /** Which way each walk and the run really go, from her front. */
   private ways: Record<string, number> = {};
@@ -123,6 +131,8 @@ export class IntiFigure {
       this.shaped = loaded;
       this.motion = new Motion(loaded);
       this.flash = flashes(loaded);
+      this.miasma = new Stench(loaded, DRAWN * UPRIGHT, MIASMA);
+      this.around.add(this.miasma.group);
       seenThrough(loaded);
       for (const name of [CLIPS.run, ...Object.values(CLIPS.walk)]) {
         const left = this.motion.stride(name, 'L_Foot'), right = this.motion.stride(name, 'R_Foot');
@@ -262,7 +272,11 @@ export class IntiFigure {
     this.wasDashing = c.isDashing;
     this.dashSeen = c.dashes;
     this.wasChanneling = c.isChanneling;
-    this.flash(doing.hurt ?? 0);
+    // Plagued, she throbs a sickly green and smokes; struck, the red over it.
+    this.clock += dt;
+    const sick = doing.sick ?? 0;
+    this.flash(doing.hurt ?? 0, 0, sick * (SICK.low + (SICK.high - SICK.low) * (0.5 + 0.5 * Math.sin(this.clock * SICK.beat))));
+    if (this.miasma) { this.miasma.power = sick; this.miasma.update(dt); }
     this.group.position.copy(ground(c.x, c.y));
     this.group.rotation.y = this.facing;
   }

@@ -48,12 +48,22 @@ export interface Kind {
   fury?: number;
   /** He comes straight in for his blow, not round to a side of her first as the others do. */
   rushes?: boolean;
+  /**
+   * He retches at whoever is between `from` and `to` off: stands, his head thrown at her, for `time`
+   * seconds, and not again for `every`. The pool it leaves (tropa/vomit.ts) is laid by one `tall` high.
+   */
+  retch?: { from: number; to: number; time: number; every: number; tall: number };
+  /** He comes up out of the earth (`rise`): it takes `time` seconds, and for the first `under` of them he is under it, not to be struck. */
+  rises?: { time: number; under: number };
   /** How much of what fire does (a grenade's blast, burning) he takes; all of it if not said. */
   fire?: number;
   /** What bringing him down is worth, in experience and in reales. */
   worth: number;
   spoils: number;
 }
+
+/** How tall the plague-dead soldier is drawn (three/realista.ts), for the pool he leaves, which is as big as he is. */
+export const APESTADO_DRAWN = 88;
 
 export const KINDS = {
   // No musket: he runs at whoever he sees and cuts. Soon down, if he can be caught.
@@ -92,6 +102,18 @@ export const KINDS = {
   // bayonet (Mixamo's Bayonet Stab, its point furthest out at frame 22 of 62, some 66 off at his
   // height: played half as fast again, it lands at 0.6 s and he is back on guard by 1.1).
   frontera: { id: 'frontera', name: 'Soldado de frontera', life: 4, girth: 9, pace: 36, sight: 380, shot: { range: 300, aim: 0.7, lock: 0.2, reload: [1.4, 2.0], muzzle: 30 }, blow: { near: 50, time: 1.1, hit: 0.6, reach: 62, rest: 0.5 }, worth: 9, spoils: 6 },
+  // The plague-dead soldier, Inti's arc's tank (27 October 2026, docs/personajes/apestado.md): he comes
+  // up out of the earth near her (the ground heaving 0.8 s, then his getting up, Mixamo's Zombie Stand
+  // Up played in 3 s); slow and hard to bring down, and no blow moves him; up close a heavy swipe
+  // (Mixamo's zombie attack, his hand furthest out at frame 20 of 48, some 53 off: played so it lands
+  // at 1.3 s, long in the coming, to be dodged) taking 3 of her 5; and from further off he retches a
+  // pool before him that slows and plagues her, played on his scream.
+  apestado: {
+    id: 'apestado', name: 'Apestado', life: 14, girth: 13, pace: 26, sight: 420, steady: true, rushes: true,
+    blow: { near: 60, time: 2.0, hit: 1.3, reach: 72, rest: 0.6, damage: 3 },
+    retch: { from: 80, to: 220, time: 2.0, every: 7, tall: APESTADO_DRAWN / Math.sqrt(1 - ISO_Y * ISO_Y) },
+    rises: { time: 3.8, under: 1.2 }, worth: 25, spoils: 12,
+  },
 } satisfies Record<string, Kind>;
 export type KindName = keyof typeof KINDS;
 
@@ -104,7 +126,7 @@ export const RETURNS = 7;   // seconds until one who is not at a post is back
 /** How much faster one who has been rallied walks and reloads. */
 export const QUICKENED = 1.5;
 
-export type Mode = 'stand' | 'walk' | 'aim' | 'blow' | 'lunge' | 'rally' | 'call' | 'dying' | 'gone';
+export type Mode = 'stand' | 'walk' | 'aim' | 'blow' | 'lunge' | 'rally' | 'call' | 'retch' | 'rise' | 'dying' | 'gone';
 
 /** What a step of his produced. */
 export interface Deed {
@@ -114,6 +136,8 @@ export interface Deed {
   rally?: { reach: number; lasts: number };
   /** He has called up more of his men: so many, so long as no more than `most` he called are standing. */
   call?: { many: number; most: number };
+  /** He has begun to retch, from here, the way he faces (along the ground): his pool is to be laid. */
+  retch?: { x: number; y: number; dx: number; dy: number };
 }
 
 const NOTHING: Deed = {};
@@ -150,6 +174,8 @@ export class TroopBrain {
   private still = 0;
   /** Seconds until he can lunge again. */
   private lunging = 3;
+  /** Seconds until he can retch again. */
+  private retching = 2;
   /** Seconds until he calls up more of his men, counted while he has someone to fight. */
   private calling = 0;
   private shout: number;
@@ -190,6 +216,7 @@ export class TroopBrain {
       this.rest = Math.max(0, this.rest - dt);
       this.still = Math.max(0, this.still - dt);
       this.lunging = Math.max(0, this.lunging - dt);
+      this.retching = Math.max(0, this.retching - dt);
       this.shout = Math.max(0, this.shout - dt);
       this.provoked = Math.max(0, this.provoked - dt);
     }
@@ -219,6 +246,11 @@ export class TroopBrain {
           return NOTHING;
         }
         if (k.rally && this.shout <= 0) { this.enter('rally'); this.done = false; return NOTHING; }
+        if (k.retch && this.retching <= 0 && far >= k.retch.from && far <= k.retch.to) {
+          this.enter('retch');
+          this.look(to);
+          return { retch: { x: this.x, y: this.y, dx: this.dir.x, dy: this.dir.y } };
+        }
         if (k.lunge && this.lunging <= 0 && this.still <= 0 && far >= k.lunge.from && far <= k.lunge.to) { this.enter('lunge'); this.done = false; return NOTHING; }
         if (k.shot && far <= k.shot.range && this.reload <= 0) { this.enter('aim'); return NOTHING; }
         if (!k.pace || this.still > 0 || (k.stays && k.shot && far <= k.shot.range)) { this.enter('stand'); return NOTHING; }
@@ -278,6 +310,14 @@ export class TroopBrain {
         this.done = true;
         return { cut: !!to && far <= l.reach };
       }
+      case 'retch':
+        // His head thrown at her the way he began: the pool lies where it was aimed.
+        if (this.t >= k.retch!.time) { this.enter('stand'); this.retching = k.retch!.every; }
+        return NOTHING;
+      case 'rise':
+        if (this.t >= (k.rises?.time ?? 0)) this.enter('stand');
+        else if (to) this.look(to);
+        return NOTHING;
       case 'call': {
         const c = k.call!;
         if (this.t >= c.time) { this.enter('stand'); this.calling = c.every; }
@@ -303,7 +343,7 @@ export class TroopBrain {
 
   /** Struck by something travelling along (dx, dy) on screen. */
   hit(dx: number, dy: number, amount = 1): void {
-    if (!this.alive) return;
+    if (!this.alive || this.under) return;
     this.life -= amount;
     if (this.life <= 0) { this.enter('dying'); return; }
     // A blow knocks his aim off, and moves him; not one who stays where he is, nor one who is steady.
@@ -312,6 +352,23 @@ export class TroopBrain {
     if (!this.kind.pace || this.kind.stays) return;
     const len = Math.hypot(dx, dy) || 1;
     this.move(dx / len * 3, dy / len * 3 / ISO_Y);
+  }
+
+  /** Still under the earth he is coming up out of: not to be struck. */
+  get under(): boolean {
+    return this.mode === 'rise' && this.t < (this.kind.rises?.under ?? 0);
+  }
+
+  /** Comes up out of the earth here, whole, facing her if she is given. */
+  rise(x: number, y: number, her?: Vec): void {
+    this.x = x;
+    this.y = y;
+    this.life = this.max;
+    this.rest = 0;
+    this.retching = 2;
+    this.mode = 'rise';
+    this.t = 0;
+    if (her) this.look({ x: her.x - x, y: (her.y - y) / ISO_Y });
   }
 
   vanish(): void {

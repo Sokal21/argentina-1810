@@ -6,10 +6,16 @@ import { Billboards } from './billboards';
 // Not lit and not shining (his sores shine; this is only foul air): drawn over what is behind it,
 // half seen through. The puffs are left in the world, so that walking he trails them.
 
-/** The puffs: how many kept, how long one lasts, how far behind him it is carried a second, how much it rises, how big it starts (a share of his height) and how many times that it ends. */
-const PUFF = { kept: 34, life: [1.8, 3], drift: [16, 30], rise: [4, 10], size: [0.22, 0.38], swell: 2.2 };
-/** Their colours (one of them each), how thick at most, and where on him they are let off, as shares of his height. */
-const CLOUD = { colours: ['#8da24a', '#7a8f3e', '#9fb35a'], thick: 0.75, from: [0.3, 0.85] };
+/**
+ * The puffs: how many kept, how long one lasts, how far behind him it is carried a second, how much it
+ * rises, how big it starts (a share of his height) and how many times that it ends; their colours (one
+ * of them each), how thick at most, and where on him they are let off, as shares of his height.
+ */
+const STENCH = { kept: 34, life: [1.8, 3], drift: [16, 30], rise: [4, 10], size: [0.22, 0.38], swell: 2.2,
+  colours: ['#8da24a', '#7a8f3e', '#9fb35a'], thick: 0.75, from: [0.3, 0.85] };
+/** The plague on whoever stepped in his pool: a thinner smoke of a brighter green, rising off them rather than left behind. */
+export const MIASMA: typeof STENCH = { kept: 16, life: [0.9, 1.6], drift: [0, 4], rise: [18, 30], size: [0.1, 0.18], swell: 2,
+  colours: ['#9cc63e', '#86ad36', '#b2d65a'], thick: 0.6, from: [0.2, 0.8] };
 
 /** A puff: where it is, how long it has lasted and will, how far it is carried and rises a second, how big at first, how fast it turns and how far it has. All the puffs are one mesh (billboards.ts), each a copy of it by its index. */
 interface Puff { at: THREE.Vector3; t: number; life: number; drift: number; rise: number; size: number; spin: number; turn: number }
@@ -34,7 +40,7 @@ function puff(): THREE.Texture {
 export class Stench {
   readonly group = new THREE.Group();
   /** The puffs, drawn in one call. */
-  private readonly cloud = new Billboards(PUFF.kept, puff());
+  private readonly cloud: Billboards;
   private readonly puffs: Puff[] = [];
   private readonly at = new THREE.Vector3();
   private readonly turn = new THREE.Quaternion();
@@ -44,9 +50,10 @@ export class Stench {
   power = 1;
 
   /** `body` is his model, already scaled, `tall` its height in the world's units. */
-  constructor(private readonly body: THREE.Object3D, private readonly tall: number) {
-    for (let i = 0; i < PUFF.kept; i++) {
-      this.cloud.colour(i, CLOUD.colours[i % CLOUD.colours.length]);
+  constructor(private readonly body: THREE.Object3D, private readonly tall: number, private readonly how = STENCH) {
+    this.cloud = new Billboards(how.kept, puff());
+    for (let i = 0; i < how.kept; i++) {
+      this.cloud.colour(i, how.colours[i % how.colours.length]);
       this.puffs.push({ at: new THREE.Vector3(), t: 0, life: 0, drift: 0, rise: 0, size: 0, spin: 0, turn: 0 });
     }
     this.group.add(this.cloud.mesh);
@@ -61,6 +68,7 @@ export class Stench {
     const behind = this.behind.set(0, 0, -1).applyQuaternion(this.turn).setY(0).normalize();
     const side = this.side.set(behind.z, 0, -behind.x);
     const r = (a: number[]) => a[0] + Math.random() * (a[1] - a[0]);
+    const how = this.how;
     this.puffs.forEach((p, i) => {
       if (this.cloud.shown(i)) {
         p.t += dt;
@@ -70,15 +78,15 @@ export class Stench {
         p.at.y += p.rise * dt;
         p.turn += p.spin * dt;
         // Thickening as it leaves him, then thinning away.
-        this.cloud.put(i, p.at, p.size * (1 + (PUFF.swell - 1) * k), CLOUD.thick * power * Math.min(1, k * 3) * (1 - k), p.turn);
-      } else if (power > 0.05 && Math.random() < dt * PUFF.kept / 2.2) {
-        p.t = 0; p.life = r(PUFF.life); p.drift = r(PUFF.drift); p.rise = r(PUFF.rise); p.size = r(PUFF.size) * this.tall;
+        this.cloud.put(i, p.at, p.size * (1 + (how.swell - 1) * k), how.thick * power * Math.min(1, k * 3) * (1 - k), p.turn);
+      } else if (power > 0.05 && Math.random() < dt * how.kept / 2.2) {
+        p.t = 0; p.life = r(how.life); p.drift = r(how.drift); p.rise = r(how.rise); p.size = r(how.size) * this.tall;
         p.spin = (Math.random() - 0.5) * 0.8;
         p.turn = 0;
         p.at.copy(this.at)
           .addScaledVector(side, (Math.random() - 0.5) * this.tall * 0.35)
           .addScaledVector(behind, (Math.random() - 0.3) * this.tall * 0.2);
-        p.at.y += this.tall * r(CLOUD.from);
+        p.at.y += this.tall * r(how.from);
         this.cloud.put(i, p.at, p.size, 0);
       }
     });

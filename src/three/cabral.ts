@@ -126,6 +126,8 @@ export interface Doing {
   hurt?: number;
   /** How strongly he is in his rage: 0 when he is himself, up to 1. */
   rage?: number;
+  /** Plagued (stepped in the plague-dead soldier's pool): from 0, not, to 1. */
+  sick?: number;
 }
 
 export class CabralFigure {

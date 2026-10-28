@@ -152,7 +152,7 @@ export class World3D {
     const forest = new Forest3D(map);
     // The sun's shadows are reckoned only as high as the tallest thing on this map (a man, at least).
     this.view.tallest = Math.max(120, country.tallest, forest.tallest);
-    this.view.scene.add(country.group, forest.group, ...(this.nahuel ? [this.nahuel.group] : []), ...(this.orbs ? [this.orbs.group] : []), ...(this.lightning ? [this.lightning.group] : []), ...(this.healing ? [this.healing.group] : []), ...(this.calling ? [this.calling.group] : []), this.people.group, this.strewn.group, this.errands.group, this.hero.group, this.royalists.group, this.marks.group, this.lockRing.group);
+    this.view.scene.add(country.group, forest.group, ...(this.nahuel ? [this.nahuel.group] : []), ...(this.orbs ? [this.orbs.group] : []), ...(this.lightning ? [this.lightning.group] : []), ...(this.healing ? [this.healing.group] : []), ...(this.calling ? [this.calling.group] : []), this.people.group, this.strewn.group, this.errands.group, this.hero.group, ...(this.hero instanceof IntiFigure ? [this.hero.around] : []), this.royalists.group, this.marks.group, this.lockRing.group);
     // A sergeant's roar is felt: a faint shake of the camera, its rings leaving his feet.
     this.royalists.shoutFelt = () => this.view.jolt(ROAR.seconds, ROAR.pixels);
     for (const ask of this.houses.flatMap(house => house.asks)) this.view.over.add(ask);

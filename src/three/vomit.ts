@@ -1,21 +1,17 @@
 import * as THREE from 'three';
 import { flat } from './paint';
 import { Billboards } from './billboards';
+import { VOMIT, wideAt } from '../tropa/vomit';
+
+// Its shape is the game's own (tropa/vomit.ts), so that the pool she is slowed in is the pool seen.
+export { VOMIT };
 
 // The plague-dead soldier's retching (played on his scream: his head thrown forward, his mouth wide):
 // a spray of sickly green thrown from his mouth, spreading in a cone before him, and where it falls a
 // pool, broad, in the shape of that cone (cut off where the spray first comes down, a little before
 // him), spreading out as it comes. The pool stays a while and dries away. Whoever stands in it is
-// slowed (the game's to do, with `VOMIT`'s shape).
+// slowed and plagued (tropa/vomit.ts).
 
-/**
- * The cone, shared with the game: from how far before him to how far it lies, and how wide it is at
- * its near end and at its far end (all shares of his height); when in his scream it is thrown and
- * until when (seconds); how long the pool lies before it dries, and how long it takes drying.
- */
-export const VOMIT = { near: 0.4, reach: 2.4, wide: [0.75, 1.8], from: 0.55, to: 1.55, lies: 5, dries: 2.6 };
-/** How wide the pool is (a share of his height) at a share `d` of the way from its near end to its far end. */
-const wideAt = (d: number) => VOMIT.wide[0] + (VOMIT.wide[1] - VOMIT.wide[0]) * d;
 /** The spray: how many drops kept, thrown a second, how fast, how big (a share of his height), how heavy; its colours. */
 const SPRAY = { kept: 90, rate: 70, up: [-30, 40], size: [0.035, 0.07], fall: 420, colours: ['#7f9c2e', '#94b236', '#5f7a22'] };
 /** The pool's colours: its body, its splashes, a few sickly bright spots; how thick it lies. */
@@ -182,14 +178,14 @@ export class Vomit {
     return VOMIT.to + VOMIT.lies + VOMIT.dries;
   }
 
-  /** Starts it as his scream starts: the pool laid where he stands, the way he faces. */
-  start(): void {
+  /** Starts it as his scream starts: the pool laid where he stands, the way he faces (or the way given). */
+  start(turn = this.body.rotation.y): void {
     this.time = 0;
     this.body.updateMatrixWorld(true);
     const at = this.body.getWorldPosition(new THREE.Vector3());
-    this.group.position.set(at.x, 0, at.z);
+    this.group.position.copy(at);
     // Only the pool is turned his way: the drops are reckoned in the world's axes.
-    this.turned.rotation.y = this.body.rotation.y;
+    this.turned.rotation.y = turn;
     this.pivot.position.z = this.tall * VOMIT.near;
     this.pivot.scale.set(0.5, 1, 0.001);
     (this.pool.material as THREE.MeshToonMaterial).opacity = POOL.thick;
