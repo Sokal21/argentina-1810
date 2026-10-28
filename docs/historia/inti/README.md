@@ -140,6 +140,11 @@ Las dos fases (el usuario):
 2. **Roca salta a la batalla** y te pelea él mismo. Los cañonazos siguen, pero **distintos: en zonas
    más chicas y muchos menos**, porque ahora el peligro es él.
 
+- **En la primera fase hay enemigos que te atacan** mientras caen los cañonazos: es clave (el usuario).
+- **Los obuses también lastiman a los enemigos**: a los suyos (soldados, apestados), no solo a Inti.
+- **Para pasar de fase hay que hacer algo concreto** en el campo: matar a alguien, aguantar oleadas o
+  una mecánica del lugar. Está por elegir.
+
 **Si lo vencés, no lo matás: Roca escapa.**
 
 Falta definir: cuándo termina la primera fase (sobrevivir un tiempo, vencer a la escolta), cómo pelea
@@ -161,8 +166,10 @@ Por definir. Propuestas: el kalku, cuya cabeza vuela como un chonchón gigante; 
 
 ## Lo que falta decidir
 
-1. Los dos jefes intermedios, y cómo se gana cada fase de la batería de Roca.
-2. El próximo enemigo (baqueano, lancero o artilleros).
-3. Las recompensas: cuáles, cuántas por vez y cómo se eligen.
-4. Las habitaciones: cuántas, cómo son y cómo se pasa de una a la siguiente.
-5. Las caras humanas del jefe y de la señora.
+1. Cómo se pasa de la primera fase a la segunda en la pelea de Roca.
+2. **Pendientes, para después de Roca:** los otros tres jefes: el intermedio del camino de Roca, el
+   intermedio del camino del demonio y el Wekufe.
+3. El próximo enemigo (baqueano, lancero o artilleros).
+4. Las recompensas: cuáles, cuántas por vez y cómo se eligen.
+5. Las habitaciones: cuántas, cómo son y cómo se pasa de una a la siguiente.
+6. Las caras humanas del jefe y de la señora.
