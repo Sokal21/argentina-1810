@@ -174,6 +174,34 @@ def sabre(armature: bpy.types.Object, bone: str = 'R_Hand', out: str = 'thumb') 
     return blade
 
 
+def signal_flag(armature: bpy.types.Object, bone: str = 'R_Hand', colour: str = 'roja') -> bpy.types.Object:
+    """A signaller's flag, for Roca's artillery spotter: a short pole 0.3 long held in a fist as the
+    sabre is (out past the thumb), and at its end a square of cloth, red (`roja`) or white (`blanca`),
+    across the way the fingers lie. Named `bandera_roja` or `bandera_blanca`."""
+    cloth = (0.75, 0.12, 0.1, 1) if colour == 'roja' else (0.92, 0.9, 0.84, 1)
+    parts = [box('asta', (0.3, 0.008, 0.008), (0.13, 0, 0), WOOD, 'madera'),
+             box('paño', (0.13, 0.004, 0.11), (0.215, 0, 0.06), cloth, f'paño_{colour}')]
+    for p in parts:
+        p.select_set(True)
+    bpy.context.view_layer.objects.active = parts[0]
+    bpy.ops.object.join()
+    flag = bpy.context.active_object
+    flag.name = f'bandera_{colour}'
+    wrist, way, length, palm, _, _ = hand(armature, bone)
+    fist(armature, bone)
+    grip = wrist + way * length * 0.42 + palm * length * 0.18
+    across = way.cross(palm).normalized()
+    forward = across if across.x > 0 else -across
+    breadth = (way - forward * way.dot(forward)).normalized()
+    flag.matrix_world = Matrix.Translation(grip) @ Matrix((forward, breadth.cross(forward), breadth)).transposed().to_4x4()
+    world = flag.matrix_world.copy()
+    flag.parent = armature
+    flag.parent_type = 'BONE'
+    flag.parent_bone = bone
+    flag.matrix_world = world
+    return flag
+
+
 def pistol(armature: bpy.types.Object, bone: str = 'R_Hand') -> bpy.types.Object:
     """An officer's flintlock pistol, its barrel 0.14 long, held in a fist by the hand bone: the barrel
     along the hand (the way the open fingers point) over the thumb, its butt down through the fist.

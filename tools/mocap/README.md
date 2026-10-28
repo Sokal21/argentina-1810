@@ -67,3 +67,6 @@ Julio Argentino Roca (assets/roca/3d, 28/10/2026) has the captain's clips made a
 Roca's signal to his battery (`senal`: his sabre raised at the sky, shaken, then cut down to point at her) is keyed by hand, `tools/blender/anims/senal.py`: no capture had it.
 
 Roca's burst (`rafaga`) is his shot (`tiro`) with his body swept at the waist from his right to his left as its five balls go off, `tools/blender/anims/abanico.py`.
+| Running.fbx | "Running": Roca's spotter's run, `--name carrera --gait --feet` |
+
+Roca's spotter (assets/observador/3d) has the breathing idle, Running and the fusilier's fall (Falling Back Death, eased), and his signals keyed by hand (`tools/blender/anims/senas.py`); built with `--front +x --carries signal_flag@R_Hand@roja,signal_flag@L_Hand@blanca`.

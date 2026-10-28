@@ -57,6 +57,10 @@ const WHO: Who[] = [
   // sabre in his right hand, his revolver in his left; his slash, Mixamo's Sword And Shield Slash; his
   // signal to his battery keyed by hand (anims/senal.py). A head over the captain. Not in the game yet.
   { name: 'Roca', url: 'roca/3d/roca_animado.glb', drawn: 100, pistol: true, revolver: true },
+  // Roca's artillery spotter (Tripo from turnaround B, 28 October 2026): a red flag in his right hand and
+  // a white in his left (props.signal_flag); Mixamo's breathing idle, Running and the fusilier's fall,
+  // and his signals to the battery keyed by hand (anims/senas.py). Not in the game yet.
+  { name: 'Observador', url: 'observador/3d/observador_animado.glb', drawn: 76 },
   { name: 'Buey', url: 'cosas/3d/buey/buey_animado.glb', drawn: 72 },
   // Inti's nahuel: Quaternius's wolf (CC0) in the slate blue of her spirit, its eyes her spells' cyan; its
   // own clips. A puma of ours was tried on the wolf's and the sabre-tooth's skeletons and keyed by hand
@@ -90,7 +94,7 @@ const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   granada_sacar: { lasts: DRAW }, granada_lanzar: { lasts: SHOT },
   tajo: { lasts: 0.5 }, 'Realista:tajo': { lasts: 0.8 }, 'Sableador:tajo': { once: true },
   barrido: { once: true }, estocada: { once: true }, zarpazo: { once: true }, 'El capitán:grito': { lasts: 2.0 }, grito: { lasts: 2.0 }, tiro: { once: true },
-  muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, rafaga: { once: true }, rodada_mixamo: { once: true }, beber: { once: true },
+  muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, senas: { once: true }, rafaga: { once: true }, rodada_mixamo: { once: true }, beber: { once: true },
 };
 /**
  * The clips the game plays: any whose name is written in quotes in the 3D game's code. Found there,
