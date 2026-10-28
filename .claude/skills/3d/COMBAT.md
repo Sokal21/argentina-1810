@@ -23,6 +23,12 @@ What makes a blow and an aim read in the 3D game. Code in `src/three/`. All appr
   aberration, and red edges throbbing with a heartbeat. Lights for effects are kept in the scene and
   dimmed, never added and removed: that rebuilds every material, a stutter.
 
+- **Many little pictures facing the camera** (drops, bubbles, puffs of cloud) go in one
+  `Billboards` (`billboards.ts`): one mesh, a copy of a square each, placed, sized, faded and
+  turned by `put`, uploaded by `commit` once a frame. Never a `THREE.Sprite` each: a sprite is a
+  draw call, and the plague-dead soldier's retching was 134 of them (measured 27 October 2026:
+  his stench 53 calls at rest, his retching 154 at its peak, against 20 and 23 on billboards).
+
 - **A sergeant's shout** (`shout.ts`, approved 23 October 2026): a burst ring (thick, bright,
   0.34 s) and two echoes (thinner, ~1 s), each born bright red and thinning to a duller red, their
   edge in trembling peaks drawn anew each shout, laid on the ground's relief corner by corner (flat,

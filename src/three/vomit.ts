@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { flat } from './paint';
+import { Billboards } from './billboards';
 
 // The plague-dead soldier's retching (played on his scream: his head thrown forward, his mouth wide):
 // a spray of sickly green thrown from his mouth, spreading in a cone before him, and where it falls a
@@ -23,8 +24,10 @@ const POOL = { body: '#4f6420', splash: '#728f2a', bright: '#a3cf3c', thick: 0.8
 /** Its bubbles: how many kept, how many rise a second, how long one swells before it bursts, how big (a share of his height), their colour. */
 const BUBBLES = { kept: 44, rate: 18, swell: [0.4, 0.9], size: [0.06, 0.13], colour: '#d2f070' };
 
-interface Drop { sprite: THREE.Sprite; v: THREE.Vector3 }
-interface Bubble { sprite: THREE.Sprite; t: number; life: number; size: number }
+/** A drop of the spray: where it is, its speed, how big. The drops are all one mesh (billboards.ts), each a copy of it by its index. */
+interface Drop { at: THREE.Vector3; v: THREE.Vector3; size: number }
+/** A bubble: where it is in the pool, how long it has swelled and how long it will, how big. One mesh too. */
+interface Bubble { at: THREE.Vector3; t: number; life: number; size: number }
 
 /**
  * The order the pool dries in, a grey for each point of it: patches here and there, its edges and
@@ -125,11 +128,18 @@ export class Vomit {
   /** Turned his way, the pool on it at its near end. */
   private readonly turned = new THREE.Group();
   private readonly pool: THREE.Mesh;
+  /** The spray's drops, drawn in one call; and the bubbles, in another. */
+  private readonly spray = new Billboards(SPRAY.kept);
   private readonly drops: Drop[] = [];
+  private readonly froth = new Billboards(BUBBLES.kept, bubble());
   private readonly bubbles: Bubble[] = [];
   /** How far it has dried, 0 to 1, as the pool's shader reads it. */
   private readonly dried = { value: 0 };
   private readonly mouth = new THREE.Vector3();
+  private head: THREE.Object3D | null = null;
+  private readonly ahead = new THREE.Vector3();
+  private readonly side = new THREE.Vector3();
+  private readonly lands = new THREE.Vector3();
   private time = -1;
 
   /** `body` is his model, already scaled; `tall` his height in the world's units. */
@@ -155,17 +165,15 @@ export class Vomit {
     this.group.add(this.turned);
     this.turned.add(this.pivot);
     for (let i = 0; i < SPRAY.kept; i++) {
-      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ color: SPRAY.colours[i % SPRAY.colours.length] }));
-      sprite.visible = false;
-      this.group.add(sprite);
-      this.drops.push({ sprite, v: new THREE.Vector3() });
+      this.spray.colour(i, SPRAY.colours[i % SPRAY.colours.length]);
+      this.drops.push({ at: new THREE.Vector3(), v: new THREE.Vector3(), size: 0 });
     }
+    this.group.add(this.spray.mesh);
     for (let i = 0; i < BUBBLES.kept; i++) {
-      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: bubble(), color: BUBBLES.colour, transparent: true, depthWrite: false }));
-      sprite.visible = false;
-      this.turned.add(sprite);
-      this.bubbles.push({ sprite, t: 0, life: 0, size: 0 });
+      this.froth.colour(i, BUBBLES.colour);
+      this.bubbles.push({ at: new THREE.Vector3(), t: 0, life: 0, size: 0 });
     }
+    this.turned.add(this.froth.mesh);
     this.group.visible = false;
   }
 
@@ -186,8 +194,11 @@ export class Vomit {
     this.pivot.scale.set(0.5, 1, 0.001);
     (this.pool.material as THREE.MeshToonMaterial).opacity = POOL.thick;
     this.dried.value = 0;
-    for (const d of this.drops) d.sprite.visible = false;
-    for (const b of this.bubbles) b.sprite.visible = false;
+    this.spray.hideAll();
+    this.froth.hideAll();
+    this.spray.commit();
+    this.froth.commit();
+    this.head = this.body.getObjectByName('Head') ?? null;
     this.group.visible = true;
   }
 
@@ -209,57 +220,60 @@ export class Vomit {
     this.dried.value = dry;
     this.bubble(dt, grown, dry);
     // The spray, from his mouth (a little before his head), into the cone.
-    const head = this.body.getObjectByName('Head');
-    const ahead = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.turned.rotation.y);
-    if (head) head.getWorldPosition(this.mouth).addScaledVector(ahead, tall * 0.06).sub(this.group.position);
+    const ahead = this.ahead.set(Math.sin(this.turned.rotation.y), 0, Math.cos(this.turned.rotation.y));
+    if (this.head) this.head.getWorldPosition(this.mouth).addScaledVector(ahead, tall * 0.06).sub(this.group.position);
     const r = (a: number[]) => a[0] + Math.random() * (a[1] - a[0]);
     if (t >= VOMIT.from && t < VOMIT.to) {
       for (let n = Math.round(SPRAY.rate * dt + Math.random()); n > 0; n--) {
-        const d = this.drops.find(x => !x.sprite.visible);
-        if (!d) break;
+        const i = this.spray.free();
+        if (i < 0) break;
+        const d = this.drops[i];
         // Each thrown to come down somewhere in the pool: its far part as the retching goes on.
         const along = Math.min(1, Math.random() * (0.4 + 0.8 * (t - VOMIT.from) / (VOMIT.to - VOMIT.from)));
         const across = (Math.random() - 0.5) * wideAt(along) * tall;
-        const side = new THREE.Vector3(ahead.z, 0, -ahead.x);
-        const lands = ahead.clone().multiplyScalar(tall * (VOMIT.near + along * (VOMIT.reach - VOMIT.near))).addScaledVector(side, across);
+        const side = this.side.set(ahead.z, 0, -ahead.x);
+        const lands = this.lands.copy(ahead).multiplyScalar(tall * (VOMIT.near + along * (VOMIT.reach - VOMIT.near))).addScaledVector(side, across);
         const up = r(SPRAY.up), h = Math.max(1, this.mouth.y);
         const flight = (up + Math.sqrt(up * up + 2 * SPRAY.fall * h)) / SPRAY.fall;
         d.v.set((lands.x - this.mouth.x) / flight, up, (lands.z - this.mouth.z) / flight);
-        d.sprite.position.copy(this.mouth);
-        d.sprite.scale.setScalar(tall * r(SPRAY.size));
-        d.sprite.visible = true;
+        d.at.copy(this.mouth);
+        d.size = tall * r(SPRAY.size);
+        this.spray.put(i, d.at, d.size);
       }
     }
-    for (const d of this.drops) {
-      if (!d.sprite.visible) continue;
+    this.drops.forEach((d, i) => {
+      if (!this.spray.shown(i)) return;
       d.v.y -= SPRAY.fall * dt;
-      d.sprite.position.addScaledVector(d.v, dt);
-      if (d.sprite.position.y <= 0) d.sprite.visible = false;
-    }
+      d.at.addScaledVector(d.v, dt);
+      if (d.at.y <= 0) this.spray.hide(i);
+      else this.spray.put(i, d.at, d.size);
+    });
+    this.spray.commit();
   }
 
   /** Bubbles rising in the pool here and there, swelling and bursting; fewer as it dries. */
   private bubble(dt: number, grown: number, dry: number): void {
     const tall = this.tall, r = (a: number[]) => a[0] + Math.random() * (a[1] - a[0]);
     if (grown > 0.2 && Math.random() < dt * BUBBLES.rate * (1 - dry)) {
-      const b = this.bubbles.find(x => !x.sprite.visible);
-      if (b) {
+      const i = this.froth.free();
+      if (i >= 0) {
+        const b = this.bubbles[i];
         // Somewhere well within it, as far as it has spread.
         const along = 0.1 + Math.random() * 0.8;
-        b.sprite.position.set((Math.random() - 0.5) * wideAt(along) * tall * 0.7 * (0.5 + 0.5 * grown), 1.5,
+        b.at.set((Math.random() - 0.5) * wideAt(along) * tall * 0.7 * (0.5 + 0.5 * grown), 1.5,
           this.pivot.position.z + along * (VOMIT.reach - VOMIT.near) * tall * grown);
         b.t = 0; b.life = r(BUBBLES.swell); b.size = tall * r(BUBBLES.size);
-        b.sprite.visible = true;
+        this.froth.put(i, b.at, 0);
       }
     }
-    for (const b of this.bubbles) {
-      if (!b.sprite.visible) continue;
+    this.bubbles.forEach((b, i) => {
+      if (!this.froth.shown(i)) return;
       b.t += dt;
       const k = b.t / b.life;
       // Swelling, then a last moment bursting: wider and gone.
-      if (k >= 1.15) { b.sprite.visible = false; continue; }
-      b.sprite.scale.setScalar(b.size * (k < 1 ? Math.sqrt(k) : 1 + (k - 1) * 4));
-      b.sprite.material.opacity = k < 1 ? 1 : 1 - (k - 1) / 0.15;
-    }
+      if (k >= 1.15) { this.froth.hide(i); return; }
+      this.froth.put(i, b.at, b.size * (k < 1 ? Math.sqrt(k) : 1 + (k - 1) * 4), k < 1 ? 1 : 1 - (k - 1) / 0.15);
+    });
+    this.froth.commit();
   }
 }
