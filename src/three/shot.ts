@@ -17,12 +17,13 @@ const FLASH = { colour: '#ffd27a', light: 9, reach: 160, life: 0.08, size: 9 };
 const SMOKE = { puffs: 10, life: 1.4, from: 1.5, to: 12, rise: 14, jet: 170, spread: 10, colour: '#b9b2a3' };
 const STREAK = { length: 46, colour: '#fff1c4' };
 /**
- * A tracer (Roca's burst, the user's "balas trazadoras"): the ball a hot glowing head, and behind it a
- * trail of glow thinning and dimming along its streak, all added as light. How many glows are kept in
- * all, how big the head and how big the trail at its start, how many glows in a trail, how long it is,
- * and its colours, from the head back.
+ * A tracer (Roca's burst, the user's "balas trazadoras"): what counts is the trace it leaves, a bright
+ * orange line of glow left hanging in the air along its way and dying away, rather than the ball
+ * shining (the user, 28/10/2026). Glows are dropped along its way every `every` units, each lasting
+ * `lasts` seconds, `size` across at first, shrinking and dimming from `colour` to `dying`; the ball
+ * itself a small, faint `head`. How many glows are kept in all.
  */
-const TRACER = { kept: 160, head: 9, trail: 6, glows: 7, length: 70, colours: ['#fff2c0', '#ffc860', '#ff8a2a', '#e0501a'] };
+const TRACER = { kept: 400, every: 7, lasts: 0.45, size: 6, head: 4, colour: '#ffa030', dying: '#c83a10' };
 const BLAST = { life: 0.45, colour: '#ffb45a', dust: 10, dustColour: '#a0906a', dustLife: 0.9 };
 /** A ball striking someone: specks of blood flung on the way it went and falling, and a puff of dust off his coat. */
 const WOUND = { specks: 14, colours: ['#8a1410', '#b0201a', '#5a0c08'], speed: [40, 130], up: [30, 90], fall: 380, life: [0.45, 0.8], dust: 4, dustColour: '#9a8f7a' };
@@ -45,7 +46,7 @@ function softGlow(): THREE.Texture {
 /** Where a ball, flying from one spot of the 2D ground to another, strikes something: or null. */
 export type Strikes = (from: { x: number; y: number }, to: { x: number; y: number }) => { x: number; y: number } | null;
 
-interface Ball { at: THREE.Vector3; way: THREE.Vector3; flown: number; streak: THREE.Line; glows: number[] }
+interface Ball { at: THREE.Vector3; way: THREE.Vector3; flown: number; streak: THREE.Line; head: number; dropped: number }
 interface Puff { mesh: THREE.Mesh; t: number; life: number; v: THREE.Vector3; from: number; to: number; falls?: boolean }
 
 export class Shots {
@@ -59,6 +60,8 @@ export class Shots {
   private readonly puffShape = new THREE.IcosahedronGeometry(1, 0);
   /** The tracers' glows, one mesh for all of them (only for one that fires tracers). */
   private readonly tracers: Billboards | null;
+  /** The glows left along the tracers' ways: which copy, where, how long they have lasted. */
+  private trace: { g: number; at: THREE.Vector3; t: number }[] = [];
 
   /**
    * `bursts`: whether a ball bursts where it strikes, as his does; a royalist's only stops there.
@@ -98,18 +101,10 @@ export class Shots {
       new THREE.LineBasicMaterial({ color: STREAK.colour, transparent: true }));
     streak.frustumCulled = false;
     this.group.add(streak);
-    // A tracer's glows, its head first: as many as are free.
-    const glows: number[] = [];
-    if (this.tracers) {
-      for (let i = 0; i < TRACER.glows; i++) {
-        const g = this.tracers.free();
-        if (g < 0) break;
-        this.tracers.colour(g, TRACER.colours[Math.min(TRACER.colours.length - 1, Math.floor(i * TRACER.colours.length / TRACER.glows))]);
-        this.tracers.put(g, muzzle, 0, 0);
-        glows.push(g);
-      }
-    }
-    this.balls.push({ at: muzzle.clone(), way: flat, flown: 0, streak, glows });
+    // A tracer's faint head.
+    const head = this.tracers ? this.tracers.free() : -1;
+    if (this.tracers && head >= 0) { this.tracers.colour(head, TRACER.colour); this.tracers.put(head, muzzle, TRACER.head, 0.6); }
+    this.balls.push({ at: muzzle.clone(), way: flat, flown: 0, streak, head, dropped: 0 });
   }
 
   /**
@@ -179,16 +174,33 @@ export class Shots {
       p.setXYZ(0, tail.x, tail.y, tail.z);
       p.setXYZ(1, to.x, to.y, to.z);
       p.needsUpdate = true;
-      // Its glows along its streak, from its head back, thinning and dimming.
-      const behind = Math.min(TRACER.length, ball.flown);
-      ball.glows.forEach((g, i) => {
-        const k = i / Math.max(1, TRACER.glows - 1);
-        const at = to.clone().addScaledVector(ball.way, -behind * k);
-        this.tracers?.put(g, at, i === 0 ? TRACER.head : TRACER.trail * (1 - k * 0.7), i === 0 ? 1 : 0.9 * (1 - k));
-      });
+      // A tracer leaves its trace along the way it has come, glow after glow, left hanging there.
+      if (this.tracers) {
+        if (ball.head >= 0) this.tracers.put(ball.head, to, TRACER.head, 0.6);
+        for (; ball.dropped + TRACER.every <= ball.flown; ball.dropped += TRACER.every) {
+          const g = this.tracers.free();
+          if (g < 0) break;
+          const at = from.clone().addScaledVector(ball.way, ball.dropped + TRACER.every - (ball.flown - step));
+          this.tracers.colour(g, TRACER.colour);
+          this.tracers.put(g, at, TRACER.size, 1);
+          this.trace.push({ g, at, t: 0 });
+        }
+      }
     }
-    for (const ball of this.balls.filter(b => b.flown >= this.kind.range)) for (const g of ball.glows) this.tracers?.hide(g);
-    this.tracers?.commit();
+    for (const ball of this.balls.filter(b => b.flown >= this.kind.range)) if (ball.head >= 0) this.tracers?.hide(ball.head);
+    if (this.tracers) {
+      // Each glow of a trace shrinking, reddening and dying away.
+      const hot = new THREE.Color(TRACER.colour), dying = new THREE.Color(TRACER.dying), c = new THREE.Color();
+      for (const glow of this.trace) {
+        glow.t += dt;
+        const k = Math.min(1, glow.t / TRACER.lasts);
+        if (k >= 1) { this.tracers.hide(glow.g); continue; }
+        this.tracers.colour(glow.g, c.copy(hot).lerp(dying, k));
+        this.tracers.put(glow.g, glow.at, TRACER.size * (1 - 0.5 * k), (1 - k) * (1 - k));
+      }
+      this.trace = this.trace.filter(glow => glow.t < TRACER.lasts);
+      this.tracers.commit();
+    }
     for (const ball of this.balls.filter(b => b.flown >= this.kind.range)) {
       retire(this.group, [ball.streak], true);
     }
