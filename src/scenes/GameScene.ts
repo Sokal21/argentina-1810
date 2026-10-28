@@ -1817,8 +1817,7 @@ export class GameScene extends Phaser.Scene {
     if (cheats.unhurt || this.machi.isDashing || !this.vitals.hit(this.wrath.active, amount)) return false;
     // Being hurt angers him.
     if (this.hero === 'cabral') this.fury.gain(WOUND * this.growth.gives('flow'));
-    // A hit breaks the healing ritual.
-    if (this.abilities.interrupt()) this.machi.stopChannel();
+    // A hit never breaks the healing ritual (the user, 27/10/2026).
     this.flash = 1;
     if (!this.vitals.standing) this.fall();
     return true;

@@ -14,7 +14,7 @@ export const STRIKE = {
   damage: 2,
 };
 
-/** A ritual that gives her life back if she is left alone to finish it. */
+/** A ritual that gives her life back once she has stood through it: no blow breaks it (the user, 27/10/2026). */
 export const HEAL = {
   cost: 45,
   cooldown: 8,
@@ -128,13 +128,6 @@ export class Abilities {
       events.healing = true;
     }
     return events;
-  }
-
-  /** She was hit: a ritual under way is broken, and what it cost is lost. */
-  interrupt(): boolean {
-    const broken = this.ritual !== null;
-    this.ritual = null;
-    return broken;
   }
 
   /** She fell: nothing she had under way survives it. */

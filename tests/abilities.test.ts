@@ -97,16 +97,6 @@ describe('healing', () => {
     expect(a.isHealing).toBe(false);
   });
 
-  it('is broken by a hit, and the mana is gone all the same', () => {
-    const a = new Abilities();
-    a.update(DT, { ...idle, heal: true });
-    run(a, HEAL.time / 2);
-    expect(a.interrupt()).toBe(true);
-    expect(run(a, HEAL.time).healed).toBe(false);
-    expect(a.mana).toBeLessThan(MANA - HEAL.cost + REGEN * 2);
-    expect(a.ready('heal')).toBe(false);
-  });
-
   it('does not start when she is unhurt, mid-dash or short of mana', () => {
     const a = new Abilities();
     expect(a.update(DT, { ...idle, heal: true, hurt: false }).healing).toBe(false);
