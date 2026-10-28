@@ -310,7 +310,11 @@ class Figure {
       const { roar, run, blow, lands, swing } = this.look.charge, { charge, hit } = KINDS.apestado.lunge;
       if (t < charge) m.play(roar, { once: true, afresh, blend: 0.15 });
       else if (t < hit - swing) m.play(run, { pace: this.chargeReach ? Math.max(0.6, this.going / this.chargeReach) : 1, blend: 0.12 });
-      else m.play(blow, { once: true, pace: (lands * m.seconds(blow)) / swing, blend: 0.1 });
+      else {
+        m.play(blow, { once: true, pace: (lands * m.seconds(blow)) / swing, blend: 0.1 });
+        // Still running in as he swings: his feet run under it rather than slide.
+        if (this.going > 20) m.legs(run, this.chargeReach ? Math.max(0.35, this.going / this.chargeReach) : 1);
+      }
       if (t >= charge && this.lungedAt < charge) this.dust?.cloud(ground(x, y));
       this.lungedAt = t;
     } else if (mode === 'lunge' && this.look?.lunge) {

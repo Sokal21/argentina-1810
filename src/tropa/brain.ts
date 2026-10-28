@@ -28,9 +28,10 @@ export interface Kind {
    * He lunges at whoever is between `from` and `to` off: stands drawn back for `charge` seconds (the
    * warning), then throws himself `dash` along the ground at her and thrusts, landing at `hit`, as far
    * as `reach` from where he has got to (stopping short of going through her); done at `time`, and not
-   * again for `every`. It takes as much as his blow.
+   * again for `every`. It takes as much as his blow. With `track`, he still turns after her for so long
+   * once he has set off.
    */
-  lunge?: { from: number; to: number; charge: number; dash: number; hit: number; reach: number; time: number; every: number };
+  lunge?: { from: number; to: number; charge: number; dash: number; hit: number; reach: number; time: number; every: number; track?: number };
   /**
    * He calls up more of his men, his sabre raised: first `first` seconds after he has seen her, then
    * every `every`; it takes `time`, and they are called at `at` of it, `many` at a time, never more
@@ -113,7 +114,8 @@ export const KINDS = {
   apestado: {
     id: 'apestado', name: 'Apestado', life: 14, girth: 13, pace: 26, sight: 420, steady: true, rushes: true,
     blow: { near: 60, time: 2.0, hit: 1.3, reach: 72, rest: 0.6, damage: 3 },
-    lunge: { from: 150, to: 380, charge: 0.7, dash: 240, hit: 1.75, reach: 72, time: 2.7, every: 8 },
+    // He keeps turning after her until a little after he has set off (the user, 27/10/2026).
+    lunge: { from: 150, to: 380, charge: 0.7, dash: 240, hit: 1.75, reach: 72, time: 2.7, every: 8, track: 0.3 },
     retch: { from: 80, to: 220, time: 2.0, every: 7, tall: APESTADO_DRAWN / Math.sqrt(1 - ISO_Y * ISO_Y) },
     rises: { time: 3.8, under: 1.2 }, worth: 25, spoils: 12,
   },
@@ -304,7 +306,8 @@ export class TroopBrain {
         const l = k.lunge!;
         if (this.t >= l.time) { this.enter('stand'); this.lunging = l.every; return NOTHING; }
         // Drawn back, following her with his eyes; then thrown at her, no further than his reach short of her.
-        if (this.t < l.charge) { if (to) this.look(to); return NOTHING; }
+        if (to && this.t < l.charge + (l.track ?? 0)) this.look(to);
+        if (this.t < l.charge) return NOTHING;
         if (this.t < l.hit && (!to || far > l.reach * 0.6)) {
           const step = dt * l.dash / (l.hit - l.charge);
           this.move(this.dir.x * step, this.dir.y * step);
