@@ -1022,6 +1022,8 @@ export class GameScene extends Phaser.Scene {
     if (in3d && this.hero === 'inti') {
       this.machi.kit.speed = INTI_3D_SPEED;
       this.machi.kit.dash = { ...INTI_3D_DASH };
+      // And keeps all her speed while she casts: in a fight like Roca's column's she was caught standing (the user, 27/10/2026).
+      this.machi.kit.attackSlow = 1;
     }
     if (in3d && this.hero === 'cabral') {
       const { kit } = this.machi, look = this.three!.view.look;

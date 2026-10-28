@@ -253,6 +253,8 @@ export interface Kit {
   melee?: Melee;
   /** Set for a character who does not walk at SPEED: sprite pixels per second. */
   speed?: number;
+  /** Set for a character who keeps another share of their speed than ATTACK_SLOW while attacking. */
+  attackSlow?: number;
   /** Set for a character whose dash is not the usual length: seconds it lasts and ground it covers. */
   dash?: { time: number; distance: number };
   /** Set for a character who brings a musket up slower or quicker than the usual: seconds it takes. */

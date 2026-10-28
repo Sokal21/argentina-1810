@@ -432,7 +432,7 @@ export class MachiController {
     } else {
       this.dir = { x: vx, y: vy };
     }
-    const speed = (this.kit.speed ?? SPEED) * this.pace * (this.attack !== null ? ATTACK_SLOW : 1);
+    const speed = (this.kit.speed ?? SPEED) * this.pace * (this.attack !== null ? this.kit.attackSlow ?? ATTACK_SLOW : 1);
     this.x += vx * speed * dt;
     this.y += vy * speed * ISO_Y * dt;
 
@@ -465,7 +465,7 @@ export class MachiController {
     const along = vx * aim.x + vy * aim.y;
     this.retreating = along < RETREAT_BELOW;
     const share = along >= 0 ? STEER.side + (1 - STEER.side) * along : STEER.side + (STEER.side - STEER.back) * along;
-    const speed = (this.kit.speed ?? SPEED) * this.pace * share * (this.attack !== null ? ATTACK_SLOW : 1);
+    const speed = (this.kit.speed ?? SPEED) * this.pace * share * (this.attack !== null ? this.kit.attackSlow ?? ATTACK_SLOW : 1);
     this.x += vx * speed * dt;
     this.y += vy * speed * ISO_Y * dt;
     if (this.bounds) {
