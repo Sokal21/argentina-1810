@@ -142,8 +142,10 @@ Las dos fases (el usuario):
 
 - **En la primera fase hay enemigos que te atacan** mientras caen los cañonazos: es clave (el usuario).
 - **Los obuses también lastiman a los enemigos**: a los suyos (soldados, apestados), no solo a Inti.
-- **Para pasar de fase hay que hacer algo concreto** en el campo: matar a alguien, aguantar oleadas o
-  una mecánica del lugar. Está por elegir.
+- **Para pasar de fase hay que matar al observador** (elegido por el usuario): un soldado con catalejo
+  y banderas que le marca a la batería dónde tirar, **y que corre rápido**: hay que meterse bajo el
+  fuego para alcanzarlo. Cuando cae, la batería queda ciega, **vuelve a verse Roca** y dice algo (la
+  frase está por definir), y salta a la batalla.
 
 **Si lo vencés, no lo matás: Roca escapa.**
 
@@ -166,7 +168,7 @@ Por definir. Propuestas: el kalku, cuya cabeza vuela como un chonchón gigante; 
 
 ## Lo que falta decidir
 
-1. Cómo se pasa de la primera fase a la segunda en la pelea de Roca.
+1. Lo que dice Roca cuando cae el observador, antes de saltar a la batalla.
 2. **Pendientes, para después de Roca:** los otros tres jefes: el intermedio del camino de Roca, el
    intermedio del camino del demonio y el Wekufe.
 3. El próximo enemigo (baqueano, lancero o artilleros).
