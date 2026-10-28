@@ -155,6 +155,17 @@ describe('the captain', () => {
   });
 });
 
+describe('the frontier soldier', () => {
+  it('hunting her, comes on at nearly her walk, much faster than at his own pace', () => {
+    const plain = brain('frontera'), hunting = brain('frontera');
+    plain.provoke(5);
+    hunting.relentless = true;
+    run(plain, { x: 2000, y: 0 }, 1); run(hunting, { x: 2000, y: 0 }, 1);
+    expect(hunting.x / plain.x).toBeCloseTo(KINDS.frontera.hunt, 1);
+    expect(KINDS.frontera.pace * KINDS.frontera.hunt).toBeGreaterThan(90);
+  });
+});
+
 describe('the plague-dead soldier', () => {
   it('comes up out of the earth, not to be struck while under it, and only then goes for her', () => {
     const b = brain('apestado');

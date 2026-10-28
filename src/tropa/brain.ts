@@ -45,6 +45,8 @@ export interface Kind {
   blow?: { near: number; time: number; hit: number; reach: number; rest: number; damage?: number; again?: { hit: number; reach: number }; press?: number };
   /** He rallies those about him: how often, how long the shout takes, how far it carries, and for how long it quickens them. */
   rally?: { every: number; time: number; reach: number; lasts: number };
+  /** Hunting her (relentless: once seen, after her wherever she goes), he comes on this many times faster. */
+  hunt?: number;
   /** Below half his life he comes on this many times faster. */
   fury?: number;
   /** He comes straight in for his blow, not round to a side of her first as the others do. */
@@ -102,7 +104,9 @@ export const KINDS = {
   // he shoots from further and oftener than the royalists, and quicker to the aim; up close, his
   // bayonet (Mixamo's Bayonet Stab, its point furthest out at frame 22 of 62, some 66 off at his
   // height: played half as fast again, it lands at 0.6 s and he is back on guard by 1.1).
-  frontera: { id: 'frontera', name: 'Soldado de frontera', life: 4, girth: 9, pace: 36, sight: 380, shot: { range: 300, aim: 0.7, lock: 0.2, reload: [1.4, 2.0], muzzle: 30 }, blow: { near: 50, time: 1.1, hit: 0.6, reach: 62, rest: 0.5 }, worth: 9, spoils: 6 },
+  // Hunting her he comes on at nearly her walk (115 in 3D): at his own pace she walked away from the
+  // fight (the user, 27/10/2026); running she still gets clear of him for a while.
+  frontera: { id: 'frontera', name: 'Soldado de frontera', life: 4, girth: 9, pace: 36, hunt: 2.8, sight: 380, shot: { range: 300, aim: 0.7, lock: 0.2, reload: [1.4, 2.0], muzzle: 30 }, blow: { near: 50, time: 1.1, hit: 0.6, reach: 62, rest: 0.5 }, worth: 9, spoils: 6 },
   // The plague-dead soldier, Inti's arc's tank (27 October 2026, docs/personajes/apestado.md): he comes
   // up out of the earth near her (the ground heaving 0.8 s, then his getting up, Mixamo's Zombie Stand
   // Up played in 3 s); slow and hard to bring down, and no blow moves him; up close a heavy swipe
@@ -260,8 +264,8 @@ export class TroopBrain {
         if (k.shot && far <= k.shot.range && this.reload <= 0) { this.enter('aim'); return NOTHING; }
         if (!k.pace || this.still > 0 || (k.stays && k.shot && far <= k.shot.range)) { this.enter('stand'); return NOTHING; }
         // One who shoots and is in range comes on slowly while he reloads; anyone else comes straight on.
-        const hurt = k.fury && this.life <= this.max / 2 ? k.fury : 1;
-        const pace = k.pace * haste * hurt * (k.shot && far <= k.shot.range ? 0.5 : 1);
+        const hurt = k.fury && this.life <= this.max / 2 ? k.fury : 1, hunting = this.relentless && k.hunt ? k.hunt : 1;
+        const pace = k.pace * haste * hurt * hunting * (k.shot && far <= k.shot.range ? 0.5 : 1);
         const found = this.way(to, far, dt);
         // Nowhere to go that comes nearer her: he stands and waits, his gun ready if he has one.
         if (!found) { this.enter('stand'); return NOTHING; }
@@ -365,11 +369,11 @@ export class TroopBrain {
     return this.mode === 'rise' && this.t < (this.kind.rises?.under ?? 0);
   }
 
-  /** Comes up out of the earth here, whole, facing her if she is given. */
-  rise(x: number, y: number, her?: Vec): void {
+  /** Comes up out of the earth here, whole (or as hurt as he was, if not `whole`), facing her if she is given. */
+  rise(x: number, y: number, her?: Vec, whole = true): void {
     this.x = x;
     this.y = y;
-    this.life = this.max;
+    if (whole) this.life = this.max;
     this.rest = 0;
     this.retching = 2;
     this.mode = 'rise';

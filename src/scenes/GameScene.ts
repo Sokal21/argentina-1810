@@ -214,19 +214,23 @@ const CHONCHONES: [number, number][] = [[110, -70], [-90, 80]];
 const REALISTAS: [number, number][] = [[190, 50], [-170, -60], [40, 150]];
 /**
  * Inti's forest as Roca's column has come into it (27 October 2026, the user's "a real fight" in
- * place of things to try out on), laid about her wherever she is as the game begins, so that it
- * begins at once: frontier riflemen holding a line in twos and threes off to the east of her, each at
- * his post, one on her flank behind; two of the plague-dead under the ground close by, to come up at
- * once, and one a little further; a second, smaller knot further east. Each as offsets from her,
- * moved to the nearest ground that can be walked.
+ * place of things to try out on), laid all round her wherever she is as the game begins, so that it
+ * begins at once and is not left behind by going the other way (the user, 27/10/2026): frontier
+ * riflemen in twos to every side of her, each at his post, and further out a knot east and west; two
+ * of the plague-dead under the ground close by, to come up at once, and two a little further. Each as
+ * offsets from her, moved to the nearest ground that can be walked. Once they have seen her, the
+ * riflemen hunt her wherever she goes (`hunters`), and the plague-dead come up again before her
+ * when she leaves them behind (`lurk`).
  */
 const COLUMN = {
-  riflemen: [[360, -120], [400, 40], [340, 190], [-320, -170], [720, -60], [680, 150]] as [number, number][],
-  plagued: [[170, -50], [190, 130], [520, 40]] as [number, number][],
+  riflemen: [[360, -120], [380, 70], [-360, -70], [-340, 130], [40, -340], [-20, 330], [720, -40], [-720, 40]] as [number, number][],
+  plagued: [[170, -50], [-180, 110], [520, 40], [-500, -60]] as [number, number][],
 };
 // Each of the plague-dead comes up out of the earth near her once she is within `near` of where he
 // lies, `at` from her toward it; and lies in wait again once he is down and she is `again` off.
-const LURK = { near: 260, at: 120, again: 520 };
+// One standing who has been left behind off screen, `lost` away or more, for `after` seconds sinks and
+// comes up again `at` before her, as hurt as he was (the user, 27/10/2026: after a while).
+const LURK = { near: 260, at: 120, again: 520, lost: 600, after: 3 };
 /**
  * Whoever is on screen sees the hero, however far his own sight reaches (the user, 27/10/2026: they
  * stood about while she was in plain view): all but those at its very edges (`edge`, a share of the
@@ -378,11 +382,13 @@ export class GameScene extends Phaser.Scene {
   private chonchones: Chonchon[] = [];
   private realistas: Soldier[] = [];
   /** The plague-dead lying in wait under the ground: each, where he lies, and whether he is yet to come up. */
-  private lurkers: { soldier: Trooper; spot: Vec; armed: boolean }[] = [];
+  private lurkers: { soldier: Trooper; spot: Vec; armed: boolean; away: number }[] = [];
   /** The pools they have retched, and the plague on the hero from stepping in one; whether she stands in one now. */
   private pools: Pool[] = [];
   private readonly plague = new Plague();
   private mired = false;
+  /** Roca's riflemen, who hunt her wherever she goes once they have seen her. */
+  private readonly hunters = new Set<Soldier>();
   /** Whether Roca's column has been laid about her yet (COLUMN). */
   private mustered = true;
   /** The post each soldier who holds one stands at. */
@@ -1096,7 +1102,7 @@ export class GameScene extends Phaser.Scene {
     else this.route?.toward(this.machi);
     // Come somewhere safe, every one fallen is due to be up again.
     if (!this.mustered) this.muster();
-    this.lurk();
+    this.lurk(dt);
     this.retched(dt);
     const safe = !!this.map && !!zoneAt(this.map, this.machi.x, this.machi.y)?.safe;
     if (safe && !this.safeWas) for (const realista of this.realistas) if (!realista.alive) this.due.add(realista);
@@ -1114,7 +1120,10 @@ export class GameScene extends Phaser.Scene {
         realista.sleep();
         continue;
       }
-      if (realista.alive && this.onScreen(at)) realista.provoke(ON_SCREEN.for);
+      if (realista.alive && this.onScreen(at)) {
+        realista.provoke(ON_SCREEN.for);
+        if (this.hunters.has(realista) && realista instanceof Trooper) realista.brain.relentless = true;
+      }
       const drawn = feet && this.nahuel.lures(realista.ground, feet);
       // Whatever is being brought along is fair game: some go for it whatever, and anyone goes for
       // it who is nearer it than the hero. Only the hero is found the way round to.
@@ -1817,6 +1826,17 @@ export class GameScene extends Phaser.Scene {
 
   // She is defeated: she falls dead where she stands, everything in the air
   // bursts, and after a while she is back where she started.
+  /** Where one of the plague-dead comes up again before her: `at` off the way she faces, if that can be walked; else beside her, or where he lay. */
+  private before(her: Vec, fallback: Vec): [number, number] {
+    const f = this.machi.faces, len = Math.hypot(f.x, f.y) || 1;
+    for (const turn of [0, 0.8, -0.8, 1.6, -1.6]) {
+      const c = Math.cos(turn), sn = Math.sin(turn), wx = (f.x * c - f.y * sn) / len, wy = (f.x * sn + f.y * c) / len;
+      const x = her.x + wx * LURK.at, y = her.y + wy * LURK.at * ISO_Y;
+      if (this.walkable(x, y)) return [x, y];
+    }
+    return [fallback.x, fallback.y];
+  }
+
   /** Whether a spot of the ground is on screen, short of its very edges (ON_SCREEN). */
   private onScreen(at: Vec): boolean {
     if (this.three) return this.three.sees(at, -ON_SCREEN.edge * 2);
@@ -1852,12 +1872,12 @@ export class GameScene extends Phaser.Scene {
     for (const offset of COLUMN.riflemen) {
       // Each at his post, as a garrison's men: up again once she has rested in her camp.
       const soldier = enlist('frontera', offset);
-      if (soldier) this.posts.set(soldier, { ...soldier.ground, letter: 'B', kind: 'frontera' });
+      if (soldier) { this.posts.set(soldier, { ...soldier.ground, letter: 'B', kind: 'frontera' }); this.hunters.add(soldier); }
     }
     for (const offset of COLUMN.plagued) {
       // Under the earth until she comes near.
       const soldier = enlist('apestado', offset);
-      if (soldier) { soldier.brain.vanish(); this.lurkers.push({ soldier, spot: soldier.ground, armed: true }); }
+      if (soldier) { soldier.brain.vanish(); this.lurkers.push({ soldier, spot: soldier.ground, armed: true, away: 0 }); }
     }
   }
 
@@ -1866,13 +1886,20 @@ export class GameScene extends Phaser.Scene {
    * lies, between her and there; until then he is nowhere to be seen. Down again, he lies in wait
    * once she is well away.
    */
-  private lurk(): void {
+  private lurk(dt: number): void {
     const her = { x: this.machi.x, y: this.machi.y };
     for (const lurker of this.lurkers) {
       const { soldier, spot } = lurker, brain = soldier.brain;
       const off = ground(her, spot);
       if (!lurker.armed) {
         if (brain.mode === 'gone' && off > LURK.again) { lurker.armed = true; this.three?.bury(soldier); }
+        // Left behind, out of sight a while: he sinks and comes up again before her, as hurt as he was.
+        const left = brain.alive && brain.mode !== 'rise' && ground(her, soldier.ground) > LURK.lost && !this.onScreen(soldier.ground);
+        lurker.away = left ? lurker.away + dt : 0;
+        if (lurker.away > LURK.after && this.vitals.standing) {
+          lurker.away = 0;
+          brain.rise(...this.before(her, spot), her, false);
+        }
         continue;
       }
       this.three?.bury(soldier);
