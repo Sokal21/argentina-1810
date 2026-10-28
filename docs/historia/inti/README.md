@@ -42,38 +42,45 @@ jefe con hijos en la guerra o gente perdida en un ataque.
 No es por misiones: es desafío. Lo difícil es **atravesar el camino** hasta el capitán o el demonio:
 hay que aprender a pelear y llegar con recursos.
 
+Para empezar (el usuario, 27/10/2026), **un jefe intermedio de cada lado** y el final:
+
 ```
 Pueblo: el jefe o la señora → elegís camino
   │
-  ├─ Tramo 1: 3-4 habitaciones (dificultad en aumento), una recompensa tras cada una → JEFE 1
-  ├─ Tramo 2: 3-4 habitaciones, recompensas ............................................ → JEFE 2
-  └─ Tramo final ...................................................... → EL CAPITÁN / EL WEKUFE
+  ├─ Tramo 1: 1 o 2 habitaciones → JEFE 1
+  │                                  └─ mejora al matarlo
+  ├─ Tramo 2: 2 a 4 habitaciones (dificultad en aumento)
+  │            └─ mejora en el medio
+  │                                  └─ mejora antes de entrar al jefe
+  └─ JEFE FINAL: EL CAPITÁN / EL WEKUFE
+Si morís → Küyen te devuelve al pueblo, todo de cero
 ```
 
-- **Cada tramo termina en un jefe distinto.**
-- **Entre jefes, 3 o 4 habitaciones**, con dificultad que crece.
-- **Las habitaciones son escenarios fijos que se repiten con enemigos al azar.** Algunos lugares se
-  hacen más estrechos (un apestado tapando el paso, un charco que cubre todo el ancho).
+- **Tres mejoras por recorrido:** al matar al primer jefe, a mitad del segundo tramo y antes de
+  entrar al jefe final.
+- **Las mejoras te las da siempre un mapuche que te ayuda** (por ahora el mismo en los dos caminos).
+  Su nombre está por definir.
+- **Las habitaciones son escenarios fijos que se repiten con enemigos al azar**, y la cantidad de
+  cada tramo también sale al azar dentro de lo dicho. Algunos lugares se hacen más estrechos (un
+  apestado tapando el paso, un charco que cubre todo el ancho).
 - **Los enemigos se mezclan**: fusileros, apestados, chonchones y los que vengan, porque todos son
   aliados del pacto. (Se eliminó la regla de que los chonchones no convivían con los fusileros.)
-- **Si Inti muere, el recorrido arranca de cero.**
-- **Después de cada batalla relevante, una recompensa a elegir.** Lo que se gana **dura solo ese
-  recorrido**.
+- **Si Inti muere, el recorrido arranca de cero.** Lo que se gana **dura solo ese recorrido**.
 
 **Propuesta para armar los encuentros:** cada habitación tiene un presupuesto de dificultad que
-crece (la primera vale «3 fusileros», la cuarta «2 apestados, 4 fusileros y chonchones»), y el
+crece (la primera vale «3 fusileros», la última «2 apestados, 4 fusileros y chonchones»), y el
 juego lo gasta al azar entre los enemigos que tocan.
 
 ## Las recompensas (a pensar mejor)
 
-Al estilo de Hades: te ofrecen elegir entre algunas cosas, que van alternando. Lo dicho hasta ahora:
+Al estilo de Hades: te ofrecen elegir entre algunas cosas, que van alternando. Por ahora son tres por
+recorrido (ver arriba) y te las da el mapuche que te ayuda. Lo dicho hasta ahora:
 una curación, maná, un arma. **Propuesta**, para ordenar ideas:
 
 - **Lo inmediato:** curación, maná lleno, más vida máxima por lo que queda del recorrido.
 - **Mejoras de sus poderes:** el rayo más grande o más seguido, orbes que atraviesan, la curación
   que además da maná, inmunidad al veneno.
 - **Armas o formas de ataque nuevas:** orbes que se dividen, un golpe cuerpo a cuerpo con la rama.
-- **Quién las da:** en el camino del demonio, espíritus; en el del capitán, la gente del pueblo.
 
 Falta decidir cuántas se ofrecen por vez, cómo se eligen (con el mouse y con el joystick) y cómo
 conviven con el crecimiento (experiencia, niveles) y los ítems que ya existen.
@@ -107,20 +114,17 @@ Ideas (propuesta), que pueden ser enemigos comunes o jefes según el tramo:
 - **El lancero de caballería**: pasadas a caballo en línea recta; si le matás el caballo, sigue a pie.
 - **Los artilleros del Krupp**: el cañón marca zonas donde caen los obuses; hay que callarlo.
 
-## Los jefes (propuesta)
+## Los jefes
 
-Cada tramo termina en uno distinto. Para discutir:
-
-- **Camino del capitán:** un comandante de caballería (el lancero como jefe), la batería Krupp, y al
-  final **el capitán**, cuya pelea no es solo matarlo: además hay que hacer algo (por ejemplo, romper
-  el pacto o callar la artillería). Esto último lo pidió el usuario; la mecánica está por pensar.
-- **Camino del demonio:** un apestado gigante, un kalku (el brujo que manda a los chonchones), y al
-  final **el Wekufe**, una pelea pura, alimentado por la peste y la destrucción.
+Por ahora, **un jefe intermedio por camino** y el final (decidido). Los finales son el capitán, cuya
+pelea no es solo matarlo (además hay que hacer algo, por ejemplo romper el pacto; la mecánica está
+por pensar), y el Wekufe, una pelea pura. **Los dos jefes intermedios están por definir.**
 
 ## Lo que falta decidir
 
-1. Cuántos tramos tiene cada camino, y qué jefe cierra cada uno.
-2. El próximo enemigo (baqueano, lancero o artilleros).
-3. Las recompensas: cuáles, cuántas por vez y cómo se eligen.
-4. Las habitaciones: cuántas, cómo son y cómo se pasa de una a la siguiente.
-5. Las caras humanas del jefe y de la señora.
+1. Los dos jefes intermedios: uno del camino del capitán y uno del camino del demonio.
+2. El nombre del mapuche que te ayuda y te da las mejoras.
+3. El próximo enemigo (baqueano, lancero o artilleros).
+4. Las recompensas: cuáles, cuántas por vez y cómo se eligen.
+5. Las habitaciones: cuántas, cómo son y cómo se pasa de una a la siguiente.
+6. Las caras humanas del jefe y de la señora.
