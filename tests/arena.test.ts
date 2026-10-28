@@ -17,3 +17,9 @@ test('it is round and no wider than its reach either way, with nothing in it', (
   expect(map.buildings ?? []).toEqual([]);
   expect(letterAt(map, ...map.start)).toBe('E');
 });
+
+test('no tree stands in the clearing: the monte only closes it round', async () => {
+  const { plantTrees } = await import('../src/world/trees');
+  const { zoneAt } = await import('../src/world/zones');
+  expect(plantTrees(map, 3).filter(t => zoneAt(map, t.x, t.y)?.open)).toEqual([]);
+});

@@ -12,6 +12,8 @@ export interface Zone {
   name: string;
   /** Nothing hunts here. */
   safe?: boolean;
+  /** A clearing: no tree stands in it, however wild (the monte only closes it round). */
+  open?: boolean;
   /** In open country: what grows thick along its edge and closes it, by name; several are mixed. */
   edge?: string[];
   /** And what stands here and there on its own ground: the chance of each in a plot. */

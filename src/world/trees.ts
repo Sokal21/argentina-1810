@@ -72,7 +72,7 @@ export function plantTrees(map: WorldMap, kinds: number, seed = 1): Tree[] {
   map.plots.forEach((line, row) => [...line].forEach((letter, col) => {
     const d = far[row][col];
     if (d === 0) {
-      if (!map.zones[letter].safe && chance(col, row, seed + 4) < SCATTERED) plant(col, row, STANDING, 0);
+      if (!map.zones[letter].safe && !map.zones[letter].open && chance(col, row, seed + 4) < SCATTERED) plant(col, row, STANDING, 0);
     } else if (d <= DEPTH) {
       if (chance(col, row, seed + 5) < WALLED[d - 1]) plant(col, row, WALL, 1);
       if (d === 1 && chance(col, row, seed + 6) < TWICE) plant(col, row, WALL, 2);

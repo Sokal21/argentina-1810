@@ -34,7 +34,8 @@ export const arenaDeRoca: WorldMap = {
   ground: ['#3a3a26', '#363624', '#3d3c28', '#33331f', '#40402a'],
   zones: {
     E: { name: 'La entrada', safe: true },
-    A: { name: 'El claro de la batería' },
+    // A clearing: no tree in it (the user, 28/10/2026: there were too many trees).
+    A: { name: 'El claro de la batería', open: true },
   },
   plots: plots(),
   start: [MIDDLE[0], MIDDLE[1] + 5],
