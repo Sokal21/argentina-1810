@@ -14,10 +14,13 @@ import { ISO_Y } from '../machi/data';
  * is, how long its mark shows before it lands, how much later the last lands than the first, and how
  * much life a blast takes. All in the ground's units.
  */
+// Its marks come quicker than at first (1.6 s, 2 and 1.4): they were too easy to get out of, the great
+// one above all (the user, 28/10/2026). From the middle of the great one she must cover its width,
+// 130, in 1.3 s: walking (115 a second in 3D) just; with a dash, surely.
 export const SALVO = {
-  scattered: { shells: 9, spread: 240, radius: 36, warn: 1.6, stagger: 0.9, damage: 1 },
-  concentrated: { shells: 7, spread: 0, radius: 130, warn: 2.0, stagger: 0.5, damage: 2 },
-  small: { shells: 3, spread: 120, radius: 30, warn: 1.4, stagger: 0.4, damage: 1 },
+  scattered: { shells: 9, spread: 240, radius: 36, warn: 1.1, stagger: 0.7, damage: 1 },
+  concentrated: { shells: 7, spread: 0, radius: 130, warn: 1.3, stagger: 0.4, damage: 2 },
+  small: { shells: 3, spread: 120, radius: 30, warn: 1.0, stagger: 0.3, damage: 1 },
 };
 export type SalvoKind = keyof typeof SALVO;
 /** How far apart, at least, the edges of two marks of a salvo are. */
