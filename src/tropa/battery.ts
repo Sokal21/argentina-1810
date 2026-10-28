@@ -20,6 +20,8 @@ export const SALVO = {
   small: { shells: 3, spread: 120, radius: 30, warn: 1.4, stagger: 0.4, damage: 1 },
 };
 export type SalvoKind = keyof typeof SALVO;
+/** How far apart, at least, the edges of two marks of a salvo are. */
+const GAP = 8;
 
 /** A shell's mark on the ground: where (the 2D ground), how wide, when it shows and when it lands, seconds from the salvo. */
 export interface Mark { x: number; y: number; r: number; shows: number; lands: number }
@@ -46,8 +48,13 @@ export function plan(kind: SalvoKind, at: Vec, rnd: () => number = Math.random):
     return { marks, blasts };
   }
   const marks: Mark[] = [], blasts: Blast[] = [];
+  // No two of a scattered salvo's marks overlap (the user, 28/10/2026): each tried a few times for a
+  // spot clear of the others by its own width and a little; one that finds none is left out.
+  const clear = (p: Vec) => marks.every(m => Math.hypot(p.x - m.x, (p.y - m.y) / ISO_Y) >= s.radius * 2 + GAP);
   for (let i = 0; i < s.shells; i++) {
-    const p = i === 0 ? { x: at.x, y: at.y } : about(s.spread);
+    let p = i === 0 ? { x: at.x, y: at.y } : about(s.spread);
+    for (let tries = 0; i > 0 && !clear(p) && tries < 30; tries++) p = about(s.spread);
+    if (!clear(p)) continue;
     const shows = s.stagger * rnd();
     marks.push({ ...p, r: s.radius, shows, lands: shows + s.warn });
     blasts.push({ ...p, r: s.radius, at: shows + s.warn });

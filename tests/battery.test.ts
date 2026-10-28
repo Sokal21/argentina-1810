@@ -3,10 +3,11 @@ import { ISO_Y } from '../src/machi/data';
 import { inBlast, plan, SALVO } from '../src/tropa/battery';
 
 describe("Roca's battery", () => {
-  it('strews a scattered salvo about where it is aimed, each shell with its own mark, landing after its mark has shown a while', () => {
+  it('strews a scattered salvo about where it is aimed, each shell with its own mark, none over another, landing after its mark has shown a while', () => {
     const { marks, blasts } = plan('scattered', { x: 0, y: 0 });
-    expect(marks.length).toBe(SALVO.scattered.shells);
-    expect(blasts.length).toBe(SALVO.scattered.shells);
+    expect(marks.length).toBeGreaterThan(SALVO.scattered.shells - 3);
+    expect(blasts.length).toBe(marks.length);
+    for (const a of marks) for (const b of marks) if (a !== b) expect(Math.hypot(a.x - b.x, (a.y - b.y) / ISO_Y)).toBeGreaterThanOrEqual(a.r + b.r);
     for (const m of marks) {
       expect(Math.hypot(m.x, m.y / ISO_Y)).toBeLessThanOrEqual(SALVO.scattered.spread + 1e-6);
       expect(m.lands - m.shows).toBeCloseTo(SALVO.scattered.warn);
