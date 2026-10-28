@@ -23,7 +23,7 @@ const CLODS = { stirring: 7, breaking: 12, coming: 9, size: [0.025, 0.06], up: [
  * how long one lasts, how big (shares of his height), how thick, its colour; how many thrown up at once
  * as the mound breaks, and how many a second while it stirs, while he comes up and while it settles.
  */
-const DUST = { kept: 44, life: [0.8, 1.8], size: [0.2, 0.42], thick: 0.6, colour: '#8a7656', burst: 20, stirs: 8, rises: 16, settles: 6 };
+const DUST = { kept: 64, life: [1, 2.2], size: [0.26, 0.5], thick: 0.95, colour: '#a38d68', burst: 28, stirs: 12, rises: 22, settles: 9 };
 /** How far down he lies at first, a share of his height: under the ground, all but his back. */
 const DEPTH = 0.3;
 
