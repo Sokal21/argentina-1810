@@ -18,10 +18,10 @@ export const wideAt = (d: number) => VOMIT.wide[0] + (VOMIT.wide[1] - VOMIT.wide
  * What it does to her (the user, 27/10/2026): slowed while she stands in it, to this share of her
  * pace; and once she has stepped in it, plagued for `lasts` seconds, her life drained little by little
  * all the while, `damage` of it in all, so that she sees it go (two points at first, in bites, was too
- * much; then one in a bite). Stepping in again starts it over, it does not add up; it neither breaks
+ * much; then one, still too much: half a point). Stepping in again starts it over, it does not add up; it neither breaks
  * her healing nor guards her from the next blow, and her healing ritual rids her of it.
  */
-export const PLAGUE = { slow: 0.6, lasts: 4, damage: 1 };
+export const PLAGUE = { slow: 0.6, lasts: 4, damage: 0.5 };
 
 /**
  * How far past the pool's drawn edges it still catches her, a share of his height: its splashes and
