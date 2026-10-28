@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { flat } from './paint';
 
-// The plague-dead soldier coming up out of the earth near her: first the ground swells into a mound,
+// The plague-dead soldier coming up out of the earth near her: first the ground heaves, clods pushed off it,
 // stirring and letting off a breath of dust (the warning, so she has a moment); then it breaks, clods
 // of earth thrown off, and he pushes himself up out of it from lying face down (his `levantarse`),
 // sunk in the ground at first and rising as he gets up, more earth and stones thrown off him as he
@@ -17,7 +17,7 @@ const MOUND = { long: 0.95, wide: 0.55, high: 0.14, earth: '#5b4630', clod: '#6b
  * (`stirring` pushed off as it swells, `breaking` thrown as it breaks, `coming` as he comes up), each
  * left lying where it falls: how big (shares of his height), how fast up and out, how heavy.
  */
-const CLODS = { stirring: 7, breaking: 12, coming: 9, size: [0.025, 0.06], up: [50, 95], out: [15, 45], fall: 260 };
+const CLODS = { stirring: 11, breaking: 12, coming: 9, size: [0.025, 0.06], up: [50, 95], out: [15, 45], fall: 260 };
 /**
  * The dust, which hides the joins (the mound breaking, him showing, the earth settling): how many puffs,
  * how long one lasts, how big (shares of his height), how thick, its colour; how many thrown up at once
@@ -46,17 +46,15 @@ function puff(): THREE.Texture {
 
 export class Rising {
   readonly group = new THREE.Group();
-  private readonly mound: THREE.Mesh;
   private readonly clods: Clod[] = [];
   private readonly dust: Puff[] = [];
   private time = -1;
 
   /** `tall` is his height in the world's units; `rises` how long his getting up lasts, in seconds. */
   constructor(private readonly tall: number, private readonly rises: number) {
-    // A dome flattened into a low, long mound, along his length (+Z, his front, turned as he is).
-    this.mound = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 7, 0, Math.PI * 2, 0, Math.PI / 2), flat(MOUND.earth));
-    this.mound.castShadow = this.mound.receiveShadow = true;
-    this.group.add(this.mound);
+    // No mound of its own is drawn (a dome of earth read as a circle growing on the ground, the user
+    // said): the ground's heaving is only reckoned, for where the clods come from, along his length
+    // (+Z, his front, turned as he is).
     const clod = new THREE.DodecahedronGeometry(1, 0);
     // When each is thrown, and how hard: pushed off as it swells, thrown as it breaks, as he comes up.
     const when = [
@@ -127,8 +125,6 @@ export class Rising {
     // It spreads from a small swelling as it rises, and a little more as it sinks.
     const grown = 0.25 + 0.75 * (1 - (1 - Math.min(1, t / RISE.warn)) ** 2);
     const spread = grown * (1 + 0.15 * settle);
-    this.mound.scale.set(tall * MOUND.wide * 0.5 * spread, Math.max(0.01, tall * MOUND.high * swell), tall * MOUND.long * 0.5 * spread);
-    this.mound.visible = swell > 0.01;
     // Clods and stones thrown off it, each in its time, from wherever the mound is by then.
     for (const c of this.clods) {
       if (!(was < c.at && t >= c.at)) continue;
