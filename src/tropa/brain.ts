@@ -58,6 +58,17 @@ export interface Kind {
   retch?: { from: number; to: number; time: number; every: number; tall: number };
   /** He comes up out of the earth (`rise`): it takes `time` seconds, and for the first `under` of them he is under it, not to be struck. */
   rises?: { time: number; under: number };
+  /**
+   * He keeps away from her: nearer than `keep`, he runs straight off from her; further, he goes to
+   * one spot and another about, never toward her, a new one every `wander` seconds.
+   */
+  flees?: { keep: number; wander: number };
+  /**
+   * He signals a battery to fire on her: every `every` seconds (a range), standing for `time`
+   * seconds, the salvo called at `at` of it, aimed where she stands then; its kind chosen in turn
+   * from `kinds`. (tropa/battery.ts's salvoes.)
+   */
+  signals?: { every: [number, number]; time: number; at: number; kinds: string[] };
   /** How much of what fire does (a grenade's blast, burning) he takes; all of it if not said. */
   fire?: number;
   /** What bringing him down is worth, in experience and in reales. */
@@ -123,6 +134,16 @@ export const KINDS = {
     retch: { from: 80, to: 220, time: 2.0, every: 7, tall: APESTADO_DRAWN / Math.sqrt(1 - ISO_Y * ISO_Y) },
     rises: { time: 3.8, under: 1.2 }, worth: 25, spoils: 12,
   },
+  // Roca's artillery spotter (28 October 2026): quick on his feet and keeping away from her, he stops
+  // now and again to signal the battery, his red flag cut down to point where she stands (frame 15 of
+  // his 46-frame signals); the salvo comes, scattered or concentrated in turn. He must be run down
+  // and killed to end the first phase of Roca's fight. Little life.
+  observador: {
+    id: 'observador', name: 'Observador', life: 3, girth: 9, pace: 120, sight: 900,
+    flees: { keep: 260, wander: 2.5 },
+    signals: { every: [4, 6], time: 1.9, at: 0.62, kinds: ['scattered', 'concentrated'] },
+    worth: 15, spoils: 6,
+  },
 } satisfies Record<string, Kind>;
 export type KindName = keyof typeof KINDS;
 
@@ -135,7 +156,7 @@ export const RETURNS = 7;   // seconds until one who is not at a post is back
 /** How much faster one who has been rallied walks and reloads. */
 export const QUICKENED = 1.5;
 
-export type Mode = 'stand' | 'walk' | 'aim' | 'blow' | 'lunge' | 'rally' | 'call' | 'retch' | 'rise' | 'dying' | 'gone';
+export type Mode = 'stand' | 'walk' | 'aim' | 'blow' | 'lunge' | 'rally' | 'call' | 'retch' | 'rise' | 'signal' | 'dying' | 'gone';
 
 /** What a step of his produced. */
 export interface Deed {
@@ -145,6 +166,8 @@ export interface Deed {
   rally?: { reach: number; lasts: number };
   /** He has called up more of his men: so many, so long as no more than `most` he called are standing. */
   call?: { many: number; most: number };
+  /** He has called a salvo of this kind down on this spot of the 2D ground. */
+  salvo?: { kind: string; x: number; y: number };
   /** He has begun to retch, from here, the way he faces (along the ground): his pool is to be laid. */
   retch?: { x: number; y: number; dx: number; dy: number };
 }
@@ -183,6 +206,11 @@ export class TroopBrain {
   private still = 0;
   /** Seconds until he can lunge again. */
   private lunging = 3;
+  /** Seconds until he signals again, which salvo he calls next, and where he is making for, keeping away. */
+  private signalling = 3;
+  private called = 0;
+  private bound: Vec | null = null;
+  private bounding = 0;
   /** Seconds until he can retch again. */
   private retching = 2;
   /** Seconds until he calls up more of his men, counted while he has someone to fight. */
@@ -226,6 +254,8 @@ export class TroopBrain {
       this.still = Math.max(0, this.still - dt);
       this.lunging = Math.max(0, this.lunging - dt);
       this.retching = Math.max(0, this.retching - dt);
+      this.signalling = Math.max(0, this.signalling - dt);
+      this.bounding = Math.max(0, this.bounding - dt);
       this.shout = Math.max(0, this.shout - dt);
       this.provoked = Math.max(0, this.provoked - dt);
     }
@@ -242,6 +272,9 @@ export class TroopBrain {
         return NOTHING;
       }
     }
+
+    // One who keeps away from her and signals a battery has a way of his own.
+    if (k.flees && (this.mode === 'stand' || this.mode === 'walk' || this.mode === 'signal') && to) return this.spot(dt, to, far);
 
     switch (this.mode) {
       case 'stand':
@@ -342,6 +375,8 @@ export class TroopBrain {
         this.done = true;
         return { rally: { reach: r.reach, lasts: r.lasts } };
       }
+      case 'signal':
+        return NOTHING;
       case 'dying':
         if (this.t >= DYING) this.enter('gone');
         return NOTHING;
@@ -349,6 +384,50 @@ export class TroopBrain {
         if (this.returns && this.t >= RETURNS) this.respawn();
         return NOTHING;
     }
+  }
+
+  /**
+   * The spotter's way: signalling when it is time (standing, the salvo called on where she is at its
+   * moment); else away from her if she is near, or to some spot about that is not toward her.
+   */
+  private spot(dt: number, to: Vec, far: number): Deed {
+    const k = this.kind, f = k.flees!, sg = k.signals;
+    if (this.mode === 'signal' && sg) {
+      this.look(to);
+      if (!this.done && this.t >= sg.at) {
+        this.done = true;
+        const kind = sg.kinds[this.called++ % sg.kinds.length];
+        return { salvo: { kind, x: this.x + to.x, y: this.y + to.y * ISO_Y } };
+      }
+      if (this.t >= sg.time) { this.enter('stand'); this.signalling = sg.every[0] + this.rnd() * (sg.every[1] - sg.every[0]); }
+      return NOTHING;
+    }
+    if (sg && this.signalling <= 0 && far > f.keep * 0.5) { this.enter('signal'); this.done = false; return NOTHING; }
+    let way: Vec;
+    if (far < f.keep) {
+      way = { x: -to.x / (far || 1), y: -to.y / (far || 1) };
+      this.bound = null;
+    } else {
+      // A spot about, away from her side: chosen afresh now and then, or once reached.
+      if (!this.bound || this.bounding <= 0 || Math.hypot(this.bound.x - this.x, (this.bound.y - this.y) / ISO_Y) < 20) {
+        const a = Math.atan2(-to.y, -to.x) + (this.rnd() - 0.5) * 2.4, d = 120 + this.rnd() * 160;
+        this.bound = { x: this.x + Math.cos(a) * d, y: this.y + Math.sin(a) * d * ISO_Y };
+        this.bounding = f.wander;
+      }
+      const bx = this.bound.x - this.x, by = (this.bound.y - this.y) / ISO_Y, len = Math.hypot(bx, by) || 1;
+      way = { x: bx / len, y: by / len };
+    }
+    const x0 = this.x, y0 = this.y;
+    this.move(way.x * k.pace * dt, way.y * k.pace * dt);
+    // Kept from where he would go by the edge: along it, then, the way that is further from her.
+    if (Math.hypot(this.x - x0, this.y - y0) < k.pace * dt * 0.3) {
+      const side = { x: -way.y, y: way.x }, sign = side.x * to.x + side.y * to.y > 0 ? -1 : 1;
+      this.move(side.x * sign * k.pace * dt, side.y * sign * k.pace * dt);
+      this.bound = null;
+    }
+    this.look(Math.hypot(this.x - x0, this.y - y0) > 0.01 ? { x: this.x - x0, y: (this.y - y0) / ISO_Y } : to);
+    this.enter('walk');
+    return NOTHING;
   }
 
   /** Struck by something travelling along (dx, dy) on screen. */

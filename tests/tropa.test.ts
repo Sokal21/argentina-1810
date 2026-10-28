@@ -166,6 +166,25 @@ describe('the frontier soldier', () => {
   });
 });
 
+describe("Roca's spotter", () => {
+  it('runs off from her when she comes near, faster than she walks', () => {
+    const b = brain('observador');
+    run(b, { x: 100, y: 0 }, 0.5);
+    expect(b.x).toBeLessThan(-30);
+    expect(KINDS.observador.pace).toBeGreaterThan(115);
+  });
+
+  it('stops now and then to call a salvo down where she stands, scattered and concentrated in turn', () => {
+    const b = brain('observador');
+    const salvoes: { kind: string; x: number; y: number }[] = [];
+    for (let t = 0; t < 20; t += DT) { const d = b.update(DT, { x: 600, y: 0 }) as { salvo?: { kind: string; x: number; y: number } }; if (d.salvo) salvoes.push(d.salvo); }
+    expect(salvoes.length).toBeGreaterThanOrEqual(2);
+    expect(salvoes[0].kind).toBe('scattered');
+    expect(salvoes[1].kind).toBe('concentrated');
+    expect(salvoes[0].x).toBeCloseTo(600, 0);
+  });
+});
+
 describe('the plague-dead soldier', () => {
   it('comes up out of the earth, not to be struck while under it, and only then goes for her', () => {
     const b = brain('apestado');

@@ -15,6 +15,8 @@ import { mountPanel } from './panel';
 import { People } from './people';
 import { Royalists, type Royalist } from './realista';
 import { Shots, type Strikes } from './shot';
+import { Battery3D } from './battery';
+import type { Blast, Mark } from '../tropa/battery';
 import { ground, heading, onTheGround, UPRIGHT } from './space';
 import { Cart } from './cart';
 import { Forest3D } from './forest';
@@ -79,6 +81,8 @@ export class World3D {
   readonly royalists = new Royalists();
   private readonly shots: Shots;
   /** The royalists' balls: they stop on whoever they reach, and burst on nothing. */
+  /** Roca's battery's shells, seen. */
+  private readonly battery = new Battery3D();
   private readonly volleys: Shots;
   private readonly marks = new AimMarks();
   /** The ring under whom he is locked onto with the gamepad. */
@@ -164,7 +168,7 @@ export class World3D {
     // drawn from the muzzle on his shoulder, its line ran beside the 2D ball's and passed through him.
     this.volleys = new Shots(this.view.camera, () => null, () => {}, false, SHOT);
     this.impacts = new Impacts(this.view.camera, () => this.view.look);
-    this.view.scene.add(this.shots.group, this.volleys.group, this.impacts.group, this.mendings.group, this.fury.group);
+    this.view.scene.add(this.shots.group, this.volleys.group, this.impacts.group, this.mendings.group, this.fury.group, this.battery.group);
     // What its blast hurts, and the shake, are the 2D game's; here it is seen.
     this.grenades = new Grenades(this.view.camera);
     this.view.scene.add(this.grenades.group, this.throwing.group);
@@ -259,6 +263,11 @@ export class World3D {
     this.calling?.comes(this.hero.position.clone().setY(this.hero.position.y + 55), ground(at.x, at.y));
   }
 
+  /** A salvo of Roca's battery: its marks on the ground and its blasts, as planned (tropa/battery.ts). The harm and the shaking are the 2D game's. */
+  salvo(planned: { marks: Mark[]; blasts: Blast[] }): void {
+    this.battery.salvo(planned);
+  }
+
   /** Inti's healing is done. */
   healed(): void {
     this.healing?.healed(this.hero.position);
@@ -294,6 +303,7 @@ export class World3D {
     const drawing = doing.aimed && c.arming?.kind === 'grenade' && c.arming.phase !== 'fire';
     this.throwing.show(drawing ? c : null, drawing ? doing.aimed : null);
     this.grenades.update(dt);
+    this.battery.update(dt);
     this.shots.update(dt);
     this.volleys.update(dt);
     this.impacts.update(dt);

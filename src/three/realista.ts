@@ -33,7 +33,7 @@ export const DRAWN = 78;
  * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
  * the pace that lands it when his brain does.
  */
-export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number }; lunge?: { clip: string; wind: number; lands: number; point: number; charge: number; hit: number; dash: number; time: number }; call?: { clip: string; time: number }; walk?: string; idle?: string; retch?: { clip: string; time: number }; rises?: { clip: string; up: number }; stench?: boolean; charge?: { roar: string; run: string; blow: string; lands: number; swing: number } }> = {
+export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number }; lunge?: { clip: string; wind: number; lands: number; point: number; charge: number; hit: number; dash: number; time: number }; call?: { clip: string; time: number }; walk?: string; idle?: string; retch?: { clip: string; time: number }; rises?: { clip: string; up: number }; stench?: boolean; charge?: { roar: string; run: string; blow: string; lands: number; swing: number }; signals?: { clip: string; time: number }; flags?: string[] }> = {
   // Lean and quick, a little under the fusiliers (Tripo from turnaround A, 23 October 2026).
   // His two cuts at the pace that lands the first when his brain does (frame 18 of 52); his run.
   sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76, blow: { clip: 'tajo', lands: 18 / 52, hit: KINDS.sableador.blow.hit }, run: 'carrera' },
@@ -74,7 +74,14 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
     // His charge (his brain's lunge): roaring while he gathers himself, then Mixamo's zombie run, and his
     // swipe begun `swing` seconds before he reaches her so that it lands as he does.
     charge: { roar: 'grito', run: 'carrera', blow: 'golpe', lands: 20 / 48, swing: 0.5 } },
+  // Roca's artillery spotter: his run, his idle, his signals played over as long as his brain stands
+  // for them (his red flag points at frame 15 of 46, when his brain calls the salvo), and his two
+  // flags let fly from his hands as he falls (props.signal_flag: 0.28 long).
+  observador: { url: 'observador/3d/observador_animado.glb', drawn: 76, walk: 'carrera', idle: 'reposo_mixamo',
+    signals: { clip: 'senas', time: KINDS.observador.signals.time }, flags: ['bandera_roja', 'bandera_blanca'] },
 };
+/** How long a spotter's flag is from his fist to its far end, in its own units (props.signal_flag). */
+const FLAG_LONG = 0.28;
 /** Seconds of his aim spent drawing the musket from his back; the rest he holds it levelled. */
 const DRAW = Math.min(0.45, AIM * 0.55);
 /** How long the shot's clip lasts, from the kick until he has slung the musket again. */
@@ -265,6 +272,7 @@ class Figure {
     if (mode === 'dying' && afresh && this.look?.kneels) this.flung.throw(this.body);
     // One with a bayonet has his rifle in his fists as he falls, and lets it fly as the rifleman does.
     if (mode === 'dying' && afresh && this.body.getObjectByName('fusil_bayoneta')) this.flung.throw(this.body, 'fusil_bayoneta');
+    if (mode === 'dying' && afresh) for (const flag of this.look?.flags ?? []) this.flung.throw(this.body, flag, FLAG_LONG);
     if (alive(mode) || this.buried) this.flung.back();
     this.flung.update(dt);
     if (mode === 'gone' && afresh && this.modeWas !== 'dying') m.hold('muerte', 1);
@@ -338,6 +346,7 @@ class Figure {
       // Rings of red flung out over the ground as he roars, as far as his shout carries.
       if (afresh) this.shouts?.shout(ground(x, y), reach);
     }
+    else if (mode === 'signal' && this.look?.signals) m.play(this.look.signals.clip, { once: true, lasts: this.look.signals.time, afresh, blend: 0.15 });
     else if (mode === 'retch' && this.look?.retch) m.play(this.look.retch.clip, { once: true, lasts: this.look.retch.time, afresh, blend: 0.2 });
     else if (mode === 'rise' && this.look?.rises) {
       // Lying under the earth until it breaks, then getting up out of it over the rest of his rising.

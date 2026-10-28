@@ -3,6 +3,7 @@ import { BALL, Bolts, EMBER, SHOT } from '../bolts';
 import { Realista } from '../realista/Realista';
 import { Trooper } from '../tropa/Trooper';
 import { inPool, Plague, PLAGUE, VOMIT, type Pool } from '../tropa/vomit';
+import { inBlast, plan, SALVO, type Blast, type SalvoKind } from '../tropa/battery';
 import { KINDS, type Kind, type KindName } from '../tropa/brain';
 import type { Flames } from '../machi/flames';
 import { cheats, tune } from '../tuning';
@@ -112,7 +113,7 @@ const CABRAL_LOCK = { reach: BALL.range, keep: BALL.range * 1.4 };
 // the way points, and how long an arm let go is kept up waiting to go off.
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
 /** The kinds of the king's men that have a model in 3D (three/realista.ts, LOOKS). */
-const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan', 'frontera', 'apestado']);
+const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan', 'frontera', 'apestado', 'observador']);
 /** How much of what fire does a foe takes: a soldier's kind may stand it better. */
 const fireproof = (foe: Foe): number => foe instanceof Trooper ? (KINDS[foe.kind] as Kind).fire ?? 1 : 1;
 /** With the gamepad a grenade lands this share of its reach straight ahead: all of it, as the musket aims. */
@@ -223,6 +224,8 @@ const REALISTAS: [number, number][] = [[190, 50], [-170, -60], [40, 150]];
  * riflemen hunt her wherever she goes (`hunters`), and the plague-dead come up again before her
  * when she leaves them behind (`lurk`).
  */
+/** Where Roca's spotter stands as the fight begins, from her: across the clearing from where she comes in. */
+const SPOTTER: [number, number] = [60, -440];
 const COLUMN = {
   riflemen: [[360, -120], [380, 70], [-360, -70], [-340, 130], [40, -340], [-20, 330], [720, -40], [-720, 40]] as [number, number][],
   plagued: [[170, -50], [-180, 110], [520, 40], [-500, -60]] as [number, number][],
@@ -388,6 +391,8 @@ export class GameScene extends Phaser.Scene {
   private pools: Pool[] = [];
   private readonly plague = new Plague();
   private mired = false;
+  /** The battery's blasts still to come, each with the kind of salvo it is of, and the seconds since its salvo was called. */
+  private shells: { blast: Blast; kind: SalvoKind; t: number }[] = [];
   /** Roca's riflemen, who hunt her wherever she goes once they have seen her. */
   private readonly hunters = new Set<Soldier>();
   /** Whether Roca's column has been laid about her yet (COLUMN). */
@@ -534,6 +539,7 @@ export class GameScene extends Phaser.Scene {
     this.posts.clear();
     this.lurkers = [];
     this.pools = [];
+    this.shells = [];
     this.plague.cure();
     // Hers is laid about her once she is where the game begins (muster), wherever that is.
     this.mustered = his || !map;
@@ -1107,6 +1113,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.mustered) this.muster();
     this.lurk(dt);
     this.retched(dt);
+    this.shelled(dt);
     const safe = !!this.map && !!zoneAt(this.map, this.machi.x, this.machi.y)?.safe;
     if (safe && !this.safeWas) for (const realista of this.realistas) if (!realista.alive) this.due.add(realista);
     this.safeWas = safe;
@@ -1144,6 +1151,9 @@ export class GameScene extends Phaser.Scene {
       if (deed.cut && prey) { prey.body.strike(); this.sparks.emitParticleAt(prey.body.x, prey.body.y - 20, 6); }
       else if (deed.cut && !drawn) this.hurt(realista instanceof Trooper ? realista.brain.kind.blow?.damage ?? 1 : 1);
       // A plague-dead soldier retches: his pool is laid before him.
+      // Roca's spotter has called a salvo down on her.
+      const salvo = (deed as { salvo?: { kind: string; x: number; y: number } }).salvo;
+      if (salvo && salvo.kind in SALVO) this.bombard(salvo.kind as SalvoKind, salvo);
       const retch = (deed as { retch?: { x: number; y: number; dx: number; dy: number } }).retch;
       if (retch && realista instanceof Trooper && realista.brain.kind.retch) this.pools.push({ ...retch, tall: realista.brain.kind.retch.tall, t: 0 });
       // A captain calls up more of his men.
@@ -1839,6 +1849,30 @@ export class GameScene extends Phaser.Scene {
     return [fallback.x, fallback.y];
   }
 
+  /** A salvo of Roca's battery called down on a spot: its blasts to come, and seen in 3D. */
+  private bombard(kind: SalvoKind, at: Vec): void {
+    const planned = plan(kind, at);
+    for (const blast of planned.blasts) this.shells.push({ blast, kind, t: 0 });
+    this.three?.salvo(planned);
+  }
+
+  /**
+   * The battery's shells as they land: a blast hurts her if she is in it (her dash takes her through
+   * unhurt, as from any blow), and hurts the king's men, Roca's own, alike; and shakes the world.
+   */
+  private shelled(dt: number): void {
+    const feet = { x: this.machi.x, y: this.machi.y };
+    for (const shell of this.shells) {
+      shell.t += dt;
+      if (shell.t < shell.blast.at) continue;
+      const { blast, kind } = shell, damage = SALVO[kind].damage;
+      if (this.vitals.standing && inBlast(blast, feet)) this.hurt(damage);
+      for (const foe of this.realistas) if (foe.alive && inBlast(blast, foe.ground)) this.wound(foe, foe.ground.x - blast.x || 1, foe.ground.y - blast.y, damage);
+      this.shake(blast.great ? 320 : 200, blast.great ? 0.012 : 0.006);
+    }
+    this.shells = this.shells.filter(shell => shell.t < shell.blast.at);
+  }
+
   /** Whether a spot of the ground is on screen, short of its very edges (ON_SCREEN). */
   private onScreen(at: Vec): boolean {
     if (this.three) return this.three.sees(at, -ON_SCREEN.edge * 2);
@@ -1876,6 +1910,9 @@ export class GameScene extends Phaser.Scene {
       const soldier = enlist('frontera', offset);
       if (soldier) { this.posts.set(soldier, { ...soldier.ground, letter: 'B', kind: 'frontera' }); this.hunters.add(soldier); }
     }
+    // Roca's spotter, running about the clearing, calling the battery down on her; back a while after he falls.
+    const spotter = enlist('observador', SPOTTER);
+    if (spotter) spotter.brain.returns = true;
     for (const offset of COLUMN.plagued) {
       // Under the earth until she comes near.
       const soldier = enlist('apestado', offset);
