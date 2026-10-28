@@ -20,10 +20,11 @@ const STREAK = { length: 46, colour: '#fff1c4' };
  * A tracer (Roca's burst, the user's "balas trazadoras"): what counts is the trace it leaves, a bright
  * orange line of glow left hanging in the air along its way and dying away, rather than the ball
  * shining (the user, 28/10/2026). Glows are dropped along its way every `every` units, each lasting
- * `lasts` seconds, `size` across at first, shrinking and dimming from `colour` to `dying`; the ball
- * itself a small, faint `head`. How many glows are kept in all.
+ * `lasts` seconds, `size` across at first, shrinking and dimming from `colour` to `dying`, `gain` times
+ * as bright as those colours (brighter, the user asked); the ball itself a small, faint `head`. How many
+ * glows are kept in all.
  */
-const TRACER = { kept: 400, every: 7, lasts: 0.45, size: 6, head: 4, colour: '#ffa030', dying: '#c83a10' };
+const TRACER = { kept: 400, every: 7, lasts: 0.45, size: 8, head: 4, colour: '#ff8c1a', dying: '#d8400c', gain: 1.6 };
 const BLAST = { life: 0.45, colour: '#ffb45a', dust: 10, dustColour: '#a0906a', dustLife: 0.9 };
 /** A ball striking someone: specks of blood flung on the way it went and falling, and a puff of dust off his coat. */
 const WOUND = { specks: 14, colours: ['#8a1410', '#b0201a', '#5a0c08'], speed: [40, 130], up: [30, 90], fall: 380, life: [0.45, 0.8], dust: 4, dustColour: '#9a8f7a' };
@@ -181,7 +182,7 @@ export class Shots {
           const g = this.tracers.free();
           if (g < 0) break;
           const at = from.clone().addScaledVector(ball.way, ball.dropped + TRACER.every - (ball.flown - step));
-          this.tracers.colour(g, TRACER.colour);
+          this.tracers.colour(g, TRACER.colour, TRACER.gain);
           this.tracers.put(g, at, TRACER.size, 1);
           this.trace.push({ g, at, t: 0 });
         }
@@ -195,7 +196,7 @@ export class Shots {
         glow.t += dt;
         const k = Math.min(1, glow.t / TRACER.lasts);
         if (k >= 1) { this.tracers.hide(glow.g); continue; }
-        this.tracers.colour(glow.g, c.copy(hot).lerp(dying, k));
+        this.tracers.colour(glow.g, c.copy(hot).lerp(dying, k), TRACER.gain);
         this.tracers.put(glow.g, glow.at, TRACER.size * (1 - 0.5 * k), (1 - k) * (1 - k));
       }
       this.trace = this.trace.filter(glow => glow.t < TRACER.lasts);

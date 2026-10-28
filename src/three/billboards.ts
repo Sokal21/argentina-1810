@@ -95,10 +95,10 @@ export class Billboards {
     return this.live.indexOf(false);
   }
 
-  /** Colours copy `i` (as a sprite's colour: what its picture is multiplied by). */
-  colour(i: number, colour: THREE.ColorRepresentation): void {
+  /** Colours copy `i` (as a sprite's colour: what its picture is multiplied by), `gain` times over (past 1, brighter than its colour: for light). */
+  colour(i: number, colour: THREE.ColorRepresentation, gain = 1): void {
     const c = new THREE.Color(colour);
-    this.tint.setXYZ(i, c.r, c.g, c.b);
+    this.tint.setXYZ(i, c.r * gain, c.g * gain, c.b * gain);
     this.changed = true;
   }
 
