@@ -5,6 +5,7 @@ import { Cart } from './cart';
 import { ChonchonFigure, DRAWN as CHONCHON } from './chonchon';
 import { ChonchonBrain } from '../chonchon/brain';
 import { Spirit } from './spirit';
+import { Stench } from './stench';
 import { CABRAL_DRESS, model } from './figure';
 import { Fling } from './fling';
 import { Motion } from './motion';
@@ -14,6 +15,7 @@ import { KINDS, TroopBrain } from '../tropa/brain';
 import { DRAWN as ROYALIST, LOOKS, Royalists, type Royalist } from './realista';
 import { ISO_Y } from '../machi/data';
 import { View } from './view';
+import { UPRIGHT } from './space';
 
 // Every character's model with each of its clips, to judge them without playing the game: chosen one
 // at a time from the list, or all of them side by side to compare their heights. Kept up to date by
@@ -21,7 +23,7 @@ import { View } from './view';
 // kinds of the king's men with a model of their own, whoever keeps a house), and a model's clips are
 // read off its file, so a new character or a new clip is here as soon as the game has it.
 
-interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge']; dives?: boolean }
+interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge']; dives?: boolean; stench?: boolean }
 
 /** The kinds of the king's men, named as the game names them. */
 const KIND_NAMES: Record<string, string> = { sargento: 'Sargento', capitan: 'El capitán', sableador: 'Sableador', tirador: 'Tirador', frontera: 'Soldado de frontera' };
@@ -44,8 +46,8 @@ const WHO: Who[] = [
   // playing the bull's own clips: carried over onto Tripo's own rig, its walk came out strange.
   // The plague-dead soldier of Inti's arc (Tripo from turnaround A, 27 October 2026), a tank: Mixamo's
   // zombie clips on him, two deaths to choose between, and his retching (a cough captured lying down, stood up). Not in the game yet; drawn a head over the
-  // frontier soldier he was.
-  { name: 'Apestado', url: 'apestado/3d/apestado_animado.glb', drawn: 88 },
+  // frontier soldier he was; in the cloud of his stench.
+  { name: 'Apestado', url: 'apestado/3d/apestado_animado.glb', drawn: 88, stench: true },
   { name: 'Buey', url: 'cosas/3d/buey/buey_animado.glb', drawn: 72 },
   // Inti's nahuel: Quaternius's wolf (CC0) in the slate blue of her spirit, its eyes her spells' cyan; its
   // own clips. A puma of ours was tried on the wolf's and the sabre-tooth's skeletons and keyed by hand
@@ -125,6 +127,7 @@ view.scene.add(floor);
 view.follow(new THREE.Vector3(0, 30, 0));
 
 const spirits: Spirit[] = [];
+const stenches: Stench[] = [];
 const loaded = new Map<Who, { body: THREE.Group; motion: Motion; clips: string[]; flung: Fling; home: number }>();
 let shown: Who[] = [], clip = 'reposo_mixamo', into = 0, paused = false, turn = 0, pace = 1, loop = true;
 
@@ -165,6 +168,8 @@ async function load(w: Who) {
     const body = await model(w.url, w.drawn);
     // A spirit, as the game shows it: its halo, its inner light, its motes, its pool of light.
     if (w.spirit) { const s = new Spirit(body); spirits.push(s); view.scene.add(s.group); }
+    // The plague-dead soldier's stench, carried off behind him.
+    if (w.stench) { const s = new Stench(body, w.drawn * UPRIGHT); stenches.push(s); view.scene.add(s.group); }
     const clips = body.animations.map(a => a.name);
     clips.sort((a, b) => (FIRST.indexOf(a) + 1 || 99) - (FIRST.indexOf(b) + 1 || 99) || a.localeCompare(b));
     it = { body, motion: new Motion(body), clips, flung: new Fling(() => 0), home: 0 };
@@ -408,6 +413,7 @@ view.renderer.setAnimationLoop(() => {
   }
   step(dt);
   for (const s of spirits) s.update(dt);
+  for (const s of stenches) s.update(dt);
   told.textContent = `${shown.length > 1 ? 'Todos' : shown[0]?.name ?? ''} — ${clip}${paused ? ' (pausa)' : ''}`;
   view.draw();
 });
