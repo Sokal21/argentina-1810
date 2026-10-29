@@ -21,7 +21,7 @@ interface Layer { kept: number; life: number[]; rise: number[]; spread: number; 
 const LAYERS: Layer[] = [
   { kept: 60, life: [0.5, 0.9], rise: [2, 6], spread: 4, size: [0.1, 0.16], swell: 1.5, colours: ['#050405', '#0a0809', '#0e0b0d'], thick: 0.95, out: 0.6 },
   { kept: 40, life: [0.9, 1.5], rise: [6, 12], spread: 8, size: [0.16, 0.26], swell: 1.8, colours: ['#141013', '#1b1519', '#221a1f'], thick: 0.7, out: 1.1 },
-  { kept: 24, life: [1.6, 2.6], rise: [8, 16], spread: 12, size: [0.26, 0.4], swell: 2.2, colours: ['#2c2630', '#352d38'], thick: 0.32, out: 1.6 },
+  { kept: 24, life: [1.6, 2.6], rise: [8, 16], spread: 12, size: [0.26, 0.4], swell: 2.2, colours: ['#18151a', '#1e1a20'], thick: 0.32, out: 1.6 },
   { kept: 48, life: [0.8, 2], rise: [-4, 10], spread: 18, size: [0.05, 0.3], swell: 2.4,
     colours: ['#000000', '#0b0a0c', '#18161a', '#2a272c', '#3d393f', '#524d55', '#68626b', '#7e7881'], thick: 0.7, out: 1.4, up: [-0.08, 0.3] },
 ];
@@ -41,8 +41,8 @@ const FLOAT = { high: 0.12, bob: 0.03, beat: 1.4 };
  * his height), how bright at least and at most, and how fast they beat.
  */
 const HALOS = [
-  { bone: 'Head', ahead: 0.05, up: 0.01, wide: 0.16, bright: [0.75, 1] },
-  { bone: 'Spine01', ahead: 0.07, up: 0, wide: 0.38, bright: [0.45, 0.8] },
+  { bone: 'Head', ahead: 0.05, up: 0.01, wide: 0.11, bright: [0.35, 0.5] },
+  { bone: 'Spine01', ahead: 0.07, up: 0, wide: 0.24, bright: [0.12, 0.25] },
 ];
 const BEAT = 2.2;
 const RED = new THREE.Color('#ff3018');
