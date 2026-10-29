@@ -6,7 +6,8 @@ import { unlitShader } from './pixels';
 // below it he is a long gown of smoke and fire, as a lady's of old: narrow at his waist and flaring
 // out in a bell to its hem just over the ground, swaying as his legs (bones under nothing now) swing.
 // Its smoke is in layers: a black core filling it, a dark cloud about that, a grey haze outside,
-// slower to go, at its hem smoke of many greys and blacks spreading over the ground, and at his waist
+// slower to go, at its hem smoke of many greys and blacks spreading over the ground and more lying on
+// it about the hem, and at his waist
 // a thick black band, so where his model ends is not seen. Tongues of
 // black fire lick up from anywhere low on it, close along it as it narrows and bulging a little off it,
 // waving, each soft at its root, widest a little above it and drawn out to a point, flaring and dying
@@ -29,8 +30,10 @@ const LAYERS: Layer[] = [
   { kept: 60, life: [0.5, 0.9], rise: [2, 6], spread: 4, size: [0.09, 0.14], swell: 1.5, colours: ['#050405', '#0a0809', '#0e0b0d'], thick: 0.4, out: 0.6 },
   { kept: 50, life: [0.9, 1.5], rise: [6, 12], spread: 8, size: [0.16, 0.26], swell: 1.8, colours: ['#0b090b', '#100d10', '#141114'], thick: 0.4, out: 1.1 },
   { kept: 24, life: [1.6, 2.6], rise: [8, 16], spread: 12, size: [0.26, 0.4], swell: 2.2, colours: ['#100e11', '#141215'], thick: 0.18, out: 1.6 },
-  { kept: 24, life: [0.8, 2], rise: [-4, 10], spread: 18, size: [0.05, 0.24], swell: 2.4,
-    colours: ['#000000', '#060507', '#0c0b0d', '#131114', '#1a181b', '#222024', '#2b282d', '#353238'], thick: 0.25, out: 1.4, up: [-0.08, 0.3] },
+  { kept: 48, life: [0.8, 2], rise: [-4, 8], spread: 18, size: [0.05, 0.24], swell: 2.4,
+    colours: ['#000000', '#060507', '#0c0b0d', '#131114', '#1a181b', '#222024', '#2b282d', '#353238'], thick: 0.42, out: 1.4, up: [-0.08, 0.3] },
+  // Lying on the ground about the hem, spreading slowly over it and hardly rising.
+  { kept: 30, life: [1.6, 2.8], rise: [0, 3], spread: 16, size: [0.16, 0.3], swell: 2, colours: ['#050405', '#0c0a0d', '#141216', '#1c1a1e'], thick: 0.4, out: 1.3, up: [-0.14, 0.02] },
   // At his waist, thick, where his model ends: so the cut is not seen.
   { kept: 40, life: [0.5, 1], rise: [2, 8], spread: 5, size: [0.08, 0.15], swell: 1.6, colours: ['#030203', '#080608', '#0d0a0c'], thick: 0.8, out: 1.1, up: [0.78, 1.08] },
 ];
