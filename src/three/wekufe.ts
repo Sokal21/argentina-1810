@@ -7,8 +7,9 @@ import { unlitShader } from './pixels';
 // in layers: a black core, thick enough to hide it, let off just before it as the camera sees it;
 // a dark cloud about that; a grey haze outside, slower to go; and at its end, smoke of many greys and
 // blacks, big and small, spreading and curling off it. Souls wind up round it and off him, as black
-// streaks, each fading along its length. And tongues of black fire lick up off the tail, waving as
-// they rise, each wide at its root and drawn out to a point, flaring and dying away.
+// streaks, each fading along its length. And tongues of black fire lick out of the tail's end along its
+// curve, going on bending past its tip as the tail does, waving, each wide at its root and drawn out to a
+// point, flaring and dying away.
 // He dives into the earth head first, sinking right under it; where his head goes in, the ground
 // splashes black, drops thrown up and out and a black pool spreading, a cloud of black smoke bursts
 // out low over the ground as dust would, and black fire bursts up; the smoke and the fire go together.
@@ -39,12 +40,12 @@ const TAIL = { root: 0.11, tip: 0.03 };
 const SOULS = { kept: 14, points: 18, life: [1.6, 2.6], climb: [0.45, 0.75], wind: [2.5, 4.2], out: [1.1, 1.9],
   streak: 0.4, wide: 0.024, clear: 0.85, colours: ['#000000', '#070607', '#0e0c0f', '#161318'] };
 /**
- * The tongues of black fire: how many at once, points along each, how long one lasts, how tall at its
- * height (a share of his), how wide at its root (a share of his height), how far it waves to the side
+ * The tongues of black fire: how many at once, points along each, how long one lasts, how far up the
+ * tail from its tip one may start (a share of the tail), how long at its longest (a share of his height), how wide at its root (a share of his height), how far it waves to the side
  * at its tip (a share of its own height), how many waves along it and how fast they run up it, how
  * clear at its root, and their colours.
  */
-const FLAMES = { kept: 34, points: 10, life: [0.4, 0.9], tall: [0.22, 0.45], wide: [0.04, 0.08], wave: 0.3,
+const FLAMES = { kept: 34, points: 10, life: [0.4, 0.9], from: 0.45, tall: [0.22, 0.45], wide: [0.04, 0.08], wave: 0.3,
   waves: [1, 2], run: [7, 12], clear: 0.9, colours: ['#000000', '#050405', '#0a090b', '#100e11', '#18161a', '#211e23'] };
 /**
  * His dive: from what share of the clip he sinks, how deep he goes by its end (in the model's units: it
@@ -69,6 +70,8 @@ const SPLASH = {
     colours: ['#050405', '#0c0a0d', '#141216', '#1d1a1f', '#26222a'], thick: 0.85 },
   fire: { kept: 18, out: 0.18, tall: [0.3, 0.6], wide: [0.05, 0.1], life: [0.5, 1], kindles: 0.3 },
 };
+/** Past the tail's tip, the line its fire follows: how many steps, each as long as the tail's last bone, and how much of the tail's bend each goes on with. */
+const PAST = { steps: 6, bends: 0.8 };
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.12, bob: 0.03, beat: 1.4 };
 /**
@@ -323,6 +326,11 @@ export class Wekufe {
   private readonly bones: (THREE.Object3D | undefined)[][];
   /** The tail's line this frame, root first, its tip last. */
   private readonly line = [0, 1, 2, 3, 4].map(() => new THREE.Vector3());
+  /** The line his fire follows: the tail's, root first, going on bending past its tip; and how far along it each point is. */
+  private readonly course = Array.from({ length: 5 + PAST.steps }, () => new THREE.Vector3());
+  private readonly far: number[] = new Array(5 + PAST.steps).fill(0);
+  private readonly bend = new THREE.Quaternion();
+  private readonly axis = new THREE.Vector3();
   /** Where the camera was when last drawn: the smoke's core is let off before the tail as it sees it. */
   private readonly eye = new THREE.Vector3();
   private seen = false;
@@ -400,7 +408,7 @@ export class Wekufe {
   private flame(f: Flame, into = 0): void {
     f.life = r(FLAMES.life);
     f.t = into * f.life;
-    f.up = Math.pow(Math.random(), 1.4) * 1.05 - 0.05;
+    f.up = Math.pow(Math.random(), 1.6) * FLAMES.from;
     f.angle = Math.random() * Math.PI * 2;
     f.out = Math.random() * 0.5;
     f.tall = r(FLAMES.tall);
@@ -420,6 +428,16 @@ export class Wekufe {
       if (n) p.divideScalar(n);
     });
     this.line[4].copy(this.line[3]).sub(this.line[2]).multiplyScalar(0.6).add(this.line[3]);
+    // Past the tip, on as the tail goes: each step turned from the last as its last bone is from the one before.
+    const course = this.course, way = this.v.subVectors(this.line[4], this.line[3]), step = way.length();
+    const before = this.side.subVectors(this.line[3], this.line[2]).normalize();
+    way.normalize();
+    const axis = this.axis.crossVectors(before, way);
+    const angle = Math.min(0.6, Math.asin(Math.min(1, axis.length())));
+    this.bend.setFromAxisAngle(axis.lengthSq() > 1e-8 ? axis.normalize() : axis.set(1, 0, 0), angle * PAST.bends);
+    for (let i = 0; i < 5; i++) course[i].copy(this.line[i]);
+    for (let i = 5; i < course.length; i++) course[i].copy(course[i - 1]).addScaledVector(way.applyQuaternion(this.bend), step);
+    for (let i = 1; i < course.length; i++) this.far[i] = this.far[i - 1] + course[i].distanceTo(course[i - 1]);
   }
 
   /** The point `up` along the tail (0 its tip, 1 its root), and past its root, rising off him. */
@@ -427,6 +445,18 @@ export class Wekufe {
     if (up >= 1) return out.copy(this.line[0]).setY(this.line[0].y + (up - 1) * this.tall * 0.6);
     const k = Math.max(0, 1 - up) * (this.line.length - 1), i = Math.min(Math.floor(k), this.line.length - 2);
     return out.lerpVectors(this.line[i], this.line[i + 1], k - i);
+  }
+
+  /** The point `far` along the fire's line (from the tail's root), and which way it goes there. */
+  private onCourse(far: number, out: THREE.Vector3, way: THREE.Vector3): void {
+    const last = this.course.length - 1;
+    let i = 0;
+    while (i < last - 1 && this.far[i + 1] < far) i++;
+    const a = this.course[i], b = this.course[i + 1];
+    way.subVectors(b, a);
+    const long = way.length() || 1;
+    out.copy(a).addScaledVector(way, (far - this.far[i]) / long);
+    way.divideScalar(long);
   }
 
   /** The tail's width `up` along it. */
@@ -534,26 +564,26 @@ export class Wekufe {
 
   /** The tongues: each rising from its root on the tail, waving more toward its tip, flaring up and dying down. */
   private lick(dt: number, shown: number): void {
-    const root = this.w, at = this.at, across = this.ahead, side = this.side;
+    const at = this.at, across = this.ahead, side = this.side, way = this.w;
+    const tail = this.far[4];
     this.flames.forEach((f, l) => {
       f.t += dt;
       if (f.t >= f.life) this.flame(f);
       const life = f.t / f.life;
-      // Up quick, then down slower: as tall as it is lit.
+      // Out quick, then back slower: as long as it is lit.
       const lit = Math.sin(Math.PI * Math.pow(life, 0.6));
       const tall = f.tall * this.tall * lit;
       const wide = this.width(f.up) / 2;
-      this.along(f.up, root);
-      side.set(Math.cos(f.angle), 0, Math.sin(f.angle));
-      root.addScaledVector(side, f.out * wide);
-      // Waving across the camera's view, so the wave is seen.
-      if (this.seen) across.subVectors(this.eye, root).setY(0).normalize().cross(this.v.set(0, 1, 0));
-      else across.copy(side);
+      side.set(Math.cos(f.angle), 0, Math.sin(f.angle)).multiplyScalar(f.out * wide);
       for (let p = 0; p < FLAMES.points; p++) {
         const q = p / (FLAMES.points - 1);
-        const sway = Math.sin(q * f.waves * Math.PI * 2 - this.time * f.run + f.phase) * FLAMES.wave * tall * q;
-        at.copy(root).addScaledVector(across, sway);
-        at.y += q * tall;
+        // From its root on the tail toward the tip and past it, along the tail's curve.
+        this.onCourse(tail * (1 - f.up) + q * tall, at, way);
+        at.add(side);
+        // Waving across it as the camera sees it, so the wave is seen.
+        if (this.seen) across.crossVectors(way, this.v.subVectors(this.eye, at)).normalize();
+        else across.set(-way.z, 0, way.x).normalize();
+        at.addScaledVector(across, Math.sin(q * f.waves * Math.PI * 2 - this.time * f.run + f.phase) * FLAMES.wave * tall * q);
         this.tongues.put(l, p, at, across, f.wide * this.tall * Math.pow(1 - q, 0.8) * (0.5 + 0.5 * lit), f.colour, shown * FLAMES.clear * lit * (1 - q * q));
       }
     });

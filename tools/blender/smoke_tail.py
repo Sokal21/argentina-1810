@@ -6,11 +6,13 @@ back and forth in a wave that runs down it, later at each bone, as a snake's. Th
 sway, so the tail follows the body. The wave goes round a whole number of times in the clip, so a
 loop stays one.
 
-    Blender -b --python tools/blender/smoke_tail.py -- CLIP.glb OUT.glb [--name zarpazo] [--bend 14] [--sway 16] [--lag 0.9] [--wave 50]
+    Blender -b --python tools/blender/smoke_tail.py -- CLIP.glb OUT.glb [--name zarpazo] [--bend 14] [--sway 18] [--lag 0.9] [--wave 50] [--curl 16] [--lift 16]
 
 CLIP.glb is a single clip of one rig (tools/blender/retarget_rot.py's). --bend is the bend back at
 each bone, in degrees; --sway how far it swings at each; --lag how much later (in radians) each bone
-down swings than the one above; --wave about how many frames the wave takes to go round.
+down swings than the one above; --wave about how many frames the wave takes to go round; --curl how
+much it is bent side to side, the other way at each bone down, in an S as a rattlesnake's lies; --lift
+how much more its last bone is bent back, the tip raised behind him.
 """
 import math
 import sys
@@ -38,7 +40,9 @@ for f in range(first, last + 1):
     frames.append({pb.name: (pb.location.copy(), pb.rotation_quaternion.copy()) for pb in arm.pose.bones})
 
 BEND = math.radians(float(opts.get('--bend', 14)))
-SWAY = math.radians(float(opts.get('--sway', 16)))
+SWAY = math.radians(float(opts.get('--sway', 18)))
+CURL = math.radians(float(opts.get('--curl', 16)))
+LIFT = math.radians(float(opts.get('--lift', 16)))
 LAG = float(opts.get('--lag', 0.9))
 ROUNDS = max(1, round((len(frames) - 1) / float(opts.get('--wave', 50))))
 
@@ -60,8 +64,10 @@ def tail(name: str, f: int) -> Quaternion:
     i = CHAIN.index(name[2:])
     at = 2 * math.pi * ROUNDS * f / (len(frames) - 1) - i * LAG
     # About his left (+Y) a hanging bone swings back; about his front (+X), to his side.
-    back = BEND * (1 + 0.5 * i) + 0.35 * SWAY * math.sin(2 * at)
-    return Quaternion(about(name, (1, 0, 0)), SWAY * math.sin(at)) @ Quaternion(about(name, (0, 1, 0)), back)
+    back = BEND * (1 + 0.5 * i) + 0.35 * SWAY * math.sin(2 * at) + (LIFT if i == len(CHAIN) - 1 else 0)
+    # The S: one way at the top, the other way twice as much below it (to undo it and go past).
+    side = CURL * (1 if i == 0 else -2 if i == 1 else 2)
+    return Quaternion(about(name, (1, 0, 0)), side + SWAY * math.sin(at)) @ Quaternion(about(name, (0, 1, 0)), back)
 
 act = bpy.data.actions.new(NAME)
 arm.animation_data.action = act
