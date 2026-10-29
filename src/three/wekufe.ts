@@ -148,7 +148,7 @@ function soft(inner: number): THREE.Texture {
   return texture;
 }
 
-interface Puff { at: THREE.Vector3; way: THREE.Vector3; t: number; life: number; rise: number; size: number; spin: number; turn: number; boil: number; beat: number }
+interface Puff { at: THREE.Vector3; way: THREE.Vector3; t: number; life: number; rise: number; size: number; spin: number; turn: number; boil: number; beat: number; power: number }
 interface Flame { t: number; life: number; up: number; angle: number; out: number; tall: number; wide: number; waves: number; run: number; phase: number; colour: THREE.Color }
 interface Soul { t: number; life: number; from: number; climb: number; angle: number; wind: number; out: number; colour: THREE.Color }
 
@@ -397,6 +397,10 @@ export class Wekufe {
   private readonly side = new THREE.Vector3();
   private readonly w = new THREE.Vector3();
   private time = Math.random() * 10;
+  /** How much of him is shown, eased: going into the earth his gown's smoke, fire and souls fade out slowly rather than all at once. */
+  private faded = 1;
+  /** How fast it fades out and comes back, a second. */
+  private static readonly FADE = { out: 1.1, back: 6 };
   /** From 0 (gone) to 1. */
   power = 1;
   /** His splash where he goes into the earth. */
@@ -417,7 +421,7 @@ export class Wekufe {
       const puffs: Puff[] = [];
       for (let i = 0; i < how.kept; i++) {
         cloud.colour(i, how.colours[i % how.colours.length]);
-        puffs.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, life: 0, rise: 0, size: 0, spin: 0, turn: 0, boil: 0, beat: 0 });
+        puffs.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, life: 0, rise: 0, size: 0, spin: 0, turn: 0, boil: 0, beat: 0, power: 0 });
       }
       this.layers.push({ how, cloud, puffs });
       this.group.add(cloud.mesh);
@@ -541,9 +545,11 @@ export class Wekufe {
       shown *= Math.min(1, Math.max(0, (this.line[0].y - this.ground.y) / (this.tall * 0.25)));
     }
     this.splash.update(dt);
-    this.smoke(dt, shown);
-    this.wind(dt, shown);
-    this.lick(dt, shown);
+    const ease = shown < this.faded ? Wekufe.FADE.out : Wekufe.FADE.back;
+    this.faded += (shown - this.faded) * Math.min(1, dt * ease);
+    this.smoke(dt, this.faded);
+    this.wind(dt, this.faded);
+    this.lick(dt, this.faded);
     this.glow(shown);
   }
 
@@ -559,8 +565,10 @@ export class Wekufe {
           p.at.y += p.rise * dt;
           p.turn += p.spin * dt;
           const bubbling = 1 + p.boil * Math.sin(p.t * p.beat * Math.PI * 2);
-          cloud.put(i, p.at, p.size * (1 + (how.swell - 1) * k) * bubbling, how.thick * shown * Math.min(1, k * 4) * (1 - k * k), p.turn);
-        } else if (shown > 0.05 && Math.random() < dt * rate) {
+          cloud.put(i, p.at, p.size * (1 + (how.swell - 1) * k) * bubbling, how.thick * p.power * Math.min(1, k * 4) * (1 - k * k), p.turn);
+        } else if (shown > 0.05 && Math.random() < dt * rate * shown) {
+          // Each puff as thick as he was shown when it was let off: left behind as he goes under, it lives out its life.
+          p.power = shown;
           // Anywhere along it, more of the core low where the gown is widest.
           const up = how.up ? r(how.up) : how === LAYERS[0] ? Math.pow(Math.random(), 1.3) : Math.random() * 1.05;
           const wide = this.width(up);
