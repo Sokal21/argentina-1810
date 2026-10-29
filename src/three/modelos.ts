@@ -73,6 +73,10 @@ const WHO: Who[] = [
   // The chonchón (Tripo from turnaround C, 25 October 2026): its wings boned and its flap keyed by hand
   // (tools/blender/rig_wings.py). 60 from wingtips to the ends of its hair, as its 2D drawing.
   { name: 'Chonchón', url: 'chonchon/3d/chonchon_animado.glb', drawn: CHONCHON, dives: true },
+  // The Wekufe, the last boss of the demon's road in Inti's arc (Tripo from turnaround A, 29 October
+  // 2026): a floating horned shadow, his tail of smoke skinned to Tripo's legs, held at rest in every
+  // clip (tools/blender/still_legs.py); Mixamo's Mutant Idle and Mutant Swiping. Not in the game yet.
+  { name: 'Wekufe', url: 'wekufe/3d/wekufe_animado.glb', drawn: 150 },
   // The ox cart whole, as the game draws it (three/cart.ts): going, its wheels rolling and its oxen
   // walking, in place; or standing, its oxen breathing and grazing now and then.
   { name: 'Carreta', url: '', drawn: 110, cart: true },
