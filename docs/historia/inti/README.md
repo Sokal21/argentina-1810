@@ -149,7 +149,9 @@ Las dos fases (el usuario):
   > «¡Inútiles! Si quiero el desierto limpio, voy a tener que limpiarlo yo mismo. ¡Ni tu luna te va a
   > salvar ahora!»
 
-  y salta a la batalla.
+  y salta a la batalla: **cae de lo alto al claro y aterriza fuerte**, el suelo vibra (cámara y
+  joystick) y levanta polvo (el usuario, 28/10/2026: el Hard Landing de Mixamo, su `aterrizaje`; en
+  modelos, `caida`).
 - **Cómo pelea Roca en la segunda fase** (decidido):
   - **Revólver:** una ráfaga en cono, varios tiros abiertos que se esquivan saliendo del cono.
   - **Sable:** de cerca, con un **alcance considerable**, y una **carga con el destello rojo** de los

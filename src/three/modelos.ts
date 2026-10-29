@@ -10,6 +10,7 @@ import { RISE, Rising } from './rising';
 import { Vomit } from './vomit';
 import { Shots } from './shot';
 import { Battery3D } from './battery';
+import { Dust } from './dust';
 import { plan, type SalvoKind } from '../tropa/battery';
 import { SHOT as BALLS } from '../bolts';
 import { CABRAL_DRESS, model } from './figure';
@@ -174,6 +175,16 @@ const CALL = { at: 15 / 46, ahead: 240 };
 const FLAG_LONG = 0.28;
 /** Roca calling a salvo himself in his fight's second phase, with his sabre (his `senal`), and how far before him it falls. */
 const ROCA_SALVO = 'senal_salva', ROCA_CALL = { at: 26 / 48, ahead: 180 };
+/**
+ * Roca coming into his fight (the user, 28/10/2026): he drops onto the clearing from high over it, as
+ * one leaping down from far off, and lands hard (Mixamo's Hard Landing, his `aterrizaje`), the ground
+ * shaken and its dust thrown up. He is seen `high` over the ground and falls, quicker and quicker,
+ * held in the clip's first pose for `fall` seconds and then in the clip itself, whose feet meet the
+ * ground at `lands` of it; there the camera is shaken for `shaken` seconds, `jolt` pixels.
+ */
+const LANDING = 'caida', DROP = { high: 320, fall: 0.6, lands: 12 / 48, shaken: 0.6, jolt: 9 };
+const dust = new Dust();
+view.scene.add(dust.group);
 const battery = new Battery3D();
 view.scene.add(battery.group);
 battery.blasted = blast => view.jolt(blast.great ? 0.45 : 0.25, blast.great ? 6 : 3, true);
@@ -244,6 +255,7 @@ function length(name: string): number {
   if (name === LUNGE) return shown.find(x => x.lunge)?.lunge?.time ?? 2;
   if (name === BURST) return 2.2;
   if (SALVOES[name] || name === ROCA_SALVO) return 5;
+  if (name === LANDING) return DROP.fall + (shown.find(x => x.revolver) ? loaded.get(shown.find(x => x.revolver)!)?.motion.seconds('aterrizaje') ?? 2 : 2);
   if (name === RETCH) return Math.max(...shown.map(x => vomits.get(x)?.lasts ?? 0), 0);
   if (name === RISEN) return Math.max(...shown.map(x => risings.get(x)?.lasts ?? 0), 0);
   for (const w of shown) { const it = loaded.get(w); if (it?.motion.has(name)) return it.motion.seconds(name); }
@@ -258,10 +270,10 @@ async function show(list: Who[]): Promise<void> {
   all.forEach((it, i) => { it.body.position.x = it.home = (i - (all.length - 1) / 2) * APART; view.scene.add(it.body); });
   // Their clips: with several, those any of them has (each one lacking a clip stands as he is).
   const names = [...new Set([...all.flatMap(it => it.clips), ...(list.some(w => w.lunge) ? [LUNGE] : []), ...(list.some(w => w.dives) ? [DIVE, BITE, DOWNED] : []),
-    ...(all.some(it => it.motion.has('mosquete_descolgar')) ? [SLUNG_AGAIN] : []), ...(all.some(it => it.motion.has('levantarse')) ? [RISEN] : []), ...(list.some(w => w.vomits) ? [RETCH] : []), ...(list.some(w => w.revolver) ? [BURST] : []), ...(list.some(w => w.spots) ? Object.keys(SALVOES) : []), ...(list.some(w => w.revolver) ? [ROCA_SALVO] : [])])];
+    ...(all.some(it => it.motion.has('mosquete_descolgar')) ? [SLUNG_AGAIN] : []), ...(all.some(it => it.motion.has('levantarse')) ? [RISEN] : []), ...(list.some(w => w.vomits) ? [RETCH] : []), ...(list.some(w => w.revolver) ? [BURST] : []), ...(list.some(w => w.spots) ? Object.keys(SALVOES) : []), ...(list.some(w => w.revolver) ? [ROCA_SALVO, LANDING] : [])])];
   if (!names.includes(clip)) clip = names[0] ?? 'reposo_mixamo';
   clipsBar.replaceChildren();
-  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE || n === DOWNED || n === SLUNG_AGAIN || n === RISEN || n === RETCH || n === BURST || !!SALVOES[n] || n === ROCA_SALVO;
+  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE || n === DOWNED || n === SLUNG_AGAIN || n === RISEN || n === RETCH || n === BURST || !!SALVOES[n] || n === ROCA_SALVO || n === LANDING;
   const ordered = [...names.filter(playing), ...names.filter(n => !playing(n))];
   for (const name of ordered) {
     const b = button(clipsBar, name, () => { play(name); for (const x of clipsBar.children) x.classList.toggle('on', x === b); });
@@ -303,6 +315,7 @@ function play(name: string): void {
       view.apply({ ...view.look, far: 1.1 });
       continue;
     }
+    if (name === LANDING && w.revolver) { it.motion.hold('aterrizaje', 0, { afresh: true }); it.body.position.y = DROP.high; continue; }
     if (name === BURST && w.revolver) { it.motion.play('rafaga', { once: true, afresh: true, blend: 0.12 }); continue; }
     if (name === RETCH && w.vomits) {
       let vomit = vomits.get(w);
@@ -319,6 +332,22 @@ function play(name: string): void {
     if (w.kneels && c === 'muerte') it.flung.throw(it.body);
     // The spotter lets both his flags fly from his hands (props.signal_flag: their poles 0.28 long).
     if (w.spots && c === 'muerte') for (const flag of ['bandera_roja', 'bandera_blanca']) it.flung.throw(it.body, flag, FLAG_LONG);
+  }
+}
+
+/** Roca falling onto the ground and landing on it, so far `into` it: see DROP. */
+function landing(body: THREE.Group, motion: Motion, into: number, dt: number): void {
+  const down = DROP.fall + DROP.lands * motion.seconds('aterrizaje'), was = into - dt;
+  if (was < DROP.fall && into >= DROP.fall) motion.play('aterrizaje', { once: true, afresh: true, blend: 0.05 });
+  body.position.y = into < down ? DROP.high * (1 - (into / down) ** 2) : 0;
+  if (was < down && into >= down) {
+    view.jolt(DROP.shaken, DROP.jolt, true);
+    const at = new THREE.Vector3(body.position.x, 0, body.position.z);
+    dust.cloud(at);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      dust.kick(at.clone().add(new THREE.Vector3(Math.cos(a) * 14, 0, Math.sin(a) * 14)), new THREE.Vector3(Math.cos(a), 0, Math.sin(a)), 1.5);
+    }
   }
 }
 
@@ -520,7 +549,7 @@ view.renderer.setAnimationLoop(() => {
   last = now;
   into += dt;
   // A clip played once starts over after a moment held on its end, while "repetir" is on.
-  const once = clip !== LUNGE && (clip === RISEN || clip === RETCH || shown.some(w => timing(w, clip)));
+  const once = clip !== LUNGE && (clip === RISEN || clip === RETCH || clip === LANDING || shown.some(w => timing(w, clip)));
   if (loop && once && into > length(clip) + 0.8) play(clip);
   for (const w of shown) {
     const it = loaded.get(w);
@@ -538,6 +567,7 @@ view.renderer.setAnimationLoop(() => {
       const at = ROCA_CALL.at * it.motion.seconds('senal');
       if (into - dt < at && into >= at) battery.salvo(plan('small', { x: Math.sin(turn) * ROCA_CALL.ahead, y: Math.cos(turn) * ROCA_CALL.ahead * ISO_Y }));
     }
+    if (clip === LANDING && w.revolver) landing(it.body, it.motion, into, dt);
     if (clip === RETCH && w.vomits) { vomits.get(w)?.update(dt); if (into > SCREAM) it.motion.play('reposo', { blend: 0.25 }); }
     it.motion.update(dt);
     it.flung.update(dt);
@@ -549,6 +579,7 @@ view.renderer.setAnimationLoop(() => {
   for (const s of stenches) s.update(dt);
   balls.update(dt);
   battery.update(dt);
+  dust.update(dt);
   if (framed && (SALVOES[clip] || clip === ROCA_SALVO)) view.follow(framed, dt);
   told.textContent = `${shown.length > 1 ? 'Todos' : shown[0]?.name ?? ''} — ${clip}${paused ? ' (pausa)' : ''}`;
   view.draw();
