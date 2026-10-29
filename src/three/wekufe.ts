@@ -10,7 +10,8 @@ import { unlitShader } from './pixels';
 // streaks, each fading along its length. And tongues of black fire lick up off the tail, waving as
 // they rise, each wide at its root and drawn out to a point, flaring and dying away.
 // He dives into the earth head first, sinking right under it; where his head goes in, the ground
-// splashes black, drops thrown up and out and a black pool spreading, and black fire bursts up. The red of his eyes and of what burns within his belly
+// splashes black, drops thrown up and out and a black pool spreading, a cloud of black smoke bursts
+// out low over the ground as dust would, and black fire bursts up. The red of his eyes and of what burns within his belly
 // glows past his body, beating slowly, as halos drawn over everything (his model's own red is lit by
 // glow.py's light map, which shines only on itself).
 
@@ -53,13 +54,17 @@ const DIVE = { from: 0.4, deep: 1.6, after: 0.4 };
 /**
  * The splash: its drops (how many, how fast out and up, shares of his height a second, how big, how
  * long they last at most), its pool (how wide it spreads, shares of his height, how long it lasts), and
- * the fire that bursts up (how many tongues, how far out, how tall, how wide, how long each lasts at
+ * the cloud of smoke that bursts out (how many puffs, how fast out and up, shares of his height a
+ * second, how big at first and how many times that at last, how long they last, their colours, how
+ * thick), and the fire that bursts up (how many tongues, how far out, how tall, how wide, how long each lasts at
  * most, and how long the burst goes on lighting them).
  */
 const SPLASH = {
   drops: 46, out: [0.3, 1.1], up: [0.6, 1.6], fall: 4, size: [0.012, 0.035], life: 1.4,
   colours: ['#000000', '#08070a', '#121014', '#1c191e'],
   pool: { wide: 0.55, grow: 0.25, lasts: 1.8 },
+  cloud: { puffs: 34, out: [0.5, 1.4], up: [0.05, 0.35], size: [0.12, 0.24], swell: 3, life: [1.4, 2.6],
+    colours: ['#050405', '#0c0a0d', '#141216', '#1d1a1f', '#26222a'], thick: 0.85 },
   fire: { kept: 18, out: 0.18, tall: [0.3, 0.6], wide: [0.05, 0.1], life: [0.5, 1], burns: 0.9 },
 };
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
@@ -146,7 +151,7 @@ class Streaks {
   }
 }
 
-interface Drop { at: THREE.Vector3; way: THREE.Vector3; t: number; size: number }
+interface Drop { at: THREE.Vector3; way: THREE.Vector3; t: number; size: number; life: number; spin: number }
 
 /** The black splash where he goes into the earth: drops thrown up and out, a pool spreading, black fire bursting up. */
 class Splash {
@@ -154,6 +159,8 @@ class Splash {
   private readonly drops: Billboards;
   private readonly flying: Drop[] = [];
   private readonly pool: THREE.Mesh;
+  private readonly smoke: Billboards;
+  private readonly puffs: Drop[] = [];
   private readonly fire: Streaks;
   private readonly flames: Flame[] = [];
   private readonly where = new THREE.Vector3();
@@ -169,9 +176,16 @@ class Splash {
     this.drops = new Billboards(SPLASH.drops, soft(0.6));
     for (let i = 0; i < SPLASH.drops; i++) {
       this.drops.colour(i, SPLASH.colours[i % SPLASH.colours.length]);
-      this.flying.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, size: 0 });
+      this.flying.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, size: 0, life: 0, spin: 0 });
     }
     this.group.add(this.drops.mesh);
+    const cloud = SPLASH.cloud;
+    this.smoke = new Billboards(cloud.puffs, soft(0.3));
+    for (let i = 0; i < cloud.puffs; i++) {
+      this.smoke.colour(i, cloud.colours[i % cloud.colours.length]);
+      this.puffs.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, size: 0, life: 0, spin: 0 });
+    }
+    this.group.add(this.smoke.mesh);
     this.pool = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.ShaderMaterial({
       uniforms: { map: { value: soft(0.55) }, clear: { value: 0 } },
       vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
@@ -203,6 +217,17 @@ class Splash {
       d.t = 0;
       d.size = r(SPLASH.size) * t;
       this.drops.put(i, d.at, d.size, 1);
+    });
+    const cloud = SPLASH.cloud;
+    this.puffs.forEach((d, i) => {
+      const a = Math.random() * Math.PI * 2, out = r(cloud.out) * t;
+      d.at.copy(at).setY(at.y + r(cloud.size) * t * 0.3);
+      d.way.set(Math.cos(a) * out, r(cloud.up) * t, Math.sin(a) * out);
+      d.t = 0;
+      d.life = r(cloud.life);
+      d.size = r(cloud.size) * t;
+      d.spin = (Math.random() - 0.5) * 1.5;
+      this.smoke.put(i, d.at, d.size, 0, Math.random() * Math.PI * 2);
     });
     this.flames.forEach((f, i) => this.light(f, -i / SPLASH.fire.kept * SPLASH.fire.burns));
     this.pool.position.copy(at).setY(at.y + 0.3);
@@ -239,6 +264,19 @@ class Splash {
       this.drops.put(i, d.at, d.size, 1 - Math.pow(d.t / SPLASH.life, 3));
     });
     this.drops.commit();
+    // The cloud: thrown out fast and slowing, rising a little, swelling and thinning away.
+    const cloud = SPLASH.cloud;
+    this.puffs.forEach((d, i) => {
+      if (!this.smoke.shown(i)) return;
+      d.t += dt;
+      const k = d.t / d.life;
+      if (k >= 1) { this.smoke.hide(i); return; }
+      d.way.multiplyScalar(Math.exp(-2.5 * dt));
+      d.at.addScaledVector(d.way, dt);
+      d.at.y += 0.06 * t * dt;
+      this.smoke.put(i, d.at, d.size * (1 + (cloud.swell - 1) * (1 - Math.pow(1 - k, 2))), cloud.thick * Math.min(1, k * 8) * (1 - k) * (1 - k), d.t * d.spin);
+    });
+    this.smoke.commit();
     const pool = SPLASH.pool, k = this.since / pool.lasts;
     this.pool.visible = k < 1;
     if (k < 1) {
