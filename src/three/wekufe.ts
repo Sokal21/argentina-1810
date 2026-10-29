@@ -2,14 +2,14 @@ import * as THREE from 'three';
 import { Billboards } from './billboards';
 import { unlitShader } from './pixels';
 
-// What makes the Wekufe more than his model. He floats, rising and sinking a little. His tail is hidden
-// in smoke, laid along it as it bends and snakes (found each frame from the leg bones it is skinned to),
-// in layers: a black core, thick enough to hide it, let off just before it as the camera sees it;
-// a dark cloud about that; a grey haze outside, slower to go; and at its end, smoke of many greys and
-// blacks, big and small, spreading and curling off it. Souls wind up round it and off him, as black
-// streaks, each fading along its length. And tongues of black fire lick out of the tail's end along its
-// curve, going on bending past its tip as the tail does, waving, each wide at its root and drawn out to a
-// point, flaring and dying away.
+// What makes the Wekufe more than his model. His model ends a little under his waist (cut_below.py);
+// below it he is a long gown of smoke and fire, as a lady's of old: narrow at his waist and flaring
+// out in a bell to its hem just over the ground, swaying as his legs (bones under nothing now) swing.
+// Its smoke is in layers: a black core filling it, a dark cloud about that, a grey haze outside,
+// slower to go, and at its hem smoke of many greys and blacks spreading over the ground. Tongues of
+// black fire lick up from low on it, close along it as it narrows, waving, each wide at its root and
+// drawn out to a point, flaring and dying away. Souls wind up round it and off him, as black streaks,
+// each fading along its length. He floats, rising and sinking a little.
 // He dives into the earth head first, sinking right under it; where his head goes in, the ground
 // splashes black, drops thrown up and out and a black pool spreading, a cloud of black smoke bursts
 // out low over the ground as dust would, and black fire bursts up; the smoke and the fire go together.
@@ -19,33 +19,37 @@ import { unlitShader } from './pixels';
 /**
  * A layer of the smoke: how many puffs kept, how long one lasts, how fast it rises and spreads, how big
  * it starts (a share of his height) and how many times that it ends, its colours, how thick at most,
- * how far out from the tail's middle it is let off (a share of the tail's width there), and over which
- * stretch of the tail (0 its tip, 1 its root; the whole of it if not said).
+ * how far out from the gown's middle it is let off (a share of the gown's width there), and over which
+ * stretch of the gown (0 its hem, 1 his waist; the whole of it if not said).
  */
 interface Layer { kept: number; life: number[]; rise: number[]; spread: number; size: number[]; swell: number; colours: string[]; thick: number; out: number; up?: number[] }
 const LAYERS: Layer[] = [
-  { kept: 34, life: [0.5, 0.9], rise: [2, 6], spread: 4, size: [0.09, 0.14], swell: 1.5, colours: ['#050405', '#0a0809', '#0e0b0d'], thick: 0.4, out: 0.6 },
-  { kept: 40, life: [0.9, 1.5], rise: [6, 12], spread: 8, size: [0.16, 0.26], swell: 1.8, colours: ['#0b090b', '#100d10', '#141114'], thick: 0.4, out: 1.1 },
+  { kept: 60, life: [0.5, 0.9], rise: [2, 6], spread: 4, size: [0.09, 0.14], swell: 1.5, colours: ['#050405', '#0a0809', '#0e0b0d'], thick: 0.4, out: 0.6 },
+  { kept: 50, life: [0.9, 1.5], rise: [6, 12], spread: 8, size: [0.16, 0.26], swell: 1.8, colours: ['#0b090b', '#100d10', '#141114'], thick: 0.4, out: 1.1 },
   { kept: 24, life: [1.6, 2.6], rise: [8, 16], spread: 12, size: [0.26, 0.4], swell: 2.2, colours: ['#100e11', '#141215'], thick: 0.18, out: 1.6 },
   { kept: 24, life: [0.8, 2], rise: [-4, 10], spread: 18, size: [0.05, 0.24], swell: 2.4,
     colours: ['#000000', '#060507', '#0c0b0d', '#131114', '#1a181b', '#222024', '#2b282d', '#353238'], thick: 0.25, out: 1.4, up: [-0.08, 0.3] },
 ];
-/** The tail's width, as a share of his height, at its root (his waist) and at its tip. */
-const TAIL = { root: 0.11, tip: 0.03 };
 /**
- * The souls: how many at once, how long one lasts, how fast it climbs the tail (tails a second) and
- * winds round it (radians a second), how far out (shares of the tail's width), how long its streak is
+ * His gown: how far from his waist bone down to its hem (a share of his height), how wide at its waist
+ * and at its hem (shares of his height), how sharply it flares toward the hem, and how much of his
+ * legs' swing its hem takes.
+ */
+const GOWN = { long: 0.48, waist: 0.17, hem: 0.62, flare: 1.6, swing: 0.35 };
+/**
+ * The souls: how many at once, how long one lasts, how fast it climbs the gown (gowns a second) and
+ * winds round it (radians a second), how far out (shares of the gown's width), how long its streak is
  * (seconds of its path), how wide (a share of his height), how clear at most, and their colours.
  */
 const SOULS = { kept: 14, points: 18, life: [1.6, 2.6], climb: [0.45, 0.75], wind: [2.5, 4.2], out: [1.1, 1.9],
   streak: 0.4, wide: 0.024, clear: 0.85, colours: ['#000000', '#070607', '#0e0c0f', '#161318'] };
 /**
  * The tongues of black fire: how many at once, points along each, how long one lasts, how far up the
- * tail from its tip one may start (a share of the tail), how long at its longest (a share of his height), how wide at its root (a share of his height), how far it waves to the side
+ * gown from its hem one may start (a share of the gown), how long at its longest (a share of his height), how wide at its root (a share of his height), how far it waves to the side
  * at its tip (a share of its own height), how many waves along it and how fast they run up it, how
  * clear at its root, and their colours.
  */
-const FLAMES = { kept: 34, points: 10, life: [0.4, 0.9], from: 0.45, tall: [0.22, 0.45], wide: [0.04, 0.08], wave: 0.3,
+const FLAMES = { kept: 44, points: 10, life: [0.4, 0.9], from: 0.35, tall: [0.22, 0.45], wide: [0.04, 0.08], wave: 0.3,
   waves: [1, 2], run: [7, 12], clear: 0.9, colours: ['#000000', '#050405', '#0a090b', '#100e11', '#18161a', '#211e23'] };
 /**
  * His dive: from what share of the clip he sinks, how deep he goes by its end (in the model's units: it
@@ -70,10 +74,8 @@ const SPLASH = {
     colours: ['#050405', '#0c0a0d', '#141216', '#1d1a1f', '#26222a'], thick: 0.85 },
   fire: { kept: 18, out: 0.18, tall: [0.3, 0.6], wide: [0.05, 0.1], life: [0.5, 1], kindles: 0.3 },
 };
-/** Past the tail's tip, the line its fire follows: how many steps, each as long as the tail's last bone, and how much of the tail's bend each goes on with. */
-const PAST = { steps: 6, bends: 0.8 };
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
-const FLOAT = { high: 0.12, bob: 0.03, beat: 1.4 };
+const FLOAT = { high: 0.06, bob: 0.025, beat: 1.4 };
 /**
  * His halos: on which bone, how far before it and up it (shares of his height), how wide (a share of
  * his height), how bright at least and at most, and how fast they beat.
@@ -322,16 +324,11 @@ export class Wekufe {
   private readonly halos: { sprite: THREE.Sprite; bone: THREE.Object3D | undefined; how: (typeof HALOS)[number] }[] = [];
   /** What of the model floats: everything under its root, so the root keeps the place the game gives it. */
   private readonly floats: THREE.Object3D[];
-  /** The bones the tail is laid along, root first: his waist, then thighs, calves, feet, two by two. */
+  /** His waist bone, then his legs' (thighs, calves, feet, two by two): the gown hangs from the one and swings with the others. */
   private readonly bones: (THREE.Object3D | undefined)[][];
-  /** The tail's line this frame, root first, its tip last. */
+  /** The gown's middle line this frame, his waist first, its hem last. */
   private readonly line = [0, 1, 2, 3, 4].map(() => new THREE.Vector3());
-  /** The line his fire follows: the tail's, root first, going on bending past its tip; and how far along it each point is. */
-  private readonly course = Array.from({ length: 5 + PAST.steps }, () => new THREE.Vector3());
-  private readonly far: number[] = new Array(5 + PAST.steps).fill(0);
-  private readonly bend = new THREE.Quaternion();
-  private readonly axis = new THREE.Vector3();
-  /** Where the camera was when last drawn: the smoke's core is let off before the tail as it sees it. */
+  /** Where the camera was when last drawn: the streaks and tongues are turned to it. */
   private readonly eye = new THREE.Vector3();
   private seen = false;
   private readonly at = new THREE.Vector3();
@@ -370,7 +367,7 @@ export class Wekufe {
     this.streaks.mesh.onBeforeRender = (_r, _s, camera) => { this.eye.setFromMatrixPosition(camera.matrixWorld); this.seen = true; };
     this.group.add(this.streaks.mesh);
     this.tongues = new Streaks(FLAMES.kept, FLAMES.points);
-    // Drawn after the smoke, so the smoke at the tail's root does not hide them.
+    // Drawn after the smoke, so the smoke in the gown does not hide them.
     this.tongues.mesh.renderOrder = 1;
     this.group.add(this.tongues.mesh);
     for (let i = 0; i < FLAMES.kept; i++) {
@@ -392,7 +389,7 @@ export class Wekufe {
     }
   }
 
-  /** A soul set off again from low on the tail, `into` that share of its life already. */
+  /** A soul set off again from low on the gown, `into` that share of its life already. */
   private soul(s: Soul, into = 0): void {
     s.life = r(SOULS.life);
     s.t = into * s.life;
@@ -404,7 +401,7 @@ export class Wekufe {
     s.colour.set(SOULS.colours[Math.floor(Math.random() * SOULS.colours.length)]);
   }
 
-  /** A tongue lit again somewhere along the tail, more of them low, `into` that share of its life already. */
+  /** A tongue lit again low on the gown, more of them nearer the hem, `into` that share of its life already. */
   private flame(f: Flame, into = 0): void {
     f.life = r(FLAMES.life);
     f.t = into * f.life;
@@ -419,50 +416,31 @@ export class Wekufe {
     f.colour.set(FLAMES.colours[Math.floor(Math.random() * FLAMES.colours.length)]);
   }
 
-  /** The tail's line: its root at his waist, through the middles of both legs' bones, its tip as far past the feet as half a calf. */
+  /** The gown's middle line, its waist first, its hem last: straight down from his waist, its hem swung as his legs swing. */
   private lay(): void {
-    this.bones.forEach((pair, i) => {
-      const p = this.line[i].set(0, 0, 0);
-      let n = 0;
-      for (const b of pair) if (b) { p.add(b.getWorldPosition(this.v)); n++; }
-      if (n) p.divideScalar(n);
-    });
-    this.line[4].copy(this.line[3]).sub(this.line[2]).multiplyScalar(0.6).add(this.line[3]);
-    // Past the tip, on as the tail goes: each step turned from the last as its last bone is from the one before.
-    const course = this.course, way = this.v.subVectors(this.line[4], this.line[3]), step = way.length();
-    const before = this.side.subVectors(this.line[3], this.line[2]).normalize();
-    way.normalize();
-    const axis = this.axis.crossVectors(before, way);
-    const angle = Math.min(0.6, Math.asin(Math.min(1, axis.length())));
-    this.bend.setFromAxisAngle(axis.lengthSq() > 1e-8 ? axis.normalize() : axis.set(1, 0, 0), angle * PAST.bends);
-    for (let i = 0; i < 5; i++) course[i].copy(this.line[i]);
-    for (let i = 5; i < course.length; i++) course[i].copy(course[i - 1]).addScaledVector(way.applyQuaternion(this.bend), step);
-    for (let i = 1; i < course.length; i++) this.far[i] = this.far[i - 1] + course[i].distanceTo(course[i - 1]);
+    const [waist, ...legs] = this.bones;
+    const top = this.line[0];
+    if (waist[0]) waist[0].getWorldPosition(top);
+    // Where his feet are, against his waist: so far the hem is swung.
+    const feet = this.v.set(0, 0, 0);
+    let n = 0;
+    for (const b of legs[legs.length - 1]) if (b) { feet.add(b.getWorldPosition(this.side)); n++; }
+    if (n) feet.divideScalar(n).sub(top).multiplyScalar(GOWN.swing);
+    const hem = this.line[4].set(top.x + feet.x, top.y - GOWN.long * this.tall, top.z + feet.z);
+    for (let i = 1; i < 4; i++) this.line[i].lerpVectors(top, hem, i / 4);
   }
 
-  /** The point `up` along the tail (0 its tip, 1 its root), and past its root, rising off him. */
+  /** The point `up` along the gown's middle (0 its hem, 1 his waist), and past his waist, rising off him. */
   private along(up: number, out: THREE.Vector3): THREE.Vector3 {
     if (up >= 1) return out.copy(this.line[0]).setY(this.line[0].y + (up - 1) * this.tall * 0.6);
     const k = Math.max(0, 1 - up) * (this.line.length - 1), i = Math.min(Math.floor(k), this.line.length - 2);
     return out.lerpVectors(this.line[i], this.line[i + 1], k - i);
   }
 
-  /** The point `far` along the fire's line (from the tail's root), and which way it goes there. */
-  private onCourse(far: number, out: THREE.Vector3, way: THREE.Vector3): void {
-    const last = this.course.length - 1;
-    let i = 0;
-    while (i < last - 1 && this.far[i + 1] < far) i++;
-    const a = this.course[i], b = this.course[i + 1];
-    way.subVectors(b, a);
-    const long = way.length() || 1;
-    out.copy(a).addScaledVector(way, (far - this.far[i]) / long);
-    way.divideScalar(long);
-  }
-
-  /** The tail's width `up` along it. */
+  /** The gown's width `up` along it: flaring out more and more toward its hem. */
   private width(up: number): number {
     const u = Math.min(1, Math.max(0, up));
-    return this.tall * (TAIL.tip + (TAIL.root - TAIL.tip) * u);
+    return this.tall * (GOWN.waist + (GOWN.hem - GOWN.waist) * Math.pow(1 - u, GOWN.flare));
   }
 
   /** He dives into the earth, playing his dive (`seconds` long), and stays under it until he `rises`. */
@@ -519,15 +497,13 @@ export class Wekufe {
           p.turn += p.spin * dt;
           cloud.put(i, p.at, p.size * (1 + (how.swell - 1) * k), how.thick * shown * Math.min(1, k * 4) * (1 - k * k), p.turn);
         } else if (shown > 0.05 && Math.random() < dt * rate) {
-          // Anywhere along it, more of the core low where the tail is all smoke.
+          // Anywhere along it, more of the core low where the gown is widest.
           const up = how.up ? r(how.up) : how === LAYERS[0] ? Math.pow(Math.random(), 1.3) : Math.random() * 1.05;
           const wide = this.width(up);
           const a = Math.random() * Math.PI * 2, out = Math.sqrt(Math.random()) * how.out * wide / 2;
           this.along(up, p.at);
           p.at.x += Math.cos(a) * out;
           p.at.z += Math.sin(a) * out;
-          // Before the tail, as the camera sees it, by about its width: so the core hides it.
-          if (this.seen) p.at.add(this.v.subVectors(this.eye, p.at).normalize().multiplyScalar(wide * 0.6));
           p.way.set(Math.cos(a), 0, Math.sin(a)).multiplyScalar(how.spread * Math.random());
           p.t = 0; p.life = r(how.life); p.rise = r(how.rise); p.size = r(how.size) * this.tall;
           p.spin = (Math.random() - 0.5) * 1.2;
@@ -539,7 +515,7 @@ export class Wekufe {
     }
   }
 
-  /** The souls, each a streak along the last of its path up and round the tail, as the tail is now. */
+  /** The souls, each a streak along the last of its path up and round the gown, as the gown is now. */
   private wind(dt: number, shown: number): void {
     const head = this.at, before = this.w, across = this.ahead;
     this.souls.forEach((s, l) => {
@@ -562,27 +538,26 @@ export class Wekufe {
     this.streaks.commit();
   }
 
-  /** The tongues: each rising from its root on the tail, waving more toward its tip, flaring up and dying down. */
+  /** The tongues: each rising from its root low on the gown, waving more toward its tip, flaring up and dying down. */
   private lick(dt: number, shown: number): void {
     const at = this.at, across = this.ahead, side = this.side, way = this.w;
-    const tail = this.far[4];
     this.flames.forEach((f, l) => {
       f.t += dt;
       if (f.t >= f.life) this.flame(f);
       const life = f.t / f.life;
-      // Out quick, then back slower: as long as it is lit.
+      // Up quick, then down slower: as long as it is lit.
       const lit = Math.sin(Math.PI * Math.pow(life, 0.6));
       const tall = f.tall * this.tall * lit;
-      const wide = this.width(f.up) / 2;
-      side.set(Math.cos(f.angle), 0, Math.sin(f.angle)).multiplyScalar(f.out * wide);
+      side.set(Math.cos(f.angle), 0, Math.sin(f.angle));
       for (let p = 0; p < FLAMES.points; p++) {
         const q = p / (FLAMES.points - 1);
-        // From its root on the tail toward the tip and past it, along the tail's curve.
-        this.onCourse(tail * (1 - f.up) + q * tall, at, way);
-        at.add(side);
+        // Up from its root low on the gown, close along it as it narrows.
+        const up = f.up + q * tall / (GOWN.long * this.tall);
+        this.along(up, at).addScaledVector(side, this.width(up) / 2 * (0.85 + f.out * 0.4));
+        if (p === 0) way.set(0, 1, 0);
         // Waving across it as the camera sees it, so the wave is seen.
         if (this.seen) across.crossVectors(way, this.v.subVectors(this.eye, at)).normalize();
-        else across.set(-way.z, 0, way.x).normalize();
+        else across.set(-side.z, 0, side.x);
         at.addScaledVector(across, Math.sin(q * f.waves * Math.PI * 2 - this.time * f.run + f.phase) * FLAMES.wave * tall * q);
         this.tongues.put(l, p, at, across, f.wide * this.tall * Math.pow(1 - q, 0.8) * (0.5 + 0.5 * lit), f.colour, shown * FLAMES.clear * lit * (1 - q * q));
       }
@@ -590,7 +565,7 @@ export class Wekufe {
     this.tongues.commit();
   }
 
-  /** Where soul `s` is `t` into its life: up the tail and round it, further out as it rises off him. */
+  /** Where soul `s` is `t` into its life: up the gown and round it, further out as it rises off him. */
   private path(s: Soul, t: number, out: THREE.Vector3): THREE.Vector3 {
     const up = s.from + s.climb * t;
     const angle = s.angle + s.wind * t;

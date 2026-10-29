@@ -75,10 +75,11 @@ const WHO: Who[] = [
   // (tools/blender/rig_wings.py). 60 from wingtips to the ends of its hair, as its 2D drawing.
   { name: 'Chonchón', url: 'chonchon/3d/chonchon_animado.glb', drawn: CHONCHON, dives: true },
   // The Wekufe, the last boss of the demon's road in Inti's arc (Tripo from turnaround A, 29 October
-  // 2026): a floating horned shadow, his tail of smoke skinned to Tripo's legs, bent back and snaking
-  // in every clip (tools/blender/smoke_tail.py); Mixamo's Mutant Idle and Mutant Swiping, and Run To Dive for
-  // his going into the earth as he comes out of smoke beside her. Floating, in
-  // his black smoke, his eyes and belly glowing (three/wekufe.ts). Not in the game yet.
+  // 2026): a floating horned shadow, his model cut a little under his waist (tools/blender/cut_below.py),
+  // below it a long gown of black smoke and fire swinging as his legs, bones under nothing, swing
+  // (tools/blender/smoke_tail.py; three/wekufe.ts); his eyes and belly glowing. Mixamo's Mutant Idle and
+  // Mutant Swiping, and Run To Dive for his going into the earth as he comes out of smoke beside her.
+  // Not in the game yet.
   { name: 'Wekufe', url: 'wekufe/3d/wekufe_animado.glb', drawn: 150, wekufe: true },
   // The ox cart whole, as the game draws it (three/cart.ts): going, its wheels rolling and its oxen
   // walking, in place; or standing, its oxen breathing and grazing now and then.
