@@ -203,7 +203,7 @@ class Streaks {
   }
 }
 
-interface Drop { at: THREE.Vector3; way: THREE.Vector3; t: number; size: number; life: number; spin: number }
+interface Drop { at: THREE.Vector3; way: THREE.Vector3; t: number; size: number; life: number; spin: number; boil: number; beat: number }
 
 /** The black splash where he goes into the earth: drops thrown up and out, a pool spreading, black fire bursting up. */
 class Splash {
@@ -229,14 +229,15 @@ class Splash {
     this.drops = new Billboards(SPLASH.drops, soft(0.6));
     for (let i = 0; i < SPLASH.drops; i++) {
       this.drops.colour(i, SPLASH.colours[i % SPLASH.colours.length]);
-      this.flying.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, size: 0, life: 0, spin: 0 });
+      this.flying.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, size: 0, life: 0, spin: 0, boil: 0, beat: 0 });
     }
     this.group.add(this.drops.mesh);
     const cloud = SPLASH.cloud;
-    this.smoke = new Billboards(cloud.puffs, soft(0.3));
+    // Bubbling as his own smoke does.
+    this.smoke = new Billboards(cloud.puffs, lumps());
     for (let i = 0; i < cloud.puffs; i++) {
       this.smoke.colour(i, cloud.colours[i % cloud.colours.length]);
-      this.puffs.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, size: 0, life: 0, spin: 0 });
+      this.puffs.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, size: 0, life: 0, spin: 0, boil: 0, beat: 0 });
     }
     this.group.add(this.smoke.mesh);
     this.pool = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.ShaderMaterial({
@@ -284,6 +285,8 @@ class Splash {
       d.life = r(cloud.life);
       d.size = r(cloud.size) * t;
       d.spin = (Math.random() - 0.5) * 1.5;
+      d.boil = r(BOIL.boil);
+      d.beat = r(BOIL.beat);
       this.smoke.put(i, d.at, d.size, 0, Math.random() * Math.PI * 2);
     });
     this.flames.forEach((f, i) => this.light(f, -i / SPLASH.fire.kept * SPLASH.fire.kindles));
@@ -333,7 +336,7 @@ class Splash {
       d.way.multiplyScalar(Math.exp(-2.5 * dt));
       d.at.addScaledVector(d.way, dt);
       d.at.y += 0.06 * t * dt;
-      this.smoke.put(i, d.at, d.size * (1 + (cloud.swell - 1) * (1 - Math.pow(1 - k, 2))), cloud.thick * ends * Math.min(1, k * 8) * (1 - 0.6 * k), d.t * d.spin);
+      this.smoke.put(i, d.at, d.size * (1 + (cloud.swell - 1) * (1 - Math.pow(1 - k, 2))) * (1 + d.boil * Math.sin(d.t * d.beat * Math.PI * 2)), cloud.thick * ends * Math.min(1, k * 8) * (1 - 0.6 * k), d.t * d.spin);
     });
     this.smoke.commit();
     const pool = SPLASH.pool, k = this.since / pool.lasts;
