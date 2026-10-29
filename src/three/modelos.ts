@@ -76,7 +76,8 @@ const WHO: Who[] = [
   { name: 'Chonchón', url: 'chonchon/3d/chonchon_animado.glb', drawn: CHONCHON, dives: true },
   // The Wekufe, the last boss of the demon's road in Inti's arc (Tripo from turnaround A, 29 October
   // 2026): a floating horned shadow, his tail of smoke skinned to Tripo's legs, bent back and snaking
-  // in every clip (tools/blender/smoke_tail.py); Mixamo's Mutant Idle and Mutant Swiping. Floating, in
+  // in every clip (tools/blender/smoke_tail.py); Mixamo's Mutant Idle and Mutant Swiping, and Run To Dive for
+  // his going into the earth as he comes out of smoke beside her. Floating, in
   // his black smoke, his eyes and belly glowing (three/wekufe.ts). Not in the game yet.
   { name: 'Wekufe', url: 'wekufe/3d/wekufe_animado.glb', drawn: 150, wekufe: true },
   // The ox cart whole, as the game draws it (three/cart.ts): going, its wheels rolling and its oxen
@@ -103,7 +104,7 @@ const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   granada_sacar: { lasts: DRAW }, granada_lanzar: { lasts: SHOT },
   tajo: { lasts: 0.5 }, 'Realista:tajo': { lasts: 0.8 }, 'Sableador:tajo': { once: true },
   barrido: { once: true }, estocada: { once: true }, zarpazo: { once: true }, 'El capitán:grito': { lasts: 2.0 }, grito: { lasts: 2.0 }, tiro: { once: true },
-  muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, senas: { once: true }, rafaga: { once: true }, rodada_mixamo: { once: true }, beber: { once: true },
+  muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, senas: { once: true }, rafaga: { once: true }, rodada_mixamo: { once: true }, zambullida: { once: true }, beber: { once: true },
 };
 /**
  * The clips the game plays: any whose name is written in quotes in the 3D game's code. Found there,

@@ -73,3 +73,4 @@ Roca's spotter (assets/observador/3d) has Mixamo's Idle (`Idle.fbx`, `--name rep
 | Hard Landing.fbx | "Hard Landing": Roca dropping onto the clearing as he comes into his fight, all 48 frames, `--name aterrizaje` (neither `--feet` nor `--ground`: its fall is kept, his feet meeting the ground at frame 12), the gallery dropping him from higher still (its `caida`) |
 | Mutant Idle.fbx | "Mutant Idle": the Wekufe floating, hunched and heaving, `--name reposo`, then `tools/blender/smoke_tail.py` (his tail of smoke is skinned to the legs: both given the same bend back and snaking wave) |
 | Mutant Swiping.fbx | "Mutant Swiping": the Wekufe's claws as he comes out of smoke beside her, `--name zarpazo`, then `smoke_tail.py` |
+| Run To Dive.fbx | "Run To Dive": the Wekufe going into the earth, head first, to come out of smoke beside her, all 24 frames, `--name zambullida`, then `smoke_tail.py` |
