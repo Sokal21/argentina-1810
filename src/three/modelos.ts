@@ -107,6 +107,8 @@ const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   barrido: { once: true }, estocada: { once: true }, zarpazo: { once: true }, 'El capitán:grito': { lasts: 2.0 }, grito: { lasts: 2.0 }, tiro: { once: true },
   muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, senas: { once: true }, rafaga: { once: true }, rodada_mixamo: { once: true }, zambullida: { once: true }, beber: { once: true },
 };
+/** How long a clip's end is held before it starts over, for one whose end goes on after it, in seconds. */
+const HELD: Record<string, number> = { zambullida: 3.2 };
 /**
  * The clips the game plays: any whose name is written in quotes in the 3D game's code. Found there,
  * not listed here, so a clip is counted as soon as the game plays it; the rest of a model's clips
@@ -562,9 +564,10 @@ view.renderer.setAnimationLoop(() => {
   const dt = paused ? 0 : Math.min(0.1, (now - last) / 1000) * pace;
   last = now;
   into += dt;
-  // A clip played once starts over after a moment held on its end, while "repetir" is on.
+  // A clip played once starts over after a moment held on its end (longer for one whose end goes on
+  // after it: the Wekufe's splash), while "repetir" is on.
   const once = clip !== LUNGE && (clip === RISEN || clip === RETCH || clip === LANDING || shown.some(w => timing(w, clip)));
-  if (loop && once && into > length(clip) + 0.8) play(clip);
+  if (loop && once && into > length(clip) + (HELD[clip] ?? 0.8)) play(clip);
   for (const w of shown) {
     const it = loaded.get(w);
     if (!it) continue;
