@@ -171,10 +171,11 @@ export const KINDS = {
   // salvo of his battery down on her (his `senal`, cut down to point at frame 26 of 48). When his life
   // runs out he does not fall: he gets away (how is still to be seen: the user, 28/10/2026).
   roca: {
-    id: 'roca', name: 'Julio Argentino Roca', life: 40, girth: 11, pace: 60, sight: 2000, steady: true, rushes: true,
+    // Nearly at her walk (115), and quicker still once hurt: at 60 he was easily left behind (the user, 28/10/2026).
+    id: 'roca', name: 'Julio Argentino Roca', life: 40, girth: 11, pace: 100, sight: 2000, steady: true, rushes: true,
     shot: { range: 260, aim: 0.7, lock: 0.2, reload: [3, 4.5], muzzle: 38, burst: { shots: 5, apart: 0.09, cone: 50 } },
     blow: { near: 75, time: 1.1, hit: 0.55, reach: 100, rest: 0.6, damage: 2 },
-    lunge: { from: 110, to: 260, charge: 0.6, dash: 200, hit: 0.95, reach: 70, time: 1.95, every: 6 },
+    lunge: { from: 110, to: 260, charge: 0.6, dash: 220, hit: 0.95, reach: 70, time: 1.95, every: 4.5 },
     signals: { every: [7, 10], time: 1.6, at: 0.87, kinds: ['small'] },
     rises: { time: 2.6, under: 1.4 }, escapes: { pace: 150, time: 3 },
     fire: 0.2, fury: 1.3, worth: 150, spoils: 100,
