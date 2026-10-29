@@ -6,9 +6,11 @@ import { unlitShader } from './pixels';
 // below it he is a long gown of smoke and fire, as a lady's of old: narrow at his waist and flaring
 // out in a bell to its hem just over the ground, swaying as his legs (bones under nothing now) swing.
 // Its smoke is in layers: a black core filling it, a dark cloud about that, a grey haze outside,
-// slower to go, and at its hem smoke of many greys and blacks spreading over the ground. Tongues of
-// black fire lick up from low on it, close along it as it narrows, waving, each wide at its root and
-// drawn out to a point, flaring and dying away. Souls wind up round it and off him, as black streaks,
+// slower to go, at its hem smoke of many greys and blacks spreading over the ground, and at his waist
+// a thick black band, so where his model ends is not seen. Tongues of
+// black fire lick up from anywhere low on it, close along it as it narrows and bulging a little off it,
+// waving, each soft at its root, widest a little above it and drawn out to a point, flaring and dying
+// away; those on its far side dimmer, behind it. Souls wind up round it and off him, as black streaks,
 // each fading along its length. He floats, rising and sinking a little.
 // He dives into the earth head first, sinking right under it; where his head goes in, the ground
 // splashes black, drops thrown up and out and a black pool spreading, a cloud of black smoke bursts
@@ -29,6 +31,8 @@ const LAYERS: Layer[] = [
   { kept: 24, life: [1.6, 2.6], rise: [8, 16], spread: 12, size: [0.26, 0.4], swell: 2.2, colours: ['#100e11', '#141215'], thick: 0.18, out: 1.6 },
   { kept: 24, life: [0.8, 2], rise: [-4, 10], spread: 18, size: [0.05, 0.24], swell: 2.4,
     colours: ['#000000', '#060507', '#0c0b0d', '#131114', '#1a181b', '#222024', '#2b282d', '#353238'], thick: 0.25, out: 1.4, up: [-0.08, 0.3] },
+  // At his waist, thick, where his model ends: so the cut is not seen.
+  { kept: 40, life: [0.5, 1], rise: [2, 8], spread: 5, size: [0.08, 0.15], swell: 1.6, colours: ['#030203', '#080608', '#0d0a0c'], thick: 0.8, out: 1.1, up: [0.78, 1.08] },
 ];
 /**
  * His gown: how far from his waist bone down to its hem (a share of his height), how wide at its waist
@@ -405,7 +409,8 @@ export class Wekufe {
   private flame(f: Flame, into = 0): void {
     f.life = r(FLAMES.life);
     f.t = into * f.life;
-    f.up = Math.pow(Math.random(), 1.6) * FLAMES.from;
+    // Some from under the hem, the rest anywhere low on the gown: their roots at no one height.
+    f.up = Math.random() * (FLAMES.from + 0.12) - 0.12;
     f.angle = Math.random() * Math.PI * 2;
     f.out = Math.random() * 0.5;
     f.tall = r(FLAMES.tall);
@@ -549,17 +554,22 @@ export class Wekufe {
       const lit = Math.sin(Math.PI * Math.pow(life, 0.6));
       const tall = f.tall * this.tall * lit;
       side.set(Math.cos(f.angle), 0, Math.sin(f.angle));
+      // On the gown's far side, dimmer: behind it.
+      const back = this.seen ? 0.65 + 0.35 * Math.max(-1, Math.min(1, side.dot(this.v.subVectors(this.eye, this.line[0]).setY(0).normalize()) * 2)) : 1;
       for (let p = 0; p < FLAMES.points; p++) {
         const q = p / (FLAMES.points - 1);
         // Up from its root low on the gown, close along it as it narrows.
         const up = f.up + q * tall / (GOWN.long * this.tall);
-        this.along(up, at).addScaledVector(side, this.width(up) / 2 * (0.85 + f.out * 0.4));
+        // Bulging a little off the gown along its middle, so it is seen to stand round it.
+        this.along(up, at).addScaledVector(side, this.width(up) / 2 * (0.85 + f.out * 0.4 + 0.18 * Math.sin(Math.PI * q)));
         if (p === 0) way.set(0, 1, 0);
         // Waving across it as the camera sees it, so the wave is seen.
         if (this.seen) across.crossVectors(way, this.v.subVectors(this.eye, at)).normalize();
         else across.set(-side.z, 0, side.x);
         at.addScaledVector(across, Math.sin(q * f.waves * Math.PI * 2 - this.time * f.run + f.phase) * FLAMES.wave * tall * q);
-        this.tongues.put(l, p, at, across, f.wide * this.tall * Math.pow(1 - q, 0.8) * (0.5 + 0.5 * lit), f.colour, shown * FLAMES.clear * lit * (1 - q * q));
+        // Soft at its root, widest a little above it, drawn out to its point.
+        const body = Math.min(1, 0.25 + q / 0.25) * Math.pow(1 - q, 0.8);
+        this.tongues.put(l, p, at, across, f.wide * this.tall * body * (0.5 + 0.5 * lit), f.colour, shown * FLAMES.clear * lit * back * Math.min(1, q / 0.2) * (1 - q * q));
       }
     });
     this.tongues.commit();
