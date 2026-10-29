@@ -11,8 +11,8 @@ import { unlitShader } from './pixels';
 // a thick black band, so where his model ends is not seen. Tongues of
 // black fire lick up from anywhere low on it, close along it as it narrows and bulging a little off it,
 // waving, each soft at its root, widest a little above it and drawn out to a point, flaring and dying
-// away, a dark red glow of embers round each so it stands out of the smoke; those on its far side
-// dimmer, behind it. Souls wind up round it and off him, as black streaks,
+// away, each drawn again over itself as a dodge so it stands out of the smoke, the more where they
+// lie over one another; those on its far side dimmer, behind it. Souls wind up round it and off him, as black streaks,
 // each fading along its length. He floats, rising and sinking a little.
 // He dives into the earth head first, sinking right under it; where his head goes in, the ground
 // splashes black, drops thrown up and out and a black pool spreading, a cloud of black smoke bursts
@@ -83,10 +83,12 @@ const SPLASH = {
   fire: { kept: 18, out: 0.18, tall: [0.3, 0.6], wide: [0.05, 0.1], life: [0.5, 1], kindles: 0.3 },
 };
 /**
- * The embers round each tongue, so it stands out of the smoke: a wider ribbon behind it, of a dark red
- * added to what is behind it as light is, how much wider and how bright.
+ * What makes each tongue stand out of the smoke: drawn over it again, a little wider, as a dodge
+ * (what is behind it brightened, many times over where tongues lie over one another and over the
+ * smoke, nothing where there is only black): how much wider, by how much at most it brightens what
+ * is behind (its colour: 1 doubles it), and the black tongue's own clearness under it.
  */
-const EMBER = { colour: new THREE.Color('#7a1408'), wider: 1.9, bright: 0.55 };
+const DODGE = { colour: new THREE.Color(1.5, 1.25, 1.2), wider: 1.15, under: 0.55 };
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.06, bob: 0.025, beat: 1.4 };
 /**
@@ -158,8 +160,8 @@ class Streaks {
   private readonly at: THREE.BufferAttribute;
   private readonly tint: THREE.BufferAttribute;
 
-  /** `lit`: added to what is behind it, as light is. */
-  constructor(lines: number, private readonly points: number, lit = false) {
+  /** `dodge`: brightening what is behind it, by its colour times its clearness (as a dodge does), rather than laid over it. */
+  constructor(lines: number, private readonly points: number, dodge = false) {
     const geometry = new THREE.BufferGeometry();
     this.at = new THREE.BufferAttribute(new Float32Array(lines * points * 2 * 3), 3).setUsage(THREE.DynamicDrawUsage);
     this.tint = new THREE.BufferAttribute(new Float32Array(lines * points * 2 * 4), 4).setUsage(THREE.DynamicDrawUsage);
@@ -179,8 +181,10 @@ class Streaks {
         void main() { vTint = tint; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: unlitShader(`
         varying vec4 vTint;
-        void main() { gl_FragColor = vTint; }`),
-      transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: lit ? THREE.AdditiveBlending : THREE.NormalBlending,
+        void main() { gl_FragColor = ${dodge ? 'vec4(vTint.rgb * vTint.a, 1.0)' : 'vTint'}; }`),
+      transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      // A dodge: what is behind times one and what is drawn.
+      ...(dodge ? { blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.DstColorFactor, blendDst: THREE.OneFactor } : {}),
     }));
     this.mesh.frustumCulled = false;
   }
@@ -361,7 +365,7 @@ export class Wekufe {
   private readonly streaks: Streaks;
   private readonly souls: Soul[] = [];
   private readonly tongues: Streaks;
-  private readonly embers: Streaks;
+  private readonly dodges: Streaks;
   private readonly flames: Flame[] = [];
   private readonly halos: { sprite: THREE.Sprite; bone: THREE.Object3D | undefined; how: (typeof HALOS)[number] }[] = [];
   /** What of the model floats: everything under its root, so the root keeps the place the game gives it. */
@@ -410,11 +414,11 @@ export class Wekufe {
     this.group.add(this.streaks.mesh);
     this.tongues = new Streaks(FLAMES.kept, FLAMES.points);
     // Drawn after the smoke, so the smoke in the gown does not hide them.
-    this.tongues.mesh.renderOrder = 2;
+    this.tongues.mesh.renderOrder = 1;
     this.group.add(this.tongues.mesh);
-    this.embers = new Streaks(FLAMES.kept, FLAMES.points, true);
-    this.embers.mesh.renderOrder = 1;
-    this.group.add(this.embers.mesh);
+    this.dodges = new Streaks(FLAMES.kept, FLAMES.points, true);
+    this.dodges.mesh.renderOrder = 2;
+    this.group.add(this.dodges.mesh);
     for (let i = 0; i < FLAMES.kept; i++) {
       this.flames.push({ t: 0, life: 0, up: 0, angle: 0, out: 0, tall: 0, wide: 0, waves: 0, run: 0, phase: 0, colour: new THREE.Color() });
       this.flame(this.flames[i], Math.random());
@@ -615,12 +619,12 @@ export class Wekufe {
         // A point at its root too, rounding out to its widest a little above it, then drawn out to its tip.
         const body = Math.sin(Math.PI / 2 * Math.min(1, q / 0.3)) * Math.pow(1 - q, 0.8);
         const wide = f.wide * this.tall * body * (0.5 + 0.5 * lit), clear = shown * lit * back * Math.min(1, q / 0.15) * (1 - q * q);
-        this.tongues.put(l, p, at, across, wide, f.colour, FLAMES.clear * clear);
-        this.embers.put(l, p, at, across, wide * EMBER.wider, EMBER.colour, EMBER.bright * clear);
+        this.tongues.put(l, p, at, across, wide, f.colour, FLAMES.clear * DODGE.under * clear);
+        this.dodges.put(l, p, at, across, wide * DODGE.wider, DODGE.colour, clear);
       }
     });
     this.tongues.commit();
-    this.embers.commit();
+    this.dodges.commit();
   }
 
   /** Where soul `s` is `t` into its life: up the gown and round it, further out as it rises off him. */
