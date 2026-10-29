@@ -157,6 +157,9 @@ Las dos fases (el usuario):
   - **Sable:** de cerca, con un **alcance considerable**, y una **carga con el destello rojo** de los
     realistas (la estocada a fondo del capitán realista: el aviso rojo, y se tira encima).
   - **Llama a la batería:** levanta el sable y cae una salva, chica, sobre donde está ella.
+  - **Pendiente (el usuario, 29/10/2026):** cuando Roca habla, primero aparece su retrato con el
+    texto, como en las conversaciones (beads arg-f8r); y el camino por donde ella entra al claro se
+    cierra con fuego (arg-2j6).
   - **En el juego desde el 28/10/2026** (sin enemigos nuevos todavía en la fase 2: el usuario quiere sumarle).
   - **Escapa cuando muere:** al quedarse sin vida no cae, se retira. Cómo es su retirada está por
     ver (anotado para después).
