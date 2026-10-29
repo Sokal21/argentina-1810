@@ -6,6 +6,7 @@ import { ChonchonFigure, DRAWN as CHONCHON } from './chonchon';
 import { ChonchonBrain } from '../chonchon/brain';
 import { Spirit } from './spirit';
 import { Stench } from './stench';
+import { Wekufe } from './wekufe';
 import { RISE, Rising } from './rising';
 import { Vomit } from './vomit';
 import { Shots } from './shot';
@@ -30,7 +31,7 @@ import { UPRIGHT } from './space';
 // kinds of the king's men with a model of their own, whoever keeps a house), and a model's clips are
 // read off its file, so a new character or a new clip is here as soon as the game has it.
 
-interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge']; dives?: boolean; stench?: boolean; vomits?: boolean; revolver?: boolean; spots?: boolean }
+interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge']; dives?: boolean; stench?: boolean; vomits?: boolean; revolver?: boolean; spots?: boolean; wekufe?: boolean }
 
 /** The kinds of the king's men, named as the game names them. */
 const KIND_NAMES: Record<string, string> = { sargento: 'Sargento', capitan: 'El capitán', sableador: 'Sableador', tirador: 'Tirador', frontera: 'Soldado de frontera' };
@@ -74,9 +75,10 @@ const WHO: Who[] = [
   // (tools/blender/rig_wings.py). 60 from wingtips to the ends of its hair, as its 2D drawing.
   { name: 'Chonchón', url: 'chonchon/3d/chonchon_animado.glb', drawn: CHONCHON, dives: true },
   // The Wekufe, the last boss of the demon's road in Inti's arc (Tripo from turnaround A, 29 October
-  // 2026): a floating horned shadow, his tail of smoke skinned to Tripo's legs, held at rest in every
-  // clip (tools/blender/still_legs.py); Mixamo's Mutant Idle and Mutant Swiping. Not in the game yet.
-  { name: 'Wekufe', url: 'wekufe/3d/wekufe_animado.glb', drawn: 150 },
+  // 2026): a floating horned shadow, his tail of smoke skinned to Tripo's legs, bent back and snaking
+  // in every clip (tools/blender/smoke_tail.py); Mixamo's Mutant Idle and Mutant Swiping. Floating, in
+  // his black smoke, his eyes and belly glowing (three/wekufe.ts). Not in the game yet.
+  { name: 'Wekufe', url: 'wekufe/3d/wekufe_animado.glb', drawn: 150, wekufe: true },
   // The ox cart whole, as the game draws it (three/cart.ts): going, its wheels rolling and its oxen
   // walking, in place; or standing, its oxen breathing and grazing now and then.
   { name: 'Carreta', url: '', drawn: 110, cart: true },
@@ -196,6 +198,7 @@ battery.blasted = blast => view.jolt(blast.great ? 0.45 : 0.25, blast.great ? 6 
 let framed: THREE.Vector3 | null = null;
 const spirits: Spirit[] = [];
 const stenches: Stench[] = [];
+const wekufes: Wekufe[] = [];
 const loaded = new Map<Who, { body: THREE.Group; motion: Motion; clips: string[]; flung: Fling; home: number }>();
 let shown: Who[] = [], clip = 'reposo_mixamo', into = 0, paused = false, turn = 0, pace = 1, loop = true;
 
@@ -238,6 +241,8 @@ async function load(w: Who) {
     if (w.spirit) { const s = new Spirit(body); spirits.push(s); view.scene.add(s.group); }
     // The plague-dead soldier's stench, carried off behind him.
     if (w.stench) { const s = new Stench(body, w.drawn * UPRIGHT); stenches.push(s); view.scene.add(s.group); }
+    // The Wekufe floating in his smoke, his eyes and belly glowing.
+    if (w.wekufe) { const k = new Wekufe(body, w.drawn * UPRIGHT); wekufes.push(k); view.scene.add(k.group); }
     const clips = body.animations.map(a => a.name);
     clips.sort((a, b) => (FIRST.indexOf(a) + 1 || 99) - (FIRST.indexOf(b) + 1 || 99) || a.localeCompare(b));
     it = { body, motion: new Motion(body), clips, flung: new Fling(() => 0), home: 0 };
@@ -581,6 +586,7 @@ view.renderer.setAnimationLoop(() => {
   step(dt);
   for (const s of spirits) s.update(dt);
   for (const s of stenches) s.update(dt);
+  for (const k of wekufes) k.update(dt);
   balls.update(dt);
   battery.update(dt);
   dust.update(dt);
