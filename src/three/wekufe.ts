@@ -41,7 +41,7 @@ const SOULS = { kept: 14, points: 18, life: [1.6, 2.6], climb: [0.45, 0.75], win
  * at its tip (a share of its own height), how many waves along it and how fast they run up it, how
  * clear at its root, and their colours.
  */
-const FLAMES = { kept: 34, points: 10, life: [0.35, 0.8], tall: [0.1, 0.26], wide: [0.025, 0.05], wave: 0.35,
+const FLAMES = { kept: 34, points: 10, life: [0.4, 0.9], tall: [0.22, 0.45], wide: [0.04, 0.08], wave: 0.3,
   waves: [1, 2], run: [7, 12], clear: 0.9, colours: ['#000000', '#050405', '#0a090b', '#100e11', '#18161a', '#211e23'] };
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.12, bob: 0.03, beat: 1.4 };
