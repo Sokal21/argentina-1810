@@ -23,11 +23,11 @@ import { unlitShader } from './pixels';
  */
 interface Layer { kept: number; life: number[]; rise: number[]; spread: number; size: number[]; swell: number; colours: string[]; thick: number; out: number; up?: number[] }
 const LAYERS: Layer[] = [
-  { kept: 34, life: [0.5, 0.9], rise: [2, 6], spread: 4, size: [0.09, 0.14], swell: 1.5, colours: ['#050405', '#0a0809', '#0e0b0d'], thick: 0.8, out: 0.6 },
-  { kept: 40, life: [0.9, 1.5], rise: [6, 12], spread: 8, size: [0.16, 0.26], swell: 1.8, colours: ['#0b090b', '#100d10', '#141114'], thick: 0.85, out: 1.1 },
-  { kept: 24, life: [1.6, 2.6], rise: [8, 16], spread: 12, size: [0.26, 0.4], swell: 2.2, colours: ['#100e11', '#141215'], thick: 0.45, out: 1.6 },
+  { kept: 34, life: [0.5, 0.9], rise: [2, 6], spread: 4, size: [0.09, 0.14], swell: 1.5, colours: ['#050405', '#0a0809', '#0e0b0d'], thick: 0.92, out: 0.6 },
+  { kept: 40, life: [0.9, 1.5], rise: [6, 12], spread: 8, size: [0.16, 0.26], swell: 1.8, colours: ['#0b090b', '#100d10', '#141114'], thick: 0.95, out: 1.1 },
+  { kept: 24, life: [1.6, 2.6], rise: [8, 16], spread: 12, size: [0.26, 0.4], swell: 2.2, colours: ['#100e11', '#141215'], thick: 0.6, out: 1.6 },
   { kept: 24, life: [0.8, 2], rise: [-4, 10], spread: 18, size: [0.05, 0.24], swell: 2.4,
-    colours: ['#000000', '#060507', '#0c0b0d', '#131114', '#1a181b', '#222024', '#2b282d', '#353238'], thick: 0.55, out: 1.4, up: [-0.08, 0.3] },
+    colours: ['#000000', '#060507', '#0c0b0d', '#131114', '#1a181b', '#222024', '#2b282d', '#353238'], thick: 0.7, out: 1.4, up: [-0.08, 0.3] },
 ];
 /** The tail's width, as a share of his height, at its root (his waist) and at its tip. */
 const TAIL = { root: 0.11, tip: 0.03 };
