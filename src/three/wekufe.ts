@@ -88,7 +88,7 @@ const SPLASH = {
  * smoke, nothing where there is only black): how much wider, by how much at most it brightens what
  * is behind (its colour: 1 doubles it), and the black tongue's own clearness under it.
  */
-const DODGE = { colour: new THREE.Color(1.5, 1.25, 1.2), wider: 1.15, under: 0.55 };
+const DODGE = { colour: new THREE.Color(2.6, 0.45, 0.25), wider: 1.15, under: 0.55 };
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.06, bob: 0.025, beat: 1.4 };
 /**
