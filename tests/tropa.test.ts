@@ -358,10 +358,10 @@ describe('Roca', () => {
     (b as unknown as Record<string, number>).signalling = 99;
     const shots = run(b, { x: 250, y: 0 }, 3).filter(d => d.shot).map(d => d.shot!);
     expect(shots.length).toBe(KINDS.roca.shot.burst.shots);
-    // Aimed straight across (90° from straight down the screen), 25° to either side.
-    const angles = shots.map(s => Math.atan2(s.dx, s.dy) * 180 / Math.PI);
-    expect(angles[0]).toBeCloseTo(65, 0);
-    expect(angles[4]).toBeCloseTo(115, 0);
+    // Aimed straight across (90° from straight down the screen), half the cone to either side.
+    const angles = shots.map(s => Math.atan2(s.dx, s.dy) * 180 / Math.PI), half = KINDS.roca.shot.burst.cone / 2;
+    expect(angles[0]).toBeCloseTo(90 - half, 0);
+    expect(angles[4]).toBeCloseTo(90 + half, 0);
   });
 
   it('calls a small salvo down where she stands, his sabre raised', () => {

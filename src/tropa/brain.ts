@@ -81,9 +81,10 @@ export interface Kind {
 
 /**
  * A burst: `shots` balls, `apart` seconds apart, swept from his right to his left across a cone
- * `cone` degrees wide about where he aimed (each taking his shot's damage).
+ * `cone` degrees wide about where he aimed (each taking his shot's damage); with `follows`, about where
+ * she is as each goes off.
  */
-export interface Burst { shots: number; apart: number; cone: number }
+export interface Burst { shots: number; apart: number; cone: number; follows?: boolean }
 
 /** How tall the plague-dead soldier is drawn (three/realista.ts), for the pool he leaves, which is as big as he is. */
 // 88 at first: a little bigger than the riflemen he walks among, he looked their size (the user, 28/10/2026).
@@ -164,7 +165,7 @@ export const KINDS = {
   // Julio Argentino Roca, the last of his road in Inti's arc (docs/historia/inti/README.md): he comes
   // into the second phase of his fight dropping onto the clearing from high over it (Mixamo's Hard
   // Landing: he is out of sight above it for a while, falls, meets the ground at 1.4 s and is up by 2.6;
-  // not to be struck until he is down). His revolver a burst of five swept across a cone 50° wide
+  // not to be struck until he is down). His revolver a burst of five swept across a cone 24° wide, kept on her
   // (his `rafaga`: the first at frame 14 of 49, 0.09 s apart); his sabre a wide slash, its blade
   // furthest out at frame 16 of 32 (Mixamo's Sword And Shield Slash at its own pace), some 100 off;
   // a lunge with the red glint, as the royalist captain's; and his sabre raised to call a small
@@ -173,7 +174,9 @@ export const KINDS = {
   roca: {
     // Nearly at her walk (115), and quicker still once hurt: at 60 he was easily left behind (the user, 28/10/2026).
     id: 'roca', name: 'Julio Argentino Roca', life: 40, girth: 11, pace: 100, sight: 2000, steady: true, rushes: true,
-    shot: { range: 260, aim: 0.7, lock: 0.2, reload: [3, 4.5], muzzle: 38, burst: { shots: 5, apart: 0.09, cone: 50 } },
+    // His burst from further and closer about her, kept on her as it sweeps: from 260 across 50°, its aim fixed
+    // 0.2 s before, it was too easily got out of (the user, 28/10/2026).
+    shot: { range: 420, aim: 0.7, lock: 0.1, reload: [3, 4.5], muzzle: 38, burst: { shots: 5, apart: 0.09, cone: 24, follows: true } },
     blow: { near: 75, time: 1.1, hit: 0.55, reach: 100, rest: 0.6, damage: 2 },
     lunge: { from: 110, to: 260, charge: 0.6, dash: 220, hit: 0.95, reach: 70, time: 1.95, every: 4.5 },
     signals: { every: [7, 10], time: 1.6, at: 0.87, kinds: ['small'] },
@@ -362,7 +365,10 @@ export class TroopBrain {
       }
       case 'burst': {
         const s = k.shot!, b = s.burst!;
-        if (this.fired < b.shots && this.t >= this.fired * b.apart) return { shot: this.swept(this.fired++) };
+        if (this.fired < b.shots && this.t >= this.fired * b.apart) {
+          if (b.follows && to) { const len = Math.hypot(to.x, to.y) || 1; this.aimed = { x: to.x / len, y: to.y / len }; }
+          return { shot: this.swept(this.fired++) };
+        }
         if (this.t < (b.shots - 1) * b.apart + 0.15) return NOTHING;
         this.enter('stand');
         this.reload = s.reload[0] + this.rnd() * (s.reload[1] - s.reload[0]);
