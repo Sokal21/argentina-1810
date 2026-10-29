@@ -199,7 +199,7 @@ battery.blasted = blast => view.jolt(blast.great ? 0.45 : 0.25, blast.great ? 6 
 let framed: THREE.Vector3 | null = null;
 const spirits: Spirit[] = [];
 const stenches: Stench[] = [];
-const wekufes: Wekufe[] = [];
+const wekufes = new Map<Who, Wekufe>();
 const loaded = new Map<Who, { body: THREE.Group; motion: Motion; clips: string[]; flung: Fling; home: number }>();
 let shown: Who[] = [], clip = 'reposo_mixamo', into = 0, paused = false, turn = 0, pace = 1, loop = true;
 
@@ -243,7 +243,7 @@ async function load(w: Who) {
     // The plague-dead soldier's stench, carried off behind him.
     if (w.stench) { const s = new Stench(body, w.drawn * UPRIGHT); stenches.push(s); view.scene.add(s.group); }
     // The Wekufe floating in his smoke, his eyes and belly glowing.
-    if (w.wekufe) { const k = new Wekufe(body, w.drawn * UPRIGHT); wekufes.push(k); view.scene.add(k.group); }
+    if (w.wekufe) { const k = new Wekufe(body, w.drawn * UPRIGHT); wekufes.set(w, k); view.scene.add(k.group); }
     const clips = body.animations.map(a => a.name);
     clips.sort((a, b) => (FIRST.indexOf(a) + 1 || 99) - (FIRST.indexOf(b) + 1 || 99) || a.localeCompare(b));
     it = { body, motion: new Motion(body), clips, flung: new Fling(() => 0), home: 0 };
@@ -309,6 +309,9 @@ function play(name: string): void {
     it.body.visible = true;
     risings.get(w)?.update(Infinity);
     vomits.get(w)?.stop();
+    // The Wekufe diving into the earth, under it until another clip is played.
+    const wekufe = wekufes.get(w);
+    if (wekufe) { if (name === 'zambullida') wekufe.dive(it.motion.seconds(name)); else wekufe.rises(); }
     if (shown.length === 1) view.follow(new THREE.Vector3(0, w.drawn * 0.5, 0));
     if (name === LUNGE && w.lunge) { act(it.body); continue; }
     if ((name === DIVE || name === BITE || name === DOWNED) && w.dives) { hunt(it.body, name === BITE, name === DOWNED); continue; }
@@ -587,7 +590,7 @@ view.renderer.setAnimationLoop(() => {
   step(dt);
   for (const s of spirits) s.update(dt);
   for (const s of stenches) s.update(dt);
-  for (const k of wekufes) k.update(dt);
+  for (const k of wekufes.values()) k.update(dt);
   balls.update(dt);
   battery.update(dt);
   dust.update(dt);

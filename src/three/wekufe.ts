@@ -8,7 +8,9 @@ import { unlitShader } from './pixels';
 // a dark cloud about that; a grey haze outside, slower to go; and at its end, smoke of many greys and
 // blacks, big and small, spreading and curling off it. Souls wind up round it and off him, as black
 // streaks, each fading along its length. And tongues of black fire lick up off the tail, waving as
-// they rise, each wide at its root and drawn out to a point, flaring and dying away. The red of his eyes and of what burns within his belly
+// they rise, each wide at its root and drawn out to a point, flaring and dying away.
+// He dives into the earth head first, sinking right under it; where his head goes in, the ground
+// splashes black, drops thrown up and out and a black pool spreading, and black fire bursts up. The red of his eyes and of what burns within his belly
 // glows past his body, beating slowly, as halos drawn over everything (his model's own red is lit by
 // glow.py's light map, which shines only on itself).
 
@@ -43,6 +45,23 @@ const SOULS = { kept: 14, points: 18, life: [1.6, 2.6], climb: [0.45, 0.75], win
  */
 const FLAMES = { kept: 34, points: 10, life: [0.4, 0.9], tall: [0.22, 0.45], wide: [0.04, 0.08], wave: 0.3,
   waves: [1, 2], run: [7, 12], clear: 0.9, colours: ['#000000', '#050405', '#0a090b', '#100e11', '#18161a', '#211e23'] };
+/**
+ * His dive: from what share of the clip he sinks, how deep he goes by its end (in the model's units: it
+ * is one unit tall), and how much longer than the clip he goes on sinking.
+ */
+const DIVE = { from: 0.4, deep: 1.6, after: 0.4 };
+/**
+ * The splash: its drops (how many, how fast out and up, shares of his height a second, how big, how
+ * long they last at most), its pool (how wide it spreads, shares of his height, how long it lasts), and
+ * the fire that bursts up (how many tongues, how far out, how tall, how wide, how long each lasts at
+ * most, and how long the burst goes on lighting them).
+ */
+const SPLASH = {
+  drops: 46, out: [0.3, 1.1], up: [0.6, 1.6], fall: 4, size: [0.012, 0.035], life: 1.4,
+  colours: ['#000000', '#08070a', '#121014', '#1c191e'],
+  pool: { wide: 0.55, grow: 0.25, lasts: 1.8 },
+  fire: { kept: 18, out: 0.18, tall: [0.3, 0.6], wide: [0.05, 0.1], life: [0.5, 1], burns: 0.9 },
+};
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.12, bob: 0.03, beat: 1.4 };
 /**
@@ -127,6 +146,126 @@ class Streaks {
   }
 }
 
+interface Drop { at: THREE.Vector3; way: THREE.Vector3; t: number; size: number }
+
+/** The black splash where he goes into the earth: drops thrown up and out, a pool spreading, black fire bursting up. */
+class Splash {
+  readonly group = new THREE.Group();
+  private readonly drops: Billboards;
+  private readonly flying: Drop[] = [];
+  private readonly pool: THREE.Mesh;
+  private readonly fire: Streaks;
+  private readonly flames: Flame[] = [];
+  private readonly where = new THREE.Vector3();
+  private readonly at = new THREE.Vector3();
+  private readonly across = new THREE.Vector3();
+  private readonly eye = new THREE.Vector3();
+  private seen = false;
+  private time = 0;
+  /** Since it splashed; past everything's end, nothing shown. */
+  private since = Infinity;
+
+  constructor(private readonly tall: number) {
+    this.drops = new Billboards(SPLASH.drops, soft(0.6));
+    for (let i = 0; i < SPLASH.drops; i++) {
+      this.drops.colour(i, SPLASH.colours[i % SPLASH.colours.length]);
+      this.flying.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, size: 0 });
+    }
+    this.group.add(this.drops.mesh);
+    this.pool = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.ShaderMaterial({
+      uniforms: { map: { value: soft(0.55) }, clear: { value: 0 } },
+      vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: unlitShader(`
+        uniform sampler2D map; uniform float clear; varying vec2 vUv;
+        void main() { gl_FragColor = vec4(0.02, 0.015, 0.02, texture2D(map, vUv).a * clear); }`),
+      transparent: true, depthWrite: false,
+    }));
+    this.pool.visible = false;
+    this.group.add(this.pool);
+    this.fire = new Streaks(SPLASH.fire.kept, FLAMES.points);
+    this.fire.mesh.renderOrder = 1;
+    this.fire.mesh.onBeforeRender = (_r, _s, camera) => { this.eye.setFromMatrixPosition(camera.matrixWorld); this.seen = true; };
+    this.group.add(this.fire.mesh);
+    for (let i = 0; i < SPLASH.fire.kept; i++) {
+      this.flames.push({ t: 0, life: 0, up: 0, angle: 0, out: 0, tall: 0, wide: 0, waves: 0, run: 0, phase: 0, colour: new THREE.Color() });
+    }
+  }
+
+  /** Splashes at `at`, on the ground. */
+  start(at: THREE.Vector3): void {
+    this.where.copy(at);
+    this.since = 0;
+    const t = this.tall;
+    this.flying.forEach((d, i) => {
+      const a = Math.random() * Math.PI * 2, out = r(SPLASH.out) * t;
+      d.at.copy(at);
+      d.way.set(Math.cos(a) * out, r(SPLASH.up) * t, Math.sin(a) * out);
+      d.t = 0;
+      d.size = r(SPLASH.size) * t;
+      this.drops.put(i, d.at, d.size, 1);
+    });
+    this.flames.forEach((f, i) => this.light(f, -i / SPLASH.fire.kept * SPLASH.fire.burns));
+    this.pool.position.copy(at).setY(at.y + 0.3);
+    this.pool.visible = true;
+  }
+
+  /** A tongue of the burst lit, `t` into its life (below 0: not yet lit). */
+  private light(f: Flame, t: number): void {
+    const fire = SPLASH.fire;
+    f.life = r(fire.life);
+    f.t = t;
+    f.angle = Math.random() * Math.PI * 2;
+    f.out = Math.sqrt(Math.random()) * fire.out;
+    f.tall = r(fire.tall);
+    f.wide = r(fire.wide);
+    f.waves = r(FLAMES.waves);
+    f.run = r(FLAMES.run);
+    f.phase = Math.random() * Math.PI * 2;
+    f.colour.set(FLAMES.colours[Math.floor(Math.random() * FLAMES.colours.length)]);
+  }
+
+  update(dt: number): void {
+    this.time += dt;
+    this.since += dt;
+    const t = this.tall, ground = this.where.y;
+    this.flying.forEach((d, i) => {
+      if (!this.drops.shown(i)) return;
+      d.t += dt;
+      if (d.t >= SPLASH.life) { this.drops.hide(i); return; }
+      d.way.y -= SPLASH.fall * t * dt;
+      d.at.addScaledVector(d.way, dt);
+      // Fallen back, it lies where it fell, fading.
+      if (d.at.y <= ground) { d.at.y = ground + 0.5; d.way.set(0, 0, 0); }
+      this.drops.put(i, d.at, d.size, 1 - Math.pow(d.t / SPLASH.life, 3));
+    });
+    this.drops.commit();
+    const pool = SPLASH.pool, k = this.since / pool.lasts;
+    this.pool.visible = k < 1;
+    if (k < 1) {
+      this.pool.scale.setScalar(t * pool.wide * (1 - Math.pow(1 - Math.min(1, this.since / pool.grow), 2)));
+      (this.pool.material as THREE.ShaderMaterial).uniforms.clear.value = 0.9 * (1 - k * k);
+    }
+    const across = this.across, fire = SPLASH.fire;
+    if (this.seen) across.subVectors(this.eye, this.where).setY(0).normalize().cross(this.at.set(0, 1, 0));
+    else across.set(1, 0, 0);
+    this.flames.forEach((f, l) => {
+      f.t += dt;
+      if (f.t >= f.life && this.since < fire.burns) this.light(f, 0);
+      const life = f.t / f.life;
+      // Not lit yet (or never: before any splash), or burnt out.
+      const lit = !f.life || f.t < 0 || life >= 1 ? 0 : Math.sin(Math.PI * Math.pow(life, 0.6));
+      const tall = f.tall * t * lit;
+      for (let p = 0; p < FLAMES.points; p++) {
+        const q = p / (FLAMES.points - 1);
+        const sway = Math.sin(q * f.waves * Math.PI * 2 - this.time * f.run + f.phase) * FLAMES.wave * tall * q;
+        this.at.set(this.where.x + Math.cos(f.angle) * f.out * t, ground + q * tall, this.where.z + Math.sin(f.angle) * f.out * t).addScaledVector(across, sway);
+        this.fire.put(l, p, this.at, across, f.wide * t * Math.pow(1 - q, 0.8) * (0.5 + 0.5 * lit), f.colour, FLAMES.clear * lit * (1 - q * q));
+      }
+    });
+    this.fire.commit();
+  }
+}
+
 export class Wekufe {
   readonly group = new THREE.Group();
   private readonly layers: { how: Layer; cloud: Billboards; puffs: Puff[] }[] = [];
@@ -153,10 +292,17 @@ export class Wekufe {
   private time = Math.random() * 10;
   /** From 0 (gone) to 1. */
   power = 1;
+  /** His splash where he goes into the earth. */
+  private readonly splash: Splash;
+  /** His dive: how long the clip is, how far into it he is; null while he is not diving. */
+  private diving: { seconds: number; t: number; splashed: boolean } | null = null;
+  private readonly ground = new THREE.Vector3();
 
   /** `body` is his model, already scaled, `tall` its height in the world's units. */
   constructor(private readonly body: THREE.Object3D, private readonly tall: number) {
     this.floats = [...body.children];
+    this.splash = new Splash(tall);
+    this.group.add(this.splash.group);
     const bone = (name: string) => body.getObjectByName(name);
     this.bones = [[bone('Waist')], ...['Thigh', 'Calf', 'Foot'].map(b => [bone('L_' + b), bone('R_' + b)])];
     for (const how of LAYERS) {
@@ -246,14 +392,41 @@ export class Wekufe {
     return this.tall * (TAIL.tip + (TAIL.root - TAIL.tip) * u);
   }
 
+  /** He dives into the earth, playing his dive (`seconds` long), and stays under it until he `rises`. */
+  dive(seconds: number): void {
+    this.diving = { seconds, t: 0, splashed: false };
+  }
+
+  /** Back out of the earth, floating. */
+  rises(): void {
+    this.diving = null;
+  }
+
   update(dt: number): void {
     this.time += dt;
-    const shown = this.body.parent && this.body.visible ? this.power : 0;
+    let shown = this.body.parent && this.body.visible ? this.power : 0;
     // Each child is moved in the root's units: the model is one unit tall.
-    const high = FLOAT.high + FLOAT.bob * Math.sin(this.time * FLOAT.beat * Math.PI);
+    let high = FLOAT.high + FLOAT.bob * Math.sin(this.time * FLOAT.beat * Math.PI);
+    const dive = this.diving;
+    if (dive) {
+      dive.t += dt;
+      const k = Math.min(1, Math.max(0, (dive.t / dive.seconds - DIVE.from) / (1 + DIVE.after - DIVE.from)));
+      high -= DIVE.deep * k * k;
+    }
     for (const o of this.floats) o.position.y = high;
     this.body.updateWorldMatrix(true, true);
     this.lay();
+    // The ground is where his root stands. Going under, his smoke, souls and fire go with him.
+    this.body.getWorldPosition(this.ground);
+    if (dive) {
+      const head = this.halos[0].bone;
+      if (head && !dive.splashed && head.getWorldPosition(this.at).y <= this.ground.y + this.tall * 0.04) {
+        dive.splashed = true;
+        this.splash.start(this.at.setY(this.ground.y));
+      }
+      shown *= Math.min(1, Math.max(0, (this.line[0].y - this.ground.y) / (this.tall * 0.25)));
+    }
+    this.splash.update(dt);
     this.smoke(dt, shown);
     this.wind(dt, shown);
     this.lick(dt, shown);
@@ -360,6 +533,7 @@ export class Wekufe {
       sprite.visible = !!bone && shown > 0.01;
       if (!bone) continue;
       bone.getWorldPosition(this.at);
+      if (this.at.y < this.ground.y) sprite.visible = false;
       sprite.position.copy(this.at).addScaledVector(ahead, how.ahead * this.tall);
       sprite.position.y += how.up * this.tall;
       sprite.material.opacity = shown * (how.bright[0] + (how.bright[1] - how.bright[0]) * beat);
