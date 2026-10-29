@@ -6,7 +6,7 @@ back and forth in a wave that runs down it, later at each bone, as a snake's. Th
 sway, so the tail follows the body. The wave goes round a whole number of times in the clip, so a
 loop stays one.
 
-    Blender -b --python tools/blender/smoke_tail.py -- CLIP.glb OUT.glb [--name zarpazo] [--bend 14] [--sway 18] [--lag 0.9] [--wave 50] [--curl 16] [--lift 16]
+    Blender -b --python tools/blender/smoke_tail.py -- CLIP.glb OUT.glb [--name zarpazo] [--bend 18] [--sway 18] [--lag 0.9] [--wave 50] [--curl 16] [--lift 40]
 
 CLIP.glb is a single clip of one rig (tools/blender/retarget_rot.py's). --bend is the bend back at
 each bone, in degrees; --sway how far it swings at each; --lag how much later (in radians) each bone
@@ -39,10 +39,10 @@ for f in range(first, last + 1):
     bpy.context.scene.frame_set(f)
     frames.append({pb.name: (pb.location.copy(), pb.rotation_quaternion.copy()) for pb in arm.pose.bones})
 
-BEND = math.radians(float(opts.get('--bend', 14)))
+BEND = math.radians(float(opts.get('--bend', 18)))
 SWAY = math.radians(float(opts.get('--sway', 18)))
 CURL = math.radians(float(opts.get('--curl', 16)))
-LIFT = math.radians(float(opts.get('--lift', 16)))
+LIFT = math.radians(float(opts.get('--lift', 40)))
 LAG = float(opts.get('--lag', 0.9))
 ROUNDS = max(1, round((len(frames) - 1) / float(opts.get('--wave', 50))))
 
