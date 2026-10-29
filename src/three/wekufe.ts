@@ -7,7 +7,8 @@ import { unlitShader } from './pixels';
 // in layers: a black core, thick enough to hide it, let off just before it as the camera sees it;
 // a dark cloud about that; a grey haze outside, slower to go; and at its end, smoke of many greys and
 // blacks, big and small, spreading and curling off it. Souls wind up round it and off him, as black
-// streaks, each fading along its length. The red of his eyes and of what burns within his belly
+// streaks, each fading along its length. And tongues of black fire lick up off the tail, waving as
+// they rise, each wide at its root and drawn out to a point, flaring and dying away. The red of his eyes and of what burns within his belly
 // glows past his body, beating slowly, as halos drawn over everything (his model's own red is lit by
 // glow.py's light map, which shines only on itself).
 
@@ -34,6 +35,14 @@ const TAIL = { root: 0.11, tip: 0.03 };
  */
 const SOULS = { kept: 14, points: 18, life: [1.6, 2.6], climb: [0.45, 0.75], wind: [2.5, 4.2], out: [1.1, 1.9],
   streak: 0.4, wide: 0.024, clear: 0.85, colours: ['#000000', '#070607', '#0e0c0f', '#161318'] };
+/**
+ * The tongues of black fire: how many at once, points along each, how long one lasts, how tall at its
+ * height (a share of his), how wide at its root (a share of his height), how far it waves to the side
+ * at its tip (a share of its own height), how many waves along it and how fast they run up it, how
+ * clear at its root, and their colours.
+ */
+const FLAMES = { kept: 34, points: 10, life: [0.35, 0.8], tall: [0.1, 0.26], wide: [0.025, 0.05], wave: 0.35,
+  waves: [1, 2], run: [7, 12], clear: 0.9, colours: ['#000000', '#050405', '#0a090b', '#100e11', '#18161a', '#211e23'] };
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.12, bob: 0.03, beat: 1.4 };
 /**
@@ -67,6 +76,7 @@ function soft(inner: number): THREE.Texture {
 }
 
 interface Puff { at: THREE.Vector3; way: THREE.Vector3; t: number; life: number; rise: number; size: number; spin: number; turn: number }
+interface Flame { t: number; life: number; up: number; angle: number; out: number; tall: number; wide: number; waves: number; run: number; phase: number; colour: THREE.Color }
 interface Soul { t: number; life: number; from: number; climb: number; angle: number; wind: number; out: number; colour: THREE.Color }
 
 const r = (a: number[]) => a[0] + Math.random() * (a[1] - a[0]);
@@ -122,6 +132,8 @@ export class Wekufe {
   private readonly layers: { how: Layer; cloud: Billboards; puffs: Puff[] }[] = [];
   private readonly streaks: Streaks;
   private readonly souls: Soul[] = [];
+  private readonly tongues: Streaks;
+  private readonly flames: Flame[] = [];
   private readonly halos: { sprite: THREE.Sprite; bone: THREE.Object3D | undefined; how: (typeof HALOS)[number] }[] = [];
   /** What of the model floats: everything under its root, so the root keeps the place the game gives it. */
   private readonly floats: THREE.Object3D[];
@@ -136,6 +148,7 @@ export class Wekufe {
   private readonly ahead = new THREE.Vector3();
   private readonly turn = new THREE.Quaternion();
   private readonly v = new THREE.Vector3();
+  private readonly side = new THREE.Vector3();
   private readonly w = new THREE.Vector3();
   private time = Math.random() * 10;
   /** From 0 (gone) to 1. */
@@ -159,6 +172,12 @@ export class Wekufe {
     this.streaks = new Streaks(SOULS.kept, SOULS.points);
     this.streaks.mesh.onBeforeRender = (_r, _s, camera) => { this.eye.setFromMatrixPosition(camera.matrixWorld); this.seen = true; };
     this.group.add(this.streaks.mesh);
+    this.tongues = new Streaks(FLAMES.kept, FLAMES.points);
+    this.group.add(this.tongues.mesh);
+    for (let i = 0; i < FLAMES.kept; i++) {
+      this.flames.push({ t: 0, life: 0, up: 0, angle: 0, out: 0, tall: 0, wide: 0, waves: 0, run: 0, phase: 0, colour: new THREE.Color() });
+      this.flame(this.flames[i], Math.random());
+    }
     for (let i = 0; i < SOULS.kept; i++) {
       this.souls.push({ t: 0, life: 0, from: 0, climb: 0, angle: 0, wind: 0, out: 0, colour: new THREE.Color() });
       this.soul(this.souls[i], Math.random());
@@ -184,6 +203,21 @@ export class Wekufe {
     s.wind = r(SOULS.wind) * (Math.random() < 0.5 ? -1 : 1);
     s.out = r(SOULS.out);
     s.colour.set(SOULS.colours[Math.floor(Math.random() * SOULS.colours.length)]);
+  }
+
+  /** A tongue lit again somewhere along the tail, more of them low, `into` that share of its life already. */
+  private flame(f: Flame, into = 0): void {
+    f.life = r(FLAMES.life);
+    f.t = into * f.life;
+    f.up = Math.pow(Math.random(), 1.4) * 1.05 - 0.05;
+    f.angle = Math.random() * Math.PI * 2;
+    f.out = Math.random() * 0.5;
+    f.tall = r(FLAMES.tall);
+    f.wide = r(FLAMES.wide);
+    f.waves = r(FLAMES.waves);
+    f.run = r(FLAMES.run);
+    f.phase = Math.random() * Math.PI * 2;
+    f.colour.set(FLAMES.colours[Math.floor(Math.random() * FLAMES.colours.length)]);
   }
 
   /** The tail's line: its root at his waist, through the middles of both legs' bones, its tip as far past the feet as half a calf. */
@@ -220,6 +254,7 @@ export class Wekufe {
     this.lay();
     this.smoke(dt, shown);
     this.wind(dt, shown);
+    this.lick(dt, shown);
     this.glow(shown);
   }
 
@@ -277,6 +312,34 @@ export class Wekufe {
       }
     });
     this.streaks.commit();
+  }
+
+  /** The tongues: each rising from its root on the tail, waving more toward its tip, flaring up and dying down. */
+  private lick(dt: number, shown: number): void {
+    const root = this.w, at = this.at, across = this.ahead, side = this.side;
+    this.flames.forEach((f, l) => {
+      f.t += dt;
+      if (f.t >= f.life) this.flame(f);
+      const life = f.t / f.life;
+      // Up quick, then down slower: as tall as it is lit.
+      const lit = Math.sin(Math.PI * Math.pow(life, 0.6));
+      const tall = f.tall * this.tall * lit;
+      const wide = this.width(f.up) / 2;
+      this.along(f.up, root);
+      side.set(Math.cos(f.angle), 0, Math.sin(f.angle));
+      root.addScaledVector(side, f.out * wide);
+      // Waving across the camera's view, so the wave is seen.
+      if (this.seen) across.subVectors(this.eye, root).setY(0).normalize().cross(this.v.set(0, 1, 0));
+      else across.copy(side);
+      for (let p = 0; p < FLAMES.points; p++) {
+        const q = p / (FLAMES.points - 1);
+        const sway = Math.sin(q * f.waves * Math.PI * 2 - this.time * f.run + f.phase) * FLAMES.wave * tall * q;
+        at.copy(root).addScaledVector(across, sway);
+        at.y += q * tall;
+        this.tongues.put(l, p, at, across, f.wide * this.tall * Math.pow(1 - q, 0.8) * (0.5 + 0.5 * lit), f.colour, shown * FLAMES.clear * lit * (1 - q * q));
+      }
+    });
+    this.tongues.commit();
   }
 
   /** Where soul `s` is `t` into its life: up the tail and round it, further out as it rises off him. */
