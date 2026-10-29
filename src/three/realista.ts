@@ -33,7 +33,7 @@ export const DRAWN = 78;
  * strikes, the clip of his blow and how far into it (a share) the blow lands, so it is played at
  * the pace that lands it when his brain does.
  */
-export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number }; lunge?: { clip: string; wind: number; lands: number; point: number; charge: number; hit: number; dash: number; time: number }; call?: { clip: string; time: number }; walk?: string; idle?: string; retch?: { clip: string; time: number }; rises?: { clip: string; up: number }; stench?: boolean; charge?: { roar: string; run: string; blow: string; lands: number; swing: number }; signals?: { clip: string; time: number }; flags?: string[] }> = {
+export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: string; lands: number; hit: number }; rally?: { clip: string; time: number; reach: number }; run?: string; kneels?: { clip: string; shot: number; aim: number; stand: string }; pistol?: { clip: string; shot: number; aim: number; after: number }; lunge?: { clip: string; wind: number; lands: number; point: number; charge: number; hit: number; dash: number; time: number }; call?: { clip: string; time: number }; walk?: string; idle?: string; retch?: { clip: string; time: number }; rises?: { clip: string; up: number }; stench?: boolean; charge?: { roar: string; run: string; blow: string; lands: number; swing: number }; signals?: { clip: string; time: number }; flags?: string[]; burst?: { clip: string; first: number; aim: number }; drops?: { clip: string; high: number; down: number }; revolver?: boolean }> = {
   // Lean and quick, a little under the fusiliers (Tripo from turnaround A, 23 October 2026).
   // His two cuts at the pace that lands the first when his brain does (frame 18 of 52); his run.
   sableador: { url: 'tropa/sableador3d/sableador_animado.glb', drawn: 76, blow: { clip: 'tajo', lands: 18 / 52, hit: KINDS.sableador.blow.hit }, run: 'carrera' },
@@ -82,6 +82,18 @@ export const LOOKS: Record<string, { url: string; drawn: number; blow?: { clip: 
   // flags let fly from his hands as he falls (props.signal_flag: 0.28 long).
   observador: { url: 'observador/3d/observador_animado.glb', drawn: 76, walk: 'carrera', idle: 'reposo_mixamo',
     signals: { clip: 'senas', time: KINDS.observador.signals.time }, flags: ['bandera_roja', 'bandera_blanca'] },
+  // Julio Argentino Roca (assets/roca): his sabre in his right hand, his revolver in his left. His
+  // slash (Mixamo's Sword And Shield Slash) lands at frame 16 of 32; his burst (`rafaga`) played so its
+  // first ball goes off (frame 14 of 49) as his brain's aim ends, the rest as it sweeps; his lunge the
+  // captain's, held drawn back with the red glint at his point; his signal to the battery; and he
+  // comes in dropping from `high` over the clearing (his `aterrizaje`, Mixamo's Hard Landing), his
+  // feet meeting the ground when his brain has him down (`down`), and its dust thrown up there.
+  roca: { url: 'roca/3d/roca_animado.glb', drawn: 100, revolver: true,
+    blow: { clip: 'sablazo', lands: 16 / 32, hit: KINDS.roca.blow.hit },
+    burst: { clip: 'rafaga', first: 14 / 49, aim: KINDS.roca.shot.aim },
+    lunge: { clip: 'estocada', wind: 4 / 41, lands: 9 / 41, point: 0.15, ...KINDS.roca.lunge },
+    signals: { clip: 'senal', time: KINDS.roca.signals.time },
+    drops: { clip: 'aterrizaje', high: 320, down: KINDS.roca.rises.under } },
 };
 /** How long a spotter's flag is from his fist to its far end, in its own units (props.signal_flag). */
 const FLAG_LONG = 0.28;
@@ -248,7 +260,7 @@ class Figure {
     const over = along(moved.x, moved.y).length() / Math.max(dt, 1e-3);
     this.going += (Math.min(over, 200) - this.going) * Math.min(1, dt * SETTLE);
     // Marching he faces the way he goes; otherwise the way his brain faces him (at the hero, down his aim).
-    const want = mode === 'walk' && Math.hypot(moved.x, moved.y) > 0.01 ? heading(moved.x, moved.y) : Math.atan2(dir.x, dir.y);
+    const want = (mode === 'walk' || mode === 'escape') && Math.hypot(moved.x, moved.y) > 0.01 ? heading(moved.x, moved.y) : Math.atan2(dir.x, dir.y);
     if (mode !== 'dying' && mode !== 'gone') {
       const turn = Math.atan2(Math.sin(want - this.facing), Math.cos(want - this.facing));
       this.facing += turn * Math.min(1, dt * TURN);
@@ -278,6 +290,8 @@ class Figure {
     if (mode === 'dying' && afresh) for (const flag of this.look?.flags ?? []) this.flung.throw(this.body, flag, FLAG_LONG);
     if (alive(mode) || this.buried) this.flung.back();
     this.flung.update(dt);
+    // One who got away is gone from the field, not lying on it.
+    if (mode === 'gone' && afresh && this.modeWas === 'escape') this.bury();
     if (mode === 'gone' && afresh && this.modeWas !== 'dying') m.hold('muerte', 1);
     if (mode === 'gone' && afresh && !this.buried) {
       m.update(0);
@@ -293,6 +307,12 @@ class Figure {
     else m.legs(null);
     if (mode === 'dying') m.play('muerte', { once: true, afresh, blend: 0.08 });
     else if (mode === 'gone') m.play('muerte', { once: true });
+    else if (this.look?.burst && (mode === 'aim' || mode === 'burst')) {
+      // His burst: played so its first ball goes off as his aim ends, then on at its own pace as it sweeps.
+      const { clip, first, aim } = this.look.burst;
+      if (mode === 'aim') m.play(clip, { once: true, pace: (first * m.seconds(clip)) / aim, afresh, blend: 0.15 });
+      else m.play(clip, { once: true });
+    }
     else if (this.look?.kneels && this.down) {
       // On one knee: aiming, his shot played so it goes off when his brain fires; else on guard,
       // the shot played out to its end (its last frame his guard).
@@ -351,14 +371,20 @@ class Figure {
     }
     else if (mode === 'signal' && this.look?.signals) m.play(this.look.signals.clip, { once: true, lasts: this.look.signals.time, afresh, blend: 0.15 });
     else if (mode === 'retch' && this.look?.retch) m.play(this.look.retch.clip, { once: true, lasts: this.look.retch.time, afresh, blend: 0.2 });
+    else if (mode === 'rise' && this.look?.drops) {
+      // Held in the air as the clip begins until its own fall brings his feet down when his brain has him down.
+      const { clip, down } = this.look.drops, from = down - (12 / 48) * m.seconds(clip);
+      if (t < from) m.hold(clip, 0, { afresh });
+      else m.play(clip, { once: true, afresh: t - dt < from, blend: 0.05 });
+    }
     else if (mode === 'rise' && this.look?.rises) {
       // Lying under the earth until it breaks, then getting up out of it over the rest of his rising.
       const { clip, up } = this.look.rises;
       if (t < RISE.warn) m.hold(clip, 0, { afresh });
       else m.play(clip, { once: true, lasts: up, afresh: t - dt < RISE.warn, blend: 0 });
     }
-    else if (mode === 'walk' && this.look?.run) m.play(this.look.run, { pace: this.runReach ? Math.max(0.35, this.going / this.runReach) : 1 });
-    else if (mode === 'walk') m.play(this.look?.walk ?? 'caminata_mixamo', { pace: this.reach ? Math.max(0.35, this.going / this.reach) : 1 });
+    else if ((mode === 'walk' || mode === 'escape') && this.look?.run) m.play(this.look.run, { pace: this.runReach ? Math.max(0.35, this.going / this.runReach) : 1 });
+    else if (mode === 'walk' || mode === 'escape') m.play(this.look?.walk ?? 'caminata_mixamo', { pace: this.reach ? Math.max(0.35, this.going / this.reach) : 1 });
     else m.play(this.look?.idle ?? 'reposo_mixamo');
     m.update(dt);
     this.modeWas = mode;
@@ -378,6 +404,8 @@ class Figure {
     const thrust = this.body.getObjectByName('sable_estocada'), thrusting = mode === 'blow' || mode === 'lunge';
     if (pistol && sabre) sabre.visible = !thrusting || !thrust;
     if (pistol && thrust) thrust.visible = thrusting;
+    // Roca slashes with his sabre as it hangs, and lunges with it held to thrust.
+    if (this.look?.revolver && sabre && thrust) { sabre.visible = mode !== 'lunge'; thrust.visible = mode === 'lunge'; }
     // Struck, he flashes red; quickened by a shout, he throbs a fainter red while it lasts.
     this.clock += dt;
     const throb = who.hasted && alive(mode) ? HASTE.low + (HASTE.high - HASTE.low) * (0.5 + 0.5 * Math.sin(this.clock * HASTE.beat)) : 0;
@@ -388,6 +416,19 @@ class Figure {
     for (const gun of this.flung.guns) gun.visible = true;
     this.body.position.copy(ground(x, y));
     if (mode === 'rise' && this.rising) this.body.position.y -= this.rising.sunk;
+    const drops = this.look?.drops;
+    if (mode === 'rise' && drops) {
+      // Falling quicker and quicker until his feet meet the ground; there its dust is thrown up all round.
+      if (t < drops.down) this.body.position.y += drops.high * (1 - (t / drops.down) ** 2);
+      else if (t - dt < drops.down) {
+        const at = ground(x, y);
+        this.dust?.cloud(at);
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2, way = new THREE.Vector3(Math.cos(a), 0, Math.sin(a));
+          this.dust?.kick(at.clone().addScaledVector(way, 14), way, 1.5);
+        }
+      }
+    }
     this.body.rotation.y = this.facing;
     this.rising?.update(dt);
     for (const v of this.vomits) v.update(dt);
@@ -428,7 +469,7 @@ class Figure {
     const lunge = this.look?.lunge, lunging = mode === 'lunge' && !!lunge && t < lunge.charge;
     this.warning.visible = mode === 'aim' || lunging;
     if (!this.warning.visible) return;
-    const aim = lunging && lunge ? lunge.charge : this.look?.kneels?.aim ?? this.look?.pistol?.aim ?? AIM;
+    const aim = lunging && lunge ? lunge.charge : this.look?.kneels?.aim ?? this.look?.pistol?.aim ?? this.look?.burst?.aim ?? AIM;
     const k = Math.min(1, t / (aim - WARN.begins)), left = aim - t;
     this.glow.scale.setScalar(WARN.from + (WARN.to - WARN.from) * k);
     this.glow.material.opacity = WARN.faint + (WARN.full - WARN.faint) * k * k;
@@ -455,7 +496,7 @@ class Figure {
   /** Where his shot leaves from and the way it goes: down his barrel, or from his shoulder the way he faces. */
   muzzle(who: Royalist): { tip: THREE.Vector3; way: THREE.Vector3 } {
     this.body.updateMatrixWorld(true);
-    const barrel = barrelOf(this.body) ?? pistolOf(this.body);
+    const barrel = barrelOf(this.body) ?? pistolOf(this.body, this.look?.revolver ? REVOLVER_MUZZLE : PISTOL_MUZZLE);
     if (barrel) return barrel;
     const { x, y, dir } = who.mind;
     return { tip: ground(x, y, MUZZLE * UPRIGHT), way: new THREE.Vector3(dir.x, 0, dir.y).normalize() };
@@ -464,12 +505,14 @@ class Figure {
 
 /** Where a pistol's muzzle is, in its own units (props.py's PISTOL_MUZZLE), and the way it points, levelled. */
 const PISTOL_MUZZLE = new THREE.Vector3(0.13, 0, 0.032);
-function pistolOf(body: THREE.Object3D): { tip: THREE.Vector3; way: THREE.Vector3 } | null {
+/** Roca's revolver's (props.py's REVOLVER_MUZZLE): named as the pistol is. */
+const REVOLVER_MUZZLE = new THREE.Vector3(0.21, 0, 0.042);
+function pistolOf(body: THREE.Object3D, muzzle: THREE.Vector3): { tip: THREE.Vector3; way: THREE.Vector3 } | null {
   const gun = body.getObjectByName('pistola');
   if (!gun?.visible) return null;
   gun.updateWorldMatrix(true, false);
   const along = new THREE.Vector3(1, 0, 0).transformDirection(gun.matrixWorld);
-  return { tip: PISTOL_MUZZLE.clone().applyMatrix4(gun.matrixWorld), way: new THREE.Vector3(along.x, 0, along.z).normalize() };
+  return { tip: muzzle.clone().applyMatrix4(gun.matrixWorld), way: new THREE.Vector3(along.x, 0, along.z).normalize() };
 }
 
 function alive(mode: Mode): boolean {

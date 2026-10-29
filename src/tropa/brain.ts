@@ -19,7 +19,7 @@ export interface Kind {
   /** Further than this he does not notice anyone. */
   sight: number;
   /** He shoots: from how far, how long he aims (the warning), how long before the shot his aim stops following, how long until he can again, how high the ball leaves from, and how long he stands after it (lowering his pistol: walking, his feet slid). */
-  shot?: { range: number; aim: number; lock: number; reload: [number, number]; muzzle: number; after?: number; damage?: number; first?: [number, number] };
+  shot?: { range: number; aim: number; lock: number; reload: [number, number]; muzzle: number; after?: number; damage?: number; first?: [number, number]; burst?: Burst };
   /** Once whoever he is after is within his shot he walks no more: down on one knee, he stays, and no blow moves him. */
   stays?: boolean;
   /** No blow moves him, nor puts him off his aim. */
@@ -72,10 +72,18 @@ export interface Kind {
   signals?: { every: [number, number]; time: number; at: number; kinds: string[] };
   /** How much of what fire does (a grenade's blast, burning) he takes; all of it if not said. */
   fire?: number;
+  /** When his life runs out he does not fall: he gets away from her, at `pace`, and is gone after `time` seconds. */
+  escapes?: { pace: number; time: number };
   /** What bringing him down is worth, in experience and in reales. */
   worth: number;
   spoils: number;
 }
+
+/**
+ * A burst: `shots` balls, `apart` seconds apart, swept from his right to his left across a cone
+ * `cone` degrees wide about where he aimed (each taking his shot's damage).
+ */
+export interface Burst { shots: number; apart: number; cone: number }
 
 /** How tall the plague-dead soldier is drawn (three/realista.ts), for the pool he leaves, which is as big as he is. */
 // 88 at first: a little bigger than the riflemen he walks among, he looked their size (the user, 28/10/2026).
@@ -153,6 +161,24 @@ export const KINDS = {
     signals: { every: [4, 6], time: 1.9, at: 0.62, kinds: ['scattered', 'concentrated'] },
     worth: 15, spoils: 6,
   },
+  // Julio Argentino Roca, the last of his road in Inti's arc (docs/historia/inti/README.md): he comes
+  // into the second phase of his fight dropping onto the clearing from high over it (Mixamo's Hard
+  // Landing: he is out of sight above it for a while, falls, meets the ground at 1.4 s and is up by 2.6;
+  // not to be struck until he is down). His revolver a burst of five swept across a cone 50° wide
+  // (his `rafaga`: the first at frame 14 of 49, 0.09 s apart); his sabre a wide slash, its blade
+  // furthest out at frame 16 of 32 (Mixamo's Sword And Shield Slash at its own pace), some 100 off;
+  // a lunge with the red glint, as the royalist captain's; and his sabre raised to call a small
+  // salvo of his battery down on her (his `senal`, cut down to point at frame 26 of 48). When his life
+  // runs out he does not fall: he gets away (how is still to be seen: the user, 28/10/2026).
+  roca: {
+    id: 'roca', name: 'Julio Argentino Roca', life: 40, girth: 11, pace: 60, sight: 2000, steady: true, rushes: true,
+    shot: { range: 260, aim: 0.7, lock: 0.2, reload: [3, 4.5], muzzle: 38, burst: { shots: 5, apart: 0.09, cone: 50 } },
+    blow: { near: 75, time: 1.1, hit: 0.55, reach: 100, rest: 0.6, damage: 2 },
+    lunge: { from: 110, to: 260, charge: 0.6, dash: 200, hit: 0.95, reach: 70, time: 1.95, every: 6 },
+    signals: { every: [7, 10], time: 1.6, at: 0.87, kinds: ['small'] },
+    rises: { time: 2.6, under: 1.4 }, escapes: { pace: 150, time: 3 },
+    fire: 0.2, fury: 1.3, worth: 150, spoils: 100,
+  },
 } satisfies Record<string, Kind>;
 export type KindName = keyof typeof KINDS;
 
@@ -165,7 +191,7 @@ export const RETURNS = 7;   // seconds until one who is not at a post is back
 /** How much faster one who has been rallied walks and reloads. */
 export const QUICKENED = 1.5;
 
-export type Mode = 'stand' | 'walk' | 'aim' | 'blow' | 'lunge' | 'rally' | 'call' | 'retch' | 'rise' | 'signal' | 'dying' | 'gone';
+export type Mode = 'stand' | 'walk' | 'aim' | 'burst' | 'blow' | 'lunge' | 'rally' | 'call' | 'retch' | 'rise' | 'signal' | 'escape' | 'dying' | 'gone';
 
 /** What a step of his produced. */
 export interface Deed {
@@ -244,7 +270,7 @@ export class TroopBrain {
   }
 
   get alive(): boolean {
-    return this.mode !== 'dying' && this.mode !== 'gone';
+    return this.mode !== 'dying' && this.mode !== 'gone' && this.mode !== 'escape';
   }
 
   /** Quickens him for a while, as a sergeant's shout does. */
@@ -304,6 +330,7 @@ export class TroopBrain {
           this.look(to);
           return { retch: { x: this.x, y: this.y, dx: this.dir.x, dy: this.dir.y } };
         }
+        if (k.signals && this.signalling <= 0 && this.still <= 0 && far > (k.blow?.near ?? 0) * 1.5) { this.enter('signal'); this.done = false; return NOTHING; }
         if (k.lunge && this.lunging <= 0 && this.still <= 0 && far >= k.lunge.from && far <= k.lunge.to) { this.enter('lunge'); this.done = false; return NOTHING; }
         if (k.shot && far <= k.shot.range && this.reload <= 0 && this.mayAim) { this.enter('aim'); return NOTHING; }
         if (!k.pace || this.still > 0 || (k.stays && k.shot && far <= k.shot.range)) { this.enter('stand'); return NOTHING; }
@@ -325,10 +352,30 @@ export class TroopBrain {
         if (to && k.blow && far < k.blow.near) { this.enter('stand'); return NOTHING; }
         if (to && this.t < s.aim - s.lock) this.look(to);
         if (this.t < s.aim) return NOTHING;
+        // A burst: its first ball now, the rest as it sweeps.
+        if (s.burst) { this.enter('burst'); this.aimed = { ...this.dir }; this.fired = 1; return { shot: this.swept(0) }; }
         this.enter('stand');
         this.reload = s.reload[0] + this.rnd() * (s.reload[1] - s.reload[0]);
         this.still = s.after ?? 0;
         return { shot: { x: this.x, y: this.y, height: s.muzzle, dx: this.dir.x, dy: this.dir.y, damage: s.damage } };
+      }
+      case 'burst': {
+        const s = k.shot!, b = s.burst!;
+        if (this.fired < b.shots && this.t >= this.fired * b.apart) return { shot: this.swept(this.fired++) };
+        if (this.t < (b.shots - 1) * b.apart + 0.15) return NOTHING;
+        this.enter('stand');
+        this.reload = s.reload[0] + this.rnd() * (s.reload[1] - s.reload[0]);
+        this.still = s.after ?? 0;
+        return NOTHING;
+      }
+      case 'escape': {
+        // Off from her, wherever the ground goes, until he is gone.
+        const e = k.escapes!;
+        if (this.t >= e.time) { this.returns = false; this.enter('gone'); return NOTHING; }
+        if (to) this.look({ x: -to.x, y: -to.y });
+        this.x += this.dir.x * e.pace * dt;
+        this.y += this.dir.y * e.pace * dt * ISO_Y;
+        return NOTHING;
       }
       case 'blow': {
         const b = k.blow!;
@@ -387,7 +434,7 @@ export class TroopBrain {
         return { rally: { reach: r.reach, lasts: r.lasts } };
       }
       case 'signal':
-        return NOTHING;
+        return to ? this.signal(to) : NOTHING;
       case 'dying':
         if (this.t >= DYING) this.enter('gone');
         return NOTHING;
@@ -403,16 +450,7 @@ export class TroopBrain {
    */
   private spot(dt: number, to: Vec, far: number): Deed {
     const k = this.kind, f = k.flees!, sg = k.signals;
-    if (this.mode === 'signal' && sg) {
-      this.look(to);
-      if (!this.done && this.t >= sg.at) {
-        this.done = true;
-        const kind = sg.kinds[this.called++ % sg.kinds.length];
-        return { salvo: { kind, x: this.x + to.x, y: this.y + to.y * ISO_Y } };
-      }
-      if (this.t >= sg.time) { this.enter('stand'); this.signalling = sg.every[0] + this.rnd() * (sg.every[1] - sg.every[0]); }
-      return NOTHING;
-    }
+    if (this.mode === 'signal' && sg) return this.signal(to);
     if (sg && this.signalling <= 0 && far > f.keep * 0.5) { this.enter('signal'); this.done = false; return NOTHING; }
     let way: Vec;
     if (far < f.keep) {
@@ -443,6 +481,30 @@ export class TroopBrain {
     this.look(Math.hypot(this.x - x0, this.y - y0) > 0.01 ? { x: this.x - x0, y: (this.y - y0) / ISO_Y } : to);
     this.enter('walk');
     return NOTHING;
+  }
+
+  /** Signalling his battery, facing her: the salvo called on where she is at its moment. */
+  private signal(to: Vec): Deed {
+    const sg = this.kind.signals!;
+    this.look(to);
+    if (!this.done && this.t >= sg.at) {
+      this.done = true;
+      const kind = sg.kinds[this.called++ % sg.kinds.length];
+      return { salvo: { kind, x: this.x + to.x, y: this.y + to.y * ISO_Y } };
+    }
+    if (this.t >= sg.time) { this.enter('stand'); this.signalling = sg.every[0] + this.rnd() * (sg.every[1] - sg.every[0]); }
+    return NOTHING;
+  }
+
+  /** The way he aimed a burst, and how many of its balls are gone. */
+  private aimed: Vec = { x: 1, y: 0 };
+  private fired = 0;
+
+  /** A burst's ball: the `i`th, swept from his right to his left across its cone about where he aimed. */
+  private swept(i: number): NonNullable<Deed['shot']> {
+    const s = this.kind.shot!, b = s.burst!;
+    const a = Math.atan2(this.aimed.x, this.aimed.y) + (-b.cone / 2 + b.cone * i / (b.shots - 1)) * Math.PI / 180;
+    return { x: this.x, y: this.y, height: s.muzzle, dx: Math.sin(a), dy: Math.cos(a), damage: s.damage };
   }
 
   /** How far ahead along a way the ground is looked at, to tell whether it is open. */
@@ -487,7 +549,7 @@ export class TroopBrain {
   hit(dx: number, dy: number, amount = 1): void {
     if (!this.alive || this.under) return;
     this.life -= amount;
-    if (this.life <= 0) { this.enter('dying'); return; }
+    if (this.life <= 0) { this.enter(this.kind.escapes ? 'escape' : 'dying'); return; }
     // A blow knocks his aim off, and moves him; not one who stays where he is, nor one who is steady.
     if (this.kind.steady) return;
     if (this.mode === 'aim') this.enter('stand');

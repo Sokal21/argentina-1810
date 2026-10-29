@@ -84,6 +84,8 @@ export class World3D {
   /** Roca's battery's shells, seen. */
   private readonly battery = new Battery3D();
   private readonly volleys: Shots;
+  /** Roca's balls, tracers (the user, 28/10/2026). */
+  private readonly tracers: Shots;
   private readonly marks = new AimMarks();
   /** The ring under whom he is locked onto with the gamepad. */
   private readonly lockRing = new LockRing();
@@ -167,8 +169,9 @@ export class World3D {
     // Theirs is stopped by the 2D game's word that it struck him (`wounded`), not by a test of its own:
     // drawn from the muzzle on his shoulder, its line ran beside the 2D ball's and passed through him.
     this.volleys = new Shots(this.view.camera, () => null, () => {}, false, SHOT);
+    this.tracers = new Shots(this.view.camera, () => null, () => {}, false, SHOT, true);
     this.impacts = new Impacts(this.view.camera, () => this.view.look);
-    this.view.scene.add(this.shots.group, this.volleys.group, this.impacts.group, this.mendings.group, this.fury.group, this.battery.group);
+    this.view.scene.add(this.shots.group, this.volleys.group, this.tracers.group, this.impacts.group, this.mendings.group, this.fury.group, this.battery.group);
     // What its blast hurts, and the shake, are the 2D game's; here it is seen.
     this.grenades = new Grenades(this.view.camera);
     this.view.scene.add(this.grenades.group, this.throwing.group);
@@ -184,6 +187,7 @@ export class World3D {
     this.grenades.warm(away);
     this.shots.warm(away);
     this.volleys.warm(away);
+    this.tracers.warm(away);
     this.impacts.spawn(ground(away.x, away.y, 40), ground(away.x + 10, away.y, 40));
     // About him wherever he is, so ended as soon as it is compiled.
     this.mendings.begin(0xffffff);
@@ -306,6 +310,7 @@ export class World3D {
     this.battery.update(dt);
     this.shots.update(dt);
     this.volleys.update(dt);
+    this.tracers.update(dt);
     this.impacts.update(dt);
     this.mendings.update(dt, c);
     // A house he is within has its roof lifted off.
@@ -484,10 +489,10 @@ export class World3D {
   }
 
   /** A royalist's goes off. */
-  volley(who: Royalist): void {
-    // From his muzzle, along the 2D game's ball (the one that hurts): level, the way he faces.
-    const muzzle = this.royalists.muzzle(who), { dir } = who.mind;
-    if (muzzle) this.volleys.fire(muzzle.tip, new THREE.Vector3(dir.x, 0, dir.y).normalize());
+  volley(who: Royalist, way: { x: number; y: number } = who.mind.dir): void {
+    // From his muzzle, along the 2D game's ball (the one that hurts): level, the way he faces (or the way given: a burst's).
+    const muzzle = this.royalists.muzzle(who);
+    if (muzzle) (who.look3d === 'roca' ? this.tracers : this.volleys).fire(muzzle.tip, new THREE.Vector3(way.x, 0, way.y).normalize());
   }
 
   /** Whether a spot of the 2D game's ground is in sight, as the camera now stands (`past`: the share of the view beyond its edges counted in). */
@@ -504,6 +509,7 @@ export class World3D {
   /** A royalist's ball strikes Cabral, where he stands: the ball stops on him and he bleeds. */
   wounded(at: Vec): void {
     this.volleys.stop(ground(at.x, at.y, 44 * UPRIGHT));
+    this.tracers.stop(ground(at.x, at.y, 44 * UPRIGHT));
   }
 
     /** A blow lands on a royalist, struck from where Cabral stands. */

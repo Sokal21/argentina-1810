@@ -142,7 +142,7 @@ Las dos fases (el usuario):
 
 - **En la primera fase hay enemigos que te atacan** mientras caen los cañonazos: es clave (el usuario).
 - **Los obuses también lastiman a los enemigos**: a los suyos (soldados, apestados), no solo a Inti.
-- **Para pasar de fase hay que matar al observador** (elegido por el usuario): un soldado con catalejo
+- **Para pasar de fase hay que matar al observador y a todos los enemigos iniciales**, que no reviven (el usuario, 28/10/2026; muerto el observador, los apestados que quedan bajo tierra salen junto a ella) (elegido por el usuario): un soldado con catalejo
   y banderas que le marca a la batería dónde tirar, **y que corre rápido**: hay que meterse bajo el
   fuego para alcanzarlo. Cuando cae, la batería queda ciega, **vuelve a verse Roca**, que dice:
 
@@ -157,6 +157,7 @@ Las dos fases (el usuario):
   - **Sable:** de cerca, con un **alcance considerable**, y una **carga con el destello rojo** de los
     realistas (la estocada a fondo del capitán realista: el aviso rojo, y se tira encima).
   - **Llama a la batería:** levanta el sable y cae una salva, chica, sobre donde está ella.
+  - **En el juego desde el 28/10/2026** (sin enemigos nuevos todavía en la fase 2: el usuario quiere sumarle).
   - **Escapa cuando muere:** al quedarse sin vida no cae, se retira. Cómo es su retirada está por
     ver (anotado para después).
 

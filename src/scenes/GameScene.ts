@@ -113,7 +113,7 @@ const CABRAL_LOCK = { reach: BALL.range, keep: BALL.range * 1.4 };
 // the way points, and how long an arm let go is kept up waiting to go off.
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
 /** The kinds of the king's men that have a model in 3D (three/realista.ts, LOOKS). */
-const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan', 'frontera', 'apestado', 'observador']);
+const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan', 'frontera', 'apestado', 'observador', 'roca']);
 /** How much of what fire does a foe takes: a soldier's kind may stand it better. */
 const fireproof = (foe: Foe): number => foe instanceof Trooper ? (KINDS[foe.kind] as Kind).fire ?? 1 : 1;
 /**
@@ -240,6 +240,18 @@ const COLUMN = {
 // One standing who has been left behind off screen, `lost` away or more, for `after` seconds sinks and
 // comes up again `at` before her, as hurt as he was (the user, 27/10/2026: after a while).
 const LURK = { near: 260, at: 120, again: 520, lost: 600, after: 3 };
+/**
+ * Roca's fight (docs/historia/inti/README.md). He is heard as she comes in (`hello`). Once his spotter
+ * and every one of the column laid about her are down (none of them up again: the user, 28/10/2026),
+ * he is heard again (`fed`), and `after` seconds later drops onto the clearing `ahead` before her,
+ * the ground shaken as he lands. When his life runs out he gets away (`gone`).
+ */
+const ROCA = {
+  hello: 'Roca: «¡Conocerán la pólvora, mapuches traga plomo! ¡Traguen plomo!»',
+  fed: 'Roca: «¡Inútiles! Si quiero el desierto limpio, voy a tener que limpiarlo yo mismo. ¡Ni tu luna te va a salvar ahora!»',
+  gone: 'Roca se retira.',
+  after: 2.5, ahead: 200, shake: { ms: 650, intensity: 0.025 },
+};
 /**
  * Whoever is on screen sees the hero, however far his own sight reaches (the user, 27/10/2026: they
  * stood about while she was in plain view): all but those at its very edges (`edge`, a share of the
@@ -393,7 +405,7 @@ export class GameScene extends Phaser.Scene {
   private chonchones: Chonchon[] = [];
   private realistas: Soldier[] = [];
   /** The plague-dead lying in wait under the ground: each, where he lies, and whether he is yet to come up. */
-  private lurkers: { soldier: Trooper; spot: Vec; armed: boolean; away: number }[] = [];
+  private lurkers: { soldier: Trooper; spot: Vec; armed: boolean; away: number; down?: boolean }[] = [];
   /** The pools they have retched, and the plague on the hero from stepping in one; whether she stands in one now. */
   private pools: Pool[] = [];
   private readonly plague = new Plague();
@@ -402,6 +414,17 @@ export class GameScene extends Phaser.Scene {
   private shells: { blast: Blast; kind: SalvoKind; t: number }[] = [];
   /** Roca's riflemen, who hunt her wherever she goes once they have seen her. */
   private readonly hunters = new Set<Soldier>();
+  /**
+   * Roca's fight: the column laid about her at first (none of them up again once down), his spotter,
+   * Roca himself (out of sight until he drops in), and how far it has gone: 1 the battery, 2 Roca
+   * coming or fighting, 3 Roca gone. Seconds until he drops in, and whether he has landed.
+   */
+  private readonly column = new Set<Soldier>();
+  private spotter: Trooper | null = null;
+  private roca: Trooper | null = null;
+  private phase = 1;
+  private rocaIn = 0;
+  private landed = false;
   /** Whether Roca's column has been laid about her yet (COLUMN). */
   private mustered = true;
   /** The post each soldier who holds one stands at. */
@@ -545,6 +568,11 @@ export class GameScene extends Phaser.Scene {
     const map = this.map, held = his && map ? garrison(map) : [];
     this.posts.clear();
     this.lurkers = [];
+    this.column.clear();
+    this.spotter = this.roca = null;
+    this.phase = 1;
+    this.rocaIn = 0;
+    this.landed = false;
     this.pools = [];
     this.shells = [];
     this.plague.cure();
@@ -1121,8 +1149,9 @@ export class GameScene extends Phaser.Scene {
     this.lurk(dt);
     this.retched(dt);
     this.shelled(dt);
+    this.fightRoca(dt);
     const safe = !!this.map && !!zoneAt(this.map, this.machi.x, this.machi.y)?.safe;
-    if (safe && !this.safeWas) for (const realista of this.realistas) if (!realista.alive) this.due.add(realista);
+    if (safe && !this.safeWas) for (const realista of this.realistas) if (!realista.alive && !this.column.has(realista)) this.due.add(realista);
     this.safeWas = safe;
     // The frontier riflemen take turns to aim: no more than AIMING at once.
     let aiming = this.realistas.filter(r => r instanceof Trooper && r.kind === 'frontera' && r.brain.mode === 'aim').length;
@@ -1158,7 +1187,7 @@ export class GameScene extends Phaser.Scene {
       if (realista.alive) awake.push(realista);
       if (deed.shot) {
         this.shots.spawn(deed.shot);
-        if (realista instanceof Realista || IN_3D.has(realista.kind)) this.three?.volley(realista);
+        if (realista instanceof Realista || IN_3D.has(realista.kind)) this.three?.volley(realista, { x: deed.shot.dx, y: deed.shot.dy });
       }
       if (deed.cut && prey) { prey.body.strike(); this.sparks.emitParticleAt(prey.body.x, prey.body.y - 20, 6); }
       else if (deed.cut && !drawn) this.hurt(realista instanceof Trooper ? realista.brain.kind.blow?.damage ?? 1 : 1);
@@ -1879,7 +1908,8 @@ export class GameScene extends Phaser.Scene {
       if (shell.t < shell.blast.at) continue;
       const { blast, kind } = shell, damage = SALVO[kind].damage;
       if (this.vitals.standing && inBlast(blast, feet)) this.hurt(damage);
-      for (const foe of this.realistas) if (foe.alive && inBlast(blast, foe.ground)) this.wound(foe, foe.ground.x - blast.x || 1, foe.ground.y - blast.y, damage);
+      // Roca's own shells spare him.
+      for (const foe of this.realistas) if (foe.alive && foe !== this.roca && inBlast(blast, foe.ground)) this.wound(foe, foe.ground.x - blast.x || 1, foe.ground.y - blast.y, damage);
       this.shake(blast.great ? 320 : 200, blast.great ? 0.012 : 0.006);
     }
     this.shells = this.shells.filter(shell => shell.t < shell.blast.at);
@@ -1920,15 +1950,65 @@ export class GameScene extends Phaser.Scene {
     for (const offset of COLUMN.riflemen) {
       // Each at his post, as a garrison's men: up again once she has rested in her camp.
       const soldier = enlist('frontera', offset);
-      if (soldier) { this.posts.set(soldier, { ...soldier.ground, letter: 'B', kind: 'frontera' }); this.hunters.add(soldier); }
+      if (soldier) { this.posts.set(soldier, { ...soldier.ground, letter: 'B', kind: 'frontera' }); this.hunters.add(soldier); this.column.add(soldier); }
     }
-    // Roca's spotter, running about the clearing, calling the battery down on her; back a while after he falls.
-    const spotter = enlist('observador', SPOTTER);
-    if (spotter) spotter.brain.returns = true;
+    // Roca's spotter, running about the clearing, calling the battery down on her.
+    this.spotter = enlist('observador', SPOTTER);
+    if (this.spotter) this.column.add(this.spotter);
     for (const offset of COLUMN.plagued) {
       // Under the earth until she comes near.
       const soldier = enlist('apestado', offset);
-      if (soldier) { soldier.brain.vanish(); this.lurkers.push({ soldier, spot: soldier.ground, armed: true, away: 0 }); }
+      if (soldier) { soldier.brain.vanish(); this.lurkers.push({ soldier, spot: soldier.ground, armed: true, away: 0 }); this.column.add(soldier); }
+    }
+    // Roca, out of sight until his column is down (enlisted where she stands, ground that is surely
+    // walked: he drops in elsewhere); heard as she comes in.
+    this.roca = enlist('roca', [0, 0]);
+    if (this.roca) { this.roca.brain.vanish(); this.roca.brain.relentless = true; }
+    this.board?.say(ROCA.hello);
+  }
+
+  /**
+   * Roca's fight, as far as it has gone (ROCA): his column all down, he is heard and drops in before
+   * her; his landing shakes the ground; at the end of his life he gets away. With his spotter down,
+   * those of the plague-dead still lying in wait come up before her, wherever she is.
+   */
+  private fightRoca(dt: number): void {
+    const roca = this.roca;
+    if (!roca) return;
+    if (this.phase === 1) {
+      this.three?.bury(roca);
+      const standing = [...this.column].some(soldier => soldier.alive) || this.lurkers.some(lurker => lurker.armed);
+      if (standing) return;
+      this.phase = 2;
+      this.rocaIn = ROCA.after;
+      this.board?.say(ROCA.fed);
+      return;
+    }
+    if (this.rocaIn > 0) {
+      this.three?.bury(roca);
+      this.rocaIn -= dt;
+      if (this.rocaIn > 0 || !this.vitals.standing) { this.rocaIn = Math.max(this.rocaIn, 0.01); return; }
+      this.rocaIn = 0;
+      const her = { x: this.machi.x, y: this.machi.y };
+      // Before her toward the middle of the clearing, or wherever round her the ground can be walked.
+      const middle = this.map?.round, toward = middle ? Math.atan2((middle.y - her.y) / ISO_Y, middle.x - her.x) : -Math.PI / 2;
+      let spot = her;
+      for (const turn of [0, 0.6, -0.6, 1.2, -1.2, 2, -2, Math.PI]) {
+        const x = her.x + Math.cos(toward + turn) * ROCA.ahead, y = her.y + Math.sin(toward + turn) * ROCA.ahead * ISO_Y;
+        if (this.walkable(x, y)) { spot = { x, y }; break; }
+      }
+      roca.brain.rise(spot.x, spot.y, her);
+      this.landed = false;
+      return;
+    }
+    const brain = roca.brain;
+    if (brain.mode === 'rise' && !this.landed && brain.t >= (brain.kind.rises?.under ?? 0)) {
+      this.landed = true;
+      this.shake(ROCA.shake.ms, ROCA.shake.intensity);
+    }
+    if (this.phase === 2 && brain.mode === 'escape') {
+      this.phase = 3;
+      this.board?.say(ROCA.gone);
     }
   }
 
@@ -1943,7 +2023,8 @@ export class GameScene extends Phaser.Scene {
       const { soldier, spot } = lurker, brain = soldier.brain;
       const off = ground(her, spot);
       if (!lurker.armed) {
-        if (brain.mode === 'gone' && off > LURK.again) { lurker.armed = true; this.three?.bury(soldier); }
+        // Down, he stays down (the user, 28/10/2026: they came up again), taken off the field once she is well away.
+        if (brain.mode === 'gone' && off > LURK.again && !lurker.down) { lurker.down = true; this.three?.bury(soldier); }
         // Left behind, out of sight a while: he sinks and comes up again before her, as hurt as he was.
         const left = brain.alive && brain.mode !== 'rise' && ground(her, soldier.ground) > LURK.lost && !this.onScreen(soldier.ground);
         lurker.away = left ? lurker.away + dt : 0;
@@ -1954,7 +2035,8 @@ export class GameScene extends Phaser.Scene {
         continue;
       }
       this.three?.bury(soldier);
-      if (off > LURK.near || !this.vitals.standing) continue;
+      // With the spotter down, he comes up before her wherever she is.
+      if ((off > LURK.near && this.spotter?.alive !== false) || !this.vitals.standing) continue;
       // From her toward where he lay, as far as the ground there can be walked; where he lay, if not.
       const dx = spot.x - her.x, dy = (spot.y - her.y) / ISO_Y, far = Math.hypot(dx, dy) || 1;
       let up = { x: her.x + dx / far * LURK.at, y: her.y + dy / far * LURK.at * ISO_Y };

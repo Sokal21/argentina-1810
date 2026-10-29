@@ -349,3 +349,48 @@ describe('fire on the ground', () => {
     expect((KINDS.sableador as { fire?: number }).fire).toBeUndefined();
   });
 });
+
+describe('Roca', () => {
+  it('fires a burst of five balls swept across a cone from his right to his left', () => {
+    const b = brain('roca');
+    // Kept from lunging and signalling, at the edge of his shot.
+    (b as unknown as Record<string, number>).lunging = 99;
+    (b as unknown as Record<string, number>).signalling = 99;
+    const shots = run(b, { x: 250, y: 0 }, 3).filter(d => d.shot).map(d => d.shot!);
+    expect(shots.length).toBe(KINDS.roca.shot.burst.shots);
+    // Aimed straight across (90° from straight down the screen), 25° to either side.
+    const angles = shots.map(s => Math.atan2(s.dx, s.dy) * 180 / Math.PI);
+    expect(angles[0]).toBeCloseTo(65, 0);
+    expect(angles[4]).toBeCloseTo(115, 0);
+  });
+
+  it('calls a small salvo down where she stands, his sabre raised', () => {
+    const b = brain('roca');
+    (b as unknown as Record<string, number>).lunging = 99;
+    (b as unknown as Record<string, number>).reload = 99;
+    let salvo: Deed['salvo'];
+    for (let t = 0; t < 6 && !salvo; t += DT) salvo = b.update(DT, { x: 0, y: 400 }).salvo;
+    expect(salvo?.kind).toBe('small');
+  });
+
+  it('drops in, not to be struck until he has landed', () => {
+    const b = brain('roca');
+    b.rise(0, 0, { x: 0, y: 200 });
+    b.hit(1, 0);
+    expect(b.life).toBe(KINDS.roca.life);
+    run(b, { x: 0, y: 200 }, KINDS.roca.rises.under + 0.05);
+    b.hit(1, 0);
+    expect(b.life).toBe(KINDS.roca.life - 1);
+  });
+
+  it('gets away when his life runs out, rather than falling, and is gone', () => {
+    const b = brain('roca');
+    b.hit(1, 0, KINDS.roca.life);
+    expect(b.mode).toBe('escape');
+    expect(b.alive).toBe(false);
+    run(b, { x: -50, y: 0 }, 1);
+    expect(b.x).toBeGreaterThan(100);
+    run(b, { x: -50, y: 0 }, KINDS.roca.escapes.time);
+    expect(b.mode).toBe('gone');
+  });
+});
