@@ -4,22 +4,26 @@ import { unlitShader } from './pixels';
 
 // What makes the Wekufe more than his model. He floats, rising and sinking a little. His tail is hidden
 // in smoke, laid along it as it bends and snakes (found each frame from the leg bones it is skinned to),
-// in three layers: a black core, thick enough to hide it, let off just before it as the camera sees it;
-// a dark cloud about that; a grey haze outside, slower to go. Souls wind up round it and off him, as
-// pale streaks, each fading along its length. The red of his eyes and of what burns within his belly
+// in layers: a black core, thick enough to hide it, let off just before it as the camera sees it;
+// a dark cloud about that; a grey haze outside, slower to go; and at its end, smoke of many greys and
+// blacks, big and small, spreading and curling off it. Souls wind up round it and off him, as black
+// streaks, each fading along its length. The red of his eyes and of what burns within his belly
 // glows past his body, beating slowly, as halos drawn over everything (his model's own red is lit by
 // glow.py's light map, which shines only on itself).
 
 /**
  * A layer of the smoke: how many puffs kept, how long one lasts, how fast it rises and spreads, how big
  * it starts (a share of his height) and how many times that it ends, its colours, how thick at most,
- * and how far out from the tail's middle it is let off (a share of the tail's width there).
+ * how far out from the tail's middle it is let off (a share of the tail's width there), and over which
+ * stretch of the tail (0 its tip, 1 its root; the whole of it if not said).
  */
-interface Layer { kept: number; life: number[]; rise: number[]; spread: number; size: number[]; swell: number; colours: string[]; thick: number; out: number }
+interface Layer { kept: number; life: number[]; rise: number[]; spread: number; size: number[]; swell: number; colours: string[]; thick: number; out: number; up?: number[] }
 const LAYERS: Layer[] = [
   { kept: 60, life: [0.5, 0.9], rise: [2, 6], spread: 4, size: [0.1, 0.16], swell: 1.5, colours: ['#050405', '#0a0809', '#0e0b0d'], thick: 0.95, out: 0.6 },
   { kept: 40, life: [0.9, 1.5], rise: [6, 12], spread: 8, size: [0.16, 0.26], swell: 1.8, colours: ['#141013', '#1b1519', '#221a1f'], thick: 0.7, out: 1.1 },
   { kept: 24, life: [1.6, 2.6], rise: [8, 16], spread: 12, size: [0.26, 0.4], swell: 2.2, colours: ['#2c2630', '#352d38'], thick: 0.32, out: 1.6 },
+  { kept: 48, life: [0.8, 2], rise: [-4, 10], spread: 18, size: [0.05, 0.3], swell: 2.4,
+    colours: ['#000000', '#0b0a0c', '#18161a', '#2a272c', '#3d393f', '#524d55', '#68626b', '#7e7881'], thick: 0.7, out: 1.4, up: [-0.08, 0.3] },
 ];
 /** The tail's width, as a share of his height, at its root (his waist) and at its tip. */
 const TAIL = { root: 0.11, tip: 0.03 };
@@ -29,7 +33,7 @@ const TAIL = { root: 0.11, tip: 0.03 };
  * (seconds of its path), how wide (a share of his height), how clear at most, and their colours.
  */
 const SOULS = { kept: 14, points: 18, life: [1.6, 2.6], climb: [0.45, 0.75], wind: [2.5, 4.2], out: [1.1, 1.9],
-  streak: 0.4, wide: 0.022, clear: 0.6, colours: ['#d8d2e6', '#b9b0cc', '#9a8fb0', '#e6dfee'] };
+  streak: 0.4, wide: 0.024, clear: 0.85, colours: ['#000000', '#070607', '#0e0c0f', '#161318'] };
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.12, bob: 0.03, beat: 1.4 };
 /**
@@ -233,7 +237,7 @@ export class Wekufe {
           cloud.put(i, p.at, p.size * (1 + (how.swell - 1) * k), how.thick * shown * Math.min(1, k * 4) * (1 - k * k), p.turn);
         } else if (shown > 0.05 && Math.random() < dt * rate) {
           // Anywhere along it, more of the core low where the tail is all smoke.
-          const up = how === LAYERS[0] ? Math.pow(Math.random(), 1.3) : Math.random() * 1.05;
+          const up = how.up ? r(how.up) : how === LAYERS[0] ? Math.pow(Math.random(), 1.3) : Math.random() * 1.05;
           const wide = this.width(up);
           const a = Math.random() * Math.PI * 2, out = Math.sqrt(Math.random()) * how.out * wide / 2;
           this.along(up, p.at);
