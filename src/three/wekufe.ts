@@ -407,6 +407,9 @@ export class Wekufe {
   private readonly splash: Splash;
   /** His dive: how long the clip is, how far into it he is; null while he is not diving. */
   private diving: { seconds: number; t: number; splashed: boolean } | null = null;
+  /** Where his gown was as he began to dive: its fire and souls stay there, burning out, as he goes under. */
+  private readonly stayed = [0, 1, 2, 3, 4].map(() => new THREE.Vector3());
+  private staying = false;
   private readonly ground = new THREE.Vector3();
 
   /** `body` is his model, already scaled, `tall` its height in the world's units. */
@@ -513,6 +516,7 @@ export class Wekufe {
   /** He dives into the earth, playing his dive (`seconds` long), and stays under it until he `rises`. */
   dive(seconds: number): void {
     this.diving = { seconds, t: 0, splashed: false };
+    this.staying = false;
   }
 
   /** Back out of the earth, floating. */
@@ -548,6 +552,11 @@ export class Wekufe {
     const ease = shown < this.faded ? Wekufe.FADE.out : Wekufe.FADE.back;
     this.faded += (shown - this.faded) * Math.min(1, dt * ease);
     this.smoke(dt, this.faded);
+    // Diving, his fire and souls are left where his gown was as he began: they do not go up and down with him.
+    if (dive) {
+      if (!this.staying) { this.stayed.forEach((p, i) => p.copy(this.line[i])); this.staying = true; }
+      this.line.forEach((p, i) => p.copy(this.stayed[i]));
+    }
     this.wind(dt, this.faded);
     this.lick(dt, this.faded);
     this.glow(shown);
