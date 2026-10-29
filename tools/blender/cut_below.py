@@ -6,7 +6,9 @@ follow the leg bones as they move.
 
 IN is a finished animated model (after prepare_rigged.py and decimate.py; before glow.py), one unit
 tall. Every face lying wholly lower than the bone's head, at rest, moved --by (in the model's units,
-below it if less than 0), is taken out; its rig and clips are kept as they are.
+below it if less than 0), is taken out, but for what the arms move (his claws hang lower than his
+waist): a face any of whose corners is weighted to an arm's bone at least --arm (0.2) is kept. Its rig
+and clips are kept as they are.
 """
 import sys
 
@@ -18,6 +20,8 @@ src, dst = args[0], args[1]
 opts = dict(zip(args[2::2], args[3::2]))
 BONE = opts.get('--bone', 'Waist')
 BY = float(opts.get('--by', -0.06))
+ARM = float(opts.get('--arm', 0.2))
+ARMS = ('Clavicle', 'Upperarm', 'Forearm', 'Hand')
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=src)
@@ -27,9 +31,12 @@ below = (armature.matrix_world @ armature.data.bones[BONE].head_local).z + BY
 gone = 0
 for o in [o for o in bpy.data.objects if o.type == 'MESH']:
     M = o.matrix_world
+    groups = {g.index for g in o.vertex_groups if any(a in g.name for a in ARMS)}
+    armed = {v.index for v in o.data.vertices if any(g.group in groups and g.weight >= ARM for g in v.groups)}
     mesh = bmesh.new()
     mesh.from_mesh(o.data)
-    doomed = [f for f in mesh.faces if max((M @ v.co).z for v in f.verts) < below]
+    doomed = [f for f in mesh.faces
+              if max((M @ v.co).z for v in f.verts) < below and not any(v.index in armed for v in f.verts)]
     gone += len(doomed)
     bmesh.ops.delete(mesh, geom=doomed, context='FACES')
     loose = [v for v in mesh.verts if not v.link_faces]
