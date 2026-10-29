@@ -11,8 +11,8 @@ import { unlitShader } from './pixels';
 // they rise, each wide at its root and drawn out to a point, flaring and dying away.
 // He dives into the earth head first, sinking right under it; where his head goes in, the ground
 // splashes black, drops thrown up and out and a black pool spreading, a cloud of black smoke bursts
-// out low over the ground as dust would, and black fire bursts up. The red of his eyes and of what burns within his belly
-// glows past his body, beating slowly, as halos drawn over everything (his model's own red is lit by
+// out low over the ground as dust would, and black fire bursts up; the smoke and the fire go together.
+// The red of his eyes and of what burns within his belly glows past his body, beating slowly, as halos drawn over everything (his model's own red is lit by
 // glow.py's light map, which shines only on itself).
 
 /**
@@ -57,15 +57,17 @@ const DIVE = { from: 0.4, deep: 1.6, after: 0.4 };
  * the cloud of smoke that bursts out (how many puffs, how fast out and up, shares of his height a
  * second, how big at first and how many times that at last, how long they last, their colours, how
  * thick), and the fire that bursts up (how many tongues, how far out, how tall, how wide, how long each lasts at
- * most, and how long the burst goes on lighting them).
+ * most, and over how long its tongues are first lit).
  */
 const SPLASH = {
   drops: 46, out: [0.3, 1.1], up: [0.6, 1.6], fall: 4, size: [0.012, 0.035], life: 1.4,
   colours: ['#000000', '#08070a', '#121014', '#1c191e'],
+  /** How long the splash's smoke and fire last, both gone together, and how long they take to fade at its end. */
+  lasts: 1.8, fades: 0.5,
   pool: { wide: 0.55, grow: 0.25, lasts: 1.8 },
-  cloud: { puffs: 34, out: [0.5, 1.4], up: [0.05, 0.35], size: [0.12, 0.24], swell: 3, life: [1.4, 2.6],
+  cloud: { puffs: 34, out: [0.5, 1.4], up: [0.05, 0.35], size: [0.12, 0.24], swell: 3, life: [2, 2.4],
     colours: ['#050405', '#0c0a0d', '#141216', '#1d1a1f', '#26222a'], thick: 0.85 },
-  fire: { kept: 18, out: 0.18, tall: [0.3, 0.6], wide: [0.05, 0.1], life: [0.5, 1], burns: 0.9 },
+  fire: { kept: 18, out: 0.18, tall: [0.3, 0.6], wide: [0.05, 0.1], life: [0.5, 1], kindles: 0.3 },
 };
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.12, bob: 0.03, beat: 1.4 };
@@ -229,7 +231,7 @@ class Splash {
       d.spin = (Math.random() - 0.5) * 1.5;
       this.smoke.put(i, d.at, d.size, 0, Math.random() * Math.PI * 2);
     });
-    this.flames.forEach((f, i) => this.light(f, -i / SPLASH.fire.kept * SPLASH.fire.burns));
+    this.flames.forEach((f, i) => this.light(f, -i / SPLASH.fire.kept * SPLASH.fire.kindles));
     this.pool.position.copy(at).setY(at.y + 0.3);
     this.pool.visible = true;
   }
@@ -264,17 +266,19 @@ class Splash {
       this.drops.put(i, d.at, d.size, 1 - Math.pow(d.t / SPLASH.life, 3));
     });
     this.drops.commit();
+    // The smoke and the fire fade out together at the splash's end.
+    const ends = Math.min(1, Math.max(0, (SPLASH.lasts - this.since) / SPLASH.fades));
     // The cloud: thrown out fast and slowing, rising a little, swelling and thinning away.
     const cloud = SPLASH.cloud;
     this.puffs.forEach((d, i) => {
       if (!this.smoke.shown(i)) return;
       d.t += dt;
       const k = d.t / d.life;
-      if (k >= 1) { this.smoke.hide(i); return; }
+      if (k >= 1 || ends <= 0) { this.smoke.hide(i); return; }
       d.way.multiplyScalar(Math.exp(-2.5 * dt));
       d.at.addScaledVector(d.way, dt);
       d.at.y += 0.06 * t * dt;
-      this.smoke.put(i, d.at, d.size * (1 + (cloud.swell - 1) * (1 - Math.pow(1 - k, 2))), cloud.thick * Math.min(1, k * 8) * (1 - k) * (1 - k), d.t * d.spin);
+      this.smoke.put(i, d.at, d.size * (1 + (cloud.swell - 1) * (1 - Math.pow(1 - k, 2))), cloud.thick * ends * Math.min(1, k * 8) * (1 - 0.6 * k), d.t * d.spin);
     });
     this.smoke.commit();
     const pool = SPLASH.pool, k = this.since / pool.lasts;
@@ -283,15 +287,16 @@ class Splash {
       this.pool.scale.setScalar(t * pool.wide * (1 - Math.pow(1 - Math.min(1, this.since / pool.grow), 2)));
       (this.pool.material as THREE.ShaderMaterial).uniforms.clear.value = 0.9 * (1 - k * k);
     }
-    const across = this.across, fire = SPLASH.fire;
+    const across = this.across;
+    // Relit up to the end, so the fire is still burning as it fades with the smoke.
     if (this.seen) across.subVectors(this.eye, this.where).setY(0).normalize().cross(this.at.set(0, 1, 0));
     else across.set(1, 0, 0);
     this.flames.forEach((f, l) => {
       f.t += dt;
-      if (f.t >= f.life && this.since < fire.burns) this.light(f, 0);
+      if (f.t >= f.life && this.since < SPLASH.lasts) this.light(f, 0);
       const life = f.t / f.life;
       // Not lit yet (or never: before any splash), or burnt out.
-      const lit = !f.life || f.t < 0 || life >= 1 ? 0 : Math.sin(Math.PI * Math.pow(life, 0.6));
+      const lit = !f.life || f.t < 0 || life >= 1 ? 0 : Math.sin(Math.PI * Math.pow(life, 0.6)) * ends;
       const tall = f.tall * t * lit;
       for (let p = 0; p < FLAMES.points; p++) {
         const q = p / (FLAMES.points - 1);
