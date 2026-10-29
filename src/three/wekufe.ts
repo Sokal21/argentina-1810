@@ -94,6 +94,33 @@ const HALOS = [
 const BEAT = 2.2;
 const RED = new THREE.Color('#ff3018');
 
+/**
+ * His smoke's puffs bubble: each swells and shrinks as it goes, by `boil` of its size at most, `beat` to
+ * `beat` times twice a second, and is drawn as a lump of round blobs, not one soft ball.
+ */
+const BOIL = { boil: [0.12, 0.35], beat: [1.5, 3.5] };
+
+/** A puff of his smoke's picture: blobs of many sizes run together, each firm to near its edge. */
+let lumped: THREE.Texture | null = null;
+function lumps(): THREE.Texture {
+  if (lumped) return lumped;
+  const size = 64, canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const g = canvas.getContext('2d')!;
+  const blobs: number[][] = [[32, 34, 17], [20, 26, 11], [44, 24, 12], [24, 44, 10], [43, 44, 11], [32, 17, 9], [14, 36, 7], [51, 35, 7], [35, 51, 8]];
+  for (const [x, y, r] of blobs) {
+    const firm = g.createRadialGradient(x, y, 0, x, y, r);
+    firm.addColorStop(0, 'rgba(255,255,255,0.95)');
+    firm.addColorStop(0.7, 'rgba(255,255,255,0.8)');
+    firm.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = firm;
+    g.beginPath();
+    g.arc(x, y, r, 0, Math.PI * 2);
+    g.fill();
+  }
+  return lumped = new THREE.CanvasTexture(canvas);
+}
+
 /** A soft round picture: `inner` how far out it stays bright. For a puff of smoke and for a halo. */
 const pictures = new Map<number, THREE.Texture>();
 function soft(inner: number): THREE.Texture {
@@ -113,7 +140,7 @@ function soft(inner: number): THREE.Texture {
   return texture;
 }
 
-interface Puff { at: THREE.Vector3; way: THREE.Vector3; t: number; life: number; rise: number; size: number; spin: number; turn: number }
+interface Puff { at: THREE.Vector3; way: THREE.Vector3; t: number; life: number; rise: number; size: number; spin: number; turn: number; boil: number; beat: number }
 interface Flame { t: number; life: number; up: number; angle: number; out: number; tall: number; wide: number; waves: number; run: number; phase: number; colour: THREE.Color }
 interface Soul { t: number; life: number; from: number; climb: number; angle: number; wind: number; out: number; colour: THREE.Color }
 
@@ -361,11 +388,11 @@ export class Wekufe {
     const bone = (name: string) => body.getObjectByName(name);
     this.bones = [[bone('Waist')], ...['Thigh', 'Calf', 'Foot'].map(b => [bone('L_' + b), bone('R_' + b)])];
     for (const how of LAYERS) {
-      const cloud = new Billboards(how.kept, soft(0.3));
+      const cloud = new Billboards(how.kept, lumps());
       const puffs: Puff[] = [];
       for (let i = 0; i < how.kept; i++) {
         cloud.colour(i, how.colours[i % how.colours.length]);
-        puffs.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, life: 0, rise: 0, size: 0, spin: 0, turn: 0 });
+        puffs.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, life: 0, rise: 0, size: 0, spin: 0, turn: 0, boil: 0, beat: 0 });
       }
       this.layers.push({ how, cloud, puffs });
       this.group.add(cloud.mesh);
@@ -503,7 +530,8 @@ export class Wekufe {
           p.at.addScaledVector(p.way, dt);
           p.at.y += p.rise * dt;
           p.turn += p.spin * dt;
-          cloud.put(i, p.at, p.size * (1 + (how.swell - 1) * k), how.thick * shown * Math.min(1, k * 4) * (1 - k * k), p.turn);
+          const bubbling = 1 + p.boil * Math.sin(p.t * p.beat * Math.PI * 2);
+          cloud.put(i, p.at, p.size * (1 + (how.swell - 1) * k) * bubbling, how.thick * shown * Math.min(1, k * 4) * (1 - k * k), p.turn);
         } else if (shown > 0.05 && Math.random() < dt * rate) {
           // Anywhere along it, more of the core low where the gown is widest.
           const up = how.up ? r(how.up) : how === LAYERS[0] ? Math.pow(Math.random(), 1.3) : Math.random() * 1.05;
@@ -515,6 +543,8 @@ export class Wekufe {
           p.way.set(Math.cos(a), 0, Math.sin(a)).multiplyScalar(how.spread * Math.random());
           p.t = 0; p.life = r(how.life); p.rise = r(how.rise); p.size = r(how.size) * this.tall;
           p.spin = (Math.random() - 0.5) * 1.2;
+          p.boil = r(BOIL.boil);
+          p.beat = r(BOIL.beat);
           p.turn = Math.random() * Math.PI * 2;
           cloud.put(i, p.at, p.size, 0, p.turn);
         }
