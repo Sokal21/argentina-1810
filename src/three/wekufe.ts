@@ -35,7 +35,7 @@ const LAYERS: Layer[] = [
   // Lying on the ground about the hem, spreading slowly over it and hardly rising.
   { kept: 30, life: [1.6, 2.8], rise: [0, 3], spread: 16, size: [0.16, 0.3], swell: 2, colours: ['#050405', '#0c0a0d', '#141216', '#1c1a1e'], thick: 0.4, out: 1.3, up: [-0.14, 0.02] },
   // At his waist, thick, where his model ends: so the cut is not seen.
-  { kept: 40, life: [0.5, 1], rise: [2, 8], spread: 5, size: [0.08, 0.15], swell: 1.6, colours: ['#030203', '#080608', '#0d0a0c'], thick: 0.8, out: 1.1, up: [0.78, 1.08] },
+  { kept: 80, life: [0.5, 1.1], rise: [2, 8], spread: 6, size: [0.1, 0.2], swell: 1.7, colours: ['#030203', '#080608', '#0d0a0c', '#151215'], thick: 0.95, out: 1.25, up: [0.7, 1.1] },
 ];
 /**
  * His gown: how far from his waist bone down to its hem (a share of his height), how wide at its waist
