@@ -2863,6 +2863,16 @@
       "asset_id": "015198e9-4ef9-43be-b347-2e3f38fe8396",
       "label": "Wekufe (floating shadow demon) concept, wekufe_c: widest horns, longest arms",
       "file": "assets/wekufe/concept/wekufe_c.png"
+    },
+    {
+      "asset_id": "6737c0d2-8b6b-4ee2-8f4f-da960003f935",
+      "label": "Wekufe HD turnaround for Tripo, giro_a (from concept wekufe_c; arms nearer, clean tail)",
+      "file": "assets/wekufe/3d/giro_a.png"
+    },
+    {
+      "asset_id": "5945fc85-6f2d-4b6a-a237-6553457cbe2f",
+      "label": "Wekufe HD turnaround for Tripo, giro_b (from concept wekufe_c; arms wide, wisps, ground line)",
+      "file": "assets/wekufe/3d/giro_b.png"
     }
   ]
 }
