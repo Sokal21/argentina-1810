@@ -192,7 +192,26 @@ escondido en el monte) o el comandante de caballería.
 
 ### El final del camino del demonio: el Wekufe
 
-Una pelea pura, alimentado por la peste y la destrucción.
+Una pelea pura, alimentado por la peste y la destrucción. Diseño acordado con el usuario el
+29/10/2026:
+
+- **El lugar:** una cueva oscura y húmeda (piedra mojada, goteras, charcos de agua), con poca luz.
+- **Fase 1, los poseídos:** en la cueva hay tres apestados tirados. El Wekufe, hecho humo, se mete
+  en uno y lo transforma: crece, se pone negro y humeante, ojos rojos, asoman cuernos. El poseído
+  tiene más vida y **se mueve más rápido** que un apestado, sigue tirando **el ataque básico** del
+  apestado y suma **un salto con golpe al piso** donde está ella. Al matarlo, el humo sale y se
+  mete en el siguiente. Hay que matar a los tres.
+- **Fase 2, el Wekufe:** una **sombra que flota, con cuernos y ojos rojos**; de la cintura para
+  abajo es una cola de humo.
+  - **Se hace humo y aparece al lado de ella con un zarpazo** (el humo se junta antes donde va a
+    salir, para que se pueda esquivar). La animación se compone: algo de Mixamo con mucho efecto de
+    humo, luz roja y movimiento.
+  - **Nube de espíritus:** almas que giran a su alrededor y dañan mientras ella esté cerca.
+  - **Fuego rojo demoníaco:** una bola lenta que la sigue y dobla poco; se esquiva rodando a último
+    momento.
+  - **Al morir** su humo se disipa.
+- **Sacado por ahora (el usuario):** que se cure con charcos de peste, y quemar los cuerpos
+  tirados antes de que los posea. Se verá después.
 
 ### El jefe intermedio del camino del demonio
 
@@ -200,8 +219,8 @@ Por definir. Propuestas: el kalku, cuya cabeza vuela como un chonchón gigante; 
 
 ## Lo que falta decidir
 
-1. **Pendientes, para después de Roca:** los otros tres jefes: el intermedio del camino de Roca, el
-   intermedio del camino del demonio y el Wekufe.
+1. **Pendientes, para después de Roca:** los otros jefes: el intermedio del camino de Roca y el
+   intermedio del camino del demonio (el Wekufe ya está diseñado).
 2. El próximo enemigo (baqueano, lancero o artilleros).
 3. Las recompensas: cuáles, cuántas por vez y cómo se eligen.
 4. Las habitaciones: cuántas, cómo son y cómo se pasa de una a la siguiente.

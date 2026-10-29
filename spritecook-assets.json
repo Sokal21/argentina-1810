@@ -2848,6 +2848,21 @@
       "asset_id": "100c1d1b-cec0-4397-8b51-17c99b491ed6",
       "label": "spotter HD turnaround for Tripo, giro_b (from concept observador_c)",
       "file": "assets/observador/3d/giro_b.png"
+    },
+    {
+      "asset_id": "09d4bc44-8e49-43d5-8337-3c2c6294928f",
+      "label": "Wekufe (floating shadow demon) concept, wekufe_a: broad horns, smoke tail curling",
+      "file": "assets/wekufe/concept/wekufe_a.png"
+    },
+    {
+      "asset_id": "a9d92e5f-556a-46e6-87cc-41998320d6aa",
+      "label": "Wekufe (floating shadow demon) concept, wekufe_b: gaunt, narrow, horns up",
+      "file": "assets/wekufe/concept/wekufe_b.png"
+    },
+    {
+      "asset_id": "015198e9-4ef9-43be-b347-2e3f38fe8396",
+      "label": "Wekufe (floating shadow demon) concept, wekufe_c: widest horns, longest arms",
+      "file": "assets/wekufe/concept/wekufe_c.png"
     }
   ]
 }
