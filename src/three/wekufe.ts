@@ -11,7 +11,8 @@ import { unlitShader } from './pixels';
 // a thick black band, so where his model ends is not seen. Tongues of
 // black fire lick up from anywhere low on it, close along it as it narrows and bulging a little off it,
 // waving, each soft at its root, widest a little above it and drawn out to a point, flaring and dying
-// away; those on its far side dimmer, behind it. Souls wind up round it and off him, as black streaks,
+// away, a dark red glow of embers round each so it stands out of the smoke; those on its far side
+// dimmer, behind it. Souls wind up round it and off him, as black streaks,
 // each fading along its length. He floats, rising and sinking a little.
 // He dives into the earth head first, sinking right under it; where his head goes in, the ground
 // splashes black, drops thrown up and out and a black pool spreading, a cloud of black smoke bursts
@@ -56,7 +57,7 @@ const SOULS = { kept: 14, points: 18, life: [1.6, 2.6], climb: [0.45, 0.75], win
  * at its tip (a share of its own height), how many waves along it and how fast they run up it, how
  * clear at its root, and their colours.
  */
-const FLAMES = { kept: 44, points: 10, life: [0.4, 0.9], from: 0.35, tall: [0.22, 0.45], wide: [0.04, 0.08], wave: 0.3,
+const FLAMES = { kept: 44, points: 16, life: [0.4, 0.9], from: 0.35, tall: [0.22, 0.45], wide: [0.04, 0.08], wave: 0.3,
   waves: [1, 2], run: [7, 12], clear: 0.9, colours: ['#000000', '#050405', '#0a090b', '#100e11', '#18161a', '#211e23'] };
 /**
  * His dive: from what share of the clip he sinks, how deep he goes by its end (in the model's units: it
@@ -81,6 +82,11 @@ const SPLASH = {
     colours: ['#050405', '#0c0a0d', '#141216', '#1d1a1f', '#26222a'], thick: 0.85 },
   fire: { kept: 18, out: 0.18, tall: [0.3, 0.6], wide: [0.05, 0.1], life: [0.5, 1], kindles: 0.3 },
 };
+/**
+ * The embers round each tongue, so it stands out of the smoke: a wider ribbon behind it, of a dark red
+ * added to what is behind it as light is, how much wider and how bright.
+ */
+const EMBER = { colour: new THREE.Color('#7a1408'), wider: 1.9, bright: 0.55 };
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.06, bob: 0.025, beat: 1.4 };
 /**
@@ -152,7 +158,8 @@ class Streaks {
   private readonly at: THREE.BufferAttribute;
   private readonly tint: THREE.BufferAttribute;
 
-  constructor(lines: number, private readonly points: number) {
+  /** `lit`: added to what is behind it, as light is. */
+  constructor(lines: number, private readonly points: number, lit = false) {
     const geometry = new THREE.BufferGeometry();
     this.at = new THREE.BufferAttribute(new Float32Array(lines * points * 2 * 3), 3).setUsage(THREE.DynamicDrawUsage);
     this.tint = new THREE.BufferAttribute(new Float32Array(lines * points * 2 * 4), 4).setUsage(THREE.DynamicDrawUsage);
@@ -173,7 +180,7 @@ class Streaks {
       fragmentShader: unlitShader(`
         varying vec4 vTint;
         void main() { gl_FragColor = vTint; }`),
-      transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: lit ? THREE.AdditiveBlending : THREE.NormalBlending,
     }));
     this.mesh.frustumCulled = false;
   }
@@ -354,6 +361,7 @@ export class Wekufe {
   private readonly streaks: Streaks;
   private readonly souls: Soul[] = [];
   private readonly tongues: Streaks;
+  private readonly embers: Streaks;
   private readonly flames: Flame[] = [];
   private readonly halos: { sprite: THREE.Sprite; bone: THREE.Object3D | undefined; how: (typeof HALOS)[number] }[] = [];
   /** What of the model floats: everything under its root, so the root keeps the place the game gives it. */
@@ -402,8 +410,11 @@ export class Wekufe {
     this.group.add(this.streaks.mesh);
     this.tongues = new Streaks(FLAMES.kept, FLAMES.points);
     // Drawn after the smoke, so the smoke in the gown does not hide them.
-    this.tongues.mesh.renderOrder = 1;
+    this.tongues.mesh.renderOrder = 2;
     this.group.add(this.tongues.mesh);
+    this.embers = new Streaks(FLAMES.kept, FLAMES.points, true);
+    this.embers.mesh.renderOrder = 1;
+    this.group.add(this.embers.mesh);
     for (let i = 0; i < FLAMES.kept; i++) {
       this.flames.push({ t: 0, life: 0, up: 0, angle: 0, out: 0, tall: 0, wide: 0, waves: 0, run: 0, phase: 0, colour: new THREE.Color() });
       this.flame(this.flames[i], Math.random());
@@ -601,11 +612,15 @@ export class Wekufe {
         else across.set(-side.z, 0, side.x);
         at.addScaledVector(across, Math.sin(q * f.waves * Math.PI * 2 - this.time * f.run + f.phase) * FLAMES.wave * tall * q);
         // Soft at its root, widest a little above it, drawn out to its point.
-        const body = Math.min(1, 0.25 + q / 0.25) * Math.pow(1 - q, 0.8);
-        this.tongues.put(l, p, at, across, f.wide * this.tall * body * (0.5 + 0.5 * lit), f.colour, shown * FLAMES.clear * lit * back * Math.min(1, q / 0.2) * (1 - q * q));
+        // A point at its root too, rounding out to its widest a little above it, then drawn out to its tip.
+        const body = Math.sin(Math.PI / 2 * Math.min(1, q / 0.3)) * Math.pow(1 - q, 0.8);
+        const wide = f.wide * this.tall * body * (0.5 + 0.5 * lit), clear = shown * lit * back * Math.min(1, q / 0.15) * (1 - q * q);
+        this.tongues.put(l, p, at, across, wide, f.colour, FLAMES.clear * clear);
+        this.embers.put(l, p, at, across, wide * EMBER.wider, EMBER.colour, EMBER.bright * clear);
       }
     });
     this.tongues.commit();
+    this.embers.commit();
   }
 
   /** Where soul `s` is `t` into its life: up the gown and round it, further out as it rises off him. */
