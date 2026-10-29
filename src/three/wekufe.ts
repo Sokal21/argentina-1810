@@ -214,6 +214,7 @@ class Splash {
   private readonly smoke: Billboards;
   private readonly puffs: Drop[] = [];
   private readonly fire: Streaks;
+  private readonly dodges: Streaks;
   private readonly flames: Flame[] = [];
   private readonly where = new THREE.Vector3();
   private readonly at = new THREE.Vector3();
@@ -252,6 +253,10 @@ class Splash {
     this.fire.mesh.renderOrder = 1;
     this.fire.mesh.onBeforeRender = (_r, _s, camera) => { this.eye.setFromMatrixPosition(camera.matrixWorld); this.seen = true; };
     this.group.add(this.fire.mesh);
+    // Its fire stands out as his own does: each tongue drawn again over itself as a red dodge.
+    this.dodges = new Streaks(SPLASH.fire.kept, FLAMES.points, true);
+    this.dodges.mesh.renderOrder = 2;
+    this.group.add(this.dodges.mesh);
     for (let i = 0; i < SPLASH.fire.kept; i++) {
       this.flames.push({ t: 0, life: 0, up: 0, angle: 0, out: 0, tall: 0, wide: 0, waves: 0, run: 0, phase: 0, colour: new THREE.Color() });
     }
@@ -352,10 +357,15 @@ class Splash {
         const q = p / (FLAMES.points - 1);
         const sway = Math.sin(q * f.waves * Math.PI * 2 - this.time * f.run + f.phase) * FLAMES.wave * tall * q;
         this.at.set(this.where.x + Math.cos(f.angle) * f.out * t, ground + q * tall, this.where.z + Math.sin(f.angle) * f.out * t).addScaledVector(across, sway);
-        this.fire.put(l, p, this.at, across, f.wide * t * Math.pow(1 - q, 0.8) * (0.5 + 0.5 * lit), f.colour, FLAMES.clear * lit * (1 - q * q));
+        // Pointed at its root as at its tip, as his own tongues are.
+        const body = Math.sin(Math.PI / 2 * Math.min(1, q / 0.3)) * Math.pow(1 - q, 0.8);
+        const wide = f.wide * t * body * (0.5 + 0.5 * lit), clear = lit * Math.min(1, q / 0.15) * (1 - q * q);
+        this.fire.put(l, p, this.at, across, wide, f.colour, FLAMES.clear * DODGE.under * clear);
+        this.dodges.put(l, p, this.at, across, wide * DODGE.wider, DODGE.colour, clear);
       }
     });
     this.fire.commit();
+    this.dodges.commit();
   }
 }
 
