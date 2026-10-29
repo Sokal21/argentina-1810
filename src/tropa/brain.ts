@@ -57,6 +57,7 @@ export interface Kind {
    */
   retch?: { from: number; to: number; time: number; every: number; tall: number };
   /** He comes up out of the earth (`rise`): it takes `time` seconds, and for the first `under` of them he is under it, not to be struck. */
+  // Struck only once nearly out of it: 1.2 s at first, he took her blows still half in the ground (the user, 28/10/2026).
   rises?: { time: number; under: number };
   /**
    * He keeps away from her: nearer than `keep`, he runs straight off from her; further, he goes to
@@ -77,7 +78,8 @@ export interface Kind {
 }
 
 /** How tall the plague-dead soldier is drawn (three/realista.ts), for the pool he leaves, which is as big as he is. */
-export const APESTADO_DRAWN = 88;
+// 88 at first: a little bigger than the riflemen he walks among, he looked their size (the user, 28/10/2026).
+export const APESTADO_DRAWN = 100;
 
 export const KINDS = {
   // No musket: he runs at whoever he sees and cuts. Soon down, if he can be caught.
@@ -139,7 +141,7 @@ export const KINDS = {
     // He keeps turning after her until a little after he has set off (the user, 27/10/2026).
     lunge: { from: 150, to: 380, charge: 0.7, dash: 240, hit: 1.75, reach: 72, time: 2.7, every: 8, track: 0.3 },
     retch: { from: 80, to: 320, time: 1.5, every: 4.5, tall: APESTADO_DRAWN / Math.sqrt(1 - ISO_Y * ISO_Y) },
-    rises: { time: 3.8, under: 1.2 }, worth: 25, spoils: 12,
+    rises: { time: 3.8, under: 3.2 }, worth: 25, spoils: 12,
   },
   // Roca's artillery spotter (28 October 2026): quick on his feet and keeping away from her, he stops
   // now and again to signal the battery, his red flag cut down to point where she stands (frame 15 of

@@ -116,6 +116,11 @@ const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
 const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan', 'frontera', 'apestado', 'observador']);
 /** How much of what fire does a foe takes: a soldier's kind may stand it better. */
 const fireproof = (foe: Foe): number => foe instanceof Trooper ? (KINDS[foe.kind] as Kind).fire ?? 1 : 1;
+/**
+ * Whether a foe is there to be struck, or aimed at: alive, and not still in the earth he is coming up
+ * out of, which her bolts and blows go through (they were spent on him there: the user, 28/10/2026).
+ */
+const exposed = (foe: Foe): boolean => foe.alive && !(foe instanceof Trooper && foe.brain.under);
 /** With the gamepad a grenade lands this share of its reach straight ahead: all of it, as the musket aims. */
 const PAD_THROW = 1;
 /** With the gamepad, how fast the stick moves where a grenade held ready is to land, world units a second. */
@@ -564,7 +569,7 @@ export class GameScene extends Phaser.Scene {
         const a = t(from), b = t(to), ab = { x: b.x - a.x, y: b.y - a.y }, len = ab.x * ab.x + ab.y * ab.y || 1;
         let first: { k: number; at: Vec } | null = null;
         for (const foe of this.foes) {
-          if (!foe.alive) continue;
+          if (!exposed(foe)) continue;
           const d = t(foe.ground), k = Math.max(0, Math.min(1, ((d.x - a.x) * ab.x + (d.y - a.y) * ab.y) / len));
           const near = { x: a.x + ab.x * k, y: a.y + ab.y * k };
           if (Math.hypot(d.x - near.x, d.y - near.y) <= foe.girth + MUSKET.girth && (!first || k < first.k)) first = { k, at: { x: near.x, y: near.y * ISO_Y } };
@@ -1216,7 +1221,7 @@ export class GameScene extends Phaser.Scene {
         x: (this.machi.x + cast.x) / 2, y: (chestY + tipY) / 2,
         hw: Math.abs(cast.x - this.machi.x) / 2 + 2, hh: Math.abs(tipY - chestY) / 2 + 2,
       };
-      const blocker = this.foes.find(e => e.alive && overlaps(reach, e.body));
+      const blocker = this.foes.find(e => exposed(e) && overlaps(reach, e.body));
       if (blocker) this.wound(blocker, cast.dx, cast.dy * ISO_Y, 1, 'basic');
       else this.bolts.spawn(cast);
     }
@@ -1235,7 +1240,7 @@ export class GameScene extends Phaser.Scene {
     // A musket ball bursts on the first thing it is seen to touch, anywhere
     // along the stretch it flew this step.
     this.balls.sweep(4, (x, y) => {
-      const struck = this.foes.find(e => e.alive && overlaps({ x, y, hw: MUSKET.girth, hh: MUSKET.girth }, e.body));
+      const struck = this.foes.find(e => exposed(e) && overlaps({ x, y, hw: MUSKET.girth, hh: MUSKET.girth }, e.body));
       if (struck) this.blast(struck.ground, MUSKET.radius, MUSKET.damage, 'first');
       return !!struck;
     });
@@ -1646,7 +1651,7 @@ export class GameScene extends Phaser.Scene {
     this.shake(110, 0.005);
     for (const enemy of this.foes) {
       const spot = enemy.ground;
-      if (!enemy.alive || ground(at, spot) > radius + enemy.girth) continue;
+      if (!exposed(enemy) || ground(at, spot) > radius + enemy.girth) continue;
       // A blast that sets things alight is fire, which some stand better than others.
       this.wound(enemy, spot.x - at.x || 1, spot.y - at.y, damage * (sets ? fireproof(enemy) : 1), stat);
       if (sets) this.alight.ignite(enemy);
@@ -1664,7 +1669,7 @@ export class GameScene extends Phaser.Scene {
     // power instead: one blow, one share, however many it catches.
     const brimming = this.fury.value >= FURY;
     for (const enemy of this.foes) {
-      if (!enemy.alive) continue;
+      if (!exposed(enemy)) continue;
       const spot = enemy.ground;
       if (!lands(blow, spot, enemy.girth)) continue;
       const x = spot.x - blow.x, y = (spot.y - blow.y) / ISO_Y;
@@ -1784,7 +1789,7 @@ export class GameScene extends Phaser.Scene {
       // Whatever stands on the patch, or flies over it, takes the bolt.
       for (const enemy of this.foes) {
         const spot = enemy.ground;
-        if (!enemy.alive || ground(patch, spot) > STRIKE.radius + enemy.girth) continue;
+        if (!exposed(enemy) || ground(patch, spot) > STRIKE.radius + enemy.girth) continue;
         this.wound(enemy, spot.x - patch.x || 1, spot.y - patch.y, STRIKE.damage, 'first');
       }
     }
@@ -2134,7 +2139,7 @@ export class GameScene extends Phaser.Scene {
       const from = this.locked.ground;
       let best: Foe | null = null, least = Infinity;
       for (const foe of this.foes) {
-        if (!foe.alive || foe === this.locked || ground(this.machi, foe.ground) > lock.keep) continue;
+        if (!exposed(foe) || foe === this.locked || ground(this.machi, foe.ground) > lock.keep) continue;
         const dx = foe.ground.x - from.x, dy = foe.ground.y - from.y;
         const along = dx * flick.x + dy * flick.y, aside = Math.abs(dx * flick.y - dy * flick.x);
         if (along <= 0) continue;
@@ -2150,7 +2155,7 @@ export class GameScene extends Phaser.Scene {
   private nearest(reach: number): Foe | undefined {
     let found: Foe | undefined, least = reach;
     for (const foe of this.foes) {
-      if (!foe.alive) continue;
+      if (!exposed(foe)) continue;
       const far = ground(this.machi, foe.ground);
       if (far <= least) { least = far; found = foe; }
     }
@@ -2317,7 +2322,7 @@ export class GameScene extends Phaser.Scene {
     const pair = [a, b] as Phaser.GameObjects.GameObject[];
     const spot = pair.find(o => o.getData('bolt'));
     const enemy = pair.find(o => o.getData('enemy'))?.getData('enemy') as Foe | undefined;
-    const heading = spot && enemy ? this.bolts.strike(spot) : null;
+    const heading = spot && enemy && exposed(enemy) ? this.bolts.strike(spot) : null;
     if (heading && enemy) this.wound(enemy, heading.dx, heading.dy, 1, 'basic');
   };
 

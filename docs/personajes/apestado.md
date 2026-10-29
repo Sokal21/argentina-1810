@@ -11,7 +11,7 @@ with the user on 27 October 2026; not in the game yet, shown in `modelos.html` a
 - Big and heavy, swollen; his right shoulder and arm deformed by the plague. Pale grey-green skin
   and sores that shine a sickly, half radioactive green (`tools/blender/glow.py`, lit as a light map
   by `figure.ts`).
-- A head over the frontier soldier: drawn 88 to his 78.
+- Well over the frontier soldier: drawn 100 to his 78 (88 at first, which looked their size: the user, 28/10/2026). Coming up out of the earth he cannot be struck until he is nearly out (3.2 of its 3.8 s).
 - He walks in a stench: puffs of a dull green cloud carried off behind him (`three/stench.ts`).
 
 Concept C of three (`assets/apestado/concept/`), turnaround A (`assets/apestado/3d/giro_a.png`),

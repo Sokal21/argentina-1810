@@ -40,6 +40,8 @@ const cut = {
   /** Where she stands in the world, and the way toward the sun. */
   spot: { value: new THREE.Vector3(9e9, 0, 0) },
   sun: { value: new THREE.Vector3(0, 1, 0) },
+  /** How wide the shaft of sun onto her is on this map (none in a clearing). */
+  shaft: { value: SHAFT },
 };
 
 /** What a tree's shadow is cast with: none of it from within the shaft of sun onto her. */
@@ -48,6 +50,7 @@ function shaded(): THREE.Material {
   depth.onBeforeCompile = shader => {
     shader.uniforms.cutSpot = cut.spot;
     shader.uniforms.cutSun = cut.sun;
+    shader.uniforms.cutShaft = cut.shaft;
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vWorld;')
       .replace('#include <project_vertex>', `#include <project_vertex>
@@ -57,9 +60,9 @@ function shaded(): THREE.Material {
         #endif
         vWorld = (modelMatrix * w).xyz;`);
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vWorld;\nuniform vec3 cutSpot;\nuniform vec3 cutSun;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vWorld;\nuniform vec3 cutSpot;\nuniform vec3 cutSun;\nuniform float cutShaft;')
       .replace('void main() {', `void main() {
-        if (length(cross(vWorld - cutSpot, cutSun)) < ${SHAFT.toFixed(1)}) discard;`);
+        if (length(cross(vWorld - cutSpot, cutSun)) < cutShaft) discard;`);
   };
   return depth;
 }
@@ -103,6 +106,9 @@ export class Forest3D {
   }
 
   constructor(map: WorldMap) {
+    // In a clearing she is out in the open, and by its edge the shaft showed as a round of sun in
+    // the trees' shade about her wherever she went (the user, 28/10/2026).
+    cut.shaft.value = map.round ? 0 : SHAFT;
     if (map.bare) return;
     const trees = plantTrees(map, KINDS.length);
     this.tallest = Math.max(0, ...trees.map(t => DRAWN * t.size * KINDS[t.kind].tall * UPRIGHT));
