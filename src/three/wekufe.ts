@@ -95,10 +95,10 @@ const BEAT = 2.2;
 const RED = new THREE.Color('#ff3018');
 
 /**
- * His smoke's puffs bubble: each swells and shrinks as it goes, by `boil` of its size at most, `beat` to
- * `beat` times twice a second, and is drawn as a lump of round blobs, not one soft ball.
+ * His smoke's puffs bubble: each swells and shrinks as it goes, by `boil` of its size at most, `beat`
+ * times a second, and is drawn as a lump of round blobs, not one soft ball.
  */
-const BOIL = { boil: [0.12, 0.35], beat: [1.5, 3.5] };
+const BOIL = { boil: [0.12, 0.35], beat: [0.35, 0.8] };
 
 /** A puff of his smoke's picture: blobs of many sizes run together, each firm to near its edge. */
 let lumped: THREE.Texture | null = null;
