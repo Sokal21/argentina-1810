@@ -128,7 +128,7 @@ const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 38, tong
  * big, how much it swells), the tongues streaming off it, and what bursts when it ends.
  */
 const FIREBALL = { from: 18 / 50, at: 25 / 50, size: 0.2, speed: 0.5, turns: 0.8, lasts: 4.5, near: 0.12, lumps: 14,
-  colours: ['#000000', '#060506', '#4a0804', '#0c0a0d', '#000000', '#7a0e06', '#141216'], glow: new THREE.Color('#ff2a12'),
+  colours: ['#000000', '#060506', '#0c0a0d', '#141216'], veils: 5, glow: new THREE.Color('#ff2a12'),
   smoke: { kept: 130, each: 40, life: [1, 1.9], size: [0.1, 0.17], swell: 2.2, rise: [0.05, 0.14], clear: 0.75, colours: ['#000000', '#060506', '#0c0a0d', '#141216'] },
   tongues: { kept: 8, points: 10, long: [0.13, 0.26], wide: [0.016, 0.03], wave: 0.025, waves: [1, 2], run: [8, 13], clear: 0.7, colour: new THREE.Color('#050405') },
   burst: { puffs: 34, out: [0.35, 0.8], flash: 0.35 } };
@@ -612,7 +612,7 @@ class Wraiths {
 
 interface Ember { at: THREE.Vector3; way: THREE.Vector3; t: number; life: number; size: number; spin: number; boil: number; beat: number }
 
-/** His red fire: gathering between his hands, leaving them the way they thrust and hunting `prey`, turning little, a ball of black smoke with a red glow at its heart, streaming wisps and trailing more smoke; it bursts on a hit or when it has lasted. */
+/** His red fire: gathering between his hands, leaving them the way they thrust and hunting `prey`, turning little, a ball of black smoke with a bright red orb at its heart, wisps of smoke passing over it, streaming wisps and trailing more smoke; it bursts on a hit or when it has lasted. */
 class Fireball {
   readonly group = new THREE.Group();
   /** Where what it hunts is, kept up to date by whoever has him throw it. */
@@ -621,6 +621,7 @@ class Fireball {
   private readonly embers: Ember[] = [];
   private readonly ball: Billboards;
   private readonly glow: Billboards;
+  private readonly veil: Billboards;
   private readonly tongues: Streaks;
   private readonly flames: { long: number; wide: number; waves: number; run: number; phase: number; off: THREE.Vector3 }[] = [];
   private readonly hands: THREE.Object3D[];
@@ -650,7 +651,10 @@ class Fireball {
     this.ball = new Billboards(FIREBALL.lumps, lumps());
     for (let i = 0; i < FIREBALL.lumps; i++) this.ball.colour(i, FIREBALL.colours[i % FIREBALL.colours.length]);
     this.glow = new Billboards(2, soft(0.1), true);
-    for (let i = 0; i < 2; i++) this.glow.colour(i, FIREBALL.glow);
+    this.glow.colour(0, FIREBALL.glow, 4);
+    this.glow.colour(1, FIREBALL.glow);
+    this.veil = new Billboards(FIREBALL.veils, lumps());
+    for (let i = 0; i < FIREBALL.veils; i++) this.veil.colour(i, FIREBALL.colours[i % FIREBALL.colours.length]);
     this.tongues = new Streaks(tongues.kept, tongues.points);
     this.tongues.mesh.visible = false;
     for (let i = 0; i < tongues.kept; i++) {
@@ -659,10 +663,11 @@ class Fireball {
     }
     this.smoke.mesh.renderOrder = 0.7;
     this.tongues.mesh.renderOrder = 0.8;
-    // The light under the smoke, coming through where its lumps part.
-    this.glow.mesh.renderOrder = 3;
-    this.ball.mesh.renderOrder = 4;
-    this.group.add(this.smoke.mesh, this.tongues.mesh, this.ball.mesh, this.glow.mesh);
+    // Smoke, then its orb of light, then wisps of smoke passing over that.
+    this.ball.mesh.renderOrder = 3;
+    this.glow.mesh.renderOrder = 4;
+    this.veil.mesh.renderOrder = 5;
+    this.group.add(this.smoke.mesh, this.tongues.mesh, this.ball.mesh, this.glow.mesh, this.veil.mesh);
   }
 
   /** He throws: his throw, `seconds` long, has just begun. */
@@ -777,8 +782,10 @@ class Fireball {
     if (grown <= 0) {
       this.ball.hideAll();
       this.glow.hideAll();
+      this.veil.hideAll();
       this.ball.commit();
       this.glow.commit();
+      this.veil.commit();
       this.tongues.mesh.visible = false;
       return;
     }
@@ -787,10 +794,16 @@ class Fireball {
       this.point.set(Math.cos(a) * Math.cos(b), Math.sin(b), Math.sin(a) * Math.cos(b)).multiplyScalar(size * (0.26 + 0.1 * Math.sin(this.time * 1.3 + i * 2))).add(this.at);
       this.ball.put(i, this.point, size * 0.55 * (1 + 0.14 * Math.sin(this.time * (5 + i) + i)), 0.9, a);
     }
-    this.glow.put(0, this.at, size * 0.9, 1);
-    this.glow.put(1, this.at, size * 1.4, 0.4 + 0.1 * Math.sin(this.time * 7));
+    this.glow.put(0, this.at, size * 0.55, 1);
+    this.glow.put(1, this.at, size * 1.05, 0.35 + 0.08 * Math.sin(this.time * 7));
+    for (let i = 0; i < FIREBALL.veils; i++) {
+      const a = i * 2.1 + this.time * (1.1 + i * 0.17), b = i * 1.3 + this.time * 0.8;
+      this.point.set(Math.cos(a) * Math.cos(b), Math.sin(b), Math.sin(a) * Math.cos(b)).multiplyScalar(size * 0.22).add(this.at);
+      this.veil.put(i, this.point, size * 0.32, 0.6, a);
+    }
     this.ball.commit();
     this.glow.commit();
+    this.veil.commit();
     this.tongues.mesh.visible = true;
     const { tongues } = FIREBALL;
     this.flames.forEach((f, l) => {
@@ -811,6 +824,8 @@ class Fireball {
     const size = FIREBALL.size * this.tall * (1 + share * 2.5);
     this.ball.hideAll();
     this.ball.commit();
+    this.veil.hideAll();
+    this.veil.commit();
     this.glow.put(0, this.at, size * 1.3, 0.9 * (1 - share));
     this.glow.put(1, this.at, size * 3, 0.35 * (1 - share));
     this.glow.commit();
