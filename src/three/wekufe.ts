@@ -97,7 +97,7 @@ const SPLASH = {
  * smoke, nothing where there is only black): how much wider, by how much at most it brightens what
  * is behind (its colour: 1 doubles it), and the black tongue's own clearness under it.
  */
-const DODGE = { colour: new THREE.Color(2.6, 0.45, 0.25), wider: 1.15, under: 0.55 };
+export const DODGE = { colour: new THREE.Color(2.6, 0.45, 0.25), wider: 1.15, under: 0.55 };
 /**
  * His claws' lines: the share of his `zarpazo` over which his hands strike (frames 22.5 to 27 of 51, as
  * measured: both swing at once; past them the hands turn back, and the lines would hook), the lines of each hand, how far past the hand their claws reach and how
@@ -155,7 +155,7 @@ const BOIL = { boil: [0.12, 0.35], beat: [0.35, 0.8] };
 
 /** A puff of his smoke's picture: blobs of many sizes run together, each firm to near its edge. */
 let lumped: THREE.Texture | null = null;
-function lumps(): THREE.Texture {
+export function lumps(): THREE.Texture {
   if (lumped) return lumped;
   const size = 64, canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
@@ -176,7 +176,7 @@ function lumps(): THREE.Texture {
 
 /** A soft round picture: `inner` how far out it stays bright. For a puff of smoke and for a halo. */
 const pictures = new Map<number, THREE.Texture>();
-function soft(inner: number): THREE.Texture {
+export function soft(inner: number): THREE.Texture {
   const had = pictures.get(inner);
   if (had) return had;
   const size = 64, canvas = document.createElement('canvas');
@@ -200,7 +200,7 @@ interface Soul { t: number; life: number; from: number; climb: number; angle: nu
 const r = (a: number[]) => a[0] + Math.random() * (a[1] - a[0]);
 
 /** The souls' streaks: ribbons turned to the camera, clear at their head and fading along them. */
-class Streaks {
+export class Streaks {
   readonly mesh: THREE.Mesh;
   private readonly at: THREE.BufferAttribute;
   private readonly tint: THREE.BufferAttribute;

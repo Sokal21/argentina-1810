@@ -5,6 +5,7 @@ import { Cart } from './cart';
 import { ChonchonFigure, DRAWN as CHONCHON } from './chonchon';
 import { ChonchonBrain } from '../chonchon/brain';
 import { Spirit } from './spirit';
+import { Possessed } from './poseido';
 import { Stench } from './stench';
 import { Wekufe } from './wekufe';
 import { RISE, Rising } from './rising';
@@ -31,7 +32,7 @@ import { UPRIGHT } from './space';
 // kinds of the king's men with a model of their own, whoever keeps a house), and a model's clips are
 // read off its file, so a new character or a new clip is here as soon as the game has it.
 
-interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge']; dives?: boolean; stench?: boolean; vomits?: boolean; revolver?: boolean; spots?: boolean; wekufe?: boolean }
+interface Who { name: string; url: string; drawn: number; cart?: boolean; spirit?: boolean; kneels?: boolean; pistol?: boolean; lunge?: (typeof LOOKS)[string]['lunge']; dives?: boolean; stench?: boolean; vomits?: boolean; revolver?: boolean; spots?: boolean; wekufe?: boolean; possessed?: boolean }
 
 /** The kinds of the king's men, named as the game names them. */
 const KIND_NAMES: Record<string, string> = { sargento: 'Sargento', capitan: 'El capitán', sableador: 'Sableador', tirador: 'Tirador', frontera: 'Soldado de frontera' };
@@ -56,6 +57,8 @@ const WHO: Who[] = [
   // zombie clips on him, two deaths to choose between, and his retching (a cough captured lying down, stood up), his crawls and his getting up out of the ground. Not in the game yet; drawn a head over the
   // frontier soldier he was; in the cloud of his stench.
   { name: 'Apestado', url: 'apestado/3d/apestado_animado.glb', drawn: 88, stench: true, vomits: true },
+  // The same with the Wekufe in him, to be fought in the first part of the Wekufe's fight (docs/personajes/apestado_poseido.md).
+  { name: 'Apestado poseído', url: 'apestado/3d/apestado_animado.glb', drawn: 125, possessed: true },
   // Julio Argentino Roca, the last boss of his road in Inti's arc (Tripo from turnaround A, 28 October
   // 2026): the captain's clips on him (Mixamo's captures again, as tools/mocap/README.md has them), his
   // sabre in his right hand, his revolver in his left; his slash, Mixamo's Sword And Shield Slash; his
@@ -106,7 +109,7 @@ const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   granada_sacar: { lasts: DRAW }, granada_lanzar: { lasts: SHOT },
   tajo: { lasts: 0.5 }, 'Realista:tajo': { lasts: 0.8 }, 'Sableador:tajo': { once: true },
   barrido: { once: true }, estocada: { once: true }, zarpazo: { once: true }, 'El capitán:grito': { lasts: 2.0 }, grito: { lasts: 2.0 }, tiro: { once: true },
-  muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, senas: { once: true }, rafaga: { once: true }, rodada_mixamo: { once: true }, zambullida: { once: true }, invocar: { once: true }, lanzar: { once: true }, beber: { once: true },
+  muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, 'Apestado poseído:golpe': { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, senas: { once: true }, rafaga: { once: true }, rodada_mixamo: { once: true }, zambullida: { once: true }, invocar: { once: true }, lanzar: { once: true }, beber: { once: true },
 };
 /** How long a clip's end is held before it starts over, for one whose end goes on after it, in seconds. */
 const HELD: Record<string, number> = { zambullida: 3.2, 'Wekufe:muerte': 3.2, invocar: 6, lanzar: 5.2 };
@@ -204,6 +207,7 @@ let framed: THREE.Vector3 | null = null;
 const spirits: Spirit[] = [];
 const stenches: Stench[] = [];
 const wekufes = new Map<Who, Wekufe>();
+const possessed: Possessed[] = [];
 let preyTime = 0;
 const preyMark = new THREE.Mesh(new THREE.SphereGeometry(4, 8, 6), new THREE.MeshBasicMaterial({ color: '#7fe8ff' }));
 preyMark.visible = false;
@@ -252,6 +256,8 @@ async function load(w: Who) {
     if (w.stench) { const s = new Stench(body, w.drawn * UPRIGHT); stenches.push(s); view.scene.add(s.group); }
     // The Wekufe floating in his smoke, his eyes and belly glowing.
     if (w.wekufe) { const k = new Wekufe(body, w.drawn * UPRIGHT); wekufes.set(w, k); view.scene.add(k.group); }
+    // Blackened, horned, in his smoke.
+    if (w.possessed) { const p = new Possessed(body, w.drawn * UPRIGHT); possessed.push(p); view.scene.add(p.group); }
     const clips = body.animations.map(a => a.name);
     clips.sort((a, b) => (FIRST.indexOf(a) + 1 || 99) - (FIRST.indexOf(b) + 1 || 99) || a.localeCompare(b));
     it = { body, motion: new Motion(body), clips, flung: new Fling(() => 0), home: 0 };
@@ -602,6 +608,7 @@ view.renderer.setAnimationLoop(() => {
   step(dt);
   for (const s of spirits) s.update(dt);
   for (const s of stenches) s.update(dt);
+  for (const p of possessed) p.update(dt);
   // What his red fire hunts here: a mark swaying slowly from side to side where he throws, to be seen hit.
   for (const [w, k] of wekufes) {
     preyTime += dt;
