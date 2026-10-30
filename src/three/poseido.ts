@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { Billboards } from './billboards';
+import type { Motion } from './motion';
 import { flat } from './paint';
+import { unlitShader } from './pixels';
 import { DODGE, lumps, soft, Streaks } from './wekufe';
 
 // The plague-dead soldier with the Wekufe in him (docs/personajes/apestado_poseido.md): the same model
@@ -31,6 +33,13 @@ const POSSESSION = { climbs: [0.08, 0.42], thickest: [0.46, 0.58], changes: 0.52
   kept: 120, out: [0.12, 0.36], high: 0.95, round: [1.4, 3.2], size: [0.1, 0.22], thick: 0.96, colours: ['#000000', '#040304', '#080608', '#0d0b0e', '#141216'],
   /** The tongues of black fire licking up through the cloud: how many, how long each lasts, how tall and wide, over which shares of his agony they burn, how clear the black and its red within it (on a pale ground more red reads as red fire, not black). */
   fire: { kept: 30, points: 14, life: [0.35, 0.8], tall: [0.28, 0.6], wide: [0.05, 0.1], burns: [0.12, 0.92], black: 0.97, red: 0.3 } };
+
+/**
+ * His leap and blow on the ground: how long he crouches and is in the air (seconds), crouched at what share of his clip and landing at what share,
+ * how far off he starts and how high he goes, how wide the blow (shares of his height), how long what it leaves lasts: its ring, its cracks, its dust.
+ */
+export const LEAP = { crouch: 0.55, air: 0.5, crouched: 0.35, lands: 12 / 48, far: 0.95, high: 0.6, reach: 0.6, after: 1.1, jolt: { seconds: 0.5, pixels: 8 },
+  cracks: { kept: 11, points: 6, wide: 0.03, jag: 0.05 }, dust: { kept: 36, out: [0.7, 1.5], up: [0.03, 0.2], size: [0.1, 0.2], swell: 2.2, thick: 0.8 } };
 
 interface Wrap { up: number; angle: number; out: number; round: number; size: number; spin: number; bob: number }
 
@@ -112,6 +121,16 @@ function horn(points: number[][], side: number, tall: number): THREE.Mesh {
   return mesh;
 }
 
+/** Something red lying on the ground, as clear as `clear` (its uniform), under him and all. */
+function ground(clear: number): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    uniforms: { clear: { value: clear } },
+    vertexShader: 'void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: unlitShader('uniform float clear; void main() { gl_FragColor = vec4(0.95, 0.09, 0.03, clear); }'),
+    transparent: true, depthWrite: false, side: THREE.DoubleSide,
+  });
+}
+
 export class Possessed {
   readonly group = new THREE.Group();
   private readonly cloud = new Billboards(SMOKE.kept, lumps());
@@ -137,6 +156,13 @@ export class Possessed {
   private readonly fire = new Streaks(POSSESSION.fire.kept, POSSESSION.fire.points);
   private readonly fireDodges = new Streaks(POSSESSION.fire.kept, POSSESSION.fire.points, true);
   private readonly fires: Tongue[] = [];
+  private readonly mark = new THREE.Mesh(new THREE.RingGeometry(0.965, 1, 64).rotateX(-Math.PI / 2), ground(0.8));
+  private readonly filling = new THREE.Mesh(new THREE.RingGeometry(0.9, 1, 64).rotateX(-Math.PI / 2), ground(0.5));
+  private readonly shock = new THREE.Mesh(new THREE.RingGeometry(0.86, 1, 64).rotateX(-Math.PI / 2), ground(0.9));
+  private readonly cracks = new Streaks(LEAP.cracks.kept, LEAP.cracks.points, false, true);
+  private readonly dust = new Billboards(LEAP.dust.kept, lumps());
+  private readonly dusts: { way: THREE.Vector3; at: THREE.Vector3; size: number; spin: number }[] = [];
+  private readonly cracked: THREE.Vector3[][] = [];
 
   constructor(private readonly body: THREE.Object3D, private readonly tall: number) {
     this.show = burn(body);
@@ -177,6 +203,13 @@ export class Possessed {
     this.dodges.mesh.renderOrder = 2;
     this.tongues.mesh.onBeforeRender = (_r, _s, camera) => { this.camera.setFromMatrixPosition(camera.matrixWorld); this.seen = true; };
     this.aura.add(this.tongues.mesh, this.dodges.mesh);
+    this.group.add(this.mark, this.filling, this.shock, this.cracks.mesh, this.dust.mesh);
+    this.dust.mesh.renderOrder = 3;
+    for (let i = 0; i < LEAP.dust.kept; i++) {
+      this.dust.colour(i, POSSESSION.colours[i % POSSESSION.colours.length]);
+      this.dusts.push({ way: new THREE.Vector3(), at: new THREE.Vector3(), size: 0, spin: 0 });
+    }
+    this.landed();
     this.fire.mesh.renderOrder = 4;
     this.fireDodges.mesh.renderOrder = 5;
     this.fire.mesh.visible = this.fireDodges.mesh.visible = false;
@@ -239,6 +272,88 @@ export class Possessed {
     this.wrap.commit();
     this.burning(dt, q, climbed);
     if (q >= 1) { this.possessing = null; this.fire.mesh.visible = this.fireDodges.mesh.visible = false; }
+  }
+
+  /** Nothing of a leap left on the ground. */
+  landed(): void {
+    this.mark.visible = this.filling.visible = this.shock.visible = this.cracks.mesh.visible = false;
+    for (let i = 0; i < LEAP.dust.kept; i++) this.dust.hide(i);
+    this.dust.commit();
+  }
+
+  /**
+   * His leap, `into` seconds in: crouched, a red ring on the ground filling up where he will land; through the air;
+   * then the blow, the ring going out, red cracks, black dust and fire. Says when the blow falls.
+   */
+  leap(into: number, dt: number, motion: Motion): boolean {
+    const { crouch, air, crouched, lands, far, high, reach, after } = LEAP, down = crouch + air, wide = reach * this.tall;
+    this.body.getWorldPosition(this.at);
+    if (into < down) {
+      const q = Math.min(1, into / down), k = Math.max(0, (into - crouch) / air);
+      for (const ring of [this.mark, this.filling]) { ring.visible = true; ring.position.set(this.at.x, 0.6, 0); }
+      this.mark.scale.setScalar(wide);
+      this.filling.scale.setScalar(Math.max(0.01, wide * q));
+      if (into < crouch) motion.hold('salto', crouched * Math.min(1, into / 0.2), { blend: 0.12 });
+      else motion.hold('salto', lands * k * 0.9, { blend: 0.08 });
+      this.body.position.z = -far * this.tall * (1 - k);
+      this.body.position.y = high * this.tall * 4 * k * (1 - k);
+      return false;
+    }
+    this.body.position.y = this.body.position.z = 0;
+    const was = into - dt, gone = into - down;
+    const struck = was < down;
+    if (struck) {
+      this.mark.visible = this.filling.visible = false;
+      this.shock.visible = this.cracks.mesh.visible = true;
+      this.shock.position.set(this.at.x, 0.6, 0);
+      this.crack();
+      for (const d of this.dusts) {
+        const angle = Math.random() * Math.PI * 2, out = r(LEAP.dust.out) * this.tall;
+        d.at.set(this.at.x + Math.cos(angle) * wide * 0.3, 4, Math.sin(angle) * wide * 0.3);
+        d.way.set(Math.cos(angle) * out, r(LEAP.dust.up) * this.tall, Math.sin(angle) * out);
+        d.size = r(LEAP.dust.size) * this.tall;
+        d.spin = Math.random() * Math.PI * 2;
+      }
+    }
+    motion.hold('salto', lands + (1 - lands) * Math.min(1, gone / Math.max(after, 0.01)), { blend: 0.03 });
+    const q = Math.min(1, gone / after), slow = 1 - (1 - q) ** 3;
+    this.shock.scale.setScalar(Math.max(0.01, wide * (0.2 + 1.9 * slow)));
+    (this.shock.material as THREE.ShaderMaterial).uniforms.clear.value = 0.9 * Math.max(0, 1 - q * 1.6);
+    this.dusts.forEach((d, i) => {
+      if (q >= 1) { this.dust.hide(i); return; }
+      d.at.addScaledVector(d.way, dt * (1 - slow));
+      this.dust.put(i, d.at, d.size * (1 + (LEAP.dust.swell - 1) * slow), LEAP.dust.thick * (1 - q), d.spin);
+    });
+    this.dust.commit();
+    this.cracking(q);
+    if (q < 0.7) this.burning(dt, 0.92 - 0.15 * (q / 0.7), 0.2);
+    else this.fire.mesh.visible = this.fireDodges.mesh.visible = false;
+    return struck;
+  }
+
+  /** New cracks run out from where he struck. */
+  private crack(): void {
+    const { kept, points, jag } = LEAP.cracks;
+    this.cracked.length = 0;
+    for (let l = 0; l < kept; l++) {
+      const angle = (l + Math.random() * 0.7) / kept * Math.PI * 2, far = (0.45 + Math.random() * 0.5) * LEAP.reach * this.tall * 1.3, line: THREE.Vector3[] = [];
+      for (let p = 0; p < points; p++) {
+        const k = p / (points - 1), off = p ? (Math.random() - 0.5) * jag * this.tall : 0;
+        line.push(new THREE.Vector3(this.at.x + Math.cos(angle) * far * k - Math.sin(angle) * off, 1, Math.sin(angle) * far * k + Math.cos(angle) * off));
+      }
+      this.cracked.push(line);
+    }
+  }
+
+  private cracking(q: number): void {
+    const { points, wide } = LEAP.cracks, across = new THREE.Vector3(), red = new THREE.Color(2.2, 0.28, 0.1);
+    this.cracked.forEach((line, l) => line.forEach((at, p) => {
+      const k = p / (points - 1), to = line[Math.min(points - 1, p + 1)], from = line[Math.max(0, p - 1)];
+      across.set(-(to.z - from.z), 0, to.x - from.x).normalize();
+      const run = Math.min(1, q * 7) >= k ? 1 : 0;
+      this.cracks.put(l, p, at, across, wide * this.tall * (1 - k * 0.8), red, run * Math.max(0, 1 - q * q));
+    }));
+    this.cracks.commit();
   }
 
   /** A tongue of the cloud's fire set off again about him, `into` that share of its life already: `off` its root, as shares of his height, its height in y. */
