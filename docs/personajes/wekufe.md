@@ -46,6 +46,7 @@ and the destruction. Designed with the user on 29 October 2026; not in the game 
   - **A cloud of spirits** about him, hurting her while she is near.
   - **Slow red demon fire** that follows her and turns little, dodged by rolling late.
   - **Dying, he writhes and sinks into the earth, in that same pose,** with the same explosion of smoke and fire as his dive (the user).
+    When he dies the screen and the pad shake, to frighten a little (the user; to do when his fight goes in: `GameScene.shake`, which drives both).
 
 ## Model and clips (`assets/wekufe/3d`)
 Tripo multiview of turnaround A (front, his left, back), Tripo's rig; Mixamo clips retargeted
