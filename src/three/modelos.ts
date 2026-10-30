@@ -82,6 +82,8 @@ const WHO: Who[] = [
   // Zombie Agonizing for his death, sinking into it; the Pro Magic Pack's for summoning his spirits and throwing his fire.
   // Not in the game yet.
   { name: 'Wekufe', url: 'wekufe/3d/wekufe_animado.glb', drawn: 150, wekufe: true },
+  // The Pro Magic Pack's spells Inti does not use, on him, to choose from for summoning and throwing.
+  { name: 'Wekufe (hechizos)', url: 'wekufe/3d/wekufe_hechizos.glb', drawn: 150, wekufe: true },
   // The ox cart whole, as the game draws it (three/cart.ts): going, its wheels rolling and its oxen
   // walking, in place; or standing, its oxen breathing and grazing now and then.
   { name: 'Carreta', url: '', drawn: 110, cart: true },
