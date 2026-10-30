@@ -127,8 +127,8 @@ const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 38, tong
  * roll beats it), how long it lasts, how near is a hit (his heights); the black smoke it trails (how many a second, how long each lasts, how
  * big, how much it swells), the tongues streaming off it, and what bursts when it ends.
  */
-const FIREBALL = { from: 18 / 50, at: 25 / 50, size: 0.2, speed: 0.5, turns: 0.8, lasts: 4.5, near: 0.12, lumps: 12,
-  colours: ['#000000', '#060506', '#0c0a0d', '#141216'], glow: new THREE.Color('#ff2a12'),
+const FIREBALL = { from: 18 / 50, at: 25 / 50, size: 0.2, speed: 0.5, turns: 0.8, lasts: 4.5, near: 0.12, lumps: 14,
+  colours: ['#000000', '#060506', '#4a0804', '#0c0a0d', '#000000', '#7a0e06', '#141216'], glow: new THREE.Color('#ff2a12'),
   smoke: { kept: 130, each: 40, life: [1, 1.9], size: [0.1, 0.17], swell: 2.2, rise: [0.05, 0.14], clear: 0.75, colours: ['#000000', '#060506', '#0c0a0d', '#141216'] },
   tongues: { kept: 8, points: 10, long: [0.13, 0.26], wide: [0.016, 0.03], wave: 0.025, waves: [1, 2], run: [8, 13], clear: 0.7, colour: new THREE.Color('#050405') },
   burst: { puffs: 34, out: [0.35, 0.8], flash: 0.35 } };
@@ -659,8 +659,9 @@ class Fireball {
     }
     this.smoke.mesh.renderOrder = 0.7;
     this.tongues.mesh.renderOrder = 0.8;
-    this.ball.mesh.renderOrder = 3;
-    this.glow.mesh.renderOrder = 4;
+    // The light under the smoke, coming through where its lumps part.
+    this.glow.mesh.renderOrder = 3;
+    this.ball.mesh.renderOrder = 4;
     this.group.add(this.smoke.mesh, this.tongues.mesh, this.ball.mesh, this.glow.mesh);
   }
 
@@ -783,11 +784,11 @@ class Fireball {
     }
     for (let i = 0; i < FIREBALL.lumps; i++) {
       const a = i * 2.4 + this.time * (0.8 + i * 0.13), b = i * 1.7 + this.time * 0.6;
-      this.point.set(Math.cos(a) * Math.cos(b), Math.sin(b), Math.sin(a) * Math.cos(b)).multiplyScalar(i ? size * 0.2 : 0).add(this.at);
-      this.ball.put(i, this.point, size * (i ? 0.65 : 0.85) * (1 + 0.14 * Math.sin(this.time * (5 + i) + i)), 0.95, a);
+      this.point.set(Math.cos(a) * Math.cos(b), Math.sin(b), Math.sin(a) * Math.cos(b)).multiplyScalar(size * (0.26 + 0.1 * Math.sin(this.time * 1.3 + i * 2))).add(this.at);
+      this.ball.put(i, this.point, size * 0.55 * (1 + 0.14 * Math.sin(this.time * (5 + i) + i)), 0.9, a);
     }
-    this.glow.put(0, this.at, size * 0.6, 1);
-    this.glow.put(1, this.at, size * 1, 0.25 + 0.07 * Math.sin(this.time * 7));
+    this.glow.put(0, this.at, size * 0.9, 1);
+    this.glow.put(1, this.at, size * 1.4, 0.4 + 0.1 * Math.sin(this.time * 7));
     this.ball.commit();
     this.glow.commit();
     this.tongues.mesh.visible = true;
