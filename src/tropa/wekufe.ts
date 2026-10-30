@@ -10,13 +10,13 @@ import type { Vec } from '../machi/controller';
  * How he goes about it: how far from her he keeps and how fast he drifts there; how long he floats between
  * one thing and the next. How long each clip takes, played much faster than its own pace (the user, 30/10/2026:
  * at it he was far too slow), and the moment that matters in it (measured on the model, see docs/personajes/wekufe.md). His dive: how long he is under and how far from her he comes up, the place
- * shown all that while. His claws: how far they reach and what they take. His souls: how long they hurt once
+ * shown all that while. His claws: how far they reach, what they take, how fast he throws himself at her as they draw back and how near. His souls: how long they hurt once
  * called, what they take and how often, and how long before he calls them again.
  */
 export const WEKUFE = {
   keep: 220, drift: 80, floats: [0.3, 0.8],
   dive: { time: 0.6, under: 0.7, beside: 70 },
-  claw: { time: 1.3, from: 22.5 / 51, to: 27 / 51, reach: 105, damage: 2 },
+  claw: { time: 1.3, from: 22.5 / 51, to: 27 / 51, reach: 125, damage: 2, lunge: 260, close: 60 },
   throw: { time: 1.2 },
   invoke: { time: 1.7, at: 40 / 68, lasts: 6, every: 1.2, damage: 1, again: 8 },
   dying: 3.2,
@@ -90,10 +90,14 @@ export class WekufeMind {
         if (!her) break;
         this.drift(dt, her);
         this.wait -= dt;
-        if (this.wait <= 0) this.choose(her);
+        if (this.wait <= 0) this.choose();
         break;
       case 'dive':
-        if (this.t >= WEKUFE.dive.time) this.enter('under');
+        // Where he comes up is settled only now, under the earth: settled as he began, she had long walked off (the user, 30/10/2026).
+        if (this.t >= WEKUFE.dive.time) {
+          if (her) this.coming = this.beside(her);
+          this.enter('under');
+        }
         break;
       case 'under':
         if (this.t >= WEKUFE.dive.under) {
@@ -105,6 +109,7 @@ export class WekufeMind {
         break;
       case 'claw': {
         const { time, from, to, reach, damage } = WEKUFE.claw, share = this.t / time;
+        if (this.lunging && her) this.lunge(dt, her);
         if (!this.clawed && share >= from && share <= to && her && off(her, this) <= reach) {
           this.clawed = true;
           deed.clawed = damage;
@@ -142,12 +147,20 @@ export class WekufeMind {
     if (this.walkable(x, y)) { this.x = x; this.y = y; }
   }
 
+  /** Throwing himself at her as his claws draw back, until they fall: to be got away from only by a roll. */
+  private lunge(dt: number, her: Vec): void {
+    const far = off(her, this);
+    if (far <= WEKUFE.claw.close) return;
+    const step = Math.min(WEKUFE.claw.lunge * dt, far - WEKUFE.claw.close);
+    const x = this.x + (her.x - this.x) / far * step, y = this.y + (her.y - this.y) / far * step;
+    if (this.walkable(x, y)) { this.x = x; this.y = y; }
+  }
+
   /** Something other than what he did last; his souls not while they still hurt, nor soon after. */
-  private choose(her: Vec): void {
+  private choose(): void {
     const open = ATTACKS.filter(a => a !== this.last && (a !== 'invoke' || (this.souls <= 0 && this.again <= 0)));
     const pick = open[Math.floor(this.rnd() * open.length)];
     this.last = pick;
-    if (pick === 'dive') this.coming = this.beside(her);
     if (pick === 'invoke') this.again = WEKUFE.invoke.again;
     this.enter(pick);
   }
@@ -160,6 +173,11 @@ export class WekufeMind {
       if (this.walkable(x, y)) return { x, y };
     }
     return { x: her.x, y: her.y };
+  }
+
+  /** Coming up at her, his claws not yet fallen: he still turns and goes after her. */
+  get lunging(): boolean {
+    return this.state === 'claw' && this.t / WEKUFE.claw.time < WEKUFE.claw.from;
   }
 
   /** How long what he is doing takes, for its clip to be played to fit. */

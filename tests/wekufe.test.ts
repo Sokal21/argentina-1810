@@ -32,6 +32,17 @@ describe('the Wekufe', () => {
     expect(clawed % WEKUFE.claw.damage).toBe(0);
   });
 
+  it('comes up at where she has walked to, and his claws catch her walking away', () => {
+    const mind = new WekufeMind(0, 0, 165, anywhere, () => 0);
+    const her = { x: 400, y: 0 };
+    let clawed = 0;
+    for (let t = 0; t < 4; t += 1 / 60) {
+      her.x += 115 / 60;
+      clawed += mind.update(1 / 60, her).clawed ?? 0;
+    }
+    expect(clawed).toBeGreaterThan(0);
+  });
+
   it('his souls hurt only within their ring', () => {
     const near = new WekufeMind(0, 0, 165, anywhere);
     near.state = 'invoke';

@@ -40,8 +40,7 @@ only himself (no possessed dead, no cave), on Roca's clearing, which is what Int
   blackens and is quicker, keeps the apestado's blow and adds a leap with a blow on the ground. All
   three are to be killed.
 - **Second phase, himself:**
-  - **He dives into the earth and comes out of smoke beside her with his claws** (the smoke gathers
-    first where he will come out, to be dodged). His dive (`zambullida`) sinks him right under the
+  - **He dives into the earth and comes out of smoke beside her with his claws** (the smoke gathers first where he will come out, settled only once he is under; then he throws himself at her as his claws draw back: walking away does not get clear of them, a roll does). His dive (`zambullida`) sinks him right under the
     ground; where his head goes in, the ground splashes black (drops, a pool), a cloud of black
     smoke bursts out low and black fire bursts up, the smoke and fire gone together.
   - **A cloud of lost souls** about him, hurting her while she is near: 38 wailing faces (concept A; Tripo's model, `assets/wekufe/3d/alma.glb`, 800 faces, flying mouth first, the red of the streaks, unlit, without the outline every model has, see-through, more so at their edges) going round him, each trailing three waving, flickering tongues of black fire with the red dodge, pointed at both ends as those of his gown, bursting out at his thrust and lasting about 7 s, a red ring on the ground saying how far it hurts (`WRAITH_REACH`).

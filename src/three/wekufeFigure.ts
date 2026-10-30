@@ -42,13 +42,13 @@ export class WekufeFigure {
     if (mind.state !== this.was) this.begin(mind, motion, effects);
     body.position.copy(ground(mind.x, mind.y));
     const dx = her.x - mind.x, dz = her.y - mind.y;
-    // Turning to her, but not under the earth, nor as he strikes or dies.
-    if (mind.state === 'float' || mind.state === 'throw' || mind.state === 'invoke') {
+    // Turning to her, but not under the earth, nor once his claws fall, nor as he dies.
+    if (mind.state === 'float' || mind.state === 'throw' || mind.state === 'invoke' || mind.lunging) {
       const want = Math.atan2(dx, dz);
       let turn = want - this.facing;
       turn = Math.atan2(Math.sin(turn), Math.cos(turn));
-      this.facing += turn * Math.min(1, dt * 5);
-    } else if (mind.state === 'claw' && mind.t < dt * 1.5) this.facing = Math.atan2(dx, dz);
+      this.facing += turn * Math.min(1, dt * (mind.lunging ? 14 : 5));
+    }
     body.rotation.y = this.facing;
     parts.flash(hurt);
     motion.update(dt);
