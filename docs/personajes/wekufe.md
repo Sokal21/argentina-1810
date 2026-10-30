@@ -15,6 +15,8 @@ and the destruction. Designed with the user on 29 October 2026; not in the game 
   legs; the user had it bent, snaking like a rattlesnake's and raised, then cut it away for the gown.
 - Drawn 150 tall (Inti 81); he floats a little off the ground, rising and sinking.
 - He casts no shadow (the user).
+- Sinking (his dive, his death) he goes into a thick black smoke drawn over him, so the ground closing
+  on him is not seen (the user).
 - All of it beyond his model is `src/three/wekufe.ts`:
   - **Smoke**, quite clear (the user: "mucho más transparente"), bubbling slowly (each puff a lump of
     round blobs, swelling and shrinking once every one to three seconds): a black core filling the

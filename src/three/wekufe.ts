@@ -14,7 +14,8 @@ import { unlitShader } from './pixels';
 // away, each drawn again over itself as a dodge so it stands out of the smoke, the more where they
 // lie over one another; those on its far side dimmer, behind it. Souls wind up round it and off him, as black streaks,
 // each fading along its length. He floats, rising and sinking a little. His claws tear red lines
-// through the air along the very arc of his blow, throwing off sparks.
+// through the air along the very arc of his blow, throwing off sparks. Sinking, he goes into a thick
+// smoke drawn over him, so the ground closing on him is not seen.
 // He dives into the earth head first, sinking right under it; where his head goes in, the ground
 // splashes black, drops thrown up and out and a black pool spreading, a cloud of black smoke bursts
 // out low over the ground as dust would, and black fire bursts up; the smoke and the fire go together.
@@ -109,6 +110,14 @@ const CLAWS = {
 };
 /** How many places of each claw's path are kept, and how many points each line is drawn with. */
 const CLAW_PATH = { kept: 40, points: 24 };
+/**
+ * The smoke he sinks into, drawn over him so the ground closing on him is not seen: thick black puffs let
+ * off about where he goes in from the moment he starts to sink, how many, for how long, how far out and how
+ * high (shares of his height), how big, how long each lasts, how fast it rises (shares of his height a
+ * second), its colours and how thick.
+ */
+const SHROUD = { kept: 70, lets: 0.9, out: 0.3, high: 0.34, size: [0.14, 0.28], life: [0.9, 1.6], rise: 0.05,
+  colours: ['#030203', '#070507', '#0b090b', '#100d10'], thick: 0.97 };
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.06, bob: 0.025, beat: 1.4 };
 /**
@@ -262,6 +271,7 @@ class Splash {
     const cloud = SPLASH.cloud;
     // Bubbling as his own smoke does.
     this.smoke = new Billboards(cloud.puffs, lumps());
+    (this.smoke.mesh.material as THREE.ShaderMaterial).depthTest = false;
     for (let i = 0; i < cloud.puffs; i++) {
       this.smoke.colour(i, cloud.colours[i % cloud.colours.length]);
       this.puffs.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, size: 0, life: 0, spin: 0, boil: 0, beat: 0 });
@@ -604,6 +614,12 @@ export class Wekufe {
   private readonly splash: Splash;
   /** The lines his claws tear. */
   private readonly claws: Claws;
+  /** The smoke he sinks into, over him. */
+  private readonly shroud = new Billboards(SHROUD.kept, lumps());
+  private readonly shrouding: Drop[] = [];
+  /** How long he has been sinking; below 0 not yet; and where he goes in. */
+  private sunk = -1;
+  private readonly goesIn = new THREE.Vector3();
   /** His dive: how long the clip is, how far into it he is; null while he is not diving. */
   private diving: { seconds: number; t: number; splashed: boolean; how: typeof DIVE } | null = null;
   /** Where his gown was as he began to dive: its fire and souls stay there, burning out, as he goes under. */
@@ -618,6 +634,13 @@ export class Wekufe {
     body.traverse(node => { node.castShadow = false; });
     this.splash = new Splash(tall);
     this.group.add(this.splash.group);
+    (this.shroud.mesh.material as THREE.ShaderMaterial).depthTest = false;
+    this.shroud.mesh.renderOrder = 0.5;
+    this.group.add(this.shroud.mesh);
+    for (let i = 0; i < SHROUD.kept; i++) {
+      this.shroud.colour(i, SHROUD.colours[i % SHROUD.colours.length]);
+      this.shrouding.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, size: 0, life: 0, spin: 0, boil: 0, beat: 0 });
+    }
     this.claws = new Claws(body, tall, this.eye);
     this.group.add(this.claws.group);
     const bone = (name: string) => body.getObjectByName(name);
@@ -657,7 +680,8 @@ export class Wekufe {
         map: soft(0.25), color: RED, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
       }));
       sprite.scale.setScalar(how.wide * tall);
-      sprite.renderOrder = 10;
+      // Under the smoke he sinks into (0.5).
+      sprite.renderOrder = 0.2;
       this.group.add(sprite);
       this.halos.push({ sprite, bone: bone(how.bone), how });
     }
@@ -722,12 +746,14 @@ export class Wekufe {
   dive(seconds: number): void {
     this.diving = { seconds, t: 0, splashed: false, how: DIVE };
     this.staying = false;
+    this.sunk = -1;
   }
 
   /** He dies, playing his agony (`seconds` long): he sinks into the earth writhing, and it splashes as he dives. */
   dies(seconds: number): void {
     this.diving = { seconds, t: 0, splashed: false, how: DEATH };
     this.staying = false;
+    this.sunk = -1;
   }
 
   /** He strikes with his claws, playing his `zarpazo` (`seconds` long). */
@@ -773,6 +799,7 @@ export class Wekufe {
     }
     this.splash.update(dt);
     this.claws.update(dt);
+    this.cover(dt, !!dive && dive.t / dive.seconds >= dive.how.from);
     const ease = shown < this.faded ? Wekufe.FADE.out : Wekufe.FADE.back;
     this.faded += (shown - this.faded) * Math.min(1, dt * ease);
     this.smoke(dt, this.faded);
@@ -850,6 +877,40 @@ export class Wekufe {
       }
     });
     this.streaks.commit();
+  }
+
+  /** The smoke he sinks into: let off while `sinking`, for its while, about where he goes in; each lives out its life. */
+  private cover(dt: number, sinking: boolean): void {
+    if (sinking && dt > 0) {
+      if (this.sunk < 0) { this.sunk = 0; this.goesIn.copy(this.line[0]).setY(this.ground.y); }
+      this.sunk += dt;
+    }
+    const t = this.tall;
+    this.shrouding.forEach((d, i) => {
+      if (this.shroud.shown(i)) {
+        d.t += dt;
+        const k = d.t / d.life;
+        if (k >= 1) { this.shroud.hide(i); return; }
+        d.at.addScaledVector(d.way, dt);
+        const bubbling = 1 + d.boil * Math.sin(d.t * d.beat * Math.PI * 2);
+        this.shroud.put(i, d.at, d.size * (1 + 0.7 * k) * bubbling, SHROUD.thick * Math.min(1, k * 10) * (1 - k * k * k), d.t * d.spin);
+      } else if (sinking && this.sunk < SHROUD.lets && Math.random() < dt * SHROUD.kept / 0.35) {
+        const a = Math.random() * Math.PI * 2, out = Math.sqrt(Math.random()) * SHROUD.out * t;
+        d.at.copy(this.goesIn);
+        d.at.x += Math.cos(a) * out;
+        d.at.z += Math.sin(a) * out;
+        d.at.y += Math.random() * SHROUD.high * t;
+        d.way.set(Math.cos(a) * 0.03 * t, SHROUD.rise * t, Math.sin(a) * 0.03 * t);
+        d.t = 0;
+        d.life = r(SHROUD.life);
+        d.size = r(SHROUD.size) * t;
+        d.spin = (Math.random() - 0.5) * 1.2;
+        d.boil = r(BOIL.boil);
+        d.beat = r(BOIL.beat);
+        this.shroud.put(i, d.at, d.size, 0, 0);
+      }
+    });
+    this.shroud.commit();
   }
 
   /** The tongues: each rising from its root low on the gown, waving more toward its tip, flaring up and dying down. */
