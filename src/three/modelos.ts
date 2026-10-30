@@ -356,7 +356,7 @@ function play(name: string): void {
       view.apply({ ...view.look, far: 1.1 });
       continue;
     }
-    if (name === 'salto' && being) continue;
+    if (name === 'salto' && being) { view.follow(new THREE.Vector3(0, w.drawn * 0.5, LEAP.far * w.drawn * UPRIGHT / 2)); continue; }
     if (name === LANDING && w.revolver) { it.motion.hold('aterrizaje', 0, { afresh: true }); it.body.position.y = DROP.high; continue; }
     if (name === BURST && w.revolver) { it.motion.play('rafaga', { once: true, afresh: true, blend: 0.12 }); continue; }
     if (name === RETCH && w.vomits) {
