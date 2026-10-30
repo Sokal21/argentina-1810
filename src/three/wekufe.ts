@@ -464,7 +464,8 @@ class Claws {
   update(dt: number): void {
     this.fly(dt);
     const blow = this.blow;
-    if (!blow) return;
+    // Held (paused): no new place of its claws, or they pile up where they stand.
+    if (!blow || dt <= 0) return;
     blow.t += dt;
     const share = blow.t / blow.seconds;
     if (share < CLAWS.from) return;
