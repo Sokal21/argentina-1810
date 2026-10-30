@@ -315,6 +315,7 @@ function play(name: string): void {
     // The Wekufe diving into the earth, under it until another clip is played.
     const wekufe = wekufes.get(w);
     if (wekufe) { if (name === 'zambullida') wekufe.dive(it.motion.seconds(name)); else wekufe.rises(); }
+    if (wekufe) { if (name === 'zarpazo') wekufe.claw(it.motion.seconds(name)); else wekufe.unclaw(); }
     if (shown.length === 1) view.follow(new THREE.Vector3(0, w.drawn * 0.5, 0));
     if (name === LUNGE && w.lunge) { act(it.body); continue; }
     if ((name === DIVE || name === BITE || name === DOWNED) && w.dives) { hunt(it.body, name === BITE, name === DOWNED); continue; }

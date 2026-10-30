@@ -26,6 +26,9 @@ and the destruction. Designed with the user on 29 October 2026; not in the game 
   - **Black souls** winding up round the gown and off him, streaks fading along their length (pale
     at first; the user had them black).
   - **Red halos** at his eyes and belly, faint (stronger, they lit his smoke).
+  - **His claws' lines:** four thin red lines from each hand along the real path of its claws through
+    his `zarpazo` (frames 22.5 to 27 of 51), with a soft red glow and sparks thrown off, draining away
+    from where they began in 0.42 s.
 - His eyes and belly lit by `glow.py` (`--colors 43,12,5 --to 255,45,25`).
 
 ## How he fights (decided, not made)

@@ -13,7 +13,8 @@ import { unlitShader } from './pixels';
 // waving, each soft at its root, widest a little above it and drawn out to a point, flaring and dying
 // away, each drawn again over itself as a dodge so it stands out of the smoke, the more where they
 // lie over one another; those on its far side dimmer, behind it. Souls wind up round it and off him, as black streaks,
-// each fading along its length. He floats, rising and sinking a little.
+// each fading along its length. He floats, rising and sinking a little. His claws tear red lines
+// through the air along the very arc of his blow, throwing off sparks.
 // He dives into the earth head first, sinking right under it; where his head goes in, the ground
 // splashes black, drops thrown up and out and a black pool spreading, a cloud of black smoke bursts
 // out low over the ground as dust would, and black fire bursts up; the smoke and the fire go together.
@@ -89,6 +90,20 @@ const SPLASH = {
  * is behind (its colour: 1 doubles it), and the black tongue's own clearness under it.
  */
 const DODGE = { colour: new THREE.Color(2.6, 0.45, 0.25), wider: 1.15, under: 0.55 };
+/**
+ * His claws' lines: the share of his `zarpazo` over which his hands strike (frames 22.5 to 27 of 51, as
+ * measured: both swing at once; past them the hands turn back, and the lines would hook), the lines of each hand, how far past the hand their claws reach and how
+ * far apart (shares of his height), how wide the line and its glow (shares of his height), how long they
+ * last once struck and for how long of that the glow flares twice as wide, their colours and how bright
+ * their glow. The sparks: how many, how fast (shares of his height a second), how big, how long they last.
+ */
+const CLAWS = {
+  from: 22.5 / 51, to: 27 / 51, lines: 4, reach: 0.13, gap: 0.032, wide: 0.018, glow: 0.075, lasts: 0.42, flare: 0.1,
+  colour: new THREE.Color('#ff1e0c'), glowing: new THREE.Color('#ff1404'), bright: 0.32,
+  sparks: { kept: 36, fast: [0.5, 1.5], size: [0.008, 0.024], life: [0.2, 0.5], colour: '#ff3a14', gain: 1.5 },
+};
+/** How many places of each claw's path are kept, and how many points each line is drawn with. */
+const CLAW_PATH = { kept: 40, points: 24 };
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.06, bob: 0.025, beat: 1.4 };
 /**
@@ -160,13 +175,17 @@ class Streaks {
   private readonly at: THREE.BufferAttribute;
   private readonly tint: THREE.BufferAttribute;
 
-  /** `dodge`: brightening what is behind it, by its colour times its clearness (as a dodge does), rather than laid over it. */
-  constructor(lines: number, private readonly points: number, dodge = false) {
+  /** `dodge`: brightening what is behind it, by its colour times its clearness (as a dodge does), rather than laid over it. `lit`: added to what is behind it, as light is. */
+  constructor(lines: number, private readonly points: number, dodge = false, lit = false) {
     const geometry = new THREE.BufferGeometry();
     this.at = new THREE.BufferAttribute(new Float32Array(lines * points * 2 * 3), 3).setUsage(THREE.DynamicDrawUsage);
     this.tint = new THREE.BufferAttribute(new Float32Array(lines * points * 2 * 4), 4).setUsage(THREE.DynamicDrawUsage);
     geometry.setAttribute('position', this.at);
     geometry.setAttribute('tint', this.tint);
+    // Which edge of its ribbon a corner is on: a lit one fades to both.
+    const edge = new Float32Array(lines * points * 2);
+    for (let v = 0; v < edge.length; v++) edge[v] = v % 2 ? 1 : -1;
+    geometry.setAttribute('edge', new THREE.BufferAttribute(edge, 1));
     const index: number[] = [];
     for (let l = 0; l < lines; l++) {
       for (let p = 0; p < points - 1; p++) {
@@ -177,14 +196,15 @@ class Streaks {
     geometry.setIndex(index);
     this.mesh = new THREE.Mesh(geometry, new THREE.ShaderMaterial({
       vertexShader: `
-        attribute vec4 tint; varying vec4 vTint;
-        void main() { vTint = tint; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+        attribute vec4 tint; attribute float edge; varying vec4 vTint; varying float vEdge;
+        void main() { vTint = tint; vEdge = edge; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: unlitShader(`
-        varying vec4 vTint;
-        void main() { gl_FragColor = ${dodge ? 'vec4(vTint.rgb * vTint.a, 1.0)' : 'vTint'}; }`),
+        varying vec4 vTint; varying float vEdge;
+        void main() { gl_FragColor = ${dodge ? 'vec4(vTint.rgb * vTint.a, 1.0)' : lit ? 'vec4(vTint.rgb, vTint.a * pow(1.0 - abs(vEdge), 1.5))' : 'vTint'}; }`),
       transparent: true, depthWrite: false, side: THREE.DoubleSide,
       // A dodge: what is behind times one and what is drawn.
       ...(dodge ? { blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.DstColorFactor, blendDst: THREE.OneFactor } : {}),
+      ...(lit ? { blending: THREE.AdditiveBlending } : {}),
     }));
     this.mesh.frustumCulled = false;
   }
@@ -379,6 +399,168 @@ class Splash {
   }
 }
 
+/** Where along a path (`places`, `count` of them) a share of it falls, smoothed through them (Catmull-Rom): a blow this quick is only a few frames. */
+function smoothed(places: THREE.Vector3[], count: number, share: number, out: THREE.Vector3): THREE.Vector3 {
+  const at = share * (count - 1), i = Math.min(Math.floor(at), count - 2), u = at - i;
+  const a = places[Math.max(0, i - 1)], b = places[i], c = places[i + 1], d = places[Math.min(count - 1, i + 2)];
+  const u2 = u * u, u3 = u2 * u;
+  const ka = -0.5 * u3 + u2 - 0.5 * u, kb = 1.5 * u3 - 2.5 * u2 + 1, kc = -1.5 * u3 + 2 * u2 + 0.5 * u, kd = 0.5 * u3 - 0.5 * u2;
+  return out.set(a.x * ka + b.x * kb + c.x * kc + d.x * kd, a.y * ka + b.y * kb + c.y * kc + d.y * kd, a.z * ka + b.z * kb + c.z * kc + d.z * kd);
+}
+
+/** The red lines his claws tear through the air along the arc of his blow, and the sparks they throw. */
+class Claws {
+  readonly group = new THREE.Group();
+  private readonly lines: Streaks;
+  private readonly glows: Streaks;
+  private readonly sparks: Billboards;
+  private readonly flying: Drop[] = [];
+  /** Each hand: its bones, where its claws have been. */
+  private readonly hands: { hand: THREE.Object3D; arm: THREE.Object3D; path: THREE.Vector3[]; count: number; was: THREE.Vector3 }[] = [];
+  /** How long his blow is, how far into it he is, and how long since it was struck. */
+  private blow: { seconds: number; t: number; since: number } | null = null;
+  private readonly tip = new THREE.Vector3();
+  private readonly elbow = new THREE.Vector3();
+  private readonly at = new THREE.Vector3();
+  private readonly next = new THREE.Vector3();
+  private readonly way = new THREE.Vector3();
+  private readonly across = new THREE.Vector3();
+  private readonly apart = new THREE.Vector3();
+
+  /** `eye` is where the camera is, kept up to date by whoever is drawn. */
+  constructor(body: THREE.Object3D, private readonly tall: number, private readonly eye: THREE.Vector3) {
+    for (const side of ['L_', 'R_']) {
+      const hand = body.getObjectByName(side + 'Hand'), arm = body.getObjectByName(side + 'Forearm');
+      if (!hand || !arm) continue;
+      this.hands.push({ hand, arm, path: Array.from({ length: CLAW_PATH.kept }, () => new THREE.Vector3()), count: 0, was: new THREE.Vector3() });
+    }
+    const many = this.hands.length * CLAWS.lines;
+    this.glows = new Streaks(many, CLAW_PATH.points, false, true);
+    this.lines = new Streaks(many, CLAW_PATH.points);
+    this.glows.mesh.renderOrder = 3;
+    this.lines.mesh.renderOrder = 4;
+    this.glows.mesh.visible = this.lines.mesh.visible = false;
+    this.sparks = new Billboards(CLAWS.sparks.kept, soft(0.6), true);
+    for (let i = 0; i < CLAWS.sparks.kept; i++) {
+      this.sparks.colour(i, CLAWS.sparks.colour, CLAWS.sparks.gain);
+      this.flying.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, size: 0, life: 0, spin: 0, boil: 0, beat: 0 });
+    }
+    this.group.add(this.glows.mesh, this.lines.mesh, this.sparks.mesh);
+  }
+
+  /** He strikes: his blow, `seconds` long, has just begun. */
+  strike(seconds: number): void {
+    this.blow = { seconds, t: 0, since: -1 };
+    for (const h of this.hands) h.count = 0;
+    this.glows.mesh.visible = this.lines.mesh.visible = false;
+  }
+
+  /** No blow: whatever is in the air goes. */
+  stop(): void {
+    this.blow = null;
+    this.glows.mesh.visible = this.lines.mesh.visible = false;
+  }
+
+  update(dt: number): void {
+    this.fly(dt);
+    const blow = this.blow;
+    if (!blow) return;
+    blow.t += dt;
+    const share = blow.t / blow.seconds;
+    if (share < CLAWS.from) return;
+    if (share <= CLAWS.to) this.follow();
+    else if (blow.since < 0) blow.since = 0;
+    else blow.since += dt;
+    if (blow.since >= CLAWS.lasts) { this.stop(); return; }
+    this.draw(blow.since);
+  }
+
+  /** Where each hand's claws are now, and a spark or two thrown off them the way they go. */
+  private follow(): void {
+    for (const h of this.hands) {
+      h.hand.getWorldPosition(this.tip);
+      h.arm.getWorldPosition(this.elbow);
+      this.way.subVectors(this.tip, this.elbow).normalize();
+      this.tip.addScaledVector(this.way, CLAWS.reach * this.tall);
+      if (h.count) {
+        const moved = this.way.subVectors(this.tip, h.was);
+        this.throwOff(this.tip, moved);
+      }
+      h.was.copy(this.tip);
+      if (h.count < CLAW_PATH.kept) h.path[h.count++].copy(this.tip);
+    }
+  }
+
+  private throwOff(from: THREE.Vector3, moved: THREE.Vector3): void {
+    const how = CLAWS.sparks, t = this.tall;
+    for (let n = 0; n < 2; n++) {
+      const i = this.sparks.free();
+      if (i < 0) return;
+      const d = this.flying[i], fast = r(how.fast) * t;
+      d.at.copy(from);
+      d.way.copy(moved).normalize().multiplyScalar(fast);
+      d.way.x += (Math.random() - 0.5) * fast;
+      d.way.y += (Math.random() - 0.5) * fast;
+      d.way.z += (Math.random() - 0.5) * fast;
+      d.t = 0;
+      d.life = r(how.life);
+      d.size = r(how.size) * t;
+      this.sparks.put(i, d.at, d.size, 1);
+    }
+  }
+
+  private fly(dt: number): void {
+    const t = this.tall;
+    this.flying.forEach((d, i) => {
+      if (!this.sparks.shown(i)) return;
+      d.t += dt;
+      if (d.t >= d.life) { this.sparks.hide(i); return; }
+      d.way.multiplyScalar(Math.exp(-3 * dt));
+      d.way.y -= 1.5 * t * dt;
+      d.at.addScaledVector(d.way, dt);
+      this.sparks.put(i, d.at, d.size * (1 - d.t / d.life * 0.5), 1 - Math.pow(d.t / d.life, 2));
+    });
+    this.sparks.commit();
+  }
+
+  /** The lines as far as they have gone: pointed at both ends, thinning and draining from where they began once struck. */
+  private draw(since: number): void {
+    const t = this.tall, gone = Math.max(0, since) / CLAWS.lasts;
+    const flare = since >= 0 && since < CLAWS.flare ? 2 : 1;
+    const last = CLAW_PATH.points - 1;
+    let shown = false;
+    let line = 0;
+    for (const h of this.hands) {
+      if (h.count >= 2) shown = true;
+      for (let c = 0; c < CLAWS.lines; c++, line++) {
+        // Side by side, as claws are: square to the blow as the camera sees it, the outer ones shorter.
+        const off = (c - (CLAWS.lines - 1) / 2) * CLAWS.gap * t;
+        const short = 0.05 * Math.abs(c - (CLAWS.lines - 1) / 2);
+        for (let p = 0; p <= last; p++) {
+          const u = p / last;
+          if (h.count < 2) { this.lines.put(line, p, this.at.copy(h.was), this.across.set(1, 0, 0), 0, CLAWS.colour, 0); this.glows.put(line, p, this.at, this.across, 0, CLAWS.glowing, 0); continue; }
+          const along = short + u * (1 - 2 * short);
+          smoothed(h.path, h.count, along, this.at);
+          // Its way there: measured backward at its very end, where there is nothing ahead (or the claws tangle).
+          if (along + 0.02 <= 1) this.way.subVectors(smoothed(h.path, h.count, along + 0.02, this.next), this.at);
+          else this.way.subVectors(this.at, smoothed(h.path, h.count, along - 0.02, this.next));
+          this.across.crossVectors(this.way, this.apart.subVectors(this.eye, this.at)).normalize();
+          this.at.addScaledVector(this.across, off);
+          // Pointed at both ends; drained from its start as it goes.
+          const body = Math.pow(Math.sin(Math.PI * u), 0.6);
+          const drained = u < gone ? 0 : 1;
+          const clear = drained * (1 - gone * gone);
+          this.lines.put(line, p, this.at, this.across, CLAWS.wide * t * body * (1 - gone * 0.6), CLAWS.colour, clear);
+          this.glows.put(line, p, this.at, this.across, CLAWS.glow * t * body * flare, CLAWS.glowing, CLAWS.bright * clear * body);
+        }
+      }
+    }
+    this.lines.commit();
+    this.glows.commit();
+    this.lines.mesh.visible = this.glows.mesh.visible = shown;
+  }
+}
+
 export class Wekufe {
   readonly group = new THREE.Group();
   /** All his smoke, one mesh, drawn in one call, layer after layer; each layer's puffs from `first` on. */
@@ -414,6 +596,8 @@ export class Wekufe {
   power = 1;
   /** His splash where he goes into the earth. */
   private readonly splash: Splash;
+  /** The lines his claws tear. */
+  private readonly claws: Claws;
   /** His dive: how long the clip is, how far into it he is; null while he is not diving. */
   private diving: { seconds: number; t: number; splashed: boolean } | null = null;
   /** Where his gown was as he began to dive: its fire and souls stay there, burning out, as he goes under. */
@@ -426,6 +610,8 @@ export class Wekufe {
     this.floats = [...body.children];
     this.splash = new Splash(tall);
     this.group.add(this.splash.group);
+    this.claws = new Claws(body, tall, this.eye);
+    this.group.add(this.claws.group);
     const bone = (name: string) => body.getObjectByName(name);
     this.bones = [[bone('Waist')], ...['Thigh', 'Calf', 'Foot'].map(b => [bone('L_' + b), bone('R_' + b)])];
     this.cloud = new Billboards(LAYERS.reduce((all, how) => all + how.kept, 0), lumps());
@@ -530,6 +716,16 @@ export class Wekufe {
     this.staying = false;
   }
 
+  /** He strikes with his claws, playing his `zarpazo` (`seconds` long). */
+  claw(seconds: number): void {
+    this.claws.strike(seconds);
+  }
+
+  /** Not striking: what his claws tore goes. */
+  unclaw(): void {
+    this.claws.stop();
+  }
+
   /** Back out of the earth, floating. */
   rises(): void {
     this.diving = null;
@@ -560,6 +756,7 @@ export class Wekufe {
       shown *= Math.min(1, Math.max(0, (this.line[0].y - this.ground.y) / (this.tall * 0.25)));
     }
     this.splash.update(dt);
+    this.claws.update(dt);
     const ease = shown < this.faded ? Wekufe.FADE.out : Wekufe.FADE.back;
     this.faded += (shown - this.faded) * Math.min(1, dt * ease);
     this.smoke(dt, this.faded);
