@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Billboards } from './billboards';
+import { model } from './figure';
 import { unlitShader } from './pixels';
 
 // What makes the Wekufe more than his model. His model ends a little under his waist (cut_below.py);
@@ -116,10 +117,10 @@ const CLAW_PATH = { kept: 40, points: 24 };
  * frame 40 of 68, as measured), how long they last, grow out and fade (seconds), how many, the points of
  * each streak, how far round its path each streak reaches behind its head (radians), how fast they go round
  * (radians a second), how far out and how high (shares of his height, of `WRAITH_REACH`), how wide a streak
- * and how big a head (shares of his height), what a face's picture is multiplied by (it would read pale). The ring on the ground says how far it hurts.
+ * and how big a head (shares of his height), what a face's colour is multiplied by, for it to read red in the dark, and how much more it looks at the camera than where it goes. The ring on the ground says how far it hurts.
  */
 const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 38, points: 14, trail: [0.7, 1.3], wind: [2.5, 3.9],
-  out: [0.72, 1], high: [0.1, 0.85], bob: 0.06, wide: 0.05, head: [0.1, 0.15], tint: new THREE.Color(1.5, 0.42, 0.36), clear: 0.9, ring: 0.4, colours: ['#000000', '#060507', '#0c0a0d'] };
+  out: [0.72, 1], high: [0.1, 0.85], bob: 0.06, wide: 0.05, head: [0.13, 0.19], tint: new THREE.Color(2.2, 1.2, 1.1), looks: 1.6, clear: 0.9, ring: 0.4, colours: ['#000000', '#060507', '#0c0a0d'] };
 /** How far out his cloud of souls hurts, a share of his height: the game's reckoning will take it from here. */
 export const WRAITH_REACH = 0.95;
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
@@ -418,13 +419,6 @@ class Splash {
   }
 }
 
-/** A lost soul's face (concept A of three, assets/wekufe/concept): gaunt and red, its mouth torn open, smoke trailing off it. */
-let wailing: THREE.Texture | null = null;
-function wail(): THREE.Texture {
-  if (wailing) return wailing;
-  return wailing = new THREE.TextureLoader().load('wekufe/alma.png');
-}
-
 interface Wraith { angle: number; wind: number; out: number; high: number; phase: number; trail: number; head: number; colour: THREE.Color }
 
 /** The cloud of lost souls he summons: faces wailing round him, each trailing a streak of black fire, a ring on the ground saying how far it hurts. */
@@ -432,7 +426,13 @@ class Wraiths {
   readonly group = new THREE.Group();
   private readonly streaks: Streaks;
   private readonly dodges: Streaks;
-  private readonly heads: Billboards;
+  /** Their faces: Tripo's model (concept A), one mesh drawn many times, once loaded. */
+  private faces: THREE.InstancedMesh | null = null;
+  private readonly placed = new THREE.Matrix4();
+  private readonly turned = new THREE.Matrix4();
+  private readonly size = new THREE.Vector3();
+  private readonly origin = new THREE.Vector3();
+  private static readonly UP = new THREE.Vector3(0, 1, 0);
   private readonly ring: THREE.Mesh;
   private readonly souls: Wraith[] = [];
   private readonly middle = new THREE.Vector3();
@@ -451,10 +451,23 @@ class Wraiths {
     this.dodges = new Streaks(WRAITHS.souls, WRAITHS.points, true);
     this.streaks.mesh.renderOrder = 1;
     this.dodges.mesh.renderOrder = 2;
-    this.heads = new Billboards(WRAITHS.souls, wail());
-    this.heads.mesh.renderOrder = 3;
+    void model('wekufe/3d/alma.glb', 1).then(scene => {
+      scene.scale.setScalar(1);
+      scene.updateMatrixWorld(true);
+      let mesh: THREE.Mesh | null = null;
+      scene.traverse(node => { if (!mesh && node instanceof THREE.Mesh) mesh = node; });
+      if (!mesh) return;
+      const found = mesh as THREE.Mesh;
+      // Its middle at the soul's place: the model stands on its foot, one unit tall.
+      const shape = found.geometry.clone().applyMatrix4(found.matrixWorld).translate(0, -0.5, 0);
+      const material = (found.material as THREE.MeshToonMaterial).clone();
+      material.color.copy(WRAITHS.tint);
+      this.faces = new THREE.InstancedMesh(shape, material, WRAITHS.souls);
+      this.faces.frustumCulled = false;
+      this.faces.visible = this.since >= 0;
+      this.group.add(this.faces);
+    });
     for (let i = 0; i < WRAITHS.souls; i++) {
-      this.heads.colour(i, WRAITHS.tint);
       this.souls.push({
         angle: i / WRAITHS.souls * Math.PI * 2 + Math.random() * 0.4, wind: r(WRAITHS.wind), out: r(WRAITHS.out), high: r(WRAITHS.high),
         phase: Math.random() * Math.PI * 2, trail: r(WRAITHS.trail), head: r(WRAITHS.head),
@@ -469,13 +482,13 @@ class Wraiths {
     }));
     // Under his smoke and all, on the ground.
     this.ring.renderOrder = -2;
-    this.group.add(this.ring, this.streaks.mesh, this.dodges.mesh, this.heads.mesh);
+    this.group.add(this.ring, this.streaks.mesh, this.dodges.mesh);
     this.show(false);
   }
 
   private show(on: boolean): void {
     this.ring.visible = this.streaks.mesh.visible = this.dodges.mesh.visible = on;
-    if (!on) { this.heads.hideAll(); this.heads.commit(); }
+    if (this.faces) this.faces.visible = on;
   }
 
   /** He summons them: his `invocar`, `seconds` long, has just begun. */
@@ -523,12 +536,19 @@ class Wraiths {
         const wide = WRAITHS.wide * t * Math.pow(1 - q, 0.9), clear = fade * WRAITHS.clear * (1 - q * q) * grown;
         this.streaks.put(l, p, this.at, this.across, wide, soul.colour, clear * DODGE.under);
         this.dodges.put(l, p, this.at, this.across, wide * DODGE.wider, DODGE.colour, clear);
-        if (p === 0) this.heads.put(l, this.at, soul.head * t, fade * grown);
+        if (p === 0 && this.faces) {
+          // Its mouth between the way it goes and the camera, or going past it shows only the back of its head;
+          // it shrinks away as it fades, a mesh having no clearness of its own.
+          this.toEye.subVectors(this.eye, this.at).normalize().multiplyScalar(WRAITHS.looks).add(this.way.normalize());
+          this.turned.lookAt(this.toEye, this.origin, Wraiths.UP);
+          this.placed.copy(this.turned).scale(this.size.setScalar(soul.head * t * fade * grown)).setPosition(this.at);
+          this.faces.setMatrixAt(l, this.placed);
+        }
       }
     });
     this.streaks.commit();
     this.dodges.commit();
-    this.heads.commit();
+    if (this.faces) this.faces.instanceMatrix.needsUpdate = true;
   }
 
   /** Where a soul is at a place round its path: wavering in and out, up and down, as it goes. */
