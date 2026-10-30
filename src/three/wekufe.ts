@@ -222,8 +222,10 @@ class Splash {
   private readonly eye = new THREE.Vector3();
   private seen = false;
   private time = 0;
-  /** Since it splashed; past everything's end, nothing shown. */
-  private since = Infinity;
+  /** Since it splashed. */
+  private since = 0;
+  /** Whether it is splashing: until it does, and once it is over, it costs nothing. */
+  private going = false;
 
   constructor(private readonly tall: number) {
     this.drops = new Billboards(SPLASH.drops, soft(0.6));
@@ -258,6 +260,7 @@ class Splash {
     this.dodges = new Streaks(SPLASH.fire.kept, FLAMES.points, true);
     this.dodges.mesh.renderOrder = 2;
     this.group.add(this.dodges.mesh);
+    this.fire.mesh.visible = this.dodges.mesh.visible = false;
     for (let i = 0; i < SPLASH.fire.kept; i++) {
       this.flames.push({ t: 0, life: 0, up: 0, angle: 0, out: 0, tall: 0, wide: 0, waves: 0, run: 0, phase: 0, colour: new THREE.Color() });
     }
@@ -267,6 +270,7 @@ class Splash {
   start(at: THREE.Vector3): void {
     this.where.copy(at);
     this.since = 0;
+    this.going = this.fire.mesh.visible = this.dodges.mesh.visible = true;
     const t = this.tall;
     this.flying.forEach((d, i) => {
       const a = Math.random() * Math.PI * 2, out = r(SPLASH.out) * t;
@@ -310,6 +314,7 @@ class Splash {
   }
 
   update(dt: number): void {
+    if (!this.going) return;
     this.time += dt;
     this.since += dt;
     const t = this.tall, ground = this.where.y;
@@ -369,12 +374,16 @@ class Splash {
     });
     this.fire.commit();
     this.dodges.commit();
+    // Over: its drops, pool and smoke already gone, and its fire faded with the smoke.
+    if (this.since >= SPLASH.lasts) this.going = this.fire.mesh.visible = this.dodges.mesh.visible = false;
   }
 }
 
 export class Wekufe {
   readonly group = new THREE.Group();
-  private readonly layers: { how: Layer; cloud: Billboards; puffs: Puff[] }[] = [];
+  /** All his smoke, one mesh, drawn in one call, layer after layer; each layer's puffs from `first` on. */
+  private readonly cloud: Billboards;
+  private readonly layers: { how: Layer; first: number; puffs: Puff[] }[] = [];
   private readonly streaks: Streaks;
   private readonly souls: Soul[] = [];
   private readonly tongues: Streaks;
@@ -419,15 +428,17 @@ export class Wekufe {
     this.group.add(this.splash.group);
     const bone = (name: string) => body.getObjectByName(name);
     this.bones = [[bone('Waist')], ...['Thigh', 'Calf', 'Foot'].map(b => [bone('L_' + b), bone('R_' + b)])];
+    this.cloud = new Billboards(LAYERS.reduce((all, how) => all + how.kept, 0), lumps());
+    this.group.add(this.cloud.mesh);
+    let first = 0;
     for (const how of LAYERS) {
-      const cloud = new Billboards(how.kept, lumps());
       const puffs: Puff[] = [];
       for (let i = 0; i < how.kept; i++) {
-        cloud.colour(i, how.colours[i % how.colours.length]);
+        this.cloud.colour(first + i, how.colours[i % how.colours.length]);
         puffs.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, life: 0, rise: 0, size: 0, spin: 0, turn: 0, boil: 0, beat: 0, power: 0 });
       }
-      this.layers.push({ how, cloud, puffs });
-      this.group.add(cloud.mesh);
+      this.layers.push({ how, first, puffs });
+      first += how.kept;
     }
     this.streaks = new Streaks(SOULS.kept, SOULS.points);
     this.streaks.mesh.onBeforeRender = (_r, _s, camera) => { this.eye.setFromMatrixPosition(camera.matrixWorld); this.seen = true; };
@@ -557,15 +568,22 @@ export class Wekufe {
       if (!this.staying) { this.stayed.forEach((p, i) => p.copy(this.line[i])); this.staying = true; }
       this.line.forEach((p, i) => p.copy(this.stayed[i]));
     }
-    this.wind(dt, this.faded);
-    this.lick(dt, this.faded);
+    // Faded past seeing, under the earth, his fire and souls cost nothing.
+    const there = this.faded > 0.05;
+    this.streaks.mesh.visible = this.tongues.mesh.visible = this.dodges.mesh.visible = there;
+    if (there) {
+      this.wind(dt, this.faded);
+      this.lick(dt, this.faded);
+    }
     this.glow(shown);
   }
 
   private smoke(dt: number, shown: number): void {
-    for (const { how, cloud, puffs } of this.layers) {
+    const cloud = this.cloud;
+    for (const { how, first, puffs } of this.layers) {
       const rate = how.kept / ((how.life[0] + how.life[1]) / 2);
-      puffs.forEach((p, i) => {
+      puffs.forEach((p, n) => {
+        const i = first + n;
         if (cloud.shown(i)) {
           p.t += dt;
           const k = p.t / p.life;
@@ -594,8 +612,8 @@ export class Wekufe {
           cloud.put(i, p.at, p.size, 0, p.turn);
         }
       });
-      cloud.commit();
     }
+    cloud.commit();
   }
 
   /** The souls, each a streak along the last of its path up and round the gown, as the gown is now. */
