@@ -59,7 +59,7 @@ export function unlitShader(fragmentShader: string): string {
  */
 export function unoutlinedShader(fragmentShader: string): string {
   const end = fragmentShader.lastIndexOf('}');
-  return 'layout(location = 1) out highp vec4 gNormal;\n' + fragmentShader.slice(0, end) + '\n  gNormal = vec4(1.0, 0.0, 0.0, 0.0);\n' + fragmentShader.slice(end);
+  return 'layout(location = 1) out highp vec4 gNormal;\n' + fragmentShader.slice(0, end) + '\n  gNormal = vec4(1.0, 0.0, 0.0, 1.0);\n' + fragmentShader.slice(end);
 }
 
 writeNormals();

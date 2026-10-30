@@ -120,7 +120,7 @@ const CLAW_PATH = { kept: 40, points: 24 };
  * and how big a head (shares of his height), what a face's colour is multiplied by, for it to read red in the dark, and how much more it looks at the camera than where it goes. The ring on the ground says how far it hurts.
  */
 const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 38, points: 14, trail: [0.7, 1.3], wind: [2.5, 3.9],
-  out: [0.72, 1], high: [0.1, 0.85], bob: 0.06, wide: 0.05, head: [0.1, 0.145], red: [new THREE.Color(0.22, 0.015, 0.008), new THREE.Color(2.6, 0.45, 0.25)], looks: 1.6, clear: 0.9, ring: 0.4, colours: ['#000000', '#060507', '#0c0a0d'] };
+  out: [0.72, 1], high: [0.1, 0.85], bob: 0.06, wide: 0.05, head: [0.1, 0.145], red: [new THREE.Color(0.22, 0.015, 0.008), new THREE.Color(2.6, 0.45, 0.25)], see: [0.55, 0.95], looks: 1.6, clear: 0.9, ring: 0.4, colours: ['#000000', '#060507', '#0c0a0d'] };
 /** How far out his cloud of souls hurts, a share of his height: the game's reckoning will take it from here. */
 export const WRAITH_REACH = 0.95;
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
@@ -460,20 +460,39 @@ class Wraiths {
       const found = mesh as THREE.Mesh;
       // Its middle at the soul's place: the model stands on its foot, one unit tall.
       const shape = found.geometry.clone().applyMatrix4(found.matrixWorld).translate(0, -0.5, 0);
-      // Unlit and with no outline, the red of the streaks' dodge where its drawing is light and nearly black in its hollows.
+      // Unlit and with no outline, the red of the streaks' dodge where its drawing is light and nearly
+      // black in its hollows; ghostly, clearer the more a part of it turns away, fading at the end.
       const material = new THREE.ShaderMaterial({
-        uniforms: { map: { value: (found.material as THREE.MeshToonMaterial).map }, dark: { value: WRAITHS.red[0] }, bright: { value: WRAITHS.red[1] } },
+        uniforms: { map: { value: (found.material as THREE.MeshToonMaterial).map }, dark: { value: WRAITHS.red[0] }, bright: { value: WRAITHS.red[1] }, see: { value: new THREE.Vector2(...WRAITHS.see) }, clear: { value: 1 } },
         vertexShader: `
-          varying vec2 vUv;
-          void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0); }`,
+          varying vec2 vUv; varying vec3 vNormal;
+          void main() {
+            vUv = uv;
+            mat4 placed = modelViewMatrix * instanceMatrix;
+            vNormal = mat3(placed) * normal;
+            gl_Position = projectionMatrix * placed * vec4(position, 1.0);
+          }`,
         fragmentShader: unoutlinedShader(`
-          uniform sampler2D map; uniform vec3 dark; uniform vec3 bright; varying vec2 vUv;
+          uniform sampler2D map; uniform vec3 dark; uniform vec3 bright; uniform vec2 see; uniform float clear; varying vec2 vUv; varying vec3 vNormal;
           void main() {
             vec3 drawn = texture2D(map, vUv).rgb;
-            gl_FragColor = vec4(mix(dark, bright, smoothstep(0.01, 0.12, dot(drawn, vec3(0.3, 0.6, 0.1)))), 1.0);
+            float facing = abs(normalize(vNormal).z);
+            gl_FragColor = vec4(mix(dark, bright, smoothstep(0.01, 0.12, dot(drawn, vec3(0.3, 0.6, 0.1)))), clear * mix(see.x, see.y, facing * facing));
           }`),
+        transparent: true, depthWrite: false,
       });
       this.faces = new THREE.InstancedMesh(shape, material, WRAITHS.souls);
+      this.faces.renderOrder = 0.6;
+      // Their depth first, nothing of their colour, or the back of a head would be seen through its face.
+      const depth = new THREE.InstancedMesh(shape, new THREE.ShaderMaterial({
+        vertexShader: 'void main() { gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0); }',
+        fragmentShader: unoutlinedShader('void main() { gl_FragColor = vec4(0.0); }'),
+        transparent: true,
+      }), WRAITHS.souls);
+      depth.instanceMatrix = this.faces.instanceMatrix;
+      depth.renderOrder = 0.5;
+      depth.frustumCulled = false;
+      this.faces.add(depth);
       this.faces.frustumCulled = false;
       this.faces.visible = this.since >= 0;
       this.group.add(this.faces);
@@ -548,18 +567,20 @@ class Wraiths {
         this.streaks.put(l, p, this.at, this.across, wide, soul.colour, clear * DODGE.under);
         this.dodges.put(l, p, this.at, this.across, wide * DODGE.wider, DODGE.colour, clear);
         if (p === 0 && this.faces) {
-          // Its mouth between the way it goes and the camera, or going past it shows only the back of its head;
-          // it shrinks away as it fades, a mesh having no clearness of its own.
+          // Its mouth between the way it goes and the camera, or going past it shows only the back of its head.
           this.toEye.subVectors(this.eye, this.at).normalize().multiplyScalar(WRAITHS.looks).add(this.way.normalize());
           this.turned.lookAt(this.toEye, this.origin, Wraiths.UP);
-          this.placed.copy(this.turned).scale(this.size.setScalar(soul.head * t * fade * grown)).setPosition(this.at);
+          this.placed.copy(this.turned).scale(this.size.setScalar(soul.head * t * grown)).setPosition(this.at);
           this.faces.setMatrixAt(l, this.placed);
         }
       }
     });
     this.streaks.commit();
     this.dodges.commit();
-    if (this.faces) this.faces.instanceMatrix.needsUpdate = true;
+    if (this.faces) {
+      this.faces.instanceMatrix.needsUpdate = true;
+      (this.faces.material as THREE.ShaderMaterial).uniforms.clear.value = fade;
+    }
   }
 
   /** Where a soul is at a place round its path: wavering in and out, up and down, as it goes. */
