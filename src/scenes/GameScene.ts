@@ -39,6 +39,8 @@ import { RUN, Stamina } from '../machi/stamina';
 import { Water } from '../fx/water';
 import { Country, loadCountry, loadFences, raiseBuildings, raiseFences } from '../world/country';
 import { arenaDeRoca } from '../world/maps/arena';
+import { WekufeMind } from '../tropa/wekufe';
+import { WRAITH_REACH } from '../three/wekufe';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
 import { garrison, type Post } from '../world/garrison';
@@ -69,7 +71,7 @@ import { BREATH, LAYOUTS, SETTLE } from './HudScene';
 import { sunCursor } from '../three/cursor';
 import { MODELS } from '../three/buildings';
 import { World3D } from '../three/world3d';
-import { heightAt, PITCH } from '../three/space';
+import { heightAt, PITCH, UPRIGHT } from '../three/space';
 import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Charge as Cargo, type Spot, type WorldMap } from '../world/zones';
 
 // Screen pixels per sprite pixel: drawn a little smaller than twice, so more of the country is seen
@@ -113,7 +115,7 @@ const CABRAL_LOCK = { reach: BALL.range, keep: BALL.range * 1.4 };
 // the way points, and how long an arm let go is kept up waiting to go off.
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
 /** The kinds of the king's men that have a model in 3D (three/realista.ts, LOOKS). */
-const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan', 'frontera', 'apestado', 'observador', 'roca']);
+const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan', 'frontera', 'apestado', 'observador', 'roca', 'wekufe']);
 /** How much of what fire does a foe takes: a soldier's kind may stand it better. */
 const fireproof = (foe: Foe): number => foe instanceof Trooper ? (KINDS[foe.kind] as Kind).fire ?? 1 : 1;
 /**
@@ -246,6 +248,13 @@ const LURK = { near: 260, at: 120, again: 520, lost: 600, after: 3 };
  * he is heard again (`fed`), and `after` seconds later drops onto the clearing `ahead` before her,
  * the ground shaken as he lands. When his life runs out he gets away (`gone`).
  */
+const WEKUFE_SAYS = {
+  hello: 'El Wekufe: «Tu gente me alimenta, machi. Vení.»',
+  gone: 'El Wekufe se hunde en la tierra.',
+  /** What his red fire takes from her; how his death shakes the screen and the pad. */
+  fire: 2,
+  shake: { ms: 900, intensity: 0.014 },
+};
 const ROCA = {
   hello: 'Roca: «¡Conocerán la pólvora, mapuches traga plomo! ¡Traguen plomo!»',
   fed: 'Roca: «¡Inútiles! Si quiero el desierto limpio, voy a tener que limpiarlo yo mismo. ¡Ni tu luna te va a salvar ahora!»',
@@ -422,6 +431,8 @@ export class GameScene extends Phaser.Scene {
   private readonly column = new Set<Soldier>();
   private spotter: Trooper | null = null;
   private roca: Trooper | null = null;
+  /** The Wekufe's fight (?jefe=wekufe): his body, his mind, whether he is dead, whether she has fallen. */
+  private wekufe: { soldier: Trooper; mind: WekufeMind; dead: boolean; fell: boolean } | null = null;
   private phase = 1;
   private rocaIn = 0;
   private landed = false;
@@ -570,6 +581,7 @@ export class GameScene extends Phaser.Scene {
     this.lurkers = [];
     this.column.clear();
     this.spotter = this.roca = null;
+    this.wekufe = null;
     this.phase = 1;
     this.rocaIn = 0;
     this.landed = false;
@@ -1150,6 +1162,7 @@ export class GameScene extends Phaser.Scene {
     this.retched(dt);
     this.shelled(dt);
     this.fightRoca(dt);
+    this.fightWekufe(dt);
     const safe = !!this.map && !!zoneAt(this.map, this.machi.x, this.machi.y)?.safe;
     if (safe && !this.safeWas) for (const realista of this.realistas) if (!realista.alive && !this.column.has(realista)) this.due.add(realista);
     this.safeWas = safe;
@@ -1422,7 +1435,7 @@ export class GameScene extends Phaser.Scene {
         fallen: !this.vitals.standing, dashTime: this.machi.kit.dash?.time ?? 0.5, trail: true,
         // The plague on her, fading over its last second.
         sick: Math.min(1, this.plague.left),
-      }, this.realistas.filter((r): r is Realista | Trooper => r instanceof Realista || IN_3D.has(r.kind)));
+      }, this.realistas.filter((r): r is Realista | Trooper => r instanceof Realista || (IN_3D.has(r.kind) && r.kind !== 'wekufe')));
       // Framed a little above his feet, so his body is in the middle.
       // Her orbs are drawn in 3D, lit: in flight, and those her kills leave on the ground.
       if (this.overlaid) this.three.lights(dt, this.bolts.flying, this.orbs.map(o => {
@@ -1925,6 +1938,7 @@ export class GameScene extends Phaser.Scene {
   /** Lays Roca's column about her where she is now (COLUMN): the riflemen at their posts, the plague-dead under the ground. */
   private muster(): void {
     this.mustered = true;
+    if (new URLSearchParams(location.search).get('jefe') === 'wekufe') { this.musterWekufe(); return; }
     const bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
     const near = ([dx, dy]: [number, number]): Vec | null => {
       // The nearest ground that can be walked, round about the spot, out to a few plots.
@@ -1965,6 +1979,48 @@ export class GameScene extends Phaser.Scene {
     this.roca = enlist('roca', [0, 0]);
     if (this.roca) { this.roca.brain.vanish(); this.roca.brain.relentless = true; }
     this.board?.say(ROCA.hello);
+  }
+
+  /** The Wekufe alone on her clearing, in its middle, to try his fight out (?jefe=wekufe): only himself as yet, his possessed dead still to come. */
+  private musterWekufe(): void {
+    const middle = this.map?.round ?? { x: this.machi.x, y: this.machi.y - 300 };
+    const soldier = this.enlist('wekufe', middle.x, middle.y, { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height }).hold(this.walkable);
+    if (!(soldier instanceof Trooper)) return;
+    this.realistas.push(soldier);
+    this.physics.add.overlap(this.bolts.bodies, soldier.zone, this.struck);
+    // Not up again by himself once down.
+    this.column.add(soldier);
+    this.wekufe = { soldier, mind: new WekufeMind(middle.x, middle.y, WRAITH_REACH * 150 * UPRIGHT, this.walkable), dead: false, fell: false };
+    this.board?.say(WEKUFE_SAYS.hello);
+  }
+
+  /** The Wekufe's fight: his mind goes about it, his body (a soldier's, to be struck) goes with it, and what he does to her is taken here. */
+  private fightWekufe(dt: number): void {
+    const fight = this.wekufe;
+    if (!fight || !this.three) return;
+    const { soldier, mind } = fight, her = { x: this.machi.x, y: this.machi.y };
+    // She has fallen and is back: he is whole again, as she is.
+    if (!this.vitals.standing) fight.fell = true;
+    else if (fight.fell) {
+      fight.fell = false;
+      if (!fight.dead) { soldier.brain.life = soldier.brain.max; mind.reset(mind.x, mind.y); }
+    }
+    if (!soldier.alive && !fight.dead) {
+      fight.dead = true;
+      mind.die();
+      // To frighten a little (the user, 30/10/2026): the screen and the pad.
+      this.shake(WEKUFE_SAYS.shake.ms, WEKUFE_SAYS.shake.intensity);
+      this.board?.say(WEKUFE_SAYS.gone);
+    }
+    const deed = mind.update(dt, this.vitals.standing ? her : null);
+    soldier.brain.x = mind.x;
+    soldier.brain.y = mind.y;
+    soldier.brain.unreachable = mind.under;
+    if (deed.clawed) this.hurt(deed.clawed);
+    if (deed.haunted) this.hurt(deed.haunted);
+    if (this.three.wekufe(dt, mind, her, this.machi.isDashing, soldier.hurt)) this.hurt(WEKUFE_SAYS.fire);
+    // His life over his head, to try him out by.
+    this.three.life('wekufe', fight.dead || mind.under ? null : { x: mind.x, y: mind.y }, 165, soldier.brain.life / soldier.brain.max);
   }
 
   /**

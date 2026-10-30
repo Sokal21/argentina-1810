@@ -14,6 +14,8 @@ import { Mendings } from './mend';
 import { mountPanel } from './panel';
 import { People } from './people';
 import { Royalists, type Royalist } from './realista';
+import { WekufeFigure } from './wekufeFigure';
+import type { WekufeMind } from '../tropa/wekufe';
 import { Shots, type Strikes } from './shot';
 import { Battery3D } from './battery';
 import type { Blast, Mark } from '../tropa/battery';
@@ -64,6 +66,7 @@ type Chonchon = { readonly mind: ChonchonBrain; readonly struck: number; readonl
 
 export class World3D {
   readonly view: View;
+  private wekufeFigure: WekufeFigure | null = null;
   /** Whoever plays this map: Cabral, or Inti. */
   readonly hero: CabralFigure | IntiFigure;
   /** Her nahuel, where it is she who plays. */
@@ -504,6 +507,15 @@ export class World3D {
   /** A fallen royalist is taken off the field where he lies, he and his blood. */
   bury(who: Royalist): void {
     this.royalists.bury(who);
+  }
+
+  /** The Wekufe, as he is this step, once there is one on the field; whether his red fire has reached her. */
+  wekufe(dt: number, mind: WekufeMind, her: Vec, dodging: boolean, hurt: number): boolean {
+    if (!this.wekufeFigure) {
+      this.wekufeFigure = new WekufeFigure();
+      this.view.scene.add(this.wekufeFigure.group);
+    }
+    return this.wekufeFigure.update(dt, mind, her, dodging, hurt);
   }
 
   /** A royalist's ball strikes Cabral, where he stands: the ball stops on him and he bleeds. */

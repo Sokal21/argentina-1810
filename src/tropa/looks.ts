@@ -31,6 +31,8 @@ export const LOOKS: Record<KindName, Look> = {
   observador: { walk: sheet('sableador', 'corre', 88, 8, 40, 12), death: sheet('sableador', 'muerte', 88, 10, 40), scale: 1.2, tall: 90 },
   // Drawn only in 3D as well: the sergeant's sheets stand in for the plague-dead soldier.
   apestado: { walk: sheet('sargento', 'marcha', 90, 8, 40, 7), blow: sheet('sargento', 'golpe', 90, 8, 40), death: sheet('sargento', 'muerte', 90, 10, 40), scale: 1.33, tall: 104 },
+  // The Wekufe is drawn only in 3D; in 2D, the captain stands in for him.
+  wekufe: { death: sheet('capitan', 'muerte', 90, 10, 38), scale: 1.4, tall: 150 },
   // Roca is drawn only in 3D; in 2D, the captain stands in for him.
   roca: { walk: sheet('capitan', 'marcha', 90, 8, 38, 8), blow: sheet('capitan', 'estocada', 90, 8, 38), aim: sheet('capitan', 'tiro', 90, 6, 38), death: sheet('capitan', 'muerte', 90, 10, 38), scale: 1.4, tall: 110 },
 };

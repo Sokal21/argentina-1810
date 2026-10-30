@@ -2,8 +2,9 @@
 
 The demon of the plague, the last boss of the demon's road in Inti's arc (`arg-sur.5`, `arg-tsr`). He
 lends Roca's army its dead (the apestados) and its spirits (the chonchones), and feeds on the plague
-and the destruction. Designed with the user on 29 October 2026; not in the game yet, shown in
-`modelos.html` as "Wekufe". His fight is written in `docs/historia/inti/README.md`.
+and the destruction. Designed with the user on 29 October 2026; shown in `modelos.html` as "Wekufe", and to be fought, as yet
+only himself (no possessed dead, no cave), on Roca's clearing at `/?jugar=inti&jefe=wekufe&entrar=directo`
+(`src/tropa/wekufe.ts` thinks, `src/three/wekufeFigure.ts` shows, `GameScene.fightWekufe` takes the harm). His fight is written in `docs/historia/inti/README.md`.
 
 ## How he looks
 - A floating shadow with wide ram's horns, long arms and claws, two red eyes and a red glow within his
@@ -46,7 +47,7 @@ and the destruction. Designed with the user on 29 October 2026; not in the game 
   - **A cloud of lost souls** about him, hurting her while she is near: 38 wailing faces (concept A; Tripo's model, `assets/wekufe/3d/alma.glb`, 800 faces, flying mouth first, the red of the streaks, unlit, without the outline every model has, see-through, more so at their edges) going round him, each trailing three waving, flickering tongues of black fire with the red dodge, pointed at both ends as those of his gown, bursting out at his thrust and lasting about 7 s, a red ring on the ground saying how far it hurts (`WRAITH_REACH`).
   - **Slow red demon fire** that follows her and turns little, dodged by rolling late: a ball of black smoke with a bright red orb at its heart and wisps of smoke passing over it (the user; hiding the light under the smoke lost the orb), streaming black wisps and trailing more smoke, gathering between his hands through his `lanzar` and leaving them as he thrusts (frame 25 of 50), bursting in a red flash and black smoke on a hit or after 4.5 s. In `modelos.html` it hunts a light blue mark swaying from side to side where he throws.
   - **Dying, he writhes and sinks into the earth, in that same pose,** with the same explosion of smoke and fire as his dive (the user).
-    When he dies the screen and the pad shake, to frighten a little (the user; to do when his fight goes in: `GameScene.shake`, which drives both).
+    When he dies the screen and the pad shake, to frighten a little (the user; `GameScene.shake`, which drives both).
 
 ## Model and clips (`assets/wekufe/3d`)
 Tripo multiview of turnaround A (front, his left, back), Tripo's rig; Mixamo clips retargeted

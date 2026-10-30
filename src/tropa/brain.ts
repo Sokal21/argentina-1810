@@ -171,6 +171,9 @@ export const KINDS = {
   // a lunge with the red glint, as the royalist captain's; and his sabre raised to call a small
   // salvo of his battery down on her (his `senal`, cut down to point at frame 26 of 48). When his life
   // runs out he does not fall: he gets away (how is still to be seen: the user, 28/10/2026).
+  // The Wekufe, himself (docs/personajes/wekufe.md): his body here, to be struck and to take his life; what
+  // he does is his own mind's (tropa/wekufe.ts), so of a soldier he has nothing but his life.
+  wekufe: { id: 'wekufe', name: 'El Wekufe', life: 40, girth: 22, pace: 0, sight: 4000, steady: true, worth: 200, spoils: 100 },
   roca: {
     // Nearly at her walk (115), and quicker still once hurt: at 60 he was easily left behind (the user, 28/10/2026).
     id: 'roca', name: 'Julio Argentino Roca', life: 40, girth: 11, pace: 100, sight: 2000, steady: true, rushes: true,
@@ -232,6 +235,8 @@ export class TroopBrain {
   mayAim = true;
   /** Seconds he is still after whoever struck him, however far off they are. */
   provoked = 0;
+  /** Out of reach, however he stands (the Wekufe under the earth). */
+  unreachable = false;
   /** The ground alight about him, which he keeps out of (the field's, shared). */
   fires: readonly Flames[] = [];
 
@@ -565,9 +570,9 @@ export class TroopBrain {
     this.move(dx / len * 3, dy / len * 3 / ISO_Y);
   }
 
-  /** Still under the earth he is coming up out of: not to be struck. */
+  /** Still under the earth he is coming up out of, or kept out of reach: not to be struck. */
   get under(): boolean {
-    return this.mode === 'rise' && this.t < (this.kind.rises?.under ?? 0);
+    return this.unreachable || (this.mode === 'rise' && this.t < (this.kind.rises?.under ?? 0));
   }
 
   /** Comes up out of the earth here, whole (or as hurt as he was, if not `whole`), facing her if she is given. */

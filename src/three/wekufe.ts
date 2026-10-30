@@ -127,7 +127,7 @@ const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 38, tong
  * roll beats it), how long it lasts, how near is a hit (his heights); the black smoke it trails (how many a second, how long each lasts, how
  * big, how much it swells), the tongues streaming off it, and what bursts when it ends.
  */
-const FIREBALL = { from: 18 / 50, at: 25 / 50, size: 0.2, speed: 0.5, turns: 0.8, lasts: 4.5, near: 0.12, lumps: 14,
+const FIREBALL = { from: 18 / 50, at: 25 / 50, size: 0.2, speed: 0.75, turns: 0.8, lasts: 6, near: 0.2, lumps: 14,
   colours: ['#000000', '#060506', '#0c0a0d', '#141216'], veils: 5, glow: new THREE.Color('#ff2a12'),
   smoke: { kept: 130, each: 40, life: [1, 1.9], size: [0.1, 0.17], swell: 2.2, rise: [0.05, 0.14], clear: 0.75, colours: ['#000000', '#060506', '#0c0a0d', '#141216'] },
   tongues: { kept: 8, points: 10, long: [0.13, 0.26], wide: [0.016, 0.03], wave: 0.025, waves: [1, 2], run: [8, 13], clear: 0.7, colour: new THREE.Color('#050405') },
@@ -638,6 +638,10 @@ class Fireball {
   private flying = -1;
   private since = -1;
   private owed = 0;
+  /** Whoever it hunts is rolling: it goes through them. */
+  dodging = false;
+  /** Whether it has reached what it hunts, since last asked. */
+  hit = false;
   private time = 0;
 
   constructor(body: THREE.Object3D, private readonly tall: number, private readonly eye: THREE.Vector3) {
@@ -727,7 +731,9 @@ class Fireball {
     this.flying += dt;
     this.wanted.subVectors(this.prey, this.at);
     const far = this.wanted.length();
-    if (this.flying >= FIREBALL.lasts || far < FIREBALL.near * this.tall) { this.burst(); return; }
+    const reached = !this.dodging && far < FIREBALL.near * this.tall;
+    if (reached) this.hit = true;
+    if (this.flying >= FIREBALL.lasts || reached) { this.burst(); return; }
     const angle = this.way.angleTo(this.wanted.normalize());
     if (angle > 0) this.way.lerp(this.wanted, Math.min(1, FIREBALL.turns * dt / angle)).normalize();
     this.at.addScaledVector(this.way, FIREBALL.speed * this.tall * dt);
@@ -1030,6 +1036,18 @@ export class Wekufe {
   power = 1;
   /** What his red fire hunts: kept up to date by whoever has him throw it. */
   get prey(): THREE.Vector3 { return this.fireball.prey; }
+  /** Whoever his red fire hunts is rolling: it goes through them. */
+  set dodging(on: boolean) { this.fireball.dodging = on; }
+  /** Whether his red fire has reached what it hunts, since last asked. */
+  fireHit(): boolean {
+    const hit = this.fireball.hit;
+    this.fireball.hit = false;
+    return hit;
+  }
+  /** The earth stirs here: where he will come up. */
+  gather(at: THREE.Vector3): void {
+    this.splash.start(at);
+  }
   /** His splash where he goes into the earth. */
   private readonly splash: Splash;
   /** The lines his claws tear. */
