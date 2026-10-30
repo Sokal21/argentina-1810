@@ -14,7 +14,8 @@ import { unlitShader } from './pixels';
 // away, each drawn again over itself as a dodge so it stands out of the smoke, the more where they
 // lie over one another; those on its far side dimmer, behind it. Souls wind up round it and off him, as black streaks,
 // each fading along its length. He floats, rising and sinking a little. His claws tear red lines
-// through the air along the very arc of his blow, throwing off sparks.
+// through the air along the very arc of his blow, throwing off sparks. Sinking, his smoke
+// goes over his model, so the ground closing on him is not seen.
 // He dives into the earth head first, sinking right under it; where his head goes in, the ground
 // splashes black, drops thrown up and out and a black pool spreading, a cloud of black smoke bursts
 // out low over the ground as dust would, and black fire bursts up; the smoke and the fire go together.
@@ -752,6 +753,7 @@ export class Wekufe {
     // Each child is moved in the root's units: the model is one unit tall.
     let high = FLOAT.high + FLOAT.bob * Math.sin(this.time * FLOAT.beat * Math.PI);
     const dive = this.diving;
+    const sinking = !!dive && dive.t / dive.seconds >= dive.how.from;
     if (dive) {
       dive.t += dt;
       const k = Math.min(1, Math.max(0, (dive.t / dive.seconds - dive.how.from) / (1 + dive.how.after - dive.how.from)));
@@ -776,6 +778,12 @@ export class Wekufe {
     this.claws.update(dt);
     const ease = shown < this.faded ? Wekufe.FADE.out : Wekufe.FADE.back;
     this.faded += (shown - this.faded) * Math.min(1, dt * ease);
+    // Sinking, his smoke is drawn over him, hiding the ground closing on him; and let off where he went in,
+    // not under the ground with him, where it would now be seen through it.
+    (this.cloud.mesh.material as THREE.ShaderMaterial).depthTest = !sinking;
+    if (sinking && this.staying) this.line.forEach((p, i) => p.copy(this.stayed[i]));
+    // His halos under it then, or their red shows through.
+    for (const { sprite } of this.halos) sprite.renderOrder = sinking ? -1 : 10;
     this.smoke(dt, this.faded);
     // Diving, his fire and souls are left where his gown was as he began: they do not go up and down with him.
     if (dive && dive.t / dive.seconds >= dive.how.stays) {
