@@ -23,6 +23,15 @@ const SMOKE = { bones: ['L_Clavicle', 'R_Clavicle', 'Spine02', 'L_Upperarm', 'R_
 /** The tongues of black fire: how many, points along each, how long one lasts, how tall and wide (shares of his height), how far they wave. */
 const TONGUES = { kept: 14, points: 12, life: [0.35, 0.8], tall: [0.13, 0.26], wide: [0.02, 0.04], wave: 0.3, run: [7, 12], clear: 0.9 };
 
+/**
+ * Being possessed, as shares of his agony: over when the black cloud climbs him, when it wraps him thickest, when he is changed under it, and when it has gone;
+ * how big he is before it (a share of what he comes to), and its puffs: how many, how far out, how tall they climb, how fast they go round him, how big, how thick.
+ */
+const POSSESSION = { climbs: [0.08, 0.42], thickest: [0.46, 0.58], changes: 0.52, gone: 0.9, small: 0.8,
+  kept: 120, out: [0.12, 0.36], high: 0.95, round: [1.4, 3.2], size: [0.1, 0.22], thick: 0.96, colours: ['#000000', '#040304', '#080608', '#0d0b0e', '#141216'] };
+
+interface Wrap { up: number; angle: number; out: number; round: number; size: number; spin: number; bob: number }
+
 interface Puff { at: THREE.Vector3; way: THREE.Vector3; t: number; life: number; size: number; spin: number }
 interface Tongue { bone: THREE.Object3D | undefined; off: THREE.Vector3; t: number; life: number; tall: number; wide: number; run: number; phase: number }
 
@@ -47,12 +56,13 @@ function repainted(was: THREE.Texture, change: (px: Uint8ClampedArray, i: number
   return made;
 }
 
-/** The body blackened and its green shine turned red: both its pictures painted anew from what shines. */
-function burn(body: THREE.Object3D): void {
+/** Paints the body blackened with its green shine turned red, both its pictures anew from what shines, and returns how to show him so or as he was. */
+function burn(body: THREE.Object3D): (burnt: boolean) => void {
+  const swaps: ((burnt: boolean) => void)[] = [];
   body.traverse(node => {
     if (!(node instanceof THREE.Mesh)) return;
     const material = node.material as THREE.MeshToonMaterial;
-    const shine = material.lightMap;
+    const shine = material.lightMap, was = material.map;
     let lit: Uint8ClampedArray | null = null;
     if (shine) {
       material.lightMap = repainted(shine, (px, i) => {
@@ -70,8 +80,13 @@ function burn(body: THREE.Object3D): void {
       px[i + 1] = px[i + 1] * BURNT.kept.g + BURNT.lift;
       px[i + 2] = px[i + 2] * BURNT.kept.b + BURNT.lift;
     });
-    material.needsUpdate = true;
+    const light = material.lightMap, map = material.map;
+    swaps.push(burnt => {
+      material.lightMap = burnt ? light : shine;
+      material.map = burnt ? map : was;
+    });
   });
+  return burnt => { for (const swap of swaps) swap(burnt); };
 }
 
 /** A horn from its middle's points, tapering, on the side `side` (1 his left, -1 his right), in his height's shares. */
@@ -109,15 +124,24 @@ export class Possessed {
   private readonly across = new THREE.Vector3();
   private readonly camera = new THREE.Vector3();
   private seen = false;
+  private readonly show: (burnt: boolean) => void;
+  /** What is his only once he is possessed: his horns and eyes, his smoke and fire. */
+  private readonly held = new THREE.Group();
+  private readonly aura = new THREE.Group();
+  private readonly wrap = new Billboards(POSSESSION.kept, lumps());
+  private readonly wraps: Wrap[] = [];
+  private readonly size: number;
+  private possessing: { t: number; seconds: number } | null = null;
 
   constructor(private readonly body: THREE.Object3D, private readonly tall: number) {
-    burn(body);
+    this.show = burn(body);
+    this.size = body.scale.x;
     this.bones = SMOKE.bones.map(name => body.getObjectByName(name)).filter((b): b is THREE.Object3D => !!b);
     const head = body.getObjectByName('Head');
     if (head) {
       // Held by his head, set out as he stands at rest: so upright, and facing as he does.
       body.updateMatrixWorld(true);
-      const held = new THREE.Group();
+      const held = this.held;
       head.getWorldPosition(held.position);
       held.add(horn(HORNS.whole, 1, tall), horn(HORNS.broken, -1, tall));
       for (const side of [1, -1]) {
@@ -131,7 +155,13 @@ export class Possessed {
       this.group.add(held);
       head.attach(held);
     }
-    this.group.add(this.cloud.mesh);
+    this.group.add(this.aura, this.wrap.mesh);
+    this.aura.add(this.cloud.mesh);
+    this.wrap.mesh.renderOrder = 3;
+    for (let i = 0; i < POSSESSION.kept; i++) {
+      this.wrap.colour(i, POSSESSION.colours[i % POSSESSION.colours.length]);
+      this.wraps.push({ up: Math.random(), angle: Math.random() * Math.PI * 2, out: r(POSSESSION.out), round: r(POSSESSION.round) * (i % 2 ? 1 : -1), size: r(POSSESSION.size), spin: Math.random() * Math.PI * 2, bob: Math.random() * Math.PI * 2 });
+    }
     for (let i = 0; i < SMOKE.kept; i++) {
       this.cloud.colour(i, SMOKE.colours[i % SMOKE.colours.length]);
       const puff = { at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, life: 0, size: 0, spin: 0 };
@@ -141,12 +171,58 @@ export class Possessed {
     this.tongues.mesh.renderOrder = 1;
     this.dodges.mesh.renderOrder = 2;
     this.tongues.mesh.onBeforeRender = (_r, _s, camera) => { this.camera.setFromMatrixPosition(camera.matrixWorld); this.seen = true; };
-    this.group.add(this.tongues.mesh, this.dodges.mesh);
+    this.aura.add(this.tongues.mesh, this.dodges.mesh);
     for (let i = 0; i < TONGUES.kept; i++) {
       const flame: Tongue = { bone: undefined, off: new THREE.Vector3(), t: 0, life: 0, tall: 0, wide: 0, run: 0, phase: 0 };
       this.flames.push(flame);
       this.kindle(flame, Math.random());
     }
+  }
+
+  /** The Wekufe comes into him, over his agony of `seconds`: from as he was, in a black cloud climbing and wrapping him, to changed. */
+  possess(seconds: number): void {
+    this.possessing = { t: 0, seconds };
+    this.changed(false);
+  }
+
+  /** Shown as already possessed. */
+  possessed(): void {
+    this.possessing = null;
+    this.changed(true);
+    this.body.scale.setScalar(this.size);
+    for (let i = 0; i < POSSESSION.kept; i++) this.wrap.hide(i);
+    this.wrap.commit();
+  }
+
+  private changed(burnt: boolean): void {
+    this.show(burnt);
+    this.held.visible = this.aura.visible = burnt;
+  }
+
+  private possession(dt: number): void {
+    const being = this.possessing;
+    if (!being) return;
+    being.t += dt;
+    const q = being.t / being.seconds, { climbs, thickest, changes, gone, small } = POSSESSION;
+    const climbed = Math.min(1, Math.max(0, (q - climbs[0]) / (climbs[1] - climbs[0])));
+    const growth = Math.min(1, Math.max(0, (q - climbs[1]) / (thickest[1] - climbs[1])));
+    this.body.scale.setScalar(this.size * (small + (1 - small) * growth));
+    if (q >= changes && !this.held.visible) this.changed(true);
+    // Thin at first, thickest about him, then thinning away from his head down.
+    const thin = q < thickest[0] ? 0.4 + 0.2 * climbed + 0.4 * Math.max(0, (q - climbs[1]) / (thickest[0] - climbs[1])) : q < thickest[1] ? 1 : Math.max(0, (gone - q) / (gone - thickest[1]));
+    this.body.getWorldPosition(this.at);
+    this.wraps.forEach((w, i) => {
+      w.angle += w.round * dt;
+      const up = Math.min(1, w.up * POSSESSION.high), reach = Math.min(1, Math.max(0, (climbed * 1.25 - up) / 0.25));
+      const clear = POSSESSION.thick * thin * reach;
+      if (clear <= 0.01) { this.wrap.hide(i); return; }
+      // Narrower toward his head, as a body is.
+      const out = w.out * this.tall * (1 - up * 0.45);
+      this.across.set(this.at.x + Math.cos(w.angle) * out, this.at.y + (up + 0.03 * Math.sin(this.time * 2 + w.bob)) * this.tall, this.at.z + Math.sin(w.angle) * out);
+      this.wrap.put(i, this.across, w.size * this.tall, clear, w.spin);
+    });
+    this.wrap.commit();
+    if (q >= 1) this.possessing = null;
   }
 
   /** A puff let off one of his bones, `into` that share of its life already. */
@@ -180,6 +256,7 @@ export class Possessed {
     const shown = !!this.body.parent && this.body.visible;
     this.group.visible = shown;
     if (!shown) return;
+    this.possession(dt);
     const beat = 0.5 + 0.5 * Math.sin(this.time * EYES.beat * Math.PI);
     // Drawn through his brow, which would hide them; so not when he looks away.
     for (const eye of this.eyes) {

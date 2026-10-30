@@ -75,5 +75,6 @@ Roca's spotter (assets/observador/3d) has Mixamo's Idle (`Idle.fbx`, `--name rep
 | Mutant Swiping.fbx | "Mutant Swiping": the Wekufe's claws as he comes out of smoke beside her, `--name zarpazo`, then `smoke_tail.py` |
 | Run To Dive.fbx | "Run To Dive": the Wekufe going into the earth, head first, to come out of smoke beside her, all 24 frames, `--name zambullida`, then `smoke_tail.py` |
 | Zombie Agonizing.fbx | "Zombie Agonizing": the Wekufe's death, writhing as he sinks into the earth, frames 0 to 120 (the writhing, of 224), `--name muerte`, then `smoke_tail.py` |
+| Zombie Agonizing.fbx (again) | the plague-dead soldier as the Wekufe comes into him, frames 0 to 120, `--name agonia --feet`, on Tripo's rig `423e7cfe` (on the finished `apestado_animado.glb` every bone comes out still); kept apart as `assets/apestado/3d/anims/agonia.glb`, loaded by `modelos.ts` for now |
 | Pro Magic Pack/Standing 2H Magic Attack 05.fbx | the Wekufe summoning his cloud of spirits, `--name invocar --twist 1`, then `smoke_tail.py` |
 | Pro Magic Pack/Standing 2H Magic Attack 02.fbx | the Wekufe throwing his red fire, `--name lanzar --twist 1`, then `smoke_tail.py` |

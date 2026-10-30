@@ -1,3 +1,4 @@
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
 import { MODELS } from './buildings';
 import { MUSKET_TIMES } from './cabral';
@@ -109,10 +110,10 @@ const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   granada_sacar: { lasts: DRAW }, granada_lanzar: { lasts: SHOT },
   tajo: { lasts: 0.5 }, 'Realista:tajo': { lasts: 0.8 }, 'Sableador:tajo': { once: true },
   barrido: { once: true }, estocada: { once: true }, zarpazo: { once: true }, 'El capitán:grito': { lasts: 2.0 }, grito: { lasts: 2.0 }, tiro: { once: true },
-  muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, 'Apestado poseído:golpe': { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, senas: { once: true }, rafaga: { once: true }, rodada_mixamo: { once: true }, zambullida: { once: true }, invocar: { once: true }, lanzar: { once: true }, beber: { once: true },
+  muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, 'Apestado poseído:golpe': { once: true }, agonia: { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, senas: { once: true }, rafaga: { once: true }, rodada_mixamo: { once: true }, zambullida: { once: true }, invocar: { once: true }, lanzar: { once: true }, beber: { once: true },
 };
 /** How long a clip's end is held before it starts over, for one whose end goes on after it, in seconds. */
-const HELD: Record<string, number> = { zambullida: 3.2, 'Wekufe:muerte': 3.2, invocar: 6, lanzar: 5.2 };
+const HELD: Record<string, number> = { agonia: 2, zambullida: 3.2, 'Wekufe:muerte': 3.2, invocar: 6, lanzar: 5.2 };
 /**
  * The clips the game plays: any whose name is written in quotes in the 3D game's code. Found there,
  * not listed here, so a clip is counted as soon as the game plays it; the rest of a model's clips
@@ -207,7 +208,7 @@ let framed: THREE.Vector3 | null = null;
 const spirits: Spirit[] = [];
 const stenches: Stench[] = [];
 const wekufes = new Map<Who, Wekufe>();
-const possessed: Possessed[] = [];
+const possessed = new Map<Who, Possessed>();
 let preyTime = 0;
 const preyMark = new THREE.Mesh(new THREE.SphereGeometry(4, 8, 6), new THREE.MeshBasicMaterial({ color: '#7fe8ff' }));
 preyMark.visible = false;
@@ -257,7 +258,14 @@ async function load(w: Who) {
     // The Wekufe floating in his smoke, his eyes and belly glowing.
     if (w.wekufe) { const k = new Wekufe(body, w.drawn * UPRIGHT); wekufes.set(w, k); view.scene.add(k.group); }
     // Blackened, horned, in his smoke.
-    if (w.possessed) { const p = new Possessed(body, w.drawn * UPRIGHT); possessed.push(p); view.scene.add(p.group); }
+    if (w.possessed) {
+      const p = new Possessed(body, w.drawn * UPRIGHT);
+      possessed.set(w, p);
+      view.scene.add(p.group);
+      // His agony as the Wekufe comes into him: Mixamo's, as the Wekufe's death is (tools/mocap/README.md).
+      const { animations } = await new GLTFLoader().loadAsync('apestado/3d/anims/agonia.glb');
+      body.animations.push(...animations.filter(a => a.name === 'agonia'));
+    }
     const clips = body.animations.map(a => a.name);
     clips.sort((a, b) => (FIRST.indexOf(a) + 1 || 99) - (FIRST.indexOf(b) + 1 || 99) || a.localeCompare(b));
     it = { body, motion: new Motion(body), clips, flung: new Fling(() => 0), home: 0 };
@@ -325,6 +333,8 @@ function play(name: string): void {
     vomits.get(w)?.stop();
     // The Wekufe diving into the earth, under it until another clip is played.
     const wekufe = wekufes.get(w);
+    const being = possessed.get(w);
+    if (being) { if (name === 'agonia') being.possess(it.motion.seconds(name)); else being.possessed(); }
     if (wekufe) { if (name === 'zambullida') wekufe.dive(it.motion.seconds(name)); else if (name === 'muerte') wekufe.dies(it.motion.seconds(name)); else wekufe.rises(); }
     if (wekufe) { if (name === 'zarpazo') wekufe.claw(it.motion.seconds(name)); else wekufe.unclaw(); }
     if (wekufe) { if (name === 'invocar') wekufe.invoke(it.motion.seconds(name)); else wekufe.uninvoke(); }
@@ -608,7 +618,7 @@ view.renderer.setAnimationLoop(() => {
   step(dt);
   for (const s of spirits) s.update(dt);
   for (const s of stenches) s.update(dt);
-  for (const p of possessed) p.update(dt);
+  for (const p of possessed.values()) p.update(dt);
   // What his red fire hunts here: a mark swaying slowly from side to side where he throws, to be seen hit.
   for (const [w, k] of wekufes) {
     preyTime += dt;
