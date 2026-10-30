@@ -14,8 +14,7 @@ import { unlitShader } from './pixels';
 // away, each drawn again over itself as a dodge so it stands out of the smoke, the more where they
 // lie over one another; those on its far side dimmer, behind it. Souls wind up round it and off him, as black streaks,
 // each fading along its length. He floats, rising and sinking a little. His claws tear red lines
-// through the air along the very arc of his blow, throwing off sparks. Sinking, his gown's smoke
-// thickens and goes over his model, so the ground closing on him is not seen.
+// through the air along the very arc of his blow, throwing off sparks.
 // He dives into the earth head first, sinking right under it; where his head goes in, the ground
 // splashes black, drops thrown up and out and a black pool spreading, a cloud of black smoke bursts
 // out low over the ground as dust would, and black fire bursts up; the smoke and the fire go together.
@@ -110,13 +109,6 @@ const CLAWS = {
 };
 /** How many places of each claw's path are kept, and how many points each line is drawn with. */
 const CLAW_PATH = { kept: 40, points: 24 };
-/**
- * Sinking, his gown's own smoke goes over his model and thickens, so the ground closing on him is not
- * seen: how many times thicker, until how far through his sinking more is let off, over which stretch
- * of the gown (low: flat on the ground, only over where he goes in), how much of its rise it keeps, and
- * for how long, once it bursts, it is let off as high as the gown again (the burst's smoke).
- */
-const SINKING = { thicker: 2.4, until: 0.8, up: [-0.08, 0.22], rises: 0.25, bursts: 0.7 };
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.06, bob: 0.025, beat: 1.4 };
 /**
@@ -618,8 +610,6 @@ export class Wekufe {
   /** Where his gown was as he began to dive: its fire and souls stay there, burning out, as he goes under. */
   private readonly stayed = [0, 1, 2, 3, 4].map(() => new THREE.Vector3());
   private staying = false;
-  /** How much longer his smoke goes up with the burst. */
-  private bursting = 0;
   private readonly ground = new THREE.Vector3();
 
   /** `body` is his model, already scaled, `tall` its height in the world's units. */
@@ -762,14 +752,10 @@ export class Wekufe {
     // Each child is moved in the root's units: the model is one unit tall.
     let high = FLOAT.high + FLOAT.bob * Math.sin(this.time * FLOAT.beat * Math.PI);
     const dive = this.diving;
-    let sinking = false, lettingOff = false, sunk = 0;
     if (dive) {
       dive.t += dt;
       const k = Math.min(1, Math.max(0, (dive.t / dive.seconds - dive.how.from) / (1 + dive.how.after - dive.how.from)));
       high -= dive.how.deep * k * k;
-      sunk = k;
-      sinking = dive.t / dive.seconds >= dive.how.from;
-      lettingOff = sinking && k < SINKING.until;
     }
     for (const o of this.floats) o.position.y = high;
     this.body.updateWorldMatrix(true, true);
@@ -782,7 +768,6 @@ export class Wekufe {
       else if (head) head.getWorldPosition(this.at);
       if (head && !dive.splashed && this.at.y <= this.ground.y + this.tall * 0.04) {
         dive.splashed = true;
-        this.bursting = SINKING.bursts;
         this.splash.start(this.at.setY(this.ground.y));
       }
       shown *= Math.min(1, Math.max(0, (this.line[0].y - this.ground.y) / (this.tall * 0.25)));
@@ -791,13 +776,7 @@ export class Wekufe {
     this.claws.update(dt);
     const ease = shown < this.faded ? Wekufe.FADE.out : Wekufe.FADE.back;
     this.faded += (shown - this.faded) * Math.min(1, dt * ease);
-    // Sinking, his smoke stays where he went in (not going under with him), thick and over him.
-    if (sinking && this.staying) this.line.forEach((p, i) => p.copy(this.stayed[i]));
-    (this.cloud.mesh.material as THREE.ShaderMaterial).depthTest = !sinking;
-    // Flat on the ground until it bursts; then, for a moment, as high as his gown, with the burst.
-    if (this.bursting > 0) this.bursting -= dt;
-    const bursts = sinking && this.bursting > 0;
-    this.smoke(dt, sinking ? (lettingOff || bursts ? 1 : 0) : this.faded, sinking ? SINKING.thicker : 1, sinking && !bursts);
+    this.smoke(dt, this.faded);
     // Diving, his fire and souls are left where his gown was as he began: they do not go up and down with him.
     if (dive && dive.t / dive.seconds >= dive.how.stays) {
       if (!this.staying) { this.stayed.forEach((p, i) => p.copy(this.line[i])); this.staying = true; }
@@ -810,11 +789,10 @@ export class Wekufe {
       this.wind(dt, this.faded);
       this.lick(dt, this.faded);
     }
-    // His halos go out quickly as he sinks: drawn over all, they would show through the smoke.
-    this.glow(shown * (1 - Math.min(1, sunk * 5)));
+    this.glow(shown);
   }
 
-  private smoke(dt: number, shown: number, thicker: number, low: boolean): void {
+  private smoke(dt: number, shown: number): void {
     const cloud = this.cloud;
     for (const { how, first, puffs } of this.layers) {
       const rate = how.kept / ((how.life[0] + how.life[1]) / 2);
@@ -828,19 +806,19 @@ export class Wekufe {
           p.at.y += p.rise * dt;
           p.turn += p.spin * dt;
           const bubbling = 1 + p.boil * Math.sin(p.t * p.beat * Math.PI * 2);
-          cloud.put(i, p.at, p.size * (1 + (how.swell - 1) * k) * bubbling, Math.min(0.97, how.thick * p.power) * Math.min(1, k * 4) * (1 - k * k), p.turn);
+          cloud.put(i, p.at, p.size * (1 + (how.swell - 1) * k) * bubbling, how.thick * p.power * Math.min(1, k * 4) * (1 - k * k), p.turn);
         } else if (shown > 0.05 && Math.random() < dt * rate * shown) {
           // Each puff as thick as he was shown when it was let off: left behind as he goes under, it lives out its life.
-          p.power = shown * thicker;
+          p.power = shown;
           // Anywhere along it, more of the core low where the gown is widest.
-          const up = low ? r(SINKING.up) : how.up ? r(how.up) : how === LAYERS[0] ? Math.pow(Math.random(), 1.3) : Math.random() * 1.05;
+          const up = how.up ? r(how.up) : how === LAYERS[0] ? Math.pow(Math.random(), 1.3) : Math.random() * 1.05;
           const wide = this.width(up);
           const a = Math.random() * Math.PI * 2, out = Math.sqrt(Math.random()) * how.out * wide / 2;
           this.along(up, p.at);
           p.at.x += Math.cos(a) * out;
           p.at.z += Math.sin(a) * out;
           p.way.set(Math.cos(a), 0, Math.sin(a)).multiplyScalar(how.spread * Math.random());
-          p.t = 0; p.life = r(how.life); p.rise = r(how.rise) * (low ? SINKING.rises : 1); p.size = r(how.size) * this.tall;
+          p.t = 0; p.life = r(how.life); p.rise = r(how.rise); p.size = r(how.size) * this.tall;
           p.spin = (Math.random() - 0.5) * 1.2;
           p.boil = r(BOIL.boil);
           p.beat = r(BOIL.beat);
