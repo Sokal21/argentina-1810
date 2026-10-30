@@ -118,10 +118,10 @@ const CLAW_PATH = { kept: 40, points: 24 };
  * (radians a second), how far out and how high (shares of his height, of `WRAITH_REACH`), how wide a streak
  * and how big a head (shares of his height). The ring on the ground says how far it hurts.
  */
-const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 22, points: 14, trail: [0.7, 1.3], wind: [1.6, 2.6],
+const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 22, points: 14, trail: [0.7, 1.3], wind: [2.5, 3.9],
   out: [0.72, 1], high: [0.1, 0.85], bob: 0.06, wide: 0.05, head: [0.07, 0.1], clear: 0.9, ring: 0.4, colours: ['#000000', '#060507', '#0c0a0d'] };
 /** How far out his cloud of souls hurts, a share of his height: the game's reckoning will take it from here. */
-export const WRAITH_REACH = 0.68;
+export const WRAITH_REACH = 0.95;
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.06, bob: 0.025, beat: 1.4 };
 /**
@@ -418,19 +418,19 @@ class Splash {
   }
 }
 
-/** A lost soul's face: a dark hollow head, two red eyes and a mouth open in a wail. */
+/** A lost soul's face: a red head, two burning eyes and a dark mouth open in a wail. */
 let wailing: THREE.Texture | null = null;
 function wail(): THREE.Texture {
   if (wailing) return wailing;
   const size = 32, canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const g = canvas.getContext('2d')!;
-  g.fillStyle = '#060506';
+  g.fillStyle = '#a81a0a';
   g.beginPath(); g.ellipse(16, 15, 10, 13, 0, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#ff2a12';
+  g.fillStyle = '#ffc070';
   g.beginPath(); g.ellipse(11.5, 12, 2.4, 3, 0.3, 0, Math.PI * 2); g.fill();
   g.beginPath(); g.ellipse(20.5, 12, 2.4, 3, -0.3, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#7a1408';
+  g.fillStyle = '#1a0503';
   g.beginPath(); g.ellipse(16, 21, 3, 4.5, 0, 0, Math.PI * 2); g.fill();
   const texture = new THREE.CanvasTexture(canvas);
   texture.minFilter = texture.magFilter = THREE.NearestFilter;
@@ -474,12 +474,14 @@ class Wraiths {
         colour: new THREE.Color(WRAITHS.colours[i % WRAITHS.colours.length]),
       });
     }
-    this.ring = new THREE.Mesh(new THREE.RingGeometry(0.93, 1, 64).rotateX(-Math.PI / 2), new THREE.ShaderMaterial({
+    this.ring = new THREE.Mesh(new THREE.RingGeometry(0.965, 1, 96).rotateX(-Math.PI / 2), new THREE.ShaderMaterial({
       uniforms: { clear: { value: 0 } },
       vertexShader: 'void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
       fragmentShader: unlitShader('uniform float clear; void main() { gl_FragColor = vec4(0.8, 0.07, 0.03, clear); }'),
       transparent: true, depthWrite: false, side: THREE.DoubleSide,
     }));
+    // Under his smoke and all, on the ground.
+    this.ring.renderOrder = -2;
     this.group.add(this.ring, this.streaks.mesh, this.dodges.mesh, this.heads.mesh);
     this.show(false);
   }
