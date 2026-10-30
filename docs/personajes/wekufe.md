@@ -59,6 +59,8 @@ claws hang below his waist) and `glow.py`.
 | `reposo` | Mutant Idle | floating |
 | `zarpazo` | Mutant Swiping | his claws, coming out beside her |
 | `zambullida` | Run To Dive | going into the earth |
+| `invocar` | Standing 2H Magic Area Attack 01 (Pro Magic Pack) | his cloud of spirits |
+| `lanzar` | Standing 1H Magic Attack 01 (Pro Magic Pack) | his red fire |
 | `muerte` | Zombie Agonizing, frames 0 to 120 | dying: writhing, he sinks into the earth, and as his waist goes under it splashes as his dive does |
 
-Still to come: invoking his spirits, throwing his fire.
+Still to come: the cloud of spirits and the red fire themselves.

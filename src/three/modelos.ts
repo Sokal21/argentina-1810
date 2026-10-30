@@ -79,7 +79,7 @@ const WHO: Who[] = [
   // below it a long gown of black smoke and fire swinging as his legs, bones under nothing, swing
   // (tools/blender/smoke_tail.py; three/wekufe.ts); his eyes and belly glowing. Mixamo's Mutant Idle and
   // Mutant Swiping, Run To Dive for his going into the earth as he comes out of smoke beside her, and
-  // Zombie Agonizing for his death, sinking into it.
+  // Zombie Agonizing for his death, sinking into it; the Pro Magic Pack's for summoning his spirits and throwing his fire.
   // Not in the game yet.
   { name: 'Wekufe', url: 'wekufe/3d/wekufe_animado.glb', drawn: 150, wekufe: true },
   // The ox cart whole, as the game draws it (three/cart.ts): going, its wheels rolling and its oxen
@@ -106,7 +106,7 @@ const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   granada_sacar: { lasts: DRAW }, granada_lanzar: { lasts: SHOT },
   tajo: { lasts: 0.5 }, 'Realista:tajo': { lasts: 0.8 }, 'Sableador:tajo': { once: true },
   barrido: { once: true }, estocada: { once: true }, zarpazo: { once: true }, 'El capitán:grito': { lasts: 2.0 }, grito: { lasts: 2.0 }, tiro: { once: true },
-  muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, senas: { once: true }, rafaga: { once: true }, rodada_mixamo: { once: true }, zambullida: { once: true }, beber: { once: true },
+  muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, senas: { once: true }, rafaga: { once: true }, rodada_mixamo: { once: true }, zambullida: { once: true }, invocar: { once: true }, lanzar: { once: true }, beber: { once: true },
 };
 /** How long a clip's end is held before it starts over, for one whose end goes on after it, in seconds. */
 const HELD: Record<string, number> = { zambullida: 3.2, 'Wekufe:muerte': 3.2 };
