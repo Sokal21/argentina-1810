@@ -609,6 +609,8 @@ export class Wekufe {
   /** `body` is his model, already scaled, `tall` its height in the world's units. */
   constructor(private readonly body: THREE.Object3D, private readonly tall: number) {
     this.floats = [...body.children];
+    // A shadow himself, he casts none.
+    body.traverse(node => { node.castShadow = false; });
     this.splash = new Splash(tall);
     this.group.add(this.splash.group);
     this.claws = new Claws(body, tall, this.eye);
