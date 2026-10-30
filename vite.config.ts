@@ -7,7 +7,8 @@ import { claudeVoice } from './tools/claude_voice';
 export default defineConfig({
   base: './',
   publicDir: 'assets',
-  build: { chunkSizeWarningLimit: 2000 },
+  // modelos.html goes up with the game, to look at the models from anywhere.
+  build: { chunkSizeWarningLimit: 2000, rollupOptions: { input: ['index.html', 'modelos.html'] } },
   // And by Claude, through the command-line program on this machine: /claude.
   plugins: [claudeVoice()],
   // While developing, the characters one can talk to are voiced by a model
