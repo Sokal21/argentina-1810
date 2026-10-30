@@ -120,7 +120,7 @@ const CLAW_PATH = { kept: 40, points: 24 };
  * and how big a head (shares of his height), what a face's colour is multiplied by, for it to read red in the dark, and how much more it looks at the camera than where it goes. The ring on the ground says how far it hurts.
  */
 const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 38, points: 14, trail: [0.7, 1.3], wind: [2.5, 3.9],
-  out: [0.72, 1], high: [0.1, 0.85], bob: 0.06, wide: 0.05, head: [0.13, 0.19], tint: new THREE.Color(2.2, 1.2, 1.1), looks: 1.6, clear: 0.9, ring: 0.4, colours: ['#000000', '#060507', '#0c0a0d'] };
+  out: [0.72, 1], high: [0.1, 0.85], bob: 0.06, wide: 0.05, head: [0.1, 0.145], red: [new THREE.Color(0.22, 0.015, 0.008), new THREE.Color(2.6, 0.45, 0.25)], looks: 1.6, clear: 0.9, ring: 0.4, colours: ['#000000', '#060507', '#0c0a0d'] };
 /** How far out his cloud of souls hurts, a share of his height: the game's reckoning will take it from here. */
 export const WRAITH_REACH = 0.95;
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
@@ -460,8 +460,19 @@ class Wraiths {
       const found = mesh as THREE.Mesh;
       // Its middle at the soul's place: the model stands on its foot, one unit tall.
       const shape = found.geometry.clone().applyMatrix4(found.matrixWorld).translate(0, -0.5, 0);
-      const material = (found.material as THREE.MeshToonMaterial).clone();
-      material.color.copy(WRAITHS.tint);
+      // Unlit, the red of the streaks' dodge where its drawing is light and nearly black in its hollows.
+      const material = new THREE.ShaderMaterial({
+        uniforms: { map: { value: (found.material as THREE.MeshToonMaterial).map }, dark: { value: WRAITHS.red[0] }, bright: { value: WRAITHS.red[1] } },
+        vertexShader: `
+          varying vec2 vUv;
+          void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0); }`,
+        fragmentShader: unlitShader(`
+          uniform sampler2D map; uniform vec3 dark; uniform vec3 bright; varying vec2 vUv;
+          void main() {
+            vec3 drawn = texture2D(map, vUv).rgb;
+            gl_FragColor = vec4(mix(dark, bright, smoothstep(0.01, 0.12, dot(drawn, vec3(0.3, 0.6, 0.1)))), 1.0);
+          }`),
+      });
       this.faces = new THREE.InstancedMesh(shape, material, WRAITHS.souls);
       this.faces.frustumCulled = false;
       this.faces.visible = this.since >= 0;
