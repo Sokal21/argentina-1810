@@ -12,7 +12,7 @@ The apestado's own model and clips, drawn 125 (the apestado 100, the Wekufe 150)
 - Black smoke and tongues of black fire with the Wekufe's red dodge off his shoulders and back, for the green stench.
 
 ## Being possessed (`agonia` in the gallery)
-The user's choice: the Wekufe's agony (Zombie Agonizing, 3.2 s) and a black cloud wrapping him. He starts as the apestado, green and 0.8 of his size; the cloud climbs him from the ground as he writhes, is thickest about halfway, when he is changed under it, and thins away by 0.9 of the clip.
+The user's choice: the Wekufe's agony (Zombie Agonizing, 3.2 s) and a black cloud wrapping him. He starts as the apestado, green and 0.8 of his size; the cloud climbs him from the ground as he writhes, is thickest about halfway, when he is changed under it, and thins away by 0.9 of the clip. Tongues of black fire, a faint red within them, lick up through it (the user).
 
 ## How he would fight (proposed)
 Not to be struck till the cloud has gone. Quicker than an apestado and with more life; his

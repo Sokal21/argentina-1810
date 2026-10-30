@@ -28,7 +28,9 @@ const TONGUES = { kept: 14, points: 12, life: [0.35, 0.8], tall: [0.13, 0.26], w
  * how big he is before it (a share of what he comes to), and its puffs: how many, how far out, how tall they climb, how fast they go round him, how big, how thick.
  */
 const POSSESSION = { climbs: [0.08, 0.42], thickest: [0.46, 0.58], changes: 0.52, gone: 0.9, small: 0.8,
-  kept: 120, out: [0.12, 0.36], high: 0.95, round: [1.4, 3.2], size: [0.1, 0.22], thick: 0.96, colours: ['#000000', '#040304', '#080608', '#0d0b0e', '#141216'] };
+  kept: 120, out: [0.12, 0.36], high: 0.95, round: [1.4, 3.2], size: [0.1, 0.22], thick: 0.96, colours: ['#000000', '#040304', '#080608', '#0d0b0e', '#141216'],
+  /** The tongues of black fire licking up through the cloud: how many, how long each lasts, how tall and wide, over which shares of his agony they burn, how clear the black and its red within it (on a pale ground more red reads as red fire, not black). */
+  fire: { kept: 30, points: 14, life: [0.35, 0.8], tall: [0.28, 0.6], wide: [0.05, 0.1], burns: [0.12, 0.92], black: 0.97, red: 0.3 } };
 
 interface Wrap { up: number; angle: number; out: number; round: number; size: number; spin: number; bob: number }
 
@@ -132,6 +134,9 @@ export class Possessed {
   private readonly wraps: Wrap[] = [];
   private readonly size: number;
   private possessing: { t: number; seconds: number } | null = null;
+  private readonly fire = new Streaks(POSSESSION.fire.kept, POSSESSION.fire.points);
+  private readonly fireDodges = new Streaks(POSSESSION.fire.kept, POSSESSION.fire.points, true);
+  private readonly fires: Tongue[] = [];
 
   constructor(private readonly body: THREE.Object3D, private readonly tall: number) {
     this.show = burn(body);
@@ -172,6 +177,15 @@ export class Possessed {
     this.dodges.mesh.renderOrder = 2;
     this.tongues.mesh.onBeforeRender = (_r, _s, camera) => { this.camera.setFromMatrixPosition(camera.matrixWorld); this.seen = true; };
     this.aura.add(this.tongues.mesh, this.dodges.mesh);
+    this.fire.mesh.renderOrder = 4;
+    this.fireDodges.mesh.renderOrder = 5;
+    this.fire.mesh.visible = this.fireDodges.mesh.visible = false;
+    this.group.add(this.fire.mesh, this.fireDodges.mesh);
+    for (let i = 0; i < POSSESSION.fire.kept; i++) {
+      const flame: Tongue = { bone: undefined, off: new THREE.Vector3(), t: 0, life: 0, tall: 0, wide: 0, run: 0, phase: 0 };
+      this.fires.push(flame);
+      this.light(flame, Math.random());
+    }
     for (let i = 0; i < TONGUES.kept; i++) {
       const flame: Tongue = { bone: undefined, off: new THREE.Vector3(), t: 0, life: 0, tall: 0, wide: 0, run: 0, phase: 0 };
       this.flames.push(flame);
@@ -192,6 +206,7 @@ export class Possessed {
     this.body.scale.setScalar(this.size);
     for (let i = 0; i < POSSESSION.kept; i++) this.wrap.hide(i);
     this.wrap.commit();
+    this.fire.mesh.visible = this.fireDodges.mesh.visible = false;
   }
 
   private changed(burnt: boolean): void {
@@ -222,7 +237,49 @@ export class Possessed {
       this.wrap.put(i, this.across, w.size * this.tall, clear, w.spin);
     });
     this.wrap.commit();
-    if (q >= 1) this.possessing = null;
+    this.burning(dt, q, climbed);
+    if (q >= 1) { this.possessing = null; this.fire.mesh.visible = this.fireDodges.mesh.visible = false; }
+  }
+
+  /** A tongue of the cloud's fire set off again about him, `into` that share of its life already: `off` its root, as shares of his height, its height in y. */
+  private light(f: Tongue, into = 0): void {
+    const how = POSSESSION.fire, angle = Math.random() * Math.PI * 2, out = r(POSSESSION.out);
+    f.off.set(Math.cos(angle) * out, Math.random() * 0.75, Math.sin(angle) * out);
+    f.life = r(how.life);
+    f.t = into * f.life;
+    f.tall = r(how.tall) * this.tall;
+    f.wide = r(how.wide) * this.tall;
+    f.run = r(TONGUES.run);
+    f.phase = Math.random() * Math.PI * 2;
+  }
+
+  /** The black fire licking up through the cloud, no higher than it has climbed, with the Wekufe's red dodge. */
+  private burning(dt: number, q: number, climbed: number): void {
+    const { burns, points } = POSSESSION.fire, { at, across } = this;
+    const lit = Math.min(1, Math.max(0, (q - burns[0]) / 0.1)) * Math.min(1, Math.max(0, (burns[1] - q) / 0.15));
+    this.fire.mesh.visible = this.fireDodges.mesh.visible = lit > 0;
+    if (lit <= 0) return;
+    const up = new THREE.Vector3(0, 1, 0), root = new THREE.Vector3(), black = new THREE.Color('#050405');
+    this.body.getWorldPosition(root);
+    this.fires.forEach((f, l) => {
+      f.t += dt;
+      if (f.t >= f.life) this.light(f);
+      const life = f.t / f.life, flare = Math.sin(Math.PI * Math.pow(life, 0.6)), tall = f.tall * flare;
+      const narrows = 1 - f.off.y * 0.45, high = f.off.y * climbed;
+      for (let p = 0; p < points; p++) {
+        const k = p / (points - 1);
+        at.set(root.x + f.off.x * narrows * this.tall, root.y + high * this.tall + k * tall, root.z + f.off.z * narrows * this.tall);
+        if (this.seen) across.crossVectors(up, this.camera.clone().sub(at)).normalize();
+        else across.set(1, 0, 0);
+        at.addScaledVector(across, Math.sin(k * Math.PI * 2 - this.time * f.run + f.phase) * TONGUES.wave * tall * k);
+        const wide = f.wide * Math.sin(Math.PI / 2 * Math.min(1, k / 0.3)) * Math.pow(1 - k, 0.8) * (0.5 + 0.5 * flare);
+        const clear = lit * flare * Math.min(1, k / 0.15) * (1 - k * k);
+        this.fire.put(l, p, at, across, wide, black, POSSESSION.fire.black * clear);
+        this.fireDodges.put(l, p, at, across, wide * 0.8, DODGE.colour, POSSESSION.fire.red * clear);
+      }
+    });
+    this.fire.commit();
+    this.fireDodges.commit();
   }
 
   /** A puff let off one of his bones, `into` that share of its life already. */
