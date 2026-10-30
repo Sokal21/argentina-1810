@@ -127,7 +127,7 @@ const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 38, tong
  * roll beats it), how long it lasts, how near is a hit (his heights); the black smoke it trails (how many a second, how long each lasts, how
  * big, how much it swells), the tongues streaming off it, and what bursts when it ends.
  */
-const FIREBALL = { from: 18 / 50, at: 25 / 50, size: 0.2, speed: 0.75, turns: 0.8, lasts: 6, near: 0.2, lumps: 14,
+const FIREBALL = { from: 18 / 50, at: 25 / 50, size: 0.2, speed: 1.5, turns: 2.2, lasts: 3.5, near: 0.2, lumps: 14,
   colours: ['#000000', '#060506', '#0c0a0d', '#141216'], veils: 5, glow: new THREE.Color('#ff2a12'),
   smoke: { kept: 130, each: 40, life: [1, 1.9], size: [0.1, 0.17], swell: 2.2, rise: [0.05, 0.14], clear: 0.75, colours: ['#000000', '#060506', '#0c0a0d', '#141216'] },
   tongues: { kept: 8, points: 10, long: [0.13, 0.26], wide: [0.016, 0.03], wave: 0.025, waves: [1, 2], run: [8, 13], clear: 0.7, colour: new THREE.Color('#050405') },
@@ -626,7 +626,6 @@ class Fireball {
   private readonly flames: { long: number; wide: number; waves: number; run: number; phase: number; off: THREE.Vector3 }[] = [];
   private readonly hands: THREE.Object3D[];
   private readonly at = new THREE.Vector3();
-  private readonly was = new THREE.Vector3();
   private readonly way = new THREE.Vector3();
   private readonly behind = new THREE.Vector3(0, 1, 0);
   private readonly wanted = new THREE.Vector3();
@@ -699,12 +698,11 @@ class Fireball {
       throwing.t += dt;
       const share = throwing.t / throwing.seconds;
       if (share >= FIREBALL.from) {
-        this.was.copy(this.at);
         this.between();
         if (share < FIREBALL.at) this.drawBall((share - FIREBALL.from) / (FIREBALL.at - FIREBALL.from));
         else {
-          // Off the way his hands thrust.
-          this.way.subVectors(this.at, this.was).setY(0).normalize();
+          // Off straight at what it hunts: off the way his hands thrust it went wide of her (the user, 30/10/2026).
+          this.way.subVectors(this.prey, this.at).normalize();
           this.throwing = null;
           this.flying = 0;
         }

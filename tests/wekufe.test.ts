@@ -28,7 +28,8 @@ describe('the Wekufe', () => {
       if (m.state === 'claw') { came = true; expect(Math.hypot(m.x - her.x, m.y - her.y)).toBeLessThanOrEqual(WEKUFE.dive.beside + 1); }
     });
     expect(came).toBe(true);
-    expect(clawed).toBe(WEKUFE.claw.damage);
+    expect(clawed).toBeGreaterThan(0);
+    expect(clawed % WEKUFE.claw.damage).toBe(0);
   });
 
   it('his souls hurt only within their ring', () => {

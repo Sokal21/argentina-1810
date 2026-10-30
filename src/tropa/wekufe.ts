@@ -8,17 +8,17 @@ import type { Vec } from '../machi/controller';
 
 /**
  * How he goes about it: how far from her he keeps and how fast he drifts there; how long he floats between
- * one thing and the next. Each clip's length and the moment that matters in it (measured on the model, see
- * docs/personajes/wekufe.md). His dive: how long he is under and how far from her he comes up, the place
+ * one thing and the next. How long each clip takes, played much faster than its own pace (the user, 30/10/2026:
+ * at it he was far too slow), and the moment that matters in it (measured on the model, see docs/personajes/wekufe.md). His dive: how long he is under and how far from her he comes up, the place
  * shown all that while. His claws: how far they reach and what they take. His souls: how long they hurt once
  * called, what they take and how often, and how long before he calls them again.
  */
 export const WEKUFE = {
-  keep: 220, drift: 34, floats: [1.1, 2.1],
-  dive: { time: 0.96, under: 1.2, beside: 70 },
-  claw: { time: 2.12, from: 22.5 / 51, to: 27 / 51, reach: 105, damage: 2 },
-  throw: { time: 2.08 },
-  invoke: { time: 2.83, at: 40 / 68, lasts: 6, every: 1.2, damage: 1, again: 10 },
+  keep: 220, drift: 80, floats: [0.3, 0.8],
+  dive: { time: 0.6, under: 0.7, beside: 70 },
+  claw: { time: 1.3, from: 22.5 / 51, to: 27 / 51, reach: 105, damage: 2 },
+  throw: { time: 1.2 },
+  invoke: { time: 1.7, at: 40 / 68, lasts: 6, every: 1.2, damage: 1, again: 8 },
   dying: 3.2,
 };
 
@@ -160,6 +160,17 @@ export class WekufeMind {
       if (this.walkable(x, y)) return { x, y };
     }
     return { x: her.x, y: her.y };
+  }
+
+  /** How long what he is doing takes, for its clip to be played to fit. */
+  get lasts(): number | undefined {
+    switch (this.state) {
+      case 'dive': return WEKUFE.dive.time;
+      case 'claw': return WEKUFE.claw.time;
+      case 'throw': return WEKUFE.throw.time;
+      case 'invoke': return WEKUFE.invoke.time;
+      default: return undefined;
+    }
   }
 
   private rest(): void {

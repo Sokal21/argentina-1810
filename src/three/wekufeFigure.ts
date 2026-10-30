@@ -68,8 +68,8 @@ export class WekufeFigure {
     }
     const clip = CLIPS[state];
     if (!clip) return;
-    motion.play(clip, { once: state !== 'float', afresh: true, blend: was === 'under' ? 0 : 0.15 });
-    const seconds = motion.seconds(clip);
+    motion.play(clip, { once: state !== 'float', lasts: mind.lasts, afresh: true, blend: was === 'under' ? 0 : 0.15 });
+    const seconds = mind.lasts ?? motion.seconds(clip);
     if (state === 'dive') effects.dive(seconds);
     else if (state === 'dying') { effects.uninvoke(); effects.unthrowFire(); effects.dies(seconds); }
     else {
