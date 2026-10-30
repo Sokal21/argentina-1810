@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Billboards } from './billboards';
 import { model } from './figure';
-import { unlitShader } from './pixels';
+import { unlitShader, unoutlinedShader } from './pixels';
 
 // What makes the Wekufe more than his model. His model ends a little under his waist (cut_below.py);
 // below it he is a long gown of smoke and fire, as a lady's of old: narrow at his waist and flaring
@@ -460,13 +460,13 @@ class Wraiths {
       const found = mesh as THREE.Mesh;
       // Its middle at the soul's place: the model stands on its foot, one unit tall.
       const shape = found.geometry.clone().applyMatrix4(found.matrixWorld).translate(0, -0.5, 0);
-      // Unlit, the red of the streaks' dodge where its drawing is light and nearly black in its hollows.
+      // Unlit and with no outline, the red of the streaks' dodge where its drawing is light and nearly black in its hollows.
       const material = new THREE.ShaderMaterial({
         uniforms: { map: { value: (found.material as THREE.MeshToonMaterial).map }, dark: { value: WRAITHS.red[0] }, bright: { value: WRAITHS.red[1] } },
         vertexShader: `
           varying vec2 vUv;
           void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0); }`,
-        fragmentShader: unlitShader(`
+        fragmentShader: unoutlinedShader(`
           uniform sampler2D map; uniform vec3 dark; uniform vec3 bright; varying vec2 vUv;
           void main() {
             vec3 drawn = texture2D(map, vUv).rgb;

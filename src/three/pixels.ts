@@ -53,6 +53,15 @@ export function unlitShader(fragmentShader: string): string {
   return 'layout(location = 1) out highp vec4 gNormal;\n' + unlit(fragmentShader);
 }
 
+/**
+ * As `unlitShader`, for something that takes no outline: it writes pure red where a normal would go,
+ * which no surface facing the camera can write (their blue is always large), even with smoke over it.
+ */
+export function unoutlinedShader(fragmentShader: string): string {
+  const end = fragmentShader.lastIndexOf('}');
+  return 'layout(location = 1) out highp vec4 gNormal;\n' + fragmentShader.slice(0, end) + '\n  gNormal = vec4(1.0, 0.0, 0.0, 0.0);\n' + fragmentShader.slice(end);
+}
+
 writeNormals();
 
 export class PixelPass extends Pass {
@@ -192,6 +201,9 @@ function pixelated(): THREE.ShaderMaterial {
         float nei = 0.0;
         if (normalEdgeStrength > 0.0) nei = normalEdgeIndicator(depth, normal);
         float strength = dei > 0.0 ? (1.0 - depthEdgeStrength * dei) : (1.0 + normalEdgeStrength * nei);
+        // What takes no outline (see unoutlinedShader).
+        vec4 written = texture2D(tNormal, vUv);
+        if (written.b * 4.0 < written.r) strength = 1.0;
         gl_FragColor = texel * strength;
       }
     `,
