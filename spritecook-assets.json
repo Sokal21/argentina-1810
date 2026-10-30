@@ -2873,6 +2873,21 @@
       "asset_id": "5945fc85-6f2d-4b6a-a237-6553457cbe2f",
       "label": "Wekufe HD turnaround for Tripo, giro_b (from concept wekufe_c; arms wide, wisps, ground line)",
       "file": "assets/wekufe/3d/giro_b.png"
+    },
+    {
+      "asset_id": "90fe4e51-614e-4ad0-bfa8-5144f79091fa",
+      "label": "lost soul's head (the Wekufe's cloud) concept, alma_a",
+      "file": "assets/wekufe/concept/alma_a.png"
+    },
+    {
+      "asset_id": "94f71c88-f272-4e81-b26c-0c5bcc99ac6a",
+      "label": "lost soul's head (the Wekufe's cloud) concept, alma_b",
+      "file": "assets/wekufe/concept/alma_b.png"
+    },
+    {
+      "asset_id": "9b4e5373-0726-4bd5-9c47-857c28926bef",
+      "label": "lost soul's head (the Wekufe's cloud) concept, alma_c",
+      "file": "assets/wekufe/concept/alma_c.png"
     }
   ]
 }
