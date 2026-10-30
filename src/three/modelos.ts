@@ -78,7 +78,8 @@ const WHO: Who[] = [
   // 2026): a floating horned shadow, his model cut a little under his waist (tools/blender/cut_below.py),
   // below it a long gown of black smoke and fire swinging as his legs, bones under nothing, swing
   // (tools/blender/smoke_tail.py; three/wekufe.ts); his eyes and belly glowing. Mixamo's Mutant Idle and
-  // Mutant Swiping, and Run To Dive for his going into the earth as he comes out of smoke beside her.
+  // Mutant Swiping, Run To Dive for his going into the earth as he comes out of smoke beside her, and
+  // Zombie Agonizing for his death, sinking into it.
   // Not in the game yet.
   { name: 'Wekufe', url: 'wekufe/3d/wekufe_animado.glb', drawn: 150, wekufe: true },
   // The ox cart whole, as the game draws it (three/cart.ts): going, its wheels rolling and its oxen
@@ -108,7 +109,7 @@ const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, senas: { once: true }, rafaga: { once: true }, rodada_mixamo: { once: true }, zambullida: { once: true }, beber: { once: true },
 };
 /** How long a clip's end is held before it starts over, for one whose end goes on after it, in seconds. */
-const HELD: Record<string, number> = { zambullida: 3.2 };
+const HELD: Record<string, number> = { zambullida: 3.2, 'Wekufe:muerte': 3.2 };
 /**
  * The clips the game plays: any whose name is written in quotes in the 3D game's code. Found there,
  * not listed here, so a clip is counted as soon as the game plays it; the rest of a model's clips
@@ -314,7 +315,7 @@ function play(name: string): void {
     vomits.get(w)?.stop();
     // The Wekufe diving into the earth, under it until another clip is played.
     const wekufe = wekufes.get(w);
-    if (wekufe) { if (name === 'zambullida') wekufe.dive(it.motion.seconds(name)); else wekufe.rises(); }
+    if (wekufe) { if (name === 'zambullida') wekufe.dive(it.motion.seconds(name)); else if (name === 'muerte') wekufe.dies(it.motion.seconds(name)); else wekufe.rises(); }
     if (wekufe) { if (name === 'zarpazo') wekufe.claw(it.motion.seconds(name)); else wekufe.unclaw(); }
     if (shown.length === 1) view.follow(new THREE.Vector3(0, w.drawn * 0.5, 0));
     if (name === LUNGE && w.lunge) { act(it.body); continue; }
@@ -568,7 +569,7 @@ view.renderer.setAnimationLoop(() => {
   // A clip played once starts over after a moment held on its end (longer for one whose end goes on
   // after it: the Wekufe's splash), while "repetir" is on.
   const once = clip !== LUNGE && (clip === RISEN || clip === RETCH || clip === LANDING || shown.some(w => timing(w, clip)));
-  if (loop && once && into > length(clip) + (HELD[clip] ?? 0.8)) play(clip);
+  if (loop && once && into > length(clip) + (HELD[`${shown[0]?.name}:${clip}`] ?? HELD[clip] ?? 0.8)) play(clip);
   for (const w of shown) {
     const it = loaded.get(w);
     if (!it) continue;

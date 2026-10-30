@@ -43,7 +43,7 @@ and the destruction. Designed with the user on 29 October 2026; not in the game 
     smoke bursts out low and black fire bursts up, the smoke and fire gone together.
   - **A cloud of spirits** about him, hurting her while she is near.
   - **Slow red demon fire** that follows her and turns little, dodged by rolling late.
-  - **Dying, his smoke scatters.**
+  - **Dying, he writhes and sinks into the earth, in that same pose,** with the same explosion of smoke and fire as his dive (the user).
 
 ## Model and clips (`assets/wekufe/3d`)
 Tripo multiview of turnaround A (front, his left, back), Tripo's rig; Mixamo clips retargeted
@@ -56,5 +56,6 @@ claws hang below his waist) and `glow.py`.
 | `reposo` | Mutant Idle | floating |
 | `zarpazo` | Mutant Swiping | his claws, coming out beside her |
 | `zambullida` | Run To Dive | going into the earth |
+| `muerte` | Zombie Agonizing, frames 0 to 120 | dying: writhing, he sinks into the earth, and as his waist goes under it splashes as his dive does |
 
-Still to come: invoking his spirits, throwing his fire, dying.
+Still to come: invoking his spirits, throwing his fire.

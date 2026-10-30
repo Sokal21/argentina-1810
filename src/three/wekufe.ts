@@ -64,7 +64,12 @@ const FLAMES = { kept: 44, points: 16, life: [0.4, 0.9], from: 0.35, tall: [0.22
  * His dive: from what share of the clip he sinks, how deep he goes by its end (in the model's units: it
  * is one unit tall), and how much longer than the clip he goes on sinking.
  */
-const DIVE = { from: 0.4, deep: 1.6, after: 0.4 };
+const DIVE = { from: 0.4, deep: 1.6, after: 0.4, stays: 0, waist: false };
+/**
+ * His death, as his dive, writhing as he sinks: sinking from half his agony on, its splash as his waist
+ * goes under (his dive's, as his head does); his fire and souls left where he was only as he starts to sink.
+ */
+const DEATH = { from: 0.5, deep: 1.8, after: 0.15, stays: 0.5, waist: true };
 /**
  * The splash: its drops (how many, how fast out and up, shares of his height a second, how big, how
  * long they last at most), its pool (how wide it spreads, shares of his height, how long it lasts), and
@@ -600,7 +605,7 @@ export class Wekufe {
   /** The lines his claws tear. */
   private readonly claws: Claws;
   /** His dive: how long the clip is, how far into it he is; null while he is not diving. */
-  private diving: { seconds: number; t: number; splashed: boolean } | null = null;
+  private diving: { seconds: number; t: number; splashed: boolean; how: typeof DIVE } | null = null;
   /** Where his gown was as he began to dive: its fire and souls stay there, burning out, as he goes under. */
   private readonly stayed = [0, 1, 2, 3, 4].map(() => new THREE.Vector3());
   private staying = false;
@@ -715,7 +720,13 @@ export class Wekufe {
 
   /** He dives into the earth, playing his dive (`seconds` long), and stays under it until he `rises`. */
   dive(seconds: number): void {
-    this.diving = { seconds, t: 0, splashed: false };
+    this.diving = { seconds, t: 0, splashed: false, how: DIVE };
+    this.staying = false;
+  }
+
+  /** He dies, playing his agony (`seconds` long): he sinks into the earth writhing, and it splashes as he dives. */
+  dies(seconds: number): void {
+    this.diving = { seconds, t: 0, splashed: false, how: DEATH };
     this.staying = false;
   }
 
@@ -742,8 +753,8 @@ export class Wekufe {
     const dive = this.diving;
     if (dive) {
       dive.t += dt;
-      const k = Math.min(1, Math.max(0, (dive.t / dive.seconds - DIVE.from) / (1 + DIVE.after - DIVE.from)));
-      high -= DIVE.deep * k * k;
+      const k = Math.min(1, Math.max(0, (dive.t / dive.seconds - dive.how.from) / (1 + dive.how.after - dive.how.from)));
+      high -= dive.how.deep * k * k;
     }
     for (const o of this.floats) o.position.y = high;
     this.body.updateWorldMatrix(true, true);
@@ -752,7 +763,9 @@ export class Wekufe {
     this.body.getWorldPosition(this.ground);
     if (dive) {
       const head = this.halos[0].bone;
-      if (head && !dive.splashed && head.getWorldPosition(this.at).y <= this.ground.y + this.tall * 0.04) {
+      if (dive.how.waist) this.at.copy(this.line[0]);
+      else if (head) head.getWorldPosition(this.at);
+      if (head && !dive.splashed && this.at.y <= this.ground.y + this.tall * 0.04) {
         dive.splashed = true;
         this.splash.start(this.at.setY(this.ground.y));
       }
@@ -764,7 +777,7 @@ export class Wekufe {
     this.faded += (shown - this.faded) * Math.min(1, dt * ease);
     this.smoke(dt, this.faded);
     // Diving, his fire and souls are left where his gown was as he began: they do not go up and down with him.
-    if (dive) {
+    if (dive && dive.t / dive.seconds >= dive.how.stays) {
       if (!this.staying) { this.stayed.forEach((p, i) => p.copy(this.line[i])); this.staying = true; }
       this.line.forEach((p, i) => p.copy(this.stayed[i]));
     }
