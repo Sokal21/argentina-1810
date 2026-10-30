@@ -251,6 +251,8 @@ const LURK = { near: 260, at: 120, again: 520, lost: 600, after: 3 };
 const WEKUFE_SAYS = {
   hello: 'El Wekufe: «Tu gente me alimenta, machi. Vení.»',
   gone: 'El Wekufe se hunde en la tierra.',
+  /** How far before her he is as she comes in, in sight. */
+  before: 240,
   /** What his red fire takes from her; how his death shakes the screen and the pad. */
   fire: 2,
   shake: { ms: 900, intensity: 0.014 },
@@ -431,7 +433,7 @@ export class GameScene extends Phaser.Scene {
   private readonly column = new Set<Soldier>();
   private spotter: Trooper | null = null;
   private roca: Trooper | null = null;
-  /** The Wekufe's fight (?jefe=wekufe): his body, his mind, whether he is dead, whether she has fallen. */
+  /** The Wekufe's fight: his body, his mind, whether he is dead, whether she has fallen. */
   private wekufe: { soldier: Trooper; mind: WekufeMind; dead: boolean; fell: boolean } | null = null;
   private phase = 1;
   private rocaIn = 0;
@@ -1938,7 +1940,8 @@ export class GameScene extends Phaser.Scene {
   /** Lays Roca's column about her where she is now (COLUMN): the riflemen at their posts, the plague-dead under the ground. */
   private muster(): void {
     this.mustered = true;
-    if (new URLSearchParams(location.search).get('jefe') === 'wekufe') { this.musterWekufe(); return; }
+    // Inti's clearing is the Wekufe's for now, to try his fight out (the user, 30/10/2026); ?jefe=roca, Roca's.
+    if (new URLSearchParams(location.search).get('jefe') !== 'roca') { this.musterWekufe(); return; }
     const bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
     const near = ([dx, dy]: [number, number]): Vec | null => {
       // The nearest ground that can be walked, round about the spot, out to a few plots.
@@ -1981,9 +1984,10 @@ export class GameScene extends Phaser.Scene {
     this.board?.say(ROCA.hello);
   }
 
-  /** The Wekufe alone on her clearing, in its middle, to try his fight out (?jefe=wekufe): only himself as yet, his possessed dead still to come. */
+  /** The Wekufe alone on her clearing, in sight before her, to try his fight out: only himself as yet, his possessed dead still to come. */
   private musterWekufe(): void {
-    const middle = this.map?.round ?? { x: this.machi.x, y: this.machi.y - 300 };
+    const before = { x: this.machi.x, y: this.machi.y - WEKUFE_SAYS.before * ISO_Y };
+    const middle = this.walkable(before.x, before.y) ? before : this.map?.round ?? before;
     const soldier = this.enlist('wekufe', middle.x, middle.y, { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height }).hold(this.walkable);
     if (!(soldier instanceof Trooper)) return;
     this.realistas.push(soldier);

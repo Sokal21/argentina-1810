@@ -3,7 +3,7 @@
 The demon of the plague, the last boss of the demon's road in Inti's arc (`arg-sur.5`, `arg-tsr`). He
 lends Roca's army its dead (the apestados) and its spirits (the chonchones), and feeds on the plague
 and the destruction. Designed with the user on 29 October 2026; shown in `modelos.html` as "Wekufe", and to be fought, as yet
-only himself (no possessed dead, no cave), on Roca's clearing at `/?jugar=inti&jefe=wekufe&entrar=directo`
+only himself (no possessed dead, no cave), on Roca's clearing, which is what Inti plays from the menu for now (`?jefe=roca` for Roca's fight)
 (`src/tropa/wekufe.ts` thinks, `src/three/wekufeFigure.ts` shows, `GameScene.fightWekufe` takes the harm). His fight is written in `docs/historia/inti/README.md`.
 
 ## How he looks
