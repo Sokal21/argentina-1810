@@ -109,7 +109,7 @@ const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, senas: { once: true }, rafaga: { once: true }, rodada_mixamo: { once: true }, zambullida: { once: true }, invocar: { once: true }, lanzar: { once: true }, beber: { once: true },
 };
 /** How long a clip's end is held before it starts over, for one whose end goes on after it, in seconds. */
-const HELD: Record<string, number> = { zambullida: 3.2, 'Wekufe:muerte': 3.2, invocar: 6 };
+const HELD: Record<string, number> = { zambullida: 3.2, 'Wekufe:muerte': 3.2, invocar: 6, lanzar: 5.2 };
 /**
  * The clips the game plays: any whose name is written in quotes in the 3D game's code. Found there,
  * not listed here, so a clip is counted as soon as the game plays it; the rest of a model's clips
@@ -204,6 +204,10 @@ let framed: THREE.Vector3 | null = null;
 const spirits: Spirit[] = [];
 const stenches: Stench[] = [];
 const wekufes = new Map<Who, Wekufe>();
+let preyTime = 0;
+const preyMark = new THREE.Mesh(new THREE.SphereGeometry(4, 8, 6), new THREE.MeshBasicMaterial({ color: '#7fe8ff' }));
+preyMark.visible = false;
+view.scene.add(preyMark);
 const loaded = new Map<Who, { body: THREE.Group; motion: Motion; clips: string[]; flung: Fling; home: number }>();
 let shown: Who[] = [], clip = 'reposo_mixamo', into = 0, paused = false, turn = 0, pace = 1, loop = true;
 
@@ -318,6 +322,7 @@ function play(name: string): void {
     if (wekufe) { if (name === 'zambullida') wekufe.dive(it.motion.seconds(name)); else if (name === 'muerte') wekufe.dies(it.motion.seconds(name)); else wekufe.rises(); }
     if (wekufe) { if (name === 'zarpazo') wekufe.claw(it.motion.seconds(name)); else wekufe.unclaw(); }
     if (wekufe) { if (name === 'invocar') wekufe.invoke(it.motion.seconds(name)); else wekufe.uninvoke(); }
+    if (wekufe) { if (name === 'lanzar') wekufe.throwFire(it.motion.seconds(name)); else wekufe.unthrowFire(); }
     if (shown.length === 1) view.follow(new THREE.Vector3(0, w.drawn * 0.5, 0));
     if (name === LUNGE && w.lunge) { act(it.body); continue; }
     if ((name === DIVE || name === BITE || name === DOWNED) && w.dives) { hunt(it.body, name === BITE, name === DOWNED); continue; }
@@ -597,7 +602,16 @@ view.renderer.setAnimationLoop(() => {
   step(dt);
   for (const s of spirits) s.update(dt);
   for (const s of stenches) s.update(dt);
-  for (const k of wekufes.values()) k.update(dt);
+  // What his red fire hunts here: a mark swaying slowly from side to side where he throws, to be seen hit.
+  for (const [w, k] of wekufes) {
+    preyTime += dt;
+    const preyAngle = Math.sin(preyTime * 0.7) * 0.8;
+    const far = w.drawn * UPRIGHT * 1.1;
+    k.prey.set(Math.cos(preyAngle) * far, w.drawn * UPRIGHT * 0.3, Math.sin(preyAngle) * far);
+    preyMark.position.copy(k.prey);
+    preyMark.visible = clip === 'lanzar' && shown.includes(w);
+    k.update(dt);
+  }
   balls.update(dt);
   battery.update(dt);
   dust.update(dt);

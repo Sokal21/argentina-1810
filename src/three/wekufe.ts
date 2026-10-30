@@ -15,7 +15,7 @@ import { unlitShader, unoutlinedShader } from './pixels';
 // away, each drawn again over itself as a dodge so it stands out of the smoke, the more where they
 // lie over one another; those on its far side dimmer, behind it. Souls wind up round it and off him, as black streaks,
 // each fading along its length. He floats, rising and sinking a little. His claws tear red lines
-// through the air along the very arc of his blow, throwing off sparks. He summons a cloud of lost
+// through the air along the very arc of his blow, throwing off sparks. His red fire, a ball streaming flames and trailing black smoke, hunts what it is thrown at, turning little. He summons a cloud of lost
 // souls, wailing faces going round him trailing black fire, a ring on the ground saying how far it hurts. Sinking, his smoke
 // goes over his model, so the ground closing on him is not seen.
 // He dives into the earth head first, sinking right under it; where his head goes in, the ground
@@ -121,6 +121,17 @@ const CLAW_PATH = { kept: 40, points: 24 };
  */
 const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 38, tongues: 3, points: 14, wave: 0.05, flicker: 0.2, lights: 0.5, trail: [0.7, 1.3], wind: [2.5, 3.9],
   out: [0.72, 1], high: [0.1, 0.85], bob: 0.06, wide: 0.05, head: [0.1, 0.145], red: [new THREE.Color(0.22, 0.015, 0.008), new THREE.Color(2.6, 0.45, 0.25)], see: [0.55, 0.95], looks: 1.6, clear: 0.9, ring: 0.4, colours: ['#000000', '#060507', '#0c0a0d'] };
+/**
+ * His red fire: when in his throw it gathers between his hands and when it leaves them (shares of the
+ * clip), how big a ball, how fast it goes (his heights a second), how fast it turns toward what it hunts (radians a second, little, so a late
+ * roll beats it), how long it lasts, how near is a hit (his heights); the black smoke it trails (how many a second, how long each lasts, how
+ * big, how much it swells), the tongues streaming off it, and what bursts when it ends.
+ */
+const FIREBALL = { from: 18 / 50, at: 25 / 50, size: 0.2, speed: 0.5, turns: 0.8, lasts: 4.5, near: 0.12, lumps: 9,
+  colours: ['#ff2a12', '#d81a0a', '#a01006'], glow: new THREE.Color('#ff2a12'),
+  smoke: { kept: 130, each: 40, life: [1, 1.9], size: [0.1, 0.17], swell: 2.2, rise: [0.05, 0.14], clear: 0.75, colours: ['#000000', '#060506', '#0c0a0d', '#141216'] },
+  tongues: { kept: 8, points: 10, long: [0.13, 0.26], wide: [0.016, 0.03], wave: 0.025, waves: [1, 2], run: [8, 13], clear: 0.85, colour: new THREE.Color(2.2, 0.12, 0.05) },
+  burst: { puffs: 34, out: [0.35, 0.8], flash: 0.35 } };
 /** How far out his cloud of souls hurts, a share of his height: the game's reckoning will take it from here. */
 export const WRAITH_REACH = 0.95;
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
@@ -599,6 +610,212 @@ class Wraiths {
   }
 }
 
+interface Ember { at: THREE.Vector3; way: THREE.Vector3; t: number; life: number; size: number; spin: number; boil: number; beat: number }
+
+/** His red fire: gathering between his hands, leaving them the way they thrust and hunting `prey`, turning little, a red ball streaming flames and trailing black smoke; it bursts on a hit or when it has lasted. */
+class Fireball {
+  readonly group = new THREE.Group();
+  /** Where what it hunts is, kept up to date by whoever has him throw it. */
+  readonly prey = new THREE.Vector3();
+  private readonly smoke: Billboards;
+  private readonly embers: Ember[] = [];
+  private readonly ball: Billboards;
+  private readonly glow: Billboards;
+  private readonly tongues: Streaks;
+  private readonly flames: { long: number; wide: number; waves: number; run: number; phase: number; off: THREE.Vector3 }[] = [];
+  private readonly hands: THREE.Object3D[];
+  private readonly at = new THREE.Vector3();
+  private readonly was = new THREE.Vector3();
+  private readonly way = new THREE.Vector3();
+  private readonly behind = new THREE.Vector3(0, 1, 0);
+  private readonly wanted = new THREE.Vector3();
+  private readonly point = new THREE.Vector3();
+  private readonly across = new THREE.Vector3();
+  private readonly v = new THREE.Vector3();
+  /** Its throw: the clip's length and how far into it. */
+  private throwing: { seconds: number; t: number } | null = null;
+  private flying = -1;
+  private since = -1;
+  private owed = 0;
+  private time = 0;
+
+  constructor(body: THREE.Object3D, private readonly tall: number, private readonly eye: THREE.Vector3) {
+    this.hands = ['L_Hand', 'R_Hand'].flatMap(name => body.getObjectByName(name) ?? []);
+    const { smoke, tongues } = FIREBALL;
+    this.smoke = new Billboards(smoke.kept, lumps());
+    for (let i = 0; i < smoke.kept; i++) {
+      this.smoke.colour(i, smoke.colours[i % smoke.colours.length]);
+      this.embers.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, life: 0, size: 0, spin: 0, boil: 0, beat: 0 });
+    }
+    this.ball = new Billboards(FIREBALL.lumps, lumps());
+    for (let i = 0; i < FIREBALL.lumps; i++) this.ball.colour(i, FIREBALL.colours[i % FIREBALL.colours.length], 1.8);
+    this.glow = new Billboards(2, soft(0.1), true);
+    for (let i = 0; i < 2; i++) this.glow.colour(i, FIREBALL.glow);
+    this.tongues = new Streaks(tongues.kept, tongues.points);
+    this.tongues.mesh.visible = false;
+    for (let i = 0; i < tongues.kept; i++) {
+      this.flames.push({ long: r(tongues.long), wide: r(tongues.wide), waves: r(tongues.waves), run: r(tongues.run), phase: Math.random() * Math.PI * 2,
+        off: new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize() });
+    }
+    this.smoke.mesh.renderOrder = 0.7;
+    this.tongues.mesh.renderOrder = 0.8;
+    this.ball.mesh.renderOrder = 3;
+    this.glow.mesh.renderOrder = 4;
+    this.group.add(this.smoke.mesh, this.tongues.mesh, this.ball.mesh, this.glow.mesh);
+  }
+
+  /** He throws: his throw, `seconds` long, has just begun. */
+  cast(seconds: number): void {
+    this.stop();
+    this.throwing = { seconds, t: 0 };
+  }
+
+  /** No throw: whatever is in the air goes. */
+  stop(): void {
+    this.throwing = null;
+    this.flying = this.since = -1;
+    this.behind.set(0, 1, 0);
+    this.drawBall(0);
+    this.smoke.hideAll();
+    this.smoke.commit();
+  }
+
+  update(dt: number): void {
+    // Held (paused): as it stands.
+    if (dt <= 0) return;
+    this.time += dt;
+    const throwing = this.throwing;
+    if (throwing) {
+      throwing.t += dt;
+      const share = throwing.t / throwing.seconds;
+      if (share >= FIREBALL.from) {
+        this.was.copy(this.at);
+        this.between();
+        if (share < FIREBALL.at) this.drawBall((share - FIREBALL.from) / (FIREBALL.at - FIREBALL.from));
+        else {
+          // Off the way his hands thrust.
+          this.way.subVectors(this.at, this.was).setY(0).normalize();
+          this.throwing = null;
+          this.flying = 0;
+        }
+      }
+    }
+    if (this.flying >= 0) this.fly(dt);
+    if (this.since >= 0) {
+      this.since += dt;
+      if (this.since >= FIREBALL.burst.flash) { this.since = -1; this.drawBall(0); }
+      else this.flash(this.since / FIREBALL.burst.flash);
+    }
+    this.fume(dt);
+  }
+
+  /** The middle of his hands. */
+  private between(): void {
+    this.at.set(0, 0, 0);
+    for (const hand of this.hands) this.at.add(hand.getWorldPosition(this.v));
+    this.at.divideScalar(Math.max(1, this.hands.length));
+  }
+
+  /** On, turning little toward what it hunts, the smoke left behind it. */
+  private fly(dt: number): void {
+    this.flying += dt;
+    this.wanted.subVectors(this.prey, this.at);
+    const far = this.wanted.length();
+    if (this.flying >= FIREBALL.lasts || far < FIREBALL.near * this.tall) { this.burst(); return; }
+    const angle = this.way.angleTo(this.wanted.normalize());
+    if (angle > 0) this.way.lerp(this.wanted, Math.min(1, FIREBALL.turns * dt / angle)).normalize();
+    this.at.addScaledVector(this.way, FIREBALL.speed * this.tall * dt);
+    this.behind.lerp(this.v.copy(this.way).negate(), Math.min(1, dt * 8)).normalize();
+    this.owed += FIREBALL.smoke.each * dt;
+    for (; this.owed >= 1; this.owed--) this.puff(this.at, 0);
+    this.drawBall(1);
+  }
+
+  private burst(): void {
+    this.flying = -1;
+    this.since = 0;
+    for (let i = 0; i < FIREBALL.burst.puffs; i++) this.puff(this.at, r(FIREBALL.burst.out));
+    this.tongues.mesh.visible = false;
+  }
+
+  /** A puff of black smoke at `at`, thrown out `out` (his heights a second), if not rising. */
+  private puff(at: THREE.Vector3, out: number): void {
+    const i = this.smoke.free();
+    if (i < 0) return;
+    const { smoke } = FIREBALL, e = this.embers[i];
+    e.at.copy(at);
+    e.t = 0;
+    e.life = r(smoke.life) * (out ? 0.8 : 1);
+    e.size = r(smoke.size) * this.tall * (out ? 1.3 : 1);
+    e.spin = Math.random() * Math.PI * 2;
+    e.boil = r(BOIL.boil);
+    e.beat = r(BOIL.beat);
+    if (out) e.way.set(Math.random() - 0.5, Math.random() * 0.6 - 0.1, Math.random() - 0.5).normalize().multiplyScalar(out * this.tall);
+    else e.way.set(0, r(smoke.rise) * this.tall, 0);
+    this.smoke.put(i, e.at, e.size, 0, e.spin);
+  }
+
+  private fume(dt: number): void {
+    const { smoke } = FIREBALL;
+    this.embers.forEach((e, i) => {
+      if (!this.smoke.shown(i)) return;
+      e.t += dt;
+      if (e.t >= e.life) { this.smoke.hide(i); return; }
+      const life = e.t / e.life;
+      e.at.addScaledVector(e.way, dt);
+      e.way.multiplyScalar(1 - Math.min(1, dt * 1.5));
+      const boil = 1 + e.boil * Math.sin(e.t / e.beat * Math.PI * 2);
+      this.smoke.put(i, e.at, e.size * (1 + (smoke.swell - 1) * life) * boil, smoke.clear * Math.min(1, life * 6) * (1 - life), e.spin);
+    });
+    this.smoke.commit();
+  }
+
+  /** The ball at the size it has come to, boiling, its glow and its tongues. */
+  private drawBall(grown: number): void {
+    const size = FIREBALL.size * this.tall * grown;
+    if (grown <= 0) {
+      this.ball.hideAll();
+      this.glow.hideAll();
+      this.ball.commit();
+      this.glow.commit();
+      this.tongues.mesh.visible = false;
+      return;
+    }
+    for (let i = 0; i < FIREBALL.lumps; i++) {
+      const a = i * 2.4 + this.time * (0.8 + i * 0.13), b = i * 1.7 + this.time * 0.6;
+      this.point.set(Math.cos(a) * Math.cos(b), Math.sin(b), Math.sin(a) * Math.cos(b)).multiplyScalar(i ? size * 0.2 : 0).add(this.at);
+      this.ball.put(i, this.point, size * (i ? 0.65 : 0.85) * (1 + 0.14 * Math.sin(this.time * (5 + i) + i)), 0.95, a);
+    }
+    this.glow.put(0, this.at, size * 1.1, 1);
+    this.glow.put(1, this.at, size * 3, 0.22 + 0.04 * Math.sin(this.time * 7));
+    this.ball.commit();
+    this.glow.commit();
+    this.tongues.mesh.visible = true;
+    const { tongues } = FIREBALL;
+    this.flames.forEach((f, l) => {
+      const long = f.long * this.tall * grown * (1 + 0.2 * Math.sin(this.time * f.run * 0.7 + f.phase));
+      for (let p = 0; p < tongues.points; p++) {
+        const q = p / (tongues.points - 1);
+        this.point.copy(this.at).addScaledVector(f.off, size * 0.32).addScaledVector(this.behind, q * long);
+        this.across.crossVectors(this.behind, this.v.subVectors(this.eye, this.point)).normalize();
+        this.point.addScaledVector(this.across, tongues.wave * this.tall * q * Math.sin(q * f.waves * Math.PI * 2 - this.time * f.run + f.phase));
+        this.tongues.put(l, p, this.point, this.across, f.wide * this.tall * grown * Math.sin(Math.PI * Math.pow(q, 0.6)), tongues.colour, tongues.clear * (1 - q * q));
+      }
+    });
+    this.tongues.commit();
+  }
+
+  /** Bursting: a red flash swelling and gone. */
+  private flash(share: number): void {
+    const size = FIREBALL.size * this.tall * (1 + share * 2.5);
+    this.ball.hideAll();
+    this.ball.commit();
+    this.glow.put(0, this.at, size * 1.3, 0.9 * (1 - share));
+    this.glow.put(1, this.at, size * 3, 0.35 * (1 - share));
+    this.glow.commit();
+  }
+}
+
 /** Where along a path (`places`, `count` of them) a share of it falls, smoothed through them (Catmull-Rom): a blow this quick is only a few frames. */
 function smoothed(places: THREE.Vector3[], count: number, share: number, out: THREE.Vector3): THREE.Vector3 {
   const at = share * (count - 1), i = Math.min(Math.floor(at), count - 2), u = at - i;
@@ -795,12 +1012,16 @@ export class Wekufe {
   private static readonly FADE = { out: 1.1, back: 6 };
   /** From 0 (gone) to 1. */
   power = 1;
+  /** What his red fire hunts: kept up to date by whoever has him throw it. */
+  get prey(): THREE.Vector3 { return this.fireball.prey; }
   /** His splash where he goes into the earth. */
   private readonly splash: Splash;
   /** The lines his claws tear. */
   private readonly claws: Claws;
   /** The lost souls he summons. */
   private readonly wraiths: Wraiths;
+  /** His red fire. */
+  private readonly fireball: Fireball;
   /** His dive: how long the clip is, how far into it he is; null while he is not diving. */
   private diving: { seconds: number; t: number; splashed: boolean; how: typeof DIVE } | null = null;
   /** Where his gown was as he began to dive: its fire and souls stay there, burning out, as he goes under. */
@@ -819,6 +1040,8 @@ export class Wekufe {
     this.group.add(this.claws.group);
     this.wraiths = new Wraiths(body, tall, this.eye);
     this.group.add(this.wraiths.group);
+    this.fireball = new Fireball(body, tall, this.eye);
+    this.group.add(this.fireball.group);
     const bone = (name: string) => body.getObjectByName(name);
     this.bones = [[bone('Waist')], ...['Thigh', 'Calf', 'Foot'].map(b => [bone('L_' + b), bone('R_' + b)])];
     this.cloud = new Billboards(LAYERS.reduce((all, how) => all + how.kept, 0), lumps());
@@ -939,6 +1162,16 @@ export class Wekufe {
     this.wraiths.stop();
   }
 
+  /** He throws his red fire, playing his `lanzar` (`seconds` long), at `prey`. */
+  throwFire(seconds: number): void {
+    this.fireball.cast(seconds);
+  }
+
+  /** His red fire gone at once. */
+  unthrowFire(): void {
+    this.fireball.stop();
+  }
+
   /** He strikes with his claws, playing his `zarpazo` (`seconds` long). */
   claw(seconds: number): void {
     this.claws.strike(seconds);
@@ -984,6 +1217,7 @@ export class Wekufe {
     this.splash.update(dt);
     this.claws.update(dt);
     this.wraiths.update(dt);
+    this.fireball.update(dt);
     const ease = shown < this.faded ? Wekufe.FADE.out : Wekufe.FADE.back;
     this.faded += (shown - this.faded) * Math.min(1, dt * ease);
     // Sinking, his smoke is drawn over him, hiding the ground closing on him; and let off where he went in,
