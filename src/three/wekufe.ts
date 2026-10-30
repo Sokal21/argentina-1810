@@ -112,9 +112,10 @@ const CLAWS = {
 const CLAW_PATH = { kept: 40, points: 24 };
 /**
  * Sinking, his gown's own smoke goes over his model and thickens, so the ground closing on him is not
- * seen: how many times thicker, and until how far through his sinking more is let off.
+ * seen: how many times thicker, until how far through his sinking more is let off, over which stretch
+ * of the gown (low: flat on the ground, only over where he goes in), and how much of its rise it keeps.
  */
-const SINKING = { thicker: 2.4, until: 0.8 };
+const SINKING = { thicker: 2.4, until: 0.8, up: [-0.08, 0.22], rises: 0.25 };
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.06, bob: 0.025, beat: 1.4 };
 /**
@@ -825,14 +826,15 @@ export class Wekufe {
           // Each puff as thick as he was shown when it was let off: left behind as he goes under, it lives out its life.
           p.power = shown * thicker;
           // Anywhere along it, more of the core low where the gown is widest.
-          const up = how.up ? r(how.up) : how === LAYERS[0] ? Math.pow(Math.random(), 1.3) : Math.random() * 1.05;
+          const low = thicker > 1;
+          const up = low ? r(SINKING.up) : how.up ? r(how.up) : how === LAYERS[0] ? Math.pow(Math.random(), 1.3) : Math.random() * 1.05;
           const wide = this.width(up);
           const a = Math.random() * Math.PI * 2, out = Math.sqrt(Math.random()) * how.out * wide / 2;
           this.along(up, p.at);
           p.at.x += Math.cos(a) * out;
           p.at.z += Math.sin(a) * out;
           p.way.set(Math.cos(a), 0, Math.sin(a)).multiplyScalar(how.spread * Math.random());
-          p.t = 0; p.life = r(how.life); p.rise = r(how.rise); p.size = r(how.size) * this.tall;
+          p.t = 0; p.life = r(how.life); p.rise = r(how.rise) * (low ? SINKING.rises : 1); p.size = r(how.size) * this.tall;
           p.spin = (Math.random() - 0.5) * 1.2;
           p.boil = r(BOIL.boil);
           p.beat = r(BOIL.beat);
