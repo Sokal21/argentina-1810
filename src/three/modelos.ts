@@ -263,7 +263,7 @@ async function load(w: Who) {
       possessed.set(w, p);
       view.scene.add(p.group);
       // His agony as the Wekufe comes into him: Mixamo's, as the Wekufe's death is (tools/mocap/README.md).
-      // His leap's landing: Mixamo's Hard Landing, as Roca's, for want of a blow on the ground as yet.
+      // His blow on the ground: Mixamo's, both hands brought down on it.
       for (const url of ['agonia', 'salto']) body.animations.push(...(await new GLTFLoader().loadAsync(`apestado/3d/anims/${url}.glb`)).animations.filter(a => a.name === url));
     }
     const clips = body.animations.map(a => a.name);

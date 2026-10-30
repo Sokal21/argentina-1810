@@ -35,10 +35,10 @@ const POSSESSION = { climbs: [0.08, 0.42], thickest: [0.46, 0.58], changes: 0.52
   fire: { kept: 30, points: 14, life: [0.35, 0.8], tall: [0.28, 0.6], wide: [0.05, 0.1], burns: [0.12, 0.92], black: 0.97, red: 0.3 } };
 
 /**
- * His leap and blow on the ground: how long he crouches and is in the air (seconds), crouched at what share of his clip and landing at what share, over what share of his flight he rises out of the crouch,
+ * His leap and blow on the ground: how long he crouches and is in the air (seconds), how far through his clip he is as he springs (his arms drawn back, frame 12 of 56) and as he strikes (both hands on the ground, frame 27, as measured),
  * how far he goes and how high he goes, how wide the blow (shares of his height), how long what it leaves lasts: its ring, its cracks, its dust.
  */
-export const LEAP = { crouch: 0.55, air: 0.5, crouched: 0.35, lands: 12 / 48, far: 0.95, high: 0.55, rises: 0.35, reach: 0.6, after: 1.1, jolt: { seconds: 0.5, pixels: 8 },
+export const LEAP = { crouch: 0.55, air: 0.6, crouched: 12 / 56, lands: 27 / 56, far: 0.95, high: 0.55, reach: 0.6, after: 1.2, jolt: { seconds: 0.5, pixels: 8 },
   cracks: { kept: 11, points: 6, wide: 0.018, jag: 0.05 }, dust: { kept: 36, out: [0.7, 1.5], up: [0.03, 0.2], size: [0.1, 0.2], swell: 2.2, thick: 0.8 } };
 
 interface Wrap { up: number; angle: number; out: number; round: number; size: number; spin: number; bob: number }
@@ -163,6 +163,7 @@ export class Possessed {
   private readonly dust = new Billboards(LEAP.dust.kept, lumps());
   private readonly dusts: { way: THREE.Vector3; at: THREE.Vector3; size: number; spin: number }[] = [];
   private readonly cracked: THREE.Vector3[][] = [];
+  private readonly struck = new THREE.Vector3();
 
   constructor(private readonly body: THREE.Object3D, private readonly tall: number) {
     this.show = burn(body);
@@ -286,7 +287,7 @@ export class Possessed {
    * then the blow, the ring going out, red cracks, black dust and fire. Says when the blow falls.
    */
   leap(into: number, dt: number, motion: Motion): boolean {
-    const { crouch, air, crouched, lands, far, high, reach, after, rises } = LEAP, down = crouch + air, wide = reach * this.tall, target = far * this.tall;
+    const { crouch, air, crouched, lands, far, high, reach, after } = LEAP, down = crouch + air, wide = reach * this.tall, target = far * this.tall;
     this.body.getWorldPosition(this.at);
     this.at.z = target;
     if (into < down) {
@@ -294,9 +295,8 @@ export class Possessed {
       for (const ring of [this.mark, this.filling]) { ring.visible = true; ring.position.set(this.at.x, 0.6, target); }
       this.mark.scale.setScalar(wide);
       this.filling.scale.setScalar(Math.max(0.01, wide * q));
-      // His clip's pose never leaps: blended into its crouch, back up out of that as he springs, then on down to where he lands.
-      const share = k < rises ? crouched * (1 - k / rises) : lands * (k - rises) / (1 - rises);
-      motion.hold('salto', share, { blend: 0.3 });
+      // His clip played straight through: drawing back as he crouches, his arms up in the air and brought down as he lands.
+      motion.hold('salto', into < crouch ? crouched * into / crouch : crouched + (lands - crouched) * k, { blend: 0.2 });
       this.body.position.z = target * k;
       this.body.position.y = high * this.tall * 4 * k * (1 - k);
       return false;
@@ -308,11 +308,16 @@ export class Possessed {
     if (struck) {
       this.mark.visible = this.filling.visible = false;
       this.shock.visible = this.cracks.mesh.visible = true;
-      this.shock.position.set(this.at.x, 0.6, target);
+      // Where his hands come down.
+      const left = this.body.getObjectByName('L_Hand'), right = this.body.getObjectByName('R_Hand');
+      if (left && right) { left.getWorldPosition(this.at); right.getWorldPosition(this.across); this.at.add(this.across).multiplyScalar(0.5); this.struck.set(this.at.x, 0, this.at.z); }
+      else this.struck.set(this.at.x, 0, target);
+      this.at.copy(this.struck);
+      this.shock.position.set(this.at.x, 0.6, this.at.z);
       this.crack();
       for (const d of this.dusts) {
         const angle = Math.random() * Math.PI * 2, out = r(LEAP.dust.out) * this.tall;
-        d.at.set(this.at.x + Math.cos(angle) * wide * 0.3, 4, target + Math.sin(angle) * wide * 0.3);
+        d.at.set(this.at.x + Math.cos(angle) * wide * 0.3, 4, this.at.z + Math.sin(angle) * wide * 0.3);
         d.way.set(Math.cos(angle) * out, r(LEAP.dust.up) * this.tall, Math.sin(angle) * out);
         d.size = r(LEAP.dust.size) * this.tall;
         d.spin = Math.random() * Math.PI * 2;
