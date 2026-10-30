@@ -116,10 +116,10 @@ const CLAW_PATH = { kept: 40, points: 24 };
  * frame 40 of 68, as measured), how long they last, grow out and fade (seconds), how many, the points of
  * each streak, how far round its path each streak reaches behind its head (radians), how fast they go round
  * (radians a second), how far out and how high (shares of his height, of `WRAITH_REACH`), how wide a streak
- * and how big a head (shares of his height). The ring on the ground says how far it hurts.
+ * and how big a head (shares of his height), what a face's picture is multiplied by (it would read pale). The ring on the ground says how far it hurts.
  */
 const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 38, points: 14, trail: [0.7, 1.3], wind: [2.5, 3.9],
-  out: [0.72, 1], high: [0.1, 0.85], bob: 0.06, wide: 0.05, head: [0.07, 0.1], clear: 0.9, ring: 0.4, colours: ['#000000', '#060507', '#0c0a0d'] };
+  out: [0.72, 1], high: [0.1, 0.85], bob: 0.06, wide: 0.05, head: [0.1, 0.15], tint: new THREE.Color(1.5, 0.42, 0.36), clear: 0.9, ring: 0.4, colours: ['#000000', '#060507', '#0c0a0d'] };
 /** How far out his cloud of souls hurts, a share of his height: the game's reckoning will take it from here. */
 export const WRAITH_REACH = 0.95;
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
@@ -418,24 +418,11 @@ class Splash {
   }
 }
 
-/** A lost soul's face: a red head, two burning eyes and a dark mouth open in a wail. */
+/** A lost soul's face (concept A of three, assets/wekufe/concept): gaunt and red, its mouth torn open, smoke trailing off it. */
 let wailing: THREE.Texture | null = null;
 function wail(): THREE.Texture {
   if (wailing) return wailing;
-  const size = 32, canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const g = canvas.getContext('2d')!;
-  g.fillStyle = '#a81a0a';
-  g.beginPath(); g.ellipse(16, 15, 10, 13, 0, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#ffc070';
-  g.beginPath(); g.ellipse(11.5, 12, 2.4, 3, 0.3, 0, Math.PI * 2); g.fill();
-  g.beginPath(); g.ellipse(20.5, 12, 2.4, 3, -0.3, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#1a0503';
-  g.beginPath(); g.ellipse(16, 21, 3, 4.5, 0, 0, Math.PI * 2); g.fill();
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.minFilter = texture.magFilter = THREE.NearestFilter;
-  texture.generateMipmaps = false;
-  return wailing = texture;
+  return wailing = new THREE.TextureLoader().load('wekufe/alma.png');
 }
 
 interface Wraith { angle: number; wind: number; out: number; high: number; phase: number; trail: number; head: number; colour: THREE.Color }
@@ -467,7 +454,7 @@ class Wraiths {
     this.heads = new Billboards(WRAITHS.souls, wail());
     this.heads.mesh.renderOrder = 3;
     for (let i = 0; i < WRAITHS.souls; i++) {
-      this.heads.colour(i, '#ffffff');
+      this.heads.colour(i, WRAITHS.tint);
       this.souls.push({
         angle: i / WRAITHS.souls * Math.PI * 2 + Math.random() * 0.4, wind: r(WRAITHS.wind), out: r(WRAITHS.out), high: r(WRAITHS.high),
         phase: Math.random() * Math.PI * 2, trail: r(WRAITHS.trail), head: r(WRAITHS.head),
