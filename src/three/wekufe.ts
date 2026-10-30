@@ -14,7 +14,8 @@ import { unlitShader } from './pixels';
 // away, each drawn again over itself as a dodge so it stands out of the smoke, the more where they
 // lie over one another; those on its far side dimmer, behind it. Souls wind up round it and off him, as black streaks,
 // each fading along its length. He floats, rising and sinking a little. His claws tear red lines
-// through the air along the very arc of his blow, throwing off sparks. Sinking, his smoke
+// through the air along the very arc of his blow, throwing off sparks. He summons a cloud of lost
+// souls, wailing faces going round him trailing black fire, a ring on the ground saying how far it hurts. Sinking, his smoke
 // goes over his model, so the ground closing on him is not seen.
 // He dives into the earth head first, sinking right under it; where his head goes in, the ground
 // splashes black, drops thrown up and out and a black pool spreading, a cloud of black smoke bursts
@@ -110,6 +111,17 @@ const CLAWS = {
 };
 /** How many places of each claw's path are kept, and how many points each line is drawn with. */
 const CLAW_PATH = { kept: 40, points: 24 };
+/**
+ * The cloud of lost souls he summons: the share of his `invocar` at which they burst from him (his thrust,
+ * frame 40 of 68, as measured), how long they last, grow out and fade (seconds), how many, the points of
+ * each streak, how far round its path each streak reaches behind its head (radians), how fast they go round
+ * (radians a second), how far out and how high (shares of his height, of `WRAITH_REACH`), how wide a streak
+ * and how big a head (shares of his height). The ring on the ground says how far it hurts.
+ */
+const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 22, points: 14, trail: [0.7, 1.3], wind: [1.6, 2.6],
+  out: [0.72, 1], high: [0.1, 0.85], bob: 0.06, wide: 0.05, head: [0.07, 0.1], clear: 0.9, ring: 0.4, colours: ['#000000', '#060507', '#0c0a0d'] };
+/** How far out his cloud of souls hurts, a share of his height: the game's reckoning will take it from here. */
+export const WRAITH_REACH = 0.68;
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.06, bob: 0.025, beat: 1.4 };
 /**
@@ -406,6 +418,138 @@ class Splash {
   }
 }
 
+/** A lost soul's face: a dark hollow head, two red eyes and a mouth open in a wail. */
+let wailing: THREE.Texture | null = null;
+function wail(): THREE.Texture {
+  if (wailing) return wailing;
+  const size = 32, canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const g = canvas.getContext('2d')!;
+  g.fillStyle = '#060506';
+  g.beginPath(); g.ellipse(16, 15, 10, 13, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#ff2a12';
+  g.beginPath(); g.ellipse(11.5, 12, 2.4, 3, 0.3, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.ellipse(20.5, 12, 2.4, 3, -0.3, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#7a1408';
+  g.beginPath(); g.ellipse(16, 21, 3, 4.5, 0, 0, Math.PI * 2); g.fill();
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = texture.magFilter = THREE.NearestFilter;
+  texture.generateMipmaps = false;
+  return wailing = texture;
+}
+
+interface Wraith { angle: number; wind: number; out: number; high: number; phase: number; trail: number; head: number; colour: THREE.Color }
+
+/** The cloud of lost souls he summons: faces wailing round him, each trailing a streak of black fire, a ring on the ground saying how far it hurts. */
+class Wraiths {
+  readonly group = new THREE.Group();
+  private readonly streaks: Streaks;
+  private readonly dodges: Streaks;
+  private readonly heads: Billboards;
+  private readonly ring: THREE.Mesh;
+  private readonly souls: Wraith[] = [];
+  private readonly middle = new THREE.Vector3();
+  private readonly at = new THREE.Vector3();
+  private readonly next = new THREE.Vector3();
+  private readonly way = new THREE.Vector3();
+  private readonly across = new THREE.Vector3();
+  private readonly toEye = new THREE.Vector3();
+  /** His summoning: its clip's length and how far into it; then how long since they burst out. */
+  private calling: { seconds: number; t: number } | null = null;
+  private since = -1;
+  private time = 0;
+
+  constructor(private readonly body: THREE.Object3D, private readonly tall: number, private readonly eye: THREE.Vector3) {
+    this.streaks = new Streaks(WRAITHS.souls, WRAITHS.points);
+    this.dodges = new Streaks(WRAITHS.souls, WRAITHS.points, true);
+    this.streaks.mesh.renderOrder = 1;
+    this.dodges.mesh.renderOrder = 2;
+    this.heads = new Billboards(WRAITHS.souls, wail());
+    this.heads.mesh.renderOrder = 3;
+    for (let i = 0; i < WRAITHS.souls; i++) {
+      this.heads.colour(i, '#ffffff');
+      this.souls.push({
+        angle: i / WRAITHS.souls * Math.PI * 2 + Math.random() * 0.4, wind: r(WRAITHS.wind), out: r(WRAITHS.out), high: r(WRAITHS.high),
+        phase: Math.random() * Math.PI * 2, trail: r(WRAITHS.trail), head: r(WRAITHS.head),
+        colour: new THREE.Color(WRAITHS.colours[i % WRAITHS.colours.length]),
+      });
+    }
+    this.ring = new THREE.Mesh(new THREE.RingGeometry(0.93, 1, 64).rotateX(-Math.PI / 2), new THREE.ShaderMaterial({
+      uniforms: { clear: { value: 0 } },
+      vertexShader: 'void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: unlitShader('uniform float clear; void main() { gl_FragColor = vec4(0.8, 0.07, 0.03, clear); }'),
+      transparent: true, depthWrite: false, side: THREE.DoubleSide,
+    }));
+    this.group.add(this.ring, this.streaks.mesh, this.dodges.mesh, this.heads.mesh);
+    this.show(false);
+  }
+
+  private show(on: boolean): void {
+    this.ring.visible = this.streaks.mesh.visible = this.dodges.mesh.visible = on;
+    if (!on) { this.heads.hideAll(); this.heads.commit(); }
+  }
+
+  /** He summons them: his `invocar`, `seconds` long, has just begun. */
+  summon(seconds: number): void {
+    this.calling = { seconds, t: 0 };
+    this.since = -1;
+    this.show(false);
+  }
+
+  /** Gone at once. */
+  stop(): void {
+    this.calling = null;
+    this.since = -1;
+    this.show(false);
+  }
+
+  update(dt: number): void {
+    if (this.calling) {
+      this.calling.t += dt;
+      if (this.calling.t / this.calling.seconds >= WRAITHS.at) { this.calling = null; this.since = 0; this.show(true); }
+    }
+    if (this.since < 0) return;
+    this.since += dt;
+    this.time += dt;
+    const end = WRAITHS.lasts + WRAITHS.fades;
+    if (this.since >= end) { this.stop(); return; }
+    const t = this.tall, grown = 1 - Math.pow(1 - Math.min(1, this.since / WRAITHS.grows), 3);
+    const fade = Math.min(1, (end - this.since) / WRAITHS.fades);
+    // Round him as he goes, a little behind him; let off at his waist's height at first, spreading.
+    this.body.getWorldPosition(this.at);
+    if (this.since === dt) this.middle.copy(this.at);
+    else this.middle.lerp(this.at, Math.min(1, dt * 5));
+    const ground = this.at.y, reach = WRAITH_REACH * t;
+    this.ring.position.set(this.middle.x, ground + 0.4, this.middle.z);
+    this.ring.scale.setScalar(Math.max(0.001, reach * grown));
+    (this.ring.material as THREE.ShaderMaterial).uniforms.clear.value = fade * WRAITHS.ring * (0.75 + 0.25 * Math.sin(this.time * 5));
+    this.souls.forEach((soul, l) => {
+      soul.angle += soul.wind * dt;
+      for (let p = 0; p < WRAITHS.points; p++) {
+        const q = p / (WRAITHS.points - 1);
+        this.place(soul, soul.angle - q * soul.trail, grown, reach, ground, this.at);
+        this.place(soul, soul.angle - (q + 0.05) * soul.trail, grown, reach, ground, this.next);
+        this.way.subVectors(this.at, this.next);
+        this.across.crossVectors(this.way, this.toEye.subVectors(this.eye, this.at)).normalize();
+        const wide = WRAITHS.wide * t * Math.pow(1 - q, 0.9), clear = fade * WRAITHS.clear * (1 - q * q) * grown;
+        this.streaks.put(l, p, this.at, this.across, wide, soul.colour, clear * DODGE.under);
+        this.dodges.put(l, p, this.at, this.across, wide * DODGE.wider, DODGE.colour, clear);
+        if (p === 0) this.heads.put(l, this.at, soul.head * t, fade * grown);
+      }
+    });
+    this.streaks.commit();
+    this.dodges.commit();
+    this.heads.commit();
+  }
+
+  /** Where a soul is at a place round its path: wavering in and out, up and down, as it goes. */
+  private place(soul: Wraith, angle: number, grown: number, reach: number, ground: number, out: THREE.Vector3): void {
+    const far = reach * soul.out * grown * (1 + 0.06 * Math.sin(angle * 3 + soul.phase));
+    const high = (0.45 + (soul.high - 0.45) * grown + WRAITHS.bob * Math.sin(angle * 2 + soul.phase + this.time * 2)) * this.tall;
+    out.set(this.middle.x + Math.cos(angle) * far, ground + high, this.middle.z + Math.sin(angle) * far);
+  }
+}
+
 /** Where along a path (`places`, `count` of them) a share of it falls, smoothed through them (Catmull-Rom): a blow this quick is only a few frames. */
 function smoothed(places: THREE.Vector3[], count: number, share: number, out: THREE.Vector3): THREE.Vector3 {
   const at = share * (count - 1), i = Math.min(Math.floor(at), count - 2), u = at - i;
@@ -606,6 +750,8 @@ export class Wekufe {
   private readonly splash: Splash;
   /** The lines his claws tear. */
   private readonly claws: Claws;
+  /** The lost souls he summons. */
+  private readonly wraiths: Wraiths;
   /** His dive: how long the clip is, how far into it he is; null while he is not diving. */
   private diving: { seconds: number; t: number; splashed: boolean; how: typeof DIVE } | null = null;
   /** Where his gown was as he began to dive: its fire and souls stay there, burning out, as he goes under. */
@@ -622,6 +768,8 @@ export class Wekufe {
     this.group.add(this.splash.group);
     this.claws = new Claws(body, tall, this.eye);
     this.group.add(this.claws.group);
+    this.wraiths = new Wraiths(body, tall, this.eye);
+    this.group.add(this.wraiths.group);
     const bone = (name: string) => body.getObjectByName(name);
     this.bones = [[bone('Waist')], ...['Thigh', 'Calf', 'Foot'].map(b => [bone('L_' + b), bone('R_' + b)])];
     this.cloud = new Billboards(LAYERS.reduce((all, how) => all + how.kept, 0), lumps());
@@ -732,6 +880,16 @@ export class Wekufe {
     this.staying = false;
   }
 
+  /** He summons his lost souls, playing his `invocar` (`seconds` long). */
+  invoke(seconds: number): void {
+    this.wraiths.summon(seconds);
+  }
+
+  /** His lost souls gone at once. */
+  uninvoke(): void {
+    this.wraiths.stop();
+  }
+
   /** He strikes with his claws, playing his `zarpazo` (`seconds` long). */
   claw(seconds: number): void {
     this.claws.strike(seconds);
@@ -776,6 +934,7 @@ export class Wekufe {
     }
     this.splash.update(dt);
     this.claws.update(dt);
+    this.wraiths.update(dt);
     const ease = shown < this.faded ? Wekufe.FADE.out : Wekufe.FADE.back;
     this.faded += (shown - this.faded) * Math.min(1, dt * ease);
     // Sinking, his smoke is drawn over him, hiding the ground closing on him; and let off where he went in,
