@@ -118,7 +118,7 @@ const CLAW_PATH = { kept: 40, points: 24 };
  * (radians a second), how far out and how high (shares of his height, of `WRAITH_REACH`), how wide a streak
  * and how big a head (shares of his height). The ring on the ground says how far it hurts.
  */
-const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 22, points: 14, trail: [0.7, 1.3], wind: [2.5, 3.9],
+const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 38, points: 14, trail: [0.7, 1.3], wind: [2.5, 3.9],
   out: [0.72, 1], high: [0.1, 0.85], bob: 0.06, wide: 0.05, head: [0.07, 0.1], clear: 0.9, ring: 0.4, colours: ['#000000', '#060507', '#0c0a0d'] };
 /** How far out his cloud of souls hurts, a share of his height: the game's reckoning will take it from here. */
 export const WRAITH_REACH = 0.95;

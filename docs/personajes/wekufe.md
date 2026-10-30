@@ -43,7 +43,7 @@ and the destruction. Designed with the user on 29 October 2026; not in the game 
     first where he will come out, to be dodged). His dive (`zambullida`) sinks him right under the
     ground; where his head goes in, the ground splashes black (drops, a pool), a cloud of black
     smoke bursts out low and black fire bursts up, the smoke and fire gone together.
-  - **A cloud of lost souls** about him, hurting her while she is near: 22 wailing faces (red eyes, open mouths) going round him, each trailing a streak of black fire with the red dodge, bursting out at his thrust and lasting about 7 s, a red ring on the ground saying how far it hurts (`WRAITH_REACH`).
+  - **A cloud of lost souls** about him, hurting her while she is near: 38 wailing faces (red eyes, open mouths) going round him, each trailing a streak of black fire with the red dodge, bursting out at his thrust and lasting about 7 s, a red ring on the ground saying how far it hurts (`WRAITH_REACH`).
   - **Slow red demon fire** that follows her and turns little, dodged by rolling late.
   - **Dying, he writhes and sinks into the earth, in that same pose,** with the same explosion of smoke and fire as his dive (the user).
     When he dies the screen and the pad shake, to frighten a little (the user; to do when his fight goes in: `GameScene.shake`, which drives both).
