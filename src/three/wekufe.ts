@@ -117,9 +117,9 @@ const CLAW_PATH = { kept: 40, points: 24 };
  * frame 40 of 68, as measured), how long they last, grow out and fade (seconds), how many, the points of
  * each streak, how far round its path each streak reaches behind its head (radians), how fast they go round
  * (radians a second), how far out and how high (shares of his height, of `WRAITH_REACH`), how wide a streak
- * and how big a head (shares of his height), what a face's colour is multiplied by, for it to read red in the dark, and how much more it looks at the camera than where it goes. The ring on the ground says how far it hurts.
+ * and how big a head (shares of his height), how many tongues of fire trail each, how far they wave and how much their length flickers (shares of his height, of its length), how much of the dodge each has (they overlap, and it mounts up), a face's red in its hollows and where it is light, how clear it is at its edges and its middle, and how much more it looks at the camera than where it goes. The ring on the ground says how far it hurts.
  */
-const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 38, points: 14, trail: [0.7, 1.3], wind: [2.5, 3.9],
+const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 38, tongues: 3, points: 14, wave: 0.05, flicker: 0.2, lights: 0.5, trail: [0.7, 1.3], wind: [2.5, 3.9],
   out: [0.72, 1], high: [0.1, 0.85], bob: 0.06, wide: 0.05, head: [0.1, 0.145], red: [new THREE.Color(0.22, 0.015, 0.008), new THREE.Color(2.6, 0.45, 0.25)], see: [0.55, 0.95], looks: 1.6, clear: 0.9, ring: 0.4, colours: ['#000000', '#060507', '#0c0a0d'] };
 /** How far out his cloud of souls hurts, a share of his height: the game's reckoning will take it from here. */
 export const WRAITH_REACH = 0.95;
@@ -419,9 +419,9 @@ class Splash {
   }
 }
 
-interface Wraith { angle: number; wind: number; out: number; high: number; phase: number; trail: number; head: number; colour: THREE.Color }
+interface Wraith { angle: number; wind: number; out: number; high: number; phase: number; trail: number; head: number; colour: THREE.Color; tongues: { long: number; wide: number; waves: number; run: number; flicker: number; phase: number }[] }
 
-/** The cloud of lost souls he summons: faces wailing round him, each trailing a streak of black fire, a ring on the ground saying how far it hurts. */
+/** The cloud of lost souls he summons: faces wailing round him, each trailing tongues of black fire, a ring on the ground saying how far it hurts. */
 class Wraiths {
   readonly group = new THREE.Group();
   private readonly streaks: Streaks;
@@ -447,8 +447,8 @@ class Wraiths {
   private time = 0;
 
   constructor(private readonly body: THREE.Object3D, private readonly tall: number, private readonly eye: THREE.Vector3) {
-    this.streaks = new Streaks(WRAITHS.souls, WRAITHS.points);
-    this.dodges = new Streaks(WRAITHS.souls, WRAITHS.points, true);
+    this.streaks = new Streaks(WRAITHS.souls * WRAITHS.tongues, WRAITHS.points);
+    this.dodges = new Streaks(WRAITHS.souls * WRAITHS.tongues, WRAITHS.points, true);
     this.streaks.mesh.renderOrder = 1;
     this.dodges.mesh.renderOrder = 2;
     void model('wekufe/3d/alma.glb', 1).then(scene => {
@@ -501,6 +501,7 @@ class Wraiths {
       this.souls.push({
         angle: i / WRAITHS.souls * Math.PI * 2 + Math.random() * 0.4, wind: r(WRAITHS.wind), out: r(WRAITHS.out), high: r(WRAITHS.high),
         phase: Math.random() * Math.PI * 2, trail: r(WRAITHS.trail), head: r(WRAITHS.head),
+        tongues: Array.from({ length: WRAITHS.tongues }, (_, k) => ({ long: 1 - k * 0.25 + Math.random() * 0.15, wide: 1 - k * 0.2, waves: r([1, 2]), run: r([7, 12]), flicker: r([5, 9]), phase: Math.random() * Math.PI * 2 })),
         colour: new THREE.Color(WRAITHS.colours[i % WRAITHS.colours.length]),
       });
     }
@@ -557,23 +558,30 @@ class Wraiths {
     (this.ring.material as THREE.ShaderMaterial).uniforms.clear.value = fade * WRAITHS.ring * (0.75 + 0.25 * Math.sin(this.time * 5));
     this.souls.forEach((soul, l) => {
       soul.angle += soul.wind * dt;
-      for (let p = 0; p < WRAITHS.points; p++) {
-        const q = p / (WRAITHS.points - 1);
-        this.place(soul, soul.angle - q * soul.trail, grown, reach, ground, this.at);
-        this.place(soul, soul.angle - (q + 0.05) * soul.trail, grown, reach, ground, this.next);
-        this.way.subVectors(this.at, this.next);
-        this.across.crossVectors(this.way, this.toEye.subVectors(this.eye, this.at)).normalize();
-        const wide = WRAITHS.wide * t * Math.pow(1 - q, 0.9), clear = fade * WRAITHS.clear * (1 - q * q) * grown;
-        this.streaks.put(l, p, this.at, this.across, wide, soul.colour, clear * DODGE.under);
-        this.dodges.put(l, p, this.at, this.across, wide * DODGE.wider, DODGE.colour, clear);
-        if (p === 0 && this.faces) {
-          // Its mouth between the way it goes and the camera, or going past it shows only the back of its head.
-          this.toEye.subVectors(this.eye, this.at).normalize().multiplyScalar(WRAITHS.looks).add(this.way.normalize());
-          this.turned.lookAt(this.toEye, this.origin, Wraiths.UP);
-          this.placed.copy(this.turned).scale(this.size.setScalar(soul.head * t * grown)).setPosition(this.at);
-          this.faces.setMatrixAt(l, this.placed);
+      soul.tongues.forEach((tongue, k) => {
+        const line = l * WRAITHS.tongues + k;
+        // As long as it flares: each its own way, flickering.
+        const trail = soul.trail * tongue.long * (1 + WRAITHS.flicker * Math.sin(this.time * tongue.flicker + tongue.phase));
+        for (let p = 0; p < WRAITHS.points; p++) {
+          const q = p / (WRAITHS.points - 1);
+          this.place(soul, soul.angle - q * trail, grown, reach, ground, this.at);
+          this.place(soul, soul.angle - (q + 0.05) * trail, grown, reach, ground, this.next);
+          this.way.subVectors(this.at, this.next);
+          this.across.crossVectors(this.way, this.toEye.subVectors(this.eye, this.at)).normalize();
+          if (p === 0 && k === 0 && this.faces) {
+            // Its mouth between the way it goes and the camera, or going past it shows only the back of its head.
+            this.toEye.subVectors(this.eye, this.at).normalize().multiplyScalar(WRAITHS.looks).add(this.way.normalize());
+            this.turned.lookAt(this.toEye, this.origin, Wraiths.UP);
+            this.placed.copy(this.turned).scale(this.size.setScalar(soul.head * t * grown)).setPosition(this.at);
+            this.faces.setMatrixAt(l, this.placed);
+          }
+          // Waving more toward its tip, the waves running back along it; pointed at both ends.
+          this.at.addScaledVector(this.across, WRAITHS.wave * t * q * Math.sin(q * tongue.waves * Math.PI * 2 - this.time * tongue.run + tongue.phase));
+          const wide = WRAITHS.wide * t * tongue.wide * Math.sin(Math.PI * Math.pow(q, 0.6)), clear = fade * WRAITHS.clear * (1 - q * q) * grown;
+          this.streaks.put(line, p, this.at, this.across, wide, soul.colour, clear * DODGE.under);
+          this.dodges.put(line, p, this.at, this.across, wide * DODGE.wider, DODGE.colour, clear * WRAITHS.lights);
         }
-      }
+      });
     });
     this.streaks.commit();
     this.dodges.commit();
