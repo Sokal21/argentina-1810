@@ -113,9 +113,10 @@ const CLAW_PATH = { kept: 40, points: 24 };
 /**
  * Sinking, his gown's own smoke goes over his model and thickens, so the ground closing on him is not
  * seen: how many times thicker, until how far through his sinking more is let off, over which stretch
- * of the gown (low: flat on the ground, only over where he goes in), and how much of its rise it keeps.
+ * of the gown (low: flat on the ground, only over where he goes in), how much of its rise it keeps, and
+ * for how long, once it bursts, it is let off as high as the gown again (the burst's smoke).
  */
-const SINKING = { thicker: 2.4, until: 0.8, up: [-0.08, 0.22], rises: 0.25 };
+const SINKING = { thicker: 2.4, until: 0.8, up: [-0.08, 0.22], rises: 0.25, bursts: 0.7 };
 /** How high he floats and how far he rises and sinks (shares of his height), and how fast. */
 const FLOAT = { high: 0.06, bob: 0.025, beat: 1.4 };
 /**
@@ -617,6 +618,8 @@ export class Wekufe {
   /** Where his gown was as he began to dive: its fire and souls stay there, burning out, as he goes under. */
   private readonly stayed = [0, 1, 2, 3, 4].map(() => new THREE.Vector3());
   private staying = false;
+  /** How much longer his smoke goes up with the burst. */
+  private bursting = 0;
   private readonly ground = new THREE.Vector3();
 
   /** `body` is his model, already scaled, `tall` its height in the world's units. */
@@ -779,6 +782,7 @@ export class Wekufe {
       else if (head) head.getWorldPosition(this.at);
       if (head && !dive.splashed && this.at.y <= this.ground.y + this.tall * 0.04) {
         dive.splashed = true;
+        this.bursting = SINKING.bursts;
         this.splash.start(this.at.setY(this.ground.y));
       }
       shown *= Math.min(1, Math.max(0, (this.line[0].y - this.ground.y) / (this.tall * 0.25)));
@@ -790,7 +794,10 @@ export class Wekufe {
     // Sinking, his smoke stays where he went in (not going under with him), thick and over him.
     if (sinking && this.staying) this.line.forEach((p, i) => p.copy(this.stayed[i]));
     (this.cloud.mesh.material as THREE.ShaderMaterial).depthTest = !sinking;
-    this.smoke(dt, sinking ? (lettingOff ? 1 : 0) : this.faded, sinking ? SINKING.thicker : 1);
+    // Flat on the ground until it bursts; then, for a moment, as high as his gown, with the burst.
+    if (this.bursting > 0) this.bursting -= dt;
+    const bursts = sinking && this.bursting > 0;
+    this.smoke(dt, sinking ? (lettingOff || bursts ? 1 : 0) : this.faded, sinking ? SINKING.thicker : 1, sinking && !bursts);
     // Diving, his fire and souls are left where his gown was as he began: they do not go up and down with him.
     if (dive && dive.t / dive.seconds >= dive.how.stays) {
       if (!this.staying) { this.stayed.forEach((p, i) => p.copy(this.line[i])); this.staying = true; }
@@ -807,7 +814,7 @@ export class Wekufe {
     this.glow(shown * (1 - Math.min(1, sunk * 5)));
   }
 
-  private smoke(dt: number, shown: number, thicker: number): void {
+  private smoke(dt: number, shown: number, thicker: number, low: boolean): void {
     const cloud = this.cloud;
     for (const { how, first, puffs } of this.layers) {
       const rate = how.kept / ((how.life[0] + how.life[1]) / 2);
@@ -826,7 +833,6 @@ export class Wekufe {
           // Each puff as thick as he was shown when it was let off: left behind as he goes under, it lives out its life.
           p.power = shown * thicker;
           // Anywhere along it, more of the core low where the gown is widest.
-          const low = thicker > 1;
           const up = low ? r(SINKING.up) : how.up ? r(how.up) : how === LAYERS[0] ? Math.pow(Math.random(), 1.3) : Math.random() * 1.05;
           const wide = this.width(up);
           const a = Math.random() * Math.PI * 2, out = Math.sqrt(Math.random()) * how.out * wide / 2;
