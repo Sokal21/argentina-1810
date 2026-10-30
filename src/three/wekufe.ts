@@ -15,7 +15,7 @@ import { unlitShader, unoutlinedShader } from './pixels';
 // away, each drawn again over itself as a dodge so it stands out of the smoke, the more where they
 // lie over one another; those on its far side dimmer, behind it. Souls wind up round it and off him, as black streaks,
 // each fading along its length. He floats, rising and sinking a little. His claws tear red lines
-// through the air along the very arc of his blow, throwing off sparks. His red fire, a ball streaming flames and trailing black smoke, hunts what it is thrown at, turning little. He summons a cloud of lost
+// through the air along the very arc of his blow, throwing off sparks. His red fire, a ball of black smoke with a red glow at its heart, hunts what it is thrown at, turning little. He summons a cloud of lost
 // souls, wailing faces going round him trailing black fire, a ring on the ground saying how far it hurts. Sinking, his smoke
 // goes over his model, so the ground closing on him is not seen.
 // He dives into the earth head first, sinking right under it; where his head goes in, the ground
@@ -127,10 +127,10 @@ const WRAITHS = { at: 40 / 68, lasts: 6, grows: 0.7, fades: 0.8, souls: 38, tong
  * roll beats it), how long it lasts, how near is a hit (his heights); the black smoke it trails (how many a second, how long each lasts, how
  * big, how much it swells), the tongues streaming off it, and what bursts when it ends.
  */
-const FIREBALL = { from: 18 / 50, at: 25 / 50, size: 0.2, speed: 0.5, turns: 0.8, lasts: 4.5, near: 0.12, lumps: 9,
-  colours: ['#ff2a12', '#d81a0a', '#a01006'], glow: new THREE.Color('#ff2a12'),
+const FIREBALL = { from: 18 / 50, at: 25 / 50, size: 0.2, speed: 0.5, turns: 0.8, lasts: 4.5, near: 0.12, lumps: 12,
+  colours: ['#000000', '#060506', '#0c0a0d', '#141216'], glow: new THREE.Color('#ff2a12'),
   smoke: { kept: 130, each: 40, life: [1, 1.9], size: [0.1, 0.17], swell: 2.2, rise: [0.05, 0.14], clear: 0.75, colours: ['#000000', '#060506', '#0c0a0d', '#141216'] },
-  tongues: { kept: 8, points: 10, long: [0.13, 0.26], wide: [0.016, 0.03], wave: 0.025, waves: [1, 2], run: [8, 13], clear: 0.85, colour: new THREE.Color(2.2, 0.12, 0.05) },
+  tongues: { kept: 8, points: 10, long: [0.13, 0.26], wide: [0.016, 0.03], wave: 0.025, waves: [1, 2], run: [8, 13], clear: 0.7, colour: new THREE.Color('#050405') },
   burst: { puffs: 34, out: [0.35, 0.8], flash: 0.35 } };
 /** How far out his cloud of souls hurts, a share of his height: the game's reckoning will take it from here. */
 export const WRAITH_REACH = 0.95;
@@ -612,7 +612,7 @@ class Wraiths {
 
 interface Ember { at: THREE.Vector3; way: THREE.Vector3; t: number; life: number; size: number; spin: number; boil: number; beat: number }
 
-/** His red fire: gathering between his hands, leaving them the way they thrust and hunting `prey`, turning little, a red ball streaming flames and trailing black smoke; it bursts on a hit or when it has lasted. */
+/** His red fire: gathering between his hands, leaving them the way they thrust and hunting `prey`, turning little, a ball of black smoke with a red glow at its heart, streaming wisps and trailing more smoke; it bursts on a hit or when it has lasted. */
 class Fireball {
   readonly group = new THREE.Group();
   /** Where what it hunts is, kept up to date by whoever has him throw it. */
@@ -648,7 +648,7 @@ class Fireball {
       this.embers.push({ at: new THREE.Vector3(), way: new THREE.Vector3(), t: 0, life: 0, size: 0, spin: 0, boil: 0, beat: 0 });
     }
     this.ball = new Billboards(FIREBALL.lumps, lumps());
-    for (let i = 0; i < FIREBALL.lumps; i++) this.ball.colour(i, FIREBALL.colours[i % FIREBALL.colours.length], 1.8);
+    for (let i = 0; i < FIREBALL.lumps; i++) this.ball.colour(i, FIREBALL.colours[i % FIREBALL.colours.length]);
     this.glow = new Billboards(2, soft(0.1), true);
     for (let i = 0; i < 2; i++) this.glow.colour(i, FIREBALL.glow);
     this.tongues = new Streaks(tongues.kept, tongues.points);
@@ -786,8 +786,8 @@ class Fireball {
       this.point.set(Math.cos(a) * Math.cos(b), Math.sin(b), Math.sin(a) * Math.cos(b)).multiplyScalar(i ? size * 0.2 : 0).add(this.at);
       this.ball.put(i, this.point, size * (i ? 0.65 : 0.85) * (1 + 0.14 * Math.sin(this.time * (5 + i) + i)), 0.95, a);
     }
-    this.glow.put(0, this.at, size * 1.1, 1);
-    this.glow.put(1, this.at, size * 3, 0.22 + 0.04 * Math.sin(this.time * 7));
+    this.glow.put(0, this.at, size * 0.6, 1);
+    this.glow.put(1, this.at, size * 1, 0.25 + 0.07 * Math.sin(this.time * 7));
     this.ball.commit();
     this.glow.commit();
     this.tongues.mesh.visible = true;
