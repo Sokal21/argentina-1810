@@ -41,6 +41,13 @@ const POSSESSION = { climbs: [0.08, 0.42], thickest: [0.46, 0.58], changes: 0.52
 export const LEAP = { crouch: 0.55, air: 0.6, crouched: 12 / 56, lands: 27 / 56, far: 0.95, high: 0.55, reach: 0.6, after: 1.2, jolt: { seconds: 0.5, pixels: 8 },
   cracks: { kept: 11, points: 6, wide: 0.018, jag: 0.05 }, dust: { kept: 36, out: [0.7, 1.5], up: [0.03, 0.2], size: [0.1, 0.2], swell: 2.2, thick: 0.8 } };
 
+/**
+ * His death, as shares of its seconds: when the cloud gathers on him and is thickest, when he is changed back under it (a dead apestado, his horns and eyes gone), and how long
+ * the Wekufe takes to leave by his mouth: over which shares it comes out, how long a puff or a soul takes to get there, how high it arcs and how far off the next body lies (shares of his height).
+ */
+export const DEATH = { seconds: 4.2, gathers: [0.08, 0.3], thickest: [0.3, 0.55], changes: 0.44, gone: 0.8, leaves: [0.2, 0.68], travel: 0.3, arc: 1.15, next: 1.9,
+  around: 50, wobble: 0.07, soul: { long: 0.1, wide: 0.05 } };
+
 interface Wrap { up: number; angle: number; out: number; round: number; size: number; spin: number; bob: number }
 
 interface Puff { at: THREE.Vector3; way: THREE.Vector3; t: number; life: number; size: number; spin: number }
@@ -164,12 +171,15 @@ export class Possessed {
   private readonly dusts: { way: THREE.Vector3; at: THREE.Vector3; size: number; spin: number }[] = [];
   private readonly cracked: THREE.Vector3[][] = [];
   private readonly struck = new THREE.Vector3();
+  private readonly head: THREE.Object3D | undefined;
+  private dying: { t: number; gone: boolean } | null = null;
+  private readonly heldSize = new THREE.Vector3();
 
   constructor(private readonly body: THREE.Object3D, private readonly tall: number) {
     this.show = burn(body);
     this.size = body.scale.x;
     this.bones = SMOKE.bones.map(name => body.getObjectByName(name)).filter((b): b is THREE.Object3D => !!b);
-    const head = body.getObjectByName('Head');
+    const head = this.head = body.getObjectByName('Head');
     if (head) {
       // Held by his head, set out as he stands at rest: so upright, and facing as he does.
       body.updateMatrixWorld(true);
@@ -186,6 +196,7 @@ export class Possessed {
       }
       this.group.add(held);
       head.attach(held);
+      this.heldSize.copy(held.scale);
     }
     this.group.add(this.aura, this.wrap.mesh);
     this.aura.add(this.cloud.mesh);
@@ -235,7 +246,8 @@ export class Possessed {
 
   /** Shown as already possessed. */
   possessed(): void {
-    this.possessing = null;
+    this.possessing = this.dying = null;
+    this.held.scale.copy(this.heldSize);
     this.changed(true);
     this.body.scale.setScalar(this.size);
     for (let i = 0; i < POSSESSION.kept; i++) this.wrap.hide(i);
@@ -273,6 +285,77 @@ export class Possessed {
     this.wrap.commit();
     this.burning(dt, q, climbed);
     if (q >= 1) { this.possessing = null; this.fire.mesh.visible = this.fireDodges.mesh.visible = false; }
+  }
+
+  /** He is killed: the Wekufe leaves by his mouth for the next body, and what falls is a dead apestado, to lie there. */
+  dies(): void {
+    this.possessed();
+    this.dying = { t: 0, gone: false };
+  }
+
+  /** Where the Wekufe has got to, `u` of the way from his mouth to the next body, off to one side: out of him and over in an arc, down into the ground. */
+  private path(u: number, into: THREE.Vector3): THREE.Vector3 {
+    this.head?.getWorldPosition(this.across);
+    const v = 1 - u, far = DEATH.next * this.tall, high = DEATH.arc * this.tall;
+    return into.set(v * v * this.across.x + 2 * v * u * (this.across.x + far * 0.4) + u * u * far, v * v * this.across.y + 2 * v * u * high, v * v * this.across.z + 2 * v * u * this.across.z);
+  }
+
+  private death(dt: number): void {
+    const being = this.dying;
+    if (!being) return;
+    being.t += dt;
+    const q = being.t / DEATH.seconds, { gathers, thickest, changes, gone, leaves, travel, around, wobble } = DEATH;
+    if (q >= changes && !being.gone) { being.gone = true; this.changed(false); }
+    // His horns and himself dwindling under the cloud, to what he was.
+    const shrunk = Math.min(1, Math.max(0, (q - gathers[1]) / (changes - gathers[1])));
+    this.body.scale.setScalar(this.size * (1 - (1 - POSSESSION.small) * shrunk));
+    this.held.scale.copy(this.heldSize).multiplyScalar(1 - shrunk);
+    this.body.getWorldPosition(this.at);
+    const at = new THREE.Vector3();
+    const thick = Math.min(1, Math.max(0, (q - gathers[0]) / (gathers[1] - gathers[0]))) * Math.min(1, Math.max(0, (gone - q) / (gone - thickest[1])));
+    this.wraps.forEach((w, i) => {
+      w.angle += w.round * dt;
+      if (i < around) {
+        // The cloud on him, low, for he is falling.
+        const up = w.up * 0.6, out = w.out * this.tall * (1 - up * 0.45);
+        at.set(this.at.x + Math.cos(w.angle) * out, this.at.y + up * this.tall, this.at.z + Math.sin(w.angle) * out);
+        if (thick > 0.01) this.wrap.put(i, at, w.size * this.tall, POSSESSION.thick * thick, w.spin); else this.wrap.hide(i);
+        return;
+      }
+      const u = (q - (leaves[0] + (leaves[1] - leaves[0]) * (i - around) / (POSSESSION.kept - around))) / travel;
+      if (u <= 0 || u >= 1) { this.wrap.hide(i); return; }
+      this.path(u, at);
+      at.x += Math.sin(this.time * 3 + w.bob) * wobble * this.tall * Math.sin(Math.PI * u);
+      at.z += Math.cos(w.angle) * wobble * this.tall * Math.sin(Math.PI * u);
+      this.wrap.put(i, at, w.size * this.tall * (0.5 + Math.sin(Math.PI * u)), POSSESSION.thick * Math.min(1, u * 8) * Math.min(1, (1 - u) * 6), w.spin);
+    });
+    this.wrap.commit();
+    this.souls(q);
+    if (q >= 1) { this.dying = null; for (let i = 0; i < POSSESSION.kept; i++) this.wrap.hide(i); this.wrap.commit(); this.fire.mesh.visible = this.fireDodges.mesh.visible = false; }
+  }
+
+  /** The black fire drawn out with the Wekufe: each tongue a soul running along his way, with the red dodge. */
+  private souls(q: number): void {
+    const { kept, points } = POSSESSION.fire, { leaves, travel, soul } = DEATH, black = new THREE.Color('#050405');
+    const at = new THREE.Vector3(), ahead = new THREE.Vector3(), across = new THREE.Vector3(), towards = new THREE.Vector3();
+    this.fire.mesh.visible = this.fireDodges.mesh.visible = true;
+    for (let l = 0; l < kept; l++) {
+      const u = (q - (leaves[0] + (leaves[1] - leaves[0]) * l / kept)) / travel;
+      for (let p = 0; p < points; p++) {
+        const k = p / (points - 1), v = Math.min(1, Math.max(0, u - k * soul.long));
+        this.path(v, at);
+        this.path(Math.min(1, v + 0.01), ahead);
+        at.y += Math.sin(l * 2.4) * 0.05 * this.tall * Math.sin(Math.PI * v);
+        towards.copy(this.camera).sub(at);
+        across.crossVectors(ahead.sub(at), towards).normalize();
+        const clear = u > 0 && u < 1 + soul.long ? Math.sin(Math.PI * k) ** 0.5 : 0;
+        const wide = soul.wide * this.tall * Math.sin(Math.PI * Math.min(1, k + 0.02));
+        this.fire.put(l, p, at, across, wide, black, POSSESSION.fire.black * clear);
+        this.fireDodges.put(l, p, at, across, wide * 0.8, DODGE.colour, 0.6 * clear);
+      }
+    }
+    this.fire.commit();
+    this.fireDodges.commit();
   }
 
   /** Nothing of a leap left on the ground. */
@@ -437,6 +520,7 @@ export class Possessed {
     this.group.visible = shown;
     if (!shown) return;
     this.possession(dt);
+    this.death(dt);
     const beat = 0.5 + 0.5 * Math.sin(this.time * EYES.beat * Math.PI);
     // Drawn through his brow, which would hide them; so not when he looks away.
     for (const eye of this.eyes) {

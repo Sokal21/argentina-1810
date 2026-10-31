@@ -17,9 +17,10 @@ The user's choice: the Wekufe's agony (Zombie Agonizing, 3.2 s) and a black clou
 ## His leap (`salto` in the gallery, `LEAP`)
 Crouched 0.55 s with a red ring on the ground filling up where he will land, 0.6 s through the air, arms flung up, and both hands brought down on the ground (the user: a true blow on it; Hard Landing was tried and left, he only crouched): the ring going out from his hands, red cracks, black dust and fire, the screen jolted. Mixamo's Standing 2H Magic Area Attack 01.
 
-## How he would fight (proposed)
-Not to be struck till the cloud has gone. Quicker than an apestado and with more life; his
-blow, and new, a leap with a blow on the ground where she stands, a red ring saying where (needs a
-clip from Mixamo). Killed, the smoke leaves by his mouth for the next body. Three in all.
+## His death (`muerte` in the gallery, `DEATH`)
+His own clip, falling; a black cloud gathers on him and hides the change: under it his horns and eyes go, he dwindles to 0.8 and lies as a green dead apestado. The Wekufe leaves by his mouth, a rope of black smoke and souls of black fire with the red dodge, arcing off to the next body (`DEATH.next`, 1.9 of his height to one side; nothing stands there in the gallery yet). 4.2 s in all. His body stays where it fell till the end of the fight (the user).
 
-Still for the user to say: whether he loses the retching and the charge, and whether the three are alike.
+## How he fights (the user, 30 October 2026; not yet in the game)
+He keeps all the apestado's powers (his blow, retching, charge) and adds the leap. Not to be struck till the cloud has gone. Quicker than an apestado and with more life. Three in all: each time one dies the Wekufe changes to the next.
+
+Still open: whether the three are alike. In the gallery his retching is still the apestado's green.

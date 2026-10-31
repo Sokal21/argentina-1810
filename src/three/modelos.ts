@@ -59,7 +59,7 @@ const WHO: Who[] = [
   // frontier soldier he was; in the cloud of his stench.
   { name: 'Apestado', url: 'apestado/3d/apestado_animado.glb', drawn: 88, stench: true, vomits: true },
   // The same with the Wekufe in him, to be fought in the first part of the Wekufe's fight (docs/personajes/apestado_poseido.md).
-  { name: 'Apestado poseído', url: 'apestado/3d/apestado_animado.glb', drawn: 125, possessed: true },
+  { name: 'Apestado poseído', url: 'apestado/3d/apestado_animado.glb', drawn: 125, possessed: true, vomits: true },
   // Julio Argentino Roca, the last boss of his road in Inti's arc (Tripo from turnaround A, 28 October
   // 2026): the captain's clips on him (Mixamo's captures again, as tools/mocap/README.md has them), his
   // sabre in his right hand, his revolver in his left; his slash, Mixamo's Sword And Shield Slash; his
@@ -113,7 +113,7 @@ const TIMING: Record<string, { lasts?: number; once?: boolean }> = {
   muerte: { once: true }, muerte_b: { once: true }, 'Apestado:golpe': { once: true }, 'Apestado poseído:golpe': { once: true }, agonia: { once: true }, salto: { once: true }, vomito: { once: true }, levantarse: { once: true }, sablazo: { once: true }, senal: { once: true }, senas: { once: true }, rafaga: { once: true }, rodada_mixamo: { once: true }, zambullida: { once: true }, invocar: { once: true }, lanzar: { once: true }, beber: { once: true },
 };
 /** How long a clip's end is held before it starts over, for one whose end goes on after it, in seconds. */
-const HELD: Record<string, number> = { agonia: 2, salto: 1, zambullida: 3.2, 'Wekufe:muerte': 3.2, invocar: 6, lanzar: 5.2 };
+const HELD: Record<string, number> = { 'Apestado poseído:muerte': 3.5, agonia: 2, salto: 1, zambullida: 3.2, 'Wekufe:muerte': 3.2, invocar: 6, lanzar: 5.2 };
 /**
  * The clips the game plays: any whose name is written in quotes in the 3D game's code. Found there,
  * not listed here, so a clip is counted as soon as the game plays it; the rest of a model's clips
@@ -335,7 +335,7 @@ function play(name: string): void {
     // The Wekufe diving into the earth, under it until another clip is played.
     const wekufe = wekufes.get(w);
     const being = possessed.get(w);
-    if (being) { being.landed(); if (name === 'agonia') being.possess(it.motion.seconds(name)); else being.possessed(); }
+    if (being) { being.landed(); if (name === 'agonia') being.possess(it.motion.seconds(name)); else if (name === 'muerte') being.dies(); else being.possessed(); }
     if (wekufe) { if (name === 'zambullida') wekufe.dive(it.motion.seconds(name)); else if (name === 'muerte') wekufe.dies(it.motion.seconds(name)); else wekufe.rises(); }
     if (wekufe) { if (name === 'zarpazo') wekufe.claw(it.motion.seconds(name)); else wekufe.unclaw(); }
     if (wekufe) { if (name === 'invocar') wekufe.invoke(it.motion.seconds(name)); else wekufe.uninvoke(); }
