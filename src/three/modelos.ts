@@ -170,7 +170,7 @@ view.scene.add(game.group);
 let played: { who: Royalist & { mind: TroopBrain }; target: { x: number; y: number }; over: number } | null = null;
 let hunting: { brain: ChonchonBrain; figure: ChonchonFigure; her: { x: number; y: number }; close: boolean; downed: boolean; since: number; struck: number } | null = null;
 view.apply({ ...view.look, far: 0.6 });
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(900, 500), flat('#8a7a50'));
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), flat('#8a7a50'));
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
 view.scene.add(floor);
@@ -287,7 +287,8 @@ function length(name: string): number {
   if (name === LUNGE) return shown.find(x => x.lunge)?.lunge?.time ?? 2;
   if (name === BURST) return 2.2;
   if (SALVOES[name] || name === ROCA_SALVO) return 5;
-    if (name === LANDING) return DROP.fall + (shown.find(x => x.revolver) ? loaded.get(shown.find(x => x.revolver)!)?.motion.seconds('aterrizaje') ?? 2 : 2);
+    if (name === 'salto') return LEAP.crouch + LEAP.air + (1 - LEAP.lands) * (loaded.get(shown.find(x => x.possessed)!)?.motion.seconds('salto') ?? 2);
+  if (name === LANDING) return DROP.fall + (shown.find(x => x.revolver) ? loaded.get(shown.find(x => x.revolver)!)?.motion.seconds('aterrizaje') ?? 2 : 2);
   if (name === RETCH) return Math.max(...shown.map(x => vomits.get(x)?.lasts ?? 0), 0);
   if (name === RISEN) return Math.max(...shown.map(x => risings.get(x)?.lasts ?? 0), 0);
   for (const w of shown) { const it = loaded.get(w); if (it?.motion.has(name)) return it.motion.seconds(name); }
@@ -355,7 +356,7 @@ function play(name: string): void {
       view.apply({ ...view.look, far: 1.1 });
       continue;
     }
-    if (name === 'salto' && being) { view.follow(new THREE.Vector3(0, w.drawn * 0.5, LEAP.far * w.drawn * UPRIGHT / 2)); continue; }
+    if (name === 'salto' && being) { view.follow(new THREE.Vector3(0, w.drawn * 0.3, LEAP.far * w.drawn * UPRIGHT * 0.75)); view.apply({ ...view.look, far: 0.9 }); continue; }
     if (name === LANDING && w.revolver) { it.motion.hold('aterrizaje', 0, { afresh: true }); it.body.position.y = DROP.high; continue; }
     if (name === BURST && w.revolver) { it.motion.play('rafaga', { once: true, afresh: true, blend: 0.12 }); continue; }
     if (name === RETCH && w.vomits) {

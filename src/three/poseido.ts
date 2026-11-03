@@ -36,10 +36,11 @@ const POSSESSION = { climbs: [0.08, 0.42], thickest: [0.46, 0.58], changes: 0.52
 
 /**
  * His leap and blow on the ground, Mixamo's Mutant Jump Attack (115 frames at 30): its own crouch, its own height (the hips' rise scaled to his legs). As shares of the clip:
- * when he springs, when his feet are down again, when both hands strike the ground; how far forward he has gone by then (shares of his height: the capture's travel), as pairs of share and distance.
+ * when he springs and when both hands strike the ground; how far forward he has gone (shares of his height: twice the capture's travel), as pairs of share and distance.
+ * Quicker than captured, so as not to be easily got out of the way of (the user): how long he crouches and how long he is in the air (seconds); after the blow the clip goes at its own pace.
  * How wide the blow (shares of his height), how long what it leaves lasts (seconds): its ring, its cracks, its dust.
  */
-export const LEAP = { springs: 16 / 115, lands: 51 / 115, travel: [[0.13, 0], [0.41, 0.84], [0.55, 0.95]] as const, far: 0.95, reach: 0.6, after: 1.2, jolt: { seconds: 0.5, pixels: 8 },
+export const LEAP = { springs: 16 / 115, lands: 51 / 115, crouch: 0.4, air: 0.5, travel: [[0.13, 0], [0.41, 1.68], [0.55, 1.9]] as const, far: 1.9, reach: 0.6, after: 1.2, jolt: { seconds: 0.5, pixels: 8 },
   cracks: { kept: 11, points: 6, wide: 0.018, jag: 0.05 }, dust: { kept: 36, out: [0.7, 1.5], up: [0.03, 0.2], size: [0.1, 0.2], swell: 2.2, thick: 0.8 } };
 
 /** How far forward he has gone `q` of the way through his leap, as a share of his height. */
@@ -383,8 +384,8 @@ export class Possessed {
    * then both hands on the ground, the ring going out, red cracks, black dust and fire. Says when the blow falls.
    */
   leap(into: number, dt: number, motion: Motion): boolean {
-    const { lands, far, reach, after } = LEAP, long = motion.seconds('salto'), down = lands * long, wide = reach * this.tall, target = far * this.tall;
-    const q = Math.min(0.999, into / long);
+    const { springs, lands, crouch, air, far, reach, after } = LEAP, long = motion.seconds('salto'), down = crouch + air, wide = reach * this.tall, target = far * this.tall;
+    const q = Math.min(0.999, into < crouch ? springs * into / crouch : into < down ? springs + (lands - springs) * (into - crouch) / air : lands + (into - down) / long);
     motion.hold('salto', q, { blend: into < 0.1 ? 0.15 : 0 });
     this.body.position.z = forward(q) * this.tall;
     if (into < down) {
