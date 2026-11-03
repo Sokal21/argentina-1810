@@ -35,11 +35,24 @@ const POSSESSION = { climbs: [0.08, 0.42], thickest: [0.46, 0.58], changes: 0.52
   fire: { kept: 30, points: 14, life: [0.35, 0.8], tall: [0.28, 0.6], wide: [0.05, 0.1], burns: [0.12, 0.92], black: 0.97, red: 0.3 } };
 
 /**
- * His leap and blow on the ground: how long he crouches and is in the air (seconds), how far through his clip he is as he springs (his arms drawn back, frame 12 of 56) and as he strikes (both hands on the ground, frame 27, as measured),
- * how far he goes and how high he goes, how wide the blow (shares of his height), how long what it leaves lasts: its ring, its cracks, its dust.
+ * His leap and blow on the ground, Mixamo's Mutant Jump Attack (115 frames at 30): its own crouch, its own height (the hips' rise scaled to his legs). As shares of the clip:
+ * when he springs, when his feet are down again, when both hands strike the ground; how far forward he has gone by then (shares of his height: the capture's travel), as pairs of share and distance.
+ * How wide the blow (shares of his height), how long what it leaves lasts (seconds): its ring, its cracks, its dust.
  */
-export const LEAP = { crouch: 0.55, air: 0.6, crouched: 12 / 56, lands: 27 / 56, far: 0.95, high: 0.55, reach: 0.6, after: 1.2, jolt: { seconds: 0.5, pixels: 8 },
+export const LEAP = { springs: 16 / 115, lands: 51 / 115, travel: [[0.13, 0], [0.41, 0.84], [0.55, 0.95]] as const, far: 0.95, reach: 0.6, after: 1.2, jolt: { seconds: 0.5, pixels: 8 },
   cracks: { kept: 11, points: 6, wide: 0.018, jag: 0.05 }, dust: { kept: 36, out: [0.7, 1.5], up: [0.03, 0.2], size: [0.1, 0.2], swell: 2.2, thick: 0.8 } };
+
+/** How far forward he has gone `q` of the way through his leap, as a share of his height. */
+function forward(q: number): number {
+  const t = LEAP.travel;
+  if (q <= t[0][0]) return 0;
+  for (let i = 1; i < t.length; i++) {
+    if (q > t[i][0]) continue;
+    const k = (q - t[i - 1][0]) / (t[i][0] - t[i - 1][0]), smooth = k * k * (3 - 2 * k);
+    return t[i - 1][1] + (t[i][1] - t[i - 1][1]) * smooth;
+  }
+  return t[t.length - 1][1];
+}
 
 /**
  * His death, as shares of its seconds: when the cloud gathers on him and is thickest, when he is changed back under it (a dead apestado, his horns and eyes gone), and how long
@@ -366,26 +379,21 @@ export class Possessed {
   }
 
   /**
-   * His leap, `into` seconds in: crouched, a red ring on the ground filling up where he will land; through the air;
-   * then the blow, the ring going out, red cracks, black dust and fire. Says when the blow falls.
+   * His leap, `into` seconds in, his clip played as it is: crouched, a red ring on the ground filling up where he will land; up and through the air;
+   * then both hands on the ground, the ring going out, red cracks, black dust and fire. Says when the blow falls.
    */
   leap(into: number, dt: number, motion: Motion): boolean {
-    const { crouch, air, crouched, lands, far, high, reach, after } = LEAP, down = crouch + air, wide = reach * this.tall, target = far * this.tall;
-    this.body.getWorldPosition(this.at);
-    this.at.z = target;
+    const { lands, far, reach, after } = LEAP, long = motion.seconds('salto'), down = lands * long, wide = reach * this.tall, target = far * this.tall;
+    const q = Math.min(0.999, into / long);
+    motion.hold('salto', q, { blend: into < 0.1 ? 0.15 : 0 });
+    this.body.position.z = forward(q) * this.tall;
     if (into < down) {
-      const q = Math.min(1, into / down), k = Math.max(0, (into - crouch) / air);
+      this.body.getWorldPosition(this.at);
       for (const ring of [this.mark, this.filling]) { ring.visible = true; ring.position.set(this.at.x, 0.6, target); }
       this.mark.scale.setScalar(wide);
-      this.filling.scale.setScalar(Math.max(0.01, wide * q));
-      // His clip played straight through: drawing back as he crouches, his arms up in the air and brought down as he lands.
-      motion.hold('salto', into < crouch ? crouched * into / crouch : crouched + (lands - crouched) * k, { blend: 0.2 });
-      this.body.position.z = target * k;
-      this.body.position.y = high * this.tall * 4 * k * (1 - k);
+      this.filling.scale.setScalar(Math.max(0.01, wide * into / down));
       return false;
     }
-    this.body.position.y = 0;
-    this.body.position.z = target;
     const was = into - dt, gone = into - down;
     const struck = was < down;
     if (struck) {
@@ -406,18 +414,17 @@ export class Possessed {
         d.spin = Math.random() * Math.PI * 2;
       }
     }
-    motion.hold('salto', Math.min(0.999, lands + (1 - lands) * gone / after), { blend: 0.03 });
-    const q = Math.min(1, gone / after), slow = 1 - (1 - q) ** 3;
+    const k = Math.min(1, gone / after), slow = 1 - (1 - k) ** 3;
     this.shock.scale.setScalar(Math.max(0.01, wide * (0.2 + 1.9 * slow)));
-    (this.shock.material as THREE.ShaderMaterial).uniforms.clear.value = 0.9 * Math.max(0, 1 - q * 1.6);
+    (this.shock.material as THREE.ShaderMaterial).uniforms.clear.value = 0.9 * Math.max(0, 1 - k * 1.6);
     this.dusts.forEach((d, i) => {
-      if (q >= 1) { this.dust.hide(i); return; }
+      if (k >= 1) { this.dust.hide(i); return; }
       d.at.addScaledVector(d.way, dt * (1 - slow));
-      this.dust.put(i, d.at, d.size * (1 + (LEAP.dust.swell - 1) * slow), LEAP.dust.thick * (1 - q), d.spin);
+      this.dust.put(i, d.at, d.size * (1 + (LEAP.dust.swell - 1) * slow), LEAP.dust.thick * (1 - k), d.spin);
     });
     this.dust.commit();
-    this.cracking(q);
-    if (q < 0.7) this.burning(dt, 0.92 - 0.15 * (q / 0.7), 0.2);
+    this.cracking(k);
+    if (k < 0.7) this.burning(dt, 0.92 - 0.15 * (k / 0.7), 0.2);
     else this.fire.mesh.visible = this.fireDodges.mesh.visible = false;
     return struck;
   }

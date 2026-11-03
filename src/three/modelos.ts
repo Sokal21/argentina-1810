@@ -287,8 +287,7 @@ function length(name: string): number {
   if (name === LUNGE) return shown.find(x => x.lunge)?.lunge?.time ?? 2;
   if (name === BURST) return 2.2;
   if (SALVOES[name] || name === ROCA_SALVO) return 5;
-  if (name === 'salto') return LEAP.crouch + LEAP.air + LEAP.after;
-  if (name === LANDING) return DROP.fall + (shown.find(x => x.revolver) ? loaded.get(shown.find(x => x.revolver)!)?.motion.seconds('aterrizaje') ?? 2 : 2);
+    if (name === LANDING) return DROP.fall + (shown.find(x => x.revolver) ? loaded.get(shown.find(x => x.revolver)!)?.motion.seconds('aterrizaje') ?? 2 : 2);
   if (name === RETCH) return Math.max(...shown.map(x => vomits.get(x)?.lasts ?? 0), 0);
   if (name === RISEN) return Math.max(...shown.map(x => risings.get(x)?.lasts ?? 0), 0);
   for (const w of shown) { const it = loaded.get(w); if (it?.motion.has(name)) return it.motion.seconds(name); }
