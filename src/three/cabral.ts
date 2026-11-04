@@ -128,6 +128,8 @@ export interface Doing {
   rage?: number;
   /** Plagued (stepped in the plague-dead soldier's pool): from 0, not, to 1. */
   sick?: number;
+  /** Burnt (stepped in the possessed's black bile): from 0, not, to 1. */
+  scorched?: number;
 }
 
 export class CabralFigure {

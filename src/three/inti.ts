@@ -272,10 +272,10 @@ export class IntiFigure {
     this.wasDashing = c.isDashing;
     this.dashSeen = c.dashes;
     this.wasChanneling = c.isChanneling;
-    // Plagued, she throbs a sickly green and smokes; struck, the red over it.
+    // Plagued, she throbs a sickly green and smokes; burnt by the black bile, she throbs the red of fire (the user: not green, 4/11/2026); struck, the red over it.
     this.clock += dt;
-    const sick = doing.sick ?? 0;
-    this.flash(doing.hurt ?? 0, 0, sick * (SICK.low + (SICK.high - SICK.low) * (0.5 + 0.5 * Math.sin(this.clock * SICK.beat))));
+    const sick = doing.sick ?? 0, throb = SICK.low + (SICK.high - SICK.low) * (0.5 + 0.5 * Math.sin(this.clock * SICK.beat));
+    this.flash(doing.hurt ?? 0, (doing.scorched ?? 0) * throb, sick * throb);
     if (this.miasma) { this.miasma.power = sick; this.miasma.update(dt); }
     this.group.position.copy(ground(c.x, c.y));
     this.group.rotation.y = this.facing;

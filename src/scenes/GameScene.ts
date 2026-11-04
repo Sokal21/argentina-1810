@@ -1460,7 +1460,9 @@ export class GameScene extends Phaser.Scene {
         rage: this.wrath.active ? Math.min(1, this.wrath.left / 0.8) : 0,
         fallen: !this.vitals.standing, dashTime: this.machi.kit.dash?.time ?? 0.5, trail: true,
         // The plague on her, fading over its last second.
-        sick: Math.min(1, this.plague.left),
+        sick: this.plague.how === BILE ? 0 : Math.min(1, this.plague.left),
+        // Or burnt by the black bile, as by fire.
+        scorched: this.plague.how === BILE ? Math.min(1, this.plague.left) : 0,
       }, this.realistas.filter((r): r is Realista | Trooper => r instanceof Realista || (IN_3D.has(r.kind) && r.kind !== 'wekufe' && r.kind !== 'poseido')));
       // Framed a little above his feet, so his body is in the middle.
       // Her orbs are drawn in 3D, lit: in flight, and those her kills leave on the ground.

@@ -6,7 +6,7 @@ import { Cart } from './cart';
 import { ChonchonFigure, DRAWN as CHONCHON } from './chonchon';
 import { ChonchonBrain } from '../chonchon/brain';
 import { Spirit } from './spirit';
-import { Bile, LEAP, Possessed } from './poseido';
+import { Bile, LEAP, Possessed, SUMMON } from './poseido';
 import { Stench } from './stench';
 import { Wekufe } from './wekufe';
 import { RISE, Rising } from './rising';
@@ -145,6 +145,8 @@ const RISEN = 'salir_de_la_tierra', SCREAM = 2.0;
 const risings = new Map<Who, Rising>();
 /** His retching, played on his scream (three/vomit.ts): the spray and the pool it leaves, in its cone. */
 const RETCH = 'vomitar';
+/** A dead apestado lying there, the Wekufe's smoke coming into him, getting up out of it possessed and through his agony (three/poseido.ts's SUMMON). */
+const SUMMONED = 'poseer';
 const vomits = new Map<Who, Vomit>();
 /**
  * Roca's burst (his fight's second phase, docs/historia/inti/README.md): his burst played (his shot
@@ -263,8 +265,8 @@ async function load(w: Who) {
       possessed.set(w, p);
       view.scene.add(p.group);
       // His agony as the Wekufe comes into him: Mixamo's, as the Wekufe's death is (tools/mocap/README.md).
-      // His blow on the ground: Mixamo's, both hands brought down on it.
-      for (const url of ['agonia', 'salto']) body.animations.push(...(await new GLTFLoader().loadAsync(`apestado/3d/anims/${url}.glb`)).animations.filter(a => a.name === url));
+      // His blow on the ground: Mixamo's, both hands brought down on it. His getting up as the Wekufe comes into him (Mixamo's Getting Up).
+      for (const url of ['agonia', 'salto', 'levantado']) body.animations.push(...(await new GLTFLoader().loadAsync(`apestado/3d/anims/${url}.glb`)).animations.filter(a => a.name === url));
     }
     const clips = body.animations.map(a => a.name);
     clips.sort((a, b) => (FIRST.indexOf(a) + 1 || 99) - (FIRST.indexOf(b) + 1 || 99) || a.localeCompare(b));
@@ -289,6 +291,7 @@ function length(name: string): number {
   if (SALVOES[name] || name === ROCA_SALVO) return 5;
     if (name === 'salto') return LEAP.crouch + LEAP.air + (1 - LEAP.lands) * (loaded.get(shown.find(x => x.possessed)!)?.motion.seconds('salto') ?? 2);
   if (name === LANDING) return DROP.fall + (shown.find(x => x.revolver) ? loaded.get(shown.find(x => x.revolver)!)?.motion.seconds('aterrizaje') ?? 2 : 2);
+  if (name === SUMMONED) { const m = loaded.get(shown.find(x => x.possessed)!)?.motion; return m ? SUMMON.seconds + m.seconds('levantado') / SUMMON.pace + m.seconds('agonia') : 2; }
   if (name === RETCH) return Math.max(...shown.map(x => vomits.get(x)?.lasts ?? 0), 0);
   if (name === RISEN) return Math.max(...shown.map(x => risings.get(x)?.lasts ?? 0), 0);
   for (const w of shown) { const it = loaded.get(w); if (it?.motion.has(name)) return it.motion.seconds(name); }
@@ -303,10 +306,10 @@ async function show(list: Who[]): Promise<void> {
   all.forEach((it, i) => { it.body.position.x = it.home = (i - (all.length - 1) / 2) * APART; view.scene.add(it.body); });
   // Their clips: with several, those any of them has (each one lacking a clip stands as he is).
   const names = [...new Set([...all.flatMap(it => it.clips), ...(list.some(w => w.lunge) ? [LUNGE] : []), ...(list.some(w => w.dives) ? [DIVE, BITE, DOWNED] : []),
-    ...(all.some(it => it.motion.has('mosquete_descolgar')) ? [SLUNG_AGAIN] : []), ...(all.some(it => it.motion.has('levantarse')) ? [RISEN] : []), ...(list.some(w => w.vomits) ? [RETCH] : []), ...(list.some(w => w.revolver) ? [BURST] : []), ...(list.some(w => w.spots) ? Object.keys(SALVOES) : []), ...(list.some(w => w.revolver) ? [ROCA_SALVO, LANDING] : [])])];
+    ...(all.some(it => it.motion.has('mosquete_descolgar')) ? [SLUNG_AGAIN] : []), ...(all.some(it => it.motion.has('levantarse')) ? [RISEN] : []), ...(list.some(w => w.vomits) ? [RETCH] : []), ...(list.some(w => w.possessed) ? [SUMMONED] : []), ...(list.some(w => w.revolver) ? [BURST] : []), ...(list.some(w => w.spots) ? Object.keys(SALVOES) : []), ...(list.some(w => w.revolver) ? [ROCA_SALVO, LANDING] : [])])];
   if (!names.includes(clip)) clip = names[0] ?? 'reposo_mixamo';
   clipsBar.replaceChildren();
-  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE || n === DOWNED || n === SLUNG_AGAIN || n === RISEN || n === RETCH || n === BURST || !!SALVOES[n] || n === ROCA_SALVO || n === LANDING;
+  const playing = (n: string) => used(n) || n === LUNGE || n === DIVE || n === BITE || n === DOWNED || n === SLUNG_AGAIN || n === RISEN || n === RETCH || n === SUMMONED || n === BURST || !!SALVOES[n] || n === ROCA_SALVO || n === LANDING;
   const ordered = [...names.filter(playing), ...names.filter(n => !playing(n))];
   for (const name of ordered) {
     const b = button(clipsBar, name, () => { play(name); for (const x of clipsBar.children) x.classList.toggle('on', x === b); });
@@ -335,7 +338,7 @@ function play(name: string): void {
     // The Wekufe diving into the earth, under it until another clip is played.
     const wekufe = wekufes.get(w);
     const being = possessed.get(w);
-    if (being) { being.landed(); if (name === 'agonia') being.possess(it.motion.seconds(name)); else if (name === 'muerte') being.dies(); else being.possessed(); }
+    if (being) { being.landed(); if (name === 'agonia') being.possess(it.motion.seconds(name)); else if (name === 'muerte') being.dies(); else if (name === SUMMONED) { being.summon(); it.motion.hold('levantado', 0, { afresh: true }); } else being.possessed(); }
     if (wekufe) { if (name === 'zambullida') wekufe.dive(it.motion.seconds(name)); else if (name === 'muerte') wekufe.dies(it.motion.seconds(name)); else wekufe.rises(); }
     if (wekufe) { if (name === 'zarpazo') wekufe.claw(it.motion.seconds(name)); else wekufe.unclaw(); }
     if (wekufe) { if (name === 'invocar') wekufe.invoke(it.motion.seconds(name)); else wekufe.uninvoke(); }
@@ -356,6 +359,7 @@ function play(name: string): void {
       view.apply({ ...view.look, far: 1.1 });
       continue;
     }
+    if (name === SUMMONED && being) continue;
     if (name === 'salto' && being) { view.follow(new THREE.Vector3(0, w.drawn * 0.3, LEAP.far * w.drawn * UPRIGHT * 0.75)); view.apply({ ...view.look, far: 0.9 }); continue; }
     if (name === LANDING && w.revolver) { it.motion.hold('aterrizaje', 0, { afresh: true }); it.body.position.y = DROP.high; continue; }
     if (name === BURST && w.revolver) { it.motion.play('rafaga', { once: true, afresh: true, blend: 0.12 }); continue; }
@@ -582,6 +586,16 @@ slider('velocidad', 0.1, 1, 1, 0.05, v => { pace = v; });
 slider('cerca', 0.25, 1.8, 0.6, 0.05, v => view.apply({ ...view.look, far: v }));
 
 try { const kept = localStorage.getItem('modelos.who'); if (kept !== null && [...choice.options].some(o => o.value === kept)) choice.value = kept; } catch { /* the first, then */ }
+/** The Wekufe coming into a dead apestado: lying while the smoke comes to him, getting up out of it as he is possessed, his agony. */
+function summoned(being: Possessed, motion: Motion, into: number, dt: number): void {
+  const up = motion.seconds('levantado') / SUMMON.pace, from = SUMMON.seconds;
+  if (into < from) motion.hold('levantado', 0);
+  else if (into < from + up) {
+    if (into - dt < from) being.possess(up + motion.seconds('agonia'));
+    motion.hold('levantado', (into - from) / up, { blend: 0 });
+  } else motion.play('agonia', { once: true, afresh: into - dt < from + up, blend: 0.3 });
+}
+
 choose();
 
 let last = performance.now();
@@ -592,7 +606,7 @@ view.renderer.setAnimationLoop(() => {
   into += dt;
   // A clip played once starts over after a moment held on its end (longer for one whose end goes on
   // after it: the Wekufe's splash), while "repetir" is on.
-  const once = clip !== LUNGE && (clip === RISEN || clip === RETCH || clip === LANDING || shown.some(w => timing(w, clip)));
+  const once = clip !== LUNGE && (clip === RISEN || clip === RETCH || clip === SUMMONED || clip === LANDING || shown.some(w => timing(w, clip)));
   if (loop && once && into > length(clip) + (HELD[`${shown[0]?.name}:${clip}`] ?? HELD[clip] ?? 0.8)) play(clip);
   for (const w of shown) {
     const it = loaded.get(w);
@@ -611,6 +625,7 @@ view.renderer.setAnimationLoop(() => {
       if (into - dt < at && into >= at) battery.salvo(plan('small', { x: Math.sin(turn) * ROCA_CALL.ahead, y: Math.cos(turn) * ROCA_CALL.ahead * ISO_Y }));
     }
     if (clip === LANDING && w.revolver) landing(it.body, it.motion, into, dt);
+    if (clip === SUMMONED && possessed.get(w)) summoned(possessed.get(w)!, it.motion, into, dt);
     if (clip === 'salto' && possessed.get(w)?.leap(into, dt, it.motion)) view.jolt(LEAP.jolt.seconds, LEAP.jolt.pixels, true);
     if (clip === RETCH && w.vomits) { vomits.get(w)?.update(dt); if (into > SCREAM) it.motion.play('reposo', { blend: 0.25 }); }
     it.motion.update(dt);
