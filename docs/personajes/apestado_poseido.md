@@ -23,7 +23,13 @@ The apestado's, the same pool and the same spray (three/vomit.ts), as the Wekufe
 ## His death (`muerte` in the gallery, `DEATH`)
 His own clip, falling; a black cloud gathers on him and hides the change: under it his horns and eyes go, he dwindles to 0.8 and lies as a green dead apestado. The Wekufe leaves by his mouth, a rope of black smoke and souls of black fire with the red dodge, arcing off to the next body (`DEATH.next`, 1.9 of his height to one side; nothing stands there in the gallery yet). 4.2 s in all. His body stays where it fell till the end of the fight (the user).
 
-## How he fights (the user, 30 October 2026; not yet in the game)
-He keeps all the apestado's powers (his blow, retching, charge) and adds the leap. Not to be struck till the cloud has gone. Quicker than an apestado and with more life. Three in all: each time one dies the Wekufe changes to the next.
+## How he fights (`KINDS.poseido` in `src/tropa/brain.ts`; not yet in the game)
+The apestado's brain, with all his powers (the user, 30 October 2026) and a leap; drawn 125, life 22 (his 14), pace 44 (his 34), his blow and charge reaching a little further.
+- **Being possessed** (`possess`): 3.2 s, his agony; not to be struck for the first 2.9, while the cloud is on him.
+- **His blow** up close, as the apestado's (3).
+- **His retching**, the black bile, from 80 to 320 off, every 5 s.
+- **His charge**, from 150 to 380, every 7 s.
+- **His leap**, from 120 to 300 off (and a little past, coming down 300 off): where he will land is fixed as he crouches, where she stood; 0.4 s crouched, 0.5 s in the air, then the blow on the ground, taking 3 from her if she is within 75 of where he lands; 1.6 s getting up; every 6 s. It gives the ring's place as it begins (`leap`) and the blow as he lands (`slam`).
+- **Three of him** (`possessed(nth)`): alike, each quicker than the one before (1, 1.12, 1.25: on his feet, and how soon he blows, retches, charges and leaps again). Proposed by Claude and coded so; the user has not said otherwise.
 
-Proposed, not answered: the three alike, each a little quicker and fiercer than the one before.
+Still to do, in the game: the three lying bodies and the Wekufe passing from one to the next as each dies, each left lying till the end; the blow on the ground hurting her (`slam`); the bile burning more and slowing less than the apestado's plague (`PLAGUE` is one for all now); his figure's clips for `leap` and `possess`.

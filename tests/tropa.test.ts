@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DYING, KINDS, QUICKENED, TroopBrain, type Deed } from '../src/tropa/brain';
+import { DYING, KINDS, QUICKENED, TroopBrain, possessed, type Deed } from '../src/tropa/brain';
 
 const DT = 0.02;
 const run = (b: TroopBrain, her: { x: number; y: number } | null, seconds: number): Deed[] => {
@@ -277,6 +277,72 @@ describe('the plague-dead soldier', () => {
     b.hit(1, 0);
     expect(b.x).toBe(0);
     expect(run(b, { x: 40, y: 0 }, blow.time).filter(d => d.cut !== undefined)).toEqual([{ cut: true }]);
+  });
+});
+
+describe('the possessed plague-dead soldier', () => {
+  const l = KINDS.poseido.leap;
+  // Only his leap, so as to see it alone: else he retches or charges at her first.
+  const leaper = () => new TroopBrain({ ...KINDS.poseido, retch: undefined, lunge: undefined }, 0, 0, () => 0.5);
+  /** Steps him, `off` from her as she keeps that far ahead of him, until he begins a leap; gives where she stood and where he says he will land. */
+  const leapAt = (b: TroopBrain, off: number) => {
+    for (let t = 0; t < 10; t += DT) { const her = { x: b.x + off, y: 0 }; const d = b.update(DT, her); if (d.leap) return { her, landing: d.leap }; }
+    return null;
+  };
+  /** Steps him through the rest of his leap, her where `her` says, and gives what his landing did. */
+  const lands = (b: TroopBrain, her: () => { x: number; y: number }) => {
+    const slams: NonNullable<Deed['slam']>[] = [];
+    for (let t = 0; t < l.crouch + l.air + l.after; t += DT) { const d = b.update(DT, her()); if (d.slam) slams.push(d.slam); }
+    return slams;
+  };
+
+  it('is not to be struck while the Wekufe is coming into him, and goes for her once its cloud has gone', () => {
+    const b = brain('poseido');
+    b.possess({ x: 300, y: 0 });
+    b.hit(1, 0);
+    expect(b.life).toBe(KINDS.poseido.life);
+    run(b, { x: 300, y: 0 }, KINDS.poseido.possession.under + 0.05);
+    b.hit(1, 0);
+    expect(b.life).toBe(KINDS.poseido.life - 1);
+    expect(b.mode).toBe('possess');
+    run(b, { x: 300, y: 0 }, KINDS.poseido.possession.time);
+    expect(b.mode).not.toBe('possess');
+  });
+
+  it('leaps at her from off, landing where she stood as he crouched, and strikes the ground once', () => {
+    const b = leaper();
+    const { her, landing } = leapAt(b, 200)!;
+    expect(landing).toEqual(her);
+    const x = b.x;
+    // Crouched, he stays where he is.
+    for (let t = 0; t < l.crouch - 0.05; t += DT) b.update(DT, her);
+    expect(b.x).toBe(x);
+    expect(lands(b, () => her)).toEqual([{ ...her, hit: true, damage: l.damage }]);
+    expect(b.x).toBeCloseTo(her.x);
+  });
+
+  it('misses her if she has got out of the ring before he lands', () => {
+    const b = leaper();
+    const { her } = leapAt(b, 200)!;
+    expect(lands(b, () => ({ x: her.x + l.reach + 10, y: 0 })).map(s => s.hit)).toEqual([false]);
+  });
+
+  it('comes down no further off than he can leap', () => {
+    const b = leaper();
+    const { landing } = leapAt(b, l.to + l.reach - 5)!;
+    expect(landing.x - b.x).toBeCloseTo(l.to);
+  });
+
+  it('keeps all the apestado does: his blow, his retching and his charge', () => {
+    for (const power of ['blow', 'retch', 'lunge'] as const) expect(KINDS.poseido[power], power).toBeTruthy();
+  });
+
+  it('is quicker each time the Wekufe comes into another', () => {
+    const [a, b, c] = [0, 1, 2].map(possessed);
+    expect(a.pace).toBe(KINDS.poseido.pace);
+    expect(b.pace).toBeGreaterThan(a.pace);
+    expect(c.pace).toBeGreaterThan(b.pace);
+    expect(c.leap!.every).toBeLessThan(a.leap!.every);
   });
 });
 

@@ -56,6 +56,14 @@ export interface Kind {
    * seconds, and not again for `every`. The pool it leaves (tropa/vomit.ts) is laid by one `tall` high.
    */
   retch?: { from: number; to: number; time: number; every: number; tall: number };
+  /**
+   * He leaps at whoever is between `from` and `to` off and brings both hands down on the ground (the possessed apestado's): where he will land is
+   * fixed as he crouches, where she stood (no further than `to`); he crouches `crouch` seconds (the warning, a red ring there), is `air` seconds in the air, and
+   * strikes the ground as he lands, hurting whoever is within `reach` of it by `damage`; he gets up for `after`, and does not leap again for `every`.
+   */
+  leap?: { from: number; to: number; crouch: number; air: number; after: number; reach: number; damage: number; every: number };
+  /** The Wekufe comes into him (`possess`): it takes `time` seconds, and for the first `under` of them, in its cloud, he is not to be struck. */
+  possession?: { time: number; under: number };
   /** He comes up out of the earth (`rise`): it takes `time` seconds, and for the first `under` of them he is under it, not to be struck. */
   // Struck only once nearly out of it: 1.2 s at first, he took her blows still half in the ground (the user, 28/10/2026).
   rises?: { time: number; under: number };
@@ -89,6 +97,8 @@ export interface Burst { shots: number; apart: number; cone: number; follows?: b
 /** How tall the plague-dead soldier is drawn (three/realista.ts), for the pool he leaves, which is as big as he is. */
 // 88 at first: a little bigger than the riflemen he walks among, he looked their size (the user, 28/10/2026).
 export const APESTADO_DRAWN = 100;
+/** And with the Wekufe in him (docs/personajes/apestado_poseido.md). */
+export const POSEIDO_DRAWN = 125;
 
 export const KINDS = {
   // No musket: he runs at whoever he sees and cuts. Soon down, if he can be caught.
@@ -152,6 +162,19 @@ export const KINDS = {
     retch: { from: 80, to: 320, time: 1.5, every: 4.5, tall: APESTADO_DRAWN / Math.sqrt(1 - ISO_Y * ISO_Y) },
     rises: { time: 3.8, under: 3.2 }, worth: 25, spoils: 12,
   },
+  // The plague-dead soldier with the Wekufe in him, the first part of the Wekufe's fight (docs/personajes/apestado_poseido.md): bigger,
+  // quicker and harder to bring down, all the apestado has (his blow, his retching, now black bile, and his charge; the user, 30/10/2026)
+  // and a leap with a blow on the ground (Mixamo's Mutant Jump Attack, quickened: 0.4 s crouched, 0.5 s in the air, the user found
+  // it too easily got out of the way of at the capture's pace, 3/11/2026; three/poseido.ts's LEAP). Not to be struck while the Wekufe
+  // is coming into him, in its cloud (the agony's 3.2 s; the cloud gone at 0.9 of it). Three of him, one after another (`possessed`).
+  poseido: {
+    id: 'poseido', name: 'Apestado poseído', life: 22, girth: 16, pace: 44, sight: 4000, steady: true, rushes: true,
+    blow: { near: 66, time: 2.0, hit: 1.3, reach: 80, rest: 0.5, damage: 3 },
+    lunge: { from: 150, to: 380, charge: 0.6, dash: 280, hit: 1.6, reach: 80, time: 2.6, every: 7, track: 0.3 },
+    retch: { from: 80, to: 320, time: 1.5, every: 5, tall: POSEIDO_DRAWN / Math.sqrt(1 - ISO_Y * ISO_Y) },
+    leap: { from: 120, to: 300, crouch: 0.4, air: 0.5, after: 1.6, reach: 75, damage: 3, every: 6 },
+    possession: { time: 3.2, under: 2.9 }, worth: 40, spoils: 20,
+  },
   // Roca's artillery spotter (28 October 2026): quick on his feet and keeping away from her, he stops
   // now and again to signal the battery, his red flag cut down to point where she stands (frame 15 of
   // his 46-frame signals); the salvo comes, scattered or concentrated in turn. He must be run down
@@ -189,6 +212,21 @@ export const KINDS = {
 } satisfies Record<string, Kind>;
 export type KindName = keyof typeof KINDS;
 
+/** How much quicker each of the three possessed is than the one before it: on his feet, and in coming at her again. */
+export const QUICKER = [1, 1.12, 1.25];
+
+/** The possessed apestado as the `nth` (0 to 2) the Wekufe comes into: each quicker and fiercer than the one before. */
+export function possessed(nth: number): Kind {
+  const k: Kind = KINDS.poseido, q = QUICKER[Math.min(QUICKER.length - 1, nth)];
+  return {
+    ...k, pace: k.pace * q,
+    blow: { ...k.blow!, rest: k.blow!.rest / q },
+    lunge: { ...k.lunge!, every: k.lunge!.every / q },
+    retch: { ...k.retch!, every: k.retch!.every / q },
+    leap: { ...k.leap!, every: k.leap!.every / q },
+  };
+}
+
 // How far to one side of her one heads while still well off, and how near one comes before turning straight in.
 const ROUND = 170, RING = 26, ARRIVED = 0.35; // how near he begins to go round her, how far outside his reach, and how near his side counts as reached
 /** How much faster than his walk one gets out of a fire. */
@@ -198,7 +236,7 @@ export const RETURNS = 7;   // seconds until one who is not at a post is back
 /** How much faster one who has been rallied walks and reloads. */
 export const QUICKENED = 1.5;
 
-export type Mode = 'stand' | 'walk' | 'aim' | 'burst' | 'blow' | 'lunge' | 'rally' | 'call' | 'retch' | 'rise' | 'signal' | 'escape' | 'dying' | 'gone';
+export type Mode = 'stand' | 'walk' | 'aim' | 'burst' | 'blow' | 'lunge' | 'rally' | 'call' | 'retch' | 'leap' | 'possess' | 'rise' | 'signal' | 'escape' | 'dying' | 'gone';
 
 /** What a step of his produced. */
 export interface Deed {
@@ -212,6 +250,10 @@ export interface Deed {
   salvo?: { kind: string; x: number; y: number };
   /** He has begun to retch, from here, the way he faces (along the ground): his pool is to be laid. */
   retch?: { x: number; y: number; dx: number; dy: number };
+  /** He has begun a leap: where he will land (the ring to be shown there). */
+  leap?: { x: number; y: number };
+  /** He has landed from his leap and struck the ground here: whether it caught her, and how much it takes. */
+  slam?: { x: number; y: number; hit: boolean; damage: number };
 }
 
 const NOTHING: Deed = {};
@@ -259,6 +301,11 @@ export class TroopBrain {
   private bounding = 0;
   /** Seconds until he can retch again. */
   private retching = 2;
+  /** Seconds until he can leap again; where he leapt from and where he will land. */
+  private leaping = 2.5;
+  private from: Vec = { x: 0, y: 0 };
+  /** Where his leap comes down, on the 2D ground. */
+  landing: Vec = { x: 0, y: 0 };
   /** Seconds until he calls up more of his men, counted while he has someone to fight. */
   private calling = 0;
   private shout: number;
@@ -300,6 +347,7 @@ export class TroopBrain {
       this.still = Math.max(0, this.still - dt);
       this.lunging = Math.max(0, this.lunging - dt);
       this.retching = Math.max(0, this.retching - dt);
+      this.leaping = Math.max(0, this.leaping - dt);
       this.signalling = Math.max(0, this.signalling - dt);
       this.bounding = Math.max(0, this.bounding - dt);
       this.shout = Math.max(0, this.shout - dt);
@@ -338,6 +386,15 @@ export class TroopBrain {
           this.enter('retch');
           this.look(to);
           return { retch: { x: this.x, y: this.y, dx: this.dir.x, dy: this.dir.y } };
+        }
+        if (k.leap && this.leaping <= 0 && far >= k.leap.from && far <= k.leap.to + k.leap.reach) {
+          this.enter('leap');
+          this.done = false;
+          // Where she stands now, no further than he can leap: the ring there gives her the crouch and the leap to be out of it.
+          const reach = Math.min(far, k.leap.to) / far;
+          this.from = { x: this.x, y: this.y };
+          this.landing = { x: this.x + to.x * reach, y: this.y + to.y * reach * ISO_Y };
+          return { leap: { ...this.landing } };
         }
         if (k.signals && this.signalling <= 0 && this.still <= 0 && far > (k.blow?.near ?? 0) * 1.5) { this.enter('signal'); this.done = false; return NOTHING; }
         if (k.lunge && this.lunging <= 0 && this.still <= 0 && far >= k.lunge.from && far <= k.lunge.to) { this.enter('lunge'); this.done = false; return NOTHING; }
@@ -423,6 +480,23 @@ export class TroopBrain {
         this.done = true;
         return { cut: !!to && far <= l.reach };
       }
+      case 'leap': {
+        const l = k.leap!, down = l.crouch + l.air;
+        if (this.t >= down + l.after) { this.enter('stand'); this.leaping = l.every; return NOTHING; }
+        if (this.t < l.crouch) return NOTHING;
+        // Through the air in a straight line, over anything in the way (the ground he can walk is not asked).
+        const q = Math.min(1, (this.t - l.crouch) / l.air);
+        this.x = this.from.x + (this.landing.x - this.from.x) * q;
+        this.y = this.from.y + (this.landing.y - this.from.y) * q;
+        if (this.done || this.t < down) return NOTHING;
+        this.done = true;
+        const caught = !!her && Math.hypot(her.x - this.landing.x, (her.y - this.landing.y) / ISO_Y) <= l.reach;
+        return { slam: { ...this.landing, hit: caught, damage: l.damage } };
+      }
+      case 'possess':
+        if (this.t >= (k.possession?.time ?? 0)) this.enter('stand');
+        else if (to) this.look(to);
+        return NOTHING;
       case 'retch':
         // His head thrown at her the way he began: the pool lies where it was aimed.
         if (this.t >= k.retch!.time) { this.enter('stand'); this.retching = k.retch!.every; }
@@ -572,7 +646,7 @@ export class TroopBrain {
 
   /** Still under the earth he is coming up out of, or kept out of reach: not to be struck. */
   get under(): boolean {
-    return this.unreachable || (this.mode === 'rise' && this.t < (this.kind.rises?.under ?? 0));
+    return this.unreachable || (this.mode === 'rise' && this.t < (this.kind.rises?.under ?? 0)) || (this.mode === 'possess' && this.t < (this.kind.possession?.under ?? 0));
   }
 
   /** Comes up out of the earth here, whole (or as hurt as he was, if not `whole`), facing her if she is given. */
@@ -585,6 +659,19 @@ export class TroopBrain {
     this.mode = 'rise';
     this.t = 0;
     if (her) this.look({ x: her.x - x, y: (her.y - y) / ISO_Y });
+  }
+
+  /** The Wekufe comes into him where he lies, whole, facing her if she is given: not to be struck until its cloud has gone. */
+  possess(her?: Vec): void {
+    this.life = this.max;
+    this.rest = 0;
+    this.retching = 2;
+    this.leaping = 2.5;
+    this.lunging = 3;
+    this.returns = false;
+    this.mode = 'possess';
+    this.t = 0;
+    if (her) this.look({ x: her.x - this.x, y: (her.y - this.y) / ISO_Y });
   }
 
   vanish(): void {
