@@ -27,10 +27,10 @@ const SMOKE = { bones: ['L_Clavicle', 'R_Clavicle', 'Spine02', 'L_Upperarm', 'R_
 const TONGUES = { kept: 14, points: 12, life: [0.35, 0.8], tall: [0.13, 0.26], wide: [0.02, 0.04], wave: 0.3, run: [7, 12], clear: 0.9 };
 
 /**
- * Being possessed, as shares of his agony: over when the black cloud climbs him, when it wraps him thickest, when he is changed under it, and when it has gone;
+ * Being possessed, as shares of his agony: over when the black cloud climbs him, when it wraps him thickest, when his smoke and fire come, over when he blackens and reddens (little by little, the user: not all at once), and when it has gone;
  * how big he is before it (a share of what he comes to), and its puffs: how many, how far out, how tall they climb, how fast they go round him, how big, how thick.
  */
-const POSSESSION = { climbs: [0.08, 0.42], thickest: [0.46, 0.58], changes: 0.52, gone: 0.9, small: 0.8,
+const POSSESSION = { climbs: [0.08, 0.42], thickest: [0.46, 0.58], changes: 0.52, reddens: [0.15, 0.7], gone: 0.9, small: 0.8,
   kept: 120, out: [0.12, 0.36], high: 0.95, round: [1.4, 3.2], size: [0.1, 0.22], thick: 0.96, colours: ['#000000', '#040304', '#080608', '#0d0b0e', '#141216'],
   /** The tongues of black fire licking up through the cloud: how many, how long each lasts, how tall and wide, over which shares of his agony they burn, how clear the black and its red within it (on a pale ground more red reads as red fire, not black). */
   fire: { kept: 30, points: 14, life: [0.35, 0.8], tall: [0.28, 0.6], wide: [0.05, 0.1], burns: [0.12, 0.92], black: 0.97, red: 0.3 } };
@@ -96,37 +96,47 @@ function repainted(was: THREE.Texture, change: (px: Uint8ClampedArray, i: number
   return made;
 }
 
-/** Paints the body blackened with its green shine turned red, both its pictures anew from what shines, and returns how to show him so or as he was. */
-function burn(body: THREE.Object3D): (burnt: boolean) => void {
-  const swaps: ((burnt: boolean) => void)[] = [];
+/**
+ * Paints the body blackened with its green shine turned red, both its pictures anew from what shines, and returns how to show
+ * him so, as he was, or anywhere between (0 as he was, 1 blackened): he goes black and red little by little (the user: not all at once).
+ */
+function burn(body: THREE.Object3D): (burnt: number) => void {
+  const burnt = { value: 0 };
   body.traverse(node => {
     if (!(node instanceof THREE.Mesh)) return;
     const material = node.material as THREE.MeshToonMaterial;
-    const shine = material.lightMap, was = material.map;
-    let lit: Uint8ClampedArray | null = null;
+    const shine = material.lightMap;
+    let lit: Uint8ClampedArray | null = null, light: THREE.Texture | null = null;
     if (shine) {
-      material.lightMap = repainted(shine, (px, i) => {
+      light = repainted(shine, (px, i) => {
         const on = px[i] + px[i + 1] + px[i + 2] > 30;
         px[i] = on ? BURNT.sore.r * 255 : 0;
         px[i + 1] = on ? BURNT.sore.g * 255 : 0;
         px[i + 2] = on ? BURNT.sore.b * 255 : 0;
       });
-      const image = material.lightMap.image as HTMLCanvasElement;
+      const image = light.image as HTMLCanvasElement;
       lit = image.getContext('2d')!.getImageData(0, 0, image.width, image.height).data;
     }
-    if (material.map) material.map = repainted(material.map, (px, i) => {
+    const map = material.map && repainted(material.map, (px, i) => {
       if (lit && lit[i] > 0) { px[i] = BURNT.sore.r * 255; px[i + 1] = BURNT.sore.g * 255; px[i + 2] = BURNT.sore.b * 255; return; }
       px[i] = px[i] * BURNT.kept.r + BURNT.lift;
       px[i + 1] = px[i + 1] * BURNT.kept.g + BURNT.lift;
       px[i + 2] = px[i + 2] * BURNT.kept.b + BURNT.lift;
     });
-    const light = material.lightMap, map = material.map;
-    swaps.push(burnt => {
-      material.lightMap = burnt ? light : shine;
-      material.map = burnt ? map : was;
-    });
+    // Both pictures drawn, as he was and blackened, and mixed by how far he has gone.
+    material.onBeforeCompile = shader => {
+      shader.uniforms.burnt = burnt;
+      shader.uniforms.burntMap = { value: map ?? material.map };
+      shader.uniforms.burntLight = { value: light ?? shine };
+      // The chunks are laid in after this, so they are laid in here, changed.
+      shader.fragmentShader = 'uniform float burnt;\nuniform sampler2D burntMap;\nuniform sampler2D burntLight;\n' + shader.fragmentShader
+        .replace('#include <map_fragment>', THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv )', 'mix( texture2D( map, vMapUv ), texture2D( burntMap, vMapUv ), burnt )'))
+        .replace('#include <lights_fragment_maps>', THREE.ShaderChunk.lights_fragment_maps.replace('texture2D( lightMap, vLightMapUv )', 'mix( texture2D( lightMap, vLightMapUv ), texture2D( burntLight, vLightMapUv ), burnt )'));
+    };
+    material.customProgramCacheKey = () => 'possessed';
+    material.needsUpdate = true;
   });
-  return burnt => { for (const swap of swaps) swap(burnt); };
+  return amount => { burnt.value = amount; };
 }
 
 /** A horn from its middle's points, tapering, on the side `side` (1 his left, -1 his right), in his height's shares. */
@@ -174,7 +184,7 @@ export class Possessed {
   private readonly across = new THREE.Vector3();
   private readonly camera = new THREE.Vector3();
   private seen = false;
-  private readonly show: (burnt: boolean) => void;
+  private readonly show: (burnt: number) => void;
   /** What is his only once he is possessed: his horns and eyes, his smoke and fire. */
   private readonly held = new THREE.Group();
   private readonly aura = new THREE.Group();
@@ -281,8 +291,9 @@ export class Possessed {
   }
 
   private changed(burnt: boolean): void {
-    this.show(burnt);
+    this.show(burnt ? 1 : 0);
     this.held.visible = this.aura.visible = burnt;
+    this.held.scale.copy(this.heldSize);
   }
 
   private possession(dt: number): void {
@@ -293,7 +304,12 @@ export class Possessed {
     const climbed = Math.min(1, Math.max(0, (q - climbs[0]) / (climbs[1] - climbs[0])));
     const growth = Math.min(1, Math.max(0, (q - climbs[1]) / (thickest[1] - climbs[1])));
     this.body.scale.setScalar(this.size * (small + (1 - small) * growth));
-    if (q >= changes && !this.held.visible) this.changed(true);
+    // Blackening and reddening little by little as the cloud climbs him and wraps him, his horns growing, his smoke and fire coming as it is thickest.
+    const red = Math.min(1, Math.max(0, (q - POSSESSION.reddens[0]) / (POSSESSION.reddens[1] - POSSESSION.reddens[0]))), eased = red * red * (3 - 2 * red);
+    this.show(eased);
+    this.held.visible = red > 0;
+    this.held.scale.copy(this.heldSize).multiplyScalar(eased);
+    this.aura.visible = q >= changes;
     // Thin at first, thickest about him, then thinning away from his head down.
     const thin = q < thickest[0] ? 0.4 + 0.2 * climbed + 0.4 * Math.max(0, (q - climbs[1]) / (thickest[0] - climbs[1])) : q < thickest[1] ? 1 : Math.max(0, (gone - q) / (gone - thickest[1]));
     this.body.getWorldPosition(this.at);
@@ -369,9 +385,10 @@ export class Possessed {
     if (!being) return;
     being.t += dt;
     const q = being.t / DEATH.seconds, { gathers, thickest, changes, gone, leaves, travel, around, wobble } = DEATH;
+    // His horns and himself dwindling under the cloud, to what he was, and he goes back to his own colours little by little.
+    const shrunk = Math.min(1, Math.max(0, (q - gathers[0]) / (changes - gathers[0])));
+    this.show(1 - shrunk * shrunk * (3 - 2 * shrunk));
     if (q >= changes && !being.gone) { being.gone = true; this.changed(false); }
-    // His horns and himself dwindling under the cloud, to what he was.
-    const shrunk = Math.min(1, Math.max(0, (q - gathers[1]) / (changes - gathers[1])));
     this.body.scale.setScalar(this.size * (1 - (1 - POSSESSION.small) * shrunk));
     this.held.scale.copy(this.heldSize).multiplyScalar(1 - shrunk);
     this.body.getWorldPosition(this.at);

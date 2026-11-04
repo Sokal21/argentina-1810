@@ -12,7 +12,7 @@ The apestado's own model and clips, drawn 125 (the apestado 100, the Wekufe 150)
 - Black smoke and tongues of black fire with the Wekufe's red dodge off his shoulders and back, for the green stench.
 
 ## Being possessed (`agonia` in the gallery)
-The user's choice: the Wekufe's agony (Zombie Agonizing, 3.2 s) and a black cloud wrapping him. He starts as the apestado, green and 0.8 of his size; the cloud climbs him from the ground as he writhes, is thickest about halfway, when he is changed under it, and thins away by 0.9 of the clip. Tongues of black fire, a faint red within them, lick up through it (the user).
+The user's choice: the Wekufe's agony (Zombie Agonizing, 3.2 s) and a black cloud wrapping him. He starts as the apestado, green and 0.8 of his size; the cloud climbs him from the ground as he writhes, is thickest about halfway, and thins away by 0.9 of the clip. He goes black and red little by little, from 0.15 to 0.7 of it, his horns growing as he does (the user: not all at once; at first he was changed in a moment under the cloud); dying, he goes back to his own colours so. Tongues of black fire, a faint red within them, lick up through it (the user).
 
 ## Coming into a dead one (`poseer` in the gallery, `SUMMON`)
 Lying as a dead apestado, a rope of black smoke and souls comes over to him and goes into him (1.4 s); he gets up out of it (Mixamo's Getting Up, the user's, 4 November 2026: `levantado`, frames 1 to 155, `--ground`, quickened 1.6 times), possessed as he does under the cloud, and goes through his agony. In the gallery only as yet: in the game he still goes from lying straight to his agony.
