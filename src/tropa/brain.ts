@@ -388,13 +388,17 @@ export class TroopBrain {
           return { retch: { x: this.x, y: this.y, dx: this.dir.x, dy: this.dir.y } };
         }
         if (k.leap && this.leaping <= 0 && far >= k.leap.from && far <= k.leap.to + k.leap.reach) {
-          this.enter('leap');
-          this.done = false;
           // Where she stands now, no further than he can leap: the ring there gives her the crouch and the leap to be out of it.
-          const reach = Math.min(far, k.leap.to) / far;
-          this.from = { x: this.x, y: this.y };
-          this.landing = { x: this.x + to.x * reach, y: this.y + to.y * reach * ISO_Y };
-          return { leap: { ...this.landing } };
+          const reach = Math.min(far, k.leap.to) / far, landing = { x: this.x + to.x * reach, y: this.y + to.y * reach * ISO_Y };
+          // Never onto ground he could not stand on.
+          if (!this.ground || this.ground(landing.x, landing.y)) {
+            this.enter('leap');
+            this.done = false;
+            this.from = { x: this.x, y: this.y };
+            this.landing = landing;
+            return { leap: { ...landing } };
+          }
+          this.leaping = 1;
         }
         if (k.signals && this.signalling <= 0 && this.still <= 0 && far > (k.blow?.near ?? 0) * 1.5) { this.enter('signal'); this.done = false; return NOTHING; }
         if (k.lunge && this.lunging <= 0 && this.still <= 0 && far >= k.lunge.from && far <= k.lunge.to) { this.enter('lunge'); this.done = false; return NOTHING; }

@@ -2,9 +2,9 @@ import Phaser from 'phaser';
 import { BALL, Bolts, EMBER, SHOT } from '../bolts';
 import { Realista } from '../realista/Realista';
 import { Trooper } from '../tropa/Trooper';
-import { inPool, Plague, PLAGUE, VOMIT, type Pool } from '../tropa/vomit';
+import { BILE, inPool, Plague, PLAGUE, VOMIT, type Pool } from '../tropa/vomit';
 import { inBlast, plan, SALVO, type Blast, type SalvoKind } from '../tropa/battery';
-import { KINDS, type Kind, type KindName } from '../tropa/brain';
+import { KINDS, possessed, type Kind, type KindName } from '../tropa/brain';
 import type { Flames } from '../machi/flames';
 import { cheats, tune } from '../tuning';
 import { Charge, ULTIMATE } from '../machi/ultimate';
@@ -41,6 +41,7 @@ import { Country, loadCountry, loadFences, raiseBuildings, raiseFences } from '.
 import { arenaDeRoca } from '../world/maps/arena';
 import { WekufeMind } from '../tropa/wekufe';
 import { WRAITH_REACH } from '../three/wekufe';
+import { DEATH, LEAP } from '../three/poseido';
 import { vadoDeLasVizcachas } from '../world/maps/vado';
 import { Forest, loadScenery } from '../world/scenery';
 import { garrison, type Post } from '../world/garrison';
@@ -115,7 +116,7 @@ const CABRAL_LOCK = { reach: BALL.range, keep: BALL.range * 1.4 };
 // the way points, and how long an arm let go is kept up waiting to go off.
 const SABRE_SEEKS = 110, MUSKET_AIMS = 220, LOOSE = 1.2;
 /** The kinds of the king's men that have a model in 3D (three/realista.ts, LOOKS). */
-const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan', 'frontera', 'apestado', 'observador', 'roca', 'wekufe']);
+const IN_3D = new Set(['sargento', 'sableador', 'tirador', 'capitan', 'frontera', 'apestado', 'poseido', 'observador', 'roca', 'wekufe']);
 /** How much of what fire does a foe takes: a soldier's kind may stand it better. */
 const fireproof = (foe: Foe): number => foe instanceof Trooper ? (KINDS[foe.kind] as Kind).fire ?? 1 : 1;
 /**
@@ -250,6 +251,8 @@ const LURK = { near: 260, at: 120, again: 520, lost: 600, after: 3 };
  */
 const WEKUFE_SAYS = {
   hello: 'El Wekufe: «Tu gente me alimenta, machi. Vení.»',
+  /** As he leaves the last of his dead and stands before her himself. */
+  himself: 'El Wekufe deja los muertos y se alza.',
   gone: 'El Wekufe se hunde en la tierra.',
   /** How far before her he is as she comes in, in sight. */
   before: 240,
@@ -257,6 +260,15 @@ const WEKUFE_SAYS = {
   fire: 2,
   shake: { ms: 900, intensity: 0.014 },
 };
+/**
+ * The first part of the Wekufe's fight (docs/personajes/apestado_poseido.md): three of the plague-dead
+ * lying about where he will stand (along the ground from there), into which he goes one after another;
+ * how long he takes going out of one dead and into the next (the possessed's death, DEATH: the last of
+ * it reaching the next body); how many chonchones he lends each (the user: only in this part, not his
+ * own, 4/11/2026), and how far from the possessed they come; the possessed's life bar, so high over him.
+ */
+const POSSESSED = { lying: [[-170, 40], [160, -20], [0, 170]] as [number, number][], passes: DEATH.seconds * (DEATH.leaves[1] + DEATH.travel),
+  chonchones: 2, lent: 90, over: 140 };
 const ROCA = {
   hello: 'Roca: «¡Conocerán la pólvora, mapuches traga plomo! ¡Traguen plomo!»',
   fed: 'Roca: «¡Inútiles! Si quiero el desierto limpio, voy a tener que limpiarlo yo mismo. ¡Ni tu luna te va a salvar ahora!»',
@@ -421,6 +433,8 @@ export class GameScene extends Phaser.Scene {
   private pools: Pool[] = [];
   private readonly plague = new Plague();
   private mired = false;
+  /** How much the pool she stands in slows her. */
+  private mire = PLAGUE.slow;
   /** The battery's blasts still to come, each with the kind of salvo it is of, and the seconds since its salvo was called. */
   private shells: { blast: Blast; kind: SalvoKind; t: number }[] = [];
   /** Roca's riflemen, who hunt her wherever she goes once they have seen her. */
@@ -434,7 +448,11 @@ export class GameScene extends Phaser.Scene {
   private spotter: Trooper | null = null;
   private roca: Trooper | null = null;
   /** The Wekufe's fight: his body, his mind, whether he is dead, whether she has fallen. */
-  private wekufe: { soldier: Trooper; mind: WekufeMind; dead: boolean; fell: boolean } | null = null;
+  /**
+   * The Wekufe's fight: the three dead he goes into first (`bodies`), which of them he is in, how long
+   * since that one died while he goes into the next, the chonchones he has lent; then himself.
+   */
+  private wekufe: { middle: Vec; bodies: Trooper[]; nth: number; passing: number | null; lent: Chonchon[]; soldier?: Trooper; mind?: WekufeMind; dead: boolean; fell: boolean } | null = null;
   private phase = 1;
   private rocaIn = 0;
   private landed = false;
@@ -1066,7 +1084,7 @@ export class GameScene extends Phaser.Scene {
     // With the gamepad he walks as fast as the stick is pushed: all the way over, his full walk.
     const pushed = pad.on && !running && pad.stick ? PAD_CREEP + (1 - PAD_CREEP) * push(pad.stick) : 1;
     // Standing in a plague-dead soldier's pool she is slowed (tropa/vomit.ts).
-    this.machi.pace = tune.speed * (this.wrath.active ? RAGE.pace : 1) * (running ? RUN : pushed) * (this.mired ? PLAGUE.slow : 1);
+    this.machi.pace = tune.speed * (this.wrath.active ? RAGE.pace : 1) * (running ? RUN : pushed) * (this.mired ? this.mire : 1);
     this.machi.haste = this.wrath.active ? RAGE.haste : 1;
     const from = { x: this.machi.x, y: this.machi.y };
     // A dodge is paid for when it begins, once: a press the hero could not act on costs nothing.
@@ -1211,7 +1229,13 @@ export class GameScene extends Phaser.Scene {
       const salvo = (deed as { salvo?: { kind: string; x: number; y: number } }).salvo;
       if (salvo && salvo.kind in SALVO) this.bombard(salvo.kind as SalvoKind, salvo);
       const retch = (deed as { retch?: { x: number; y: number; dx: number; dy: number } }).retch;
-      if (retch && realista instanceof Trooper && realista.brain.kind.retch) this.pools.push({ ...retch, tall: realista.brain.kind.retch.tall, t: 0 });
+      if (retch && realista instanceof Trooper && realista.brain.kind.retch) this.pools.push({ ...retch, tall: realista.brain.kind.retch.tall, t: 0, bile: realista.kind === 'poseido' });
+      // A possessed one lands from his leap and strikes the ground: felt, and it hurts her if she is still in its ring.
+      const slam = (deed as { slam?: { hit: boolean; damage: number } }).slam;
+      if (slam) {
+        this.three?.jolt(LEAP.jolt.seconds, LEAP.jolt.pixels, true);
+        if (slam.hit && !drawn) this.hurt(slam.damage);
+      }
       // A captain calls up more of his men.
       const call = (deed as { call?: { many: number; most: number } }).call;
       if (call && realista instanceof Trooper) this.reinforce(realista, call);
@@ -1437,7 +1461,7 @@ export class GameScene extends Phaser.Scene {
         fallen: !this.vitals.standing, dashTime: this.machi.kit.dash?.time ?? 0.5, trail: true,
         // The plague on her, fading over its last second.
         sick: Math.min(1, this.plague.left),
-      }, this.realistas.filter((r): r is Realista | Trooper => r instanceof Realista || (IN_3D.has(r.kind) && r.kind !== 'wekufe')));
+      }, this.realistas.filter((r): r is Realista | Trooper => r instanceof Realista || (IN_3D.has(r.kind) && r.kind !== 'wekufe' && r.kind !== 'poseido')));
       // Framed a little above his feet, so his body is in the middle.
       // Her orbs are drawn in 3D, lit: in flight, and those her kills leave on the ground.
       if (this.overlaid) this.three.lights(dt, this.bolts.flying, this.orbs.map(o => {
@@ -1984,25 +2008,102 @@ export class GameScene extends Phaser.Scene {
     this.board?.say(ROCA.hello);
   }
 
-  /** The Wekufe alone on her clearing, in sight before her, to try his fight out: only himself as yet, his possessed dead still to come. */
+  /**
+   * The Wekufe's fight on her clearing, to try it out (the cave is still to come): three of the
+   * plague-dead lying before her, the first of them taken by him at once; himself once the three are down.
+   */
   private musterWekufe(): void {
     const before = { x: this.machi.x, y: this.machi.y - WEKUFE_SAYS.before * ISO_Y };
     const middle = this.walkable(before.x, before.y) ? before : this.map?.round ?? before;
+    const bodies: Trooper[] = [];
+    POSSESSED.lying.forEach(([dx, dy], nth) => {
+      const at = { x: middle.x + dx, y: middle.y + dy * ISO_Y };
+      const spot = this.walkable(at.x, at.y) ? at : middle;
+      // Each quicker than the one before him; lying dead until the Wekufe comes into him, and not up again by himself once down.
+      const body = new Trooper(this, 'poseido', spot.x, spot.y, possessed(nth)).hold(this.walkable);
+      body.brain.vanish();
+      this.realistas.push(body);
+      this.physics.add.overlap(this.bolts.bodies, body.zone, this.struck);
+      this.column.add(body);
+      bodies.push(body);
+    });
+    this.wekufe = { middle, bodies, nth: 0, passing: null, lent: [], dead: false, fell: false };
+    this.possess(0);
+    this.board?.say(WEKUFE_SAYS.hello);
+  }
+
+  /** The Wekufe comes into the `nth` of his dead, and lends him chonchones. */
+  private possess(nth: number): void {
+    const fight = this.wekufe;
+    const body = fight?.bodies[nth];
+    if (!fight || !body) return;
+    body.brain.possess({ x: this.machi.x, y: this.machi.y });
+    body.brain.relentless = true;
+    const bounds = { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height };
+    for (let n = 0; n < POSSESSED.chonchones; n++) {
+      const a = (n / POSSESSED.chonchones) * Math.PI * 2 + Math.random();
+      const one = new Chonchon(this, body.ground.x + Math.cos(a) * POSSESSED.lent, body.ground.y + Math.sin(a) * POSSESSED.lent * ISO_Y, bounds);
+      // Lent for this part of his fight only: not back once down.
+      one.brain.returns = false;
+      this.chonchones.push(one);
+      fight.lent.push(one);
+      this.physics.add.overlap(this.bolts.bodies, one.zone, this.struck);
+    }
+  }
+
+  /** The three dead all down: the Wekufe himself, where the last of his smoke went, and his chonchones taken back. */
+  private rouseWekufe(): void {
+    const fight = this.wekufe;
+    if (!fight) return;
+    const { middle } = fight;
     const soldier = this.enlist('wekufe', middle.x, middle.y, { minX: 0, maxX: this.size.width, minY: 0, maxY: this.size.height }).hold(this.walkable);
     if (!(soldier instanceof Trooper)) return;
     this.realistas.push(soldier);
     this.physics.add.overlap(this.bolts.bodies, soldier.zone, this.struck);
     // Not up again by himself once down.
     this.column.add(soldier);
-    this.wekufe = { soldier, mind: new WekufeMind(middle.x, middle.y, WRAITH_REACH * 150 * UPRIGHT, this.walkable), dead: false, fell: false };
-    this.board?.say(WEKUFE_SAYS.hello);
+    fight.soldier = soldier;
+    fight.mind = new WekufeMind(middle.x, middle.y, WRAITH_REACH * 150 * UPRIGHT, this.walkable);
+    for (const one of fight.lent) one.brain.fall();
+    this.board?.say(WEKUFE_SAYS.himself);
+  }
+
+  /**
+   * The first part of his fight: the dead he is in fights her as his brain has him; killed, the
+   * Wekufe goes out of him into the next (the body left lying); she fallen and back, the one he is in is whole again.
+   */
+  private fightPossessed(dt: number): void {
+    const fight = this.wekufe;
+    if (!fight || !this.three) return;
+    const { bodies } = fight, body = bodies[fight.nth];
+    if (!this.vitals.standing) fight.fell = true;
+    else if (fight.fell) {
+      fight.fell = false;
+      if (body?.alive) body.brain.life = body.brain.max;
+    }
+    if (body && !body.alive && fight.passing === null) fight.passing = 0;
+    if (fight.passing !== null) {
+      fight.passing += dt;
+      if (fight.passing >= POSSESSED.passes) {
+        fight.passing = null;
+        fight.nth++;
+        if (fight.nth < bodies.length) this.possess(fight.nth);
+        else this.rouseWekufe();
+      }
+    }
+    // As one dies the Wekufe goes to the next of them, or, from the last, to where he will stand himself.
+    this.three.poseidos(dt, bodies, who => who === body ? bodies[fight.nth + 1]?.ground ?? fight.middle : null);
+    const shown = body?.alive && !body.brain.under;
+    this.three.life('poseido', shown ? body.ground : null, POSSESSED.over, body ? body.brain.life / body.brain.max : null);
   }
 
   /** The Wekufe's fight: his mind goes about it, his body (a soldier's, to be struck) goes with it, and what he does to her is taken here. */
   private fightWekufe(dt: number): void {
     const fight = this.wekufe;
     if (!fight || !this.three) return;
+    this.fightPossessed(dt);
     const { soldier, mind } = fight, her = { x: this.machi.x, y: this.machi.y };
+    if (!soldier || !mind) return;
     // She has fallen and is back: he is whole again, as she is.
     if (!this.vitals.standing) fight.fell = true;
     else if (fight.fell) {
@@ -2114,8 +2215,11 @@ export class GameScene extends Phaser.Scene {
     const feet = { x: this.machi.x, y: this.machi.y };
     for (const pool of this.pools) pool.t += dt;
     this.pools = this.pools.filter(pool => pool.t < VOMIT.to + VOMIT.lies + VOMIT.dries);
-    this.mired = this.vitals.standing && !this.machi.isDashing && this.pools.some(pool => inPool(pool, feet));
-    if (this.mired) this.plague.catch();
+    const pool = this.vitals.standing && !this.machi.isDashing ? this.pools.find(p => inPool(p, feet)) : undefined;
+    this.mired = !!pool;
+    // The possessed's black bile burns more and slows less.
+    this.mire = pool?.bile ? BILE.slow : PLAGUE.slow;
+    if (pool) this.plague.catch(pool.bile ? BILE : PLAGUE);
     // Drained little by little, seen going from her life; no flash of a blow (she throbs green, three/inti.ts).
     const drained = this.plague.update(dt);
     if (drained > 0 && !cheats.unhurt && this.vitals.standing) {

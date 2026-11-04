@@ -15,6 +15,7 @@ import { mountPanel } from './panel';
 import { People } from './people';
 import { Royalists, type Royalist } from './realista';
 import { WekufeFigure } from './wekufeFigure';
+import { PoseidoFigure, type Possessed3D } from './poseidoFigure';
 import type { WekufeMind } from '../tropa/wekufe';
 import { Shots, type Strikes } from './shot';
 import { Battery3D } from './battery';
@@ -67,6 +68,7 @@ type Chonchon = { readonly mind: ChonchonBrain; readonly struck: number; readonl
 export class World3D {
   readonly view: View;
   private wekufeFigure: WekufeFigure | null = null;
+  private readonly possessed = new Map<Possessed3D, PoseidoFigure>();
   /** Whoever plays this map: Cabral, or Inti. */
   readonly hero: CabralFigure | IntiFigure;
   /** Her nahuel, where it is she who plays. */
@@ -507,6 +509,24 @@ export class World3D {
   /** A fallen royalist is taken off the field where he lies, he and his blood. */
   bury(who: Royalist): void {
     this.royalists.bury(who);
+  }
+
+  /** The possessed apestados of the Wekufe's fight, each as he is this step; `next`, where the Wekufe goes as one of them dies. */
+  poseidos(dt: number, list: readonly Possessed3D[], next: (who: Possessed3D) => Vec | null): void {
+    for (const who of list) {
+      let figure = this.possessed.get(who);
+      if (!figure) {
+        figure = new PoseidoFigure();
+        this.possessed.set(who, figure);
+        this.view.scene.add(figure.group);
+      }
+      figure.update(dt, who, next(who));
+    }
+    for (const [who, figure] of this.possessed) {
+      if (list.includes(who)) continue;
+      figure.remove();
+      this.possessed.delete(who);
+    }
   }
 
   /** The Wekufe, as he is this step, once there is one on the field; whether his red fire has reached her. */

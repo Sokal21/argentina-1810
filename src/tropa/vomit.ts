@@ -24,6 +24,9 @@ export const wideAt = (d: number) => VOMIT.wide[0] + (VOMIT.wide[1] - VOMIT.wide
  * her healing nor guards her from the next blow, and her healing ritual rids her of it.
  */
 export const PLAGUE = { slow: 0.6, lasts: 4, damage: 0.5 };
+/** The possessed apestado's black bile: it burns more and slows less (the user, 4/11/2026). */
+export const BILE = { slow: 0.8, lasts: 3, damage: 1 };
+export type Sickness = typeof PLAGUE;
 
 /**
  * How far past the pool's drawn edges it still catches her, a share of his height: its splashes and
@@ -33,7 +36,7 @@ export const PLAGUE = { slow: 0.6, lasts: 4, damage: 0.5 };
 const MARGIN = 0.14, ENDS = 0.45;
 
 /** One pool: where he stood, the way he faced (along the ground, not foreshortened), how tall he is, how long since he began to retch. */
-export interface Pool { x: number; y: number; dx: number; dy: number; tall: number; t: number }
+export interface Pool { x: number; y: number; dx: number; dy: number; tall: number; t: number; bile?: boolean }
 
 /** How far it has spread, 0 to 1, as the 3D pool spreads (three/vomit.ts). */
 export function spread(t: number): number {
@@ -62,14 +65,17 @@ export function inPool(pool: Pool, at: Vec): boolean {
 /** The plague on her: how long it has left. */
 export class Plague {
   left = 0;
+  /** What it is: the plague-dead's plague, or the possessed's bile. */
+  how: Sickness = PLAGUE;
 
   get on(): boolean {
     return this.left > 0;
   }
 
   /** She stepped in it: plagued afresh, for all of its time. */
-  catch(): void {
-    this.left = PLAGUE.lasts;
+  catch(how: Sickness = PLAGUE): void {
+    this.how = how;
+    this.left = how.lasts;
   }
 
   /** Rid of it, by her healing. */
@@ -82,6 +88,6 @@ export class Plague {
     if (!this.on) return 0;
     const spent = Math.min(dt, this.left);
     this.left -= spent;
-    return PLAGUE.damage * spent / PLAGUE.lasts;
+    return this.how.damage * spent / this.how.lasts;
   }
 }

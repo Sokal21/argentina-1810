@@ -188,6 +188,8 @@ export class Possessed {
   private readonly struck = new THREE.Vector3();
   private readonly head: THREE.Object3D | undefined;
   private dying: { t: number; gone: boolean } | null = null;
+  /** Where the Wekufe goes as he dies: the next body (in the gallery, off to one side). */
+  private next: THREE.Vector3 | null = null;
   private readonly heldSize = new THREE.Vector3();
 
   constructor(private readonly body: THREE.Object3D, private readonly tall: number) {
@@ -303,16 +305,28 @@ export class Possessed {
   }
 
   /** He is killed: the Wekufe leaves by his mouth for the next body, and what falls is a dead apestado, to lie there. */
-  dies(): void {
+  dies(to?: THREE.Vector3): void {
     this.possessed();
     this.dying = { t: 0, gone: false };
+    this.next = to ?? null;
+  }
+
+  /** Lying as a dead apestado, as the Wekufe left him or before it has come into him. */
+  lies(): void {
+    this.possessed();
+    this.changed(false);
+    this.body.scale.setScalar(this.size * POSSESSION.small);
+    this.held.scale.copy(this.heldSize).multiplyScalar(0);
   }
 
   /** Where the Wekufe has got to, `u` of the way from his mouth to the next body, off to one side: out of him and over in an arc, down into the ground. */
   private path(u: number, into: THREE.Vector3): THREE.Vector3 {
     this.head?.getWorldPosition(this.across);
-    const v = 1 - u, far = DEATH.next * this.tall, high = DEATH.arc * this.tall;
-    return into.set(v * v * this.across.x + 2 * v * u * (this.across.x + far * 0.4) + u * u * far, v * v * this.across.y + 2 * v * u * high, v * v * this.across.z + 2 * v * u * this.across.z);
+    const v = 1 - u, high = DEATH.arc * this.tall;
+    const to = this.next ?? new THREE.Vector3(DEATH.next * this.tall, 0, this.across.z);
+    // Over the middle of the way, high, coming down into the ground there.
+    const midX = (this.across.x + to.x) / 2, midZ = (this.across.z + to.z) / 2;
+    return into.set(v * v * this.across.x + 2 * v * u * midX + u * u * to.x, v * v * this.across.y + 2 * v * u * (Math.max(this.across.y, to.y) + high) + u * u * to.y, v * v * this.across.z + 2 * v * u * midZ + u * u * to.z);
   }
 
   private death(dt: number): void {
@@ -384,14 +398,17 @@ export class Possessed {
    * His leap, `into` seconds in, his clip played as it is: crouched, a red ring on the ground filling up where he will land; up and through the air;
    * then both hands on the ground, the ring going out, red cracks, black dust and fire. Says when the blow falls.
    */
-  leap(into: number, dt: number, motion: Motion): boolean {
-    const { springs, lands, crouch, air, far, reach, after } = LEAP, long = motion.seconds('salto'), down = crouch + air, wide = reach * this.tall, target = far * this.tall;
+  leap(into: number, dt: number, motion: Motion, game?: { to: THREE.Vector3; wide: number }): boolean {
+    // In the gallery he goes forward along +z himself; in the game his brain carries him to where he lands (`to`), the ring as wide as his blow reaches.
+    const { springs, lands, crouch, air, far, reach, after } = LEAP, long = motion.seconds('salto'), down = crouch + air, wide = game?.wide ?? reach * this.tall, target = far * this.tall;
     const q = Math.min(0.999, into < crouch ? springs * into / crouch : into < down ? springs + (lands - springs) * (into - crouch) / air : lands + (into - down) / long);
     motion.hold('salto', q, { blend: into < 0.1 ? 0.15 : 0 });
-    this.body.position.z = forward(q) * this.tall;
+    if (!game) this.body.position.z = forward(q) * this.tall;
     if (into < down) {
       this.body.getWorldPosition(this.at);
-      for (const ring of [this.mark, this.filling]) { ring.visible = true; ring.position.set(this.at.x, 0.6, target); }
+      if (game) this.at.copy(game.to);
+      else this.at.z = target;
+      for (const ring of [this.mark, this.filling]) { ring.visible = true; ring.position.set(this.at.x, this.at.y + 0.6, this.at.z); }
       this.mark.scale.setScalar(wide);
       this.filling.scale.setScalar(Math.max(0.01, wide * into / down));
       return false;
@@ -403,14 +420,16 @@ export class Possessed {
       this.shock.visible = this.cracks.mesh.visible = true;
       // Where his hands come down.
       const left = this.body.getObjectByName('L_Hand'), right = this.body.getObjectByName('R_Hand');
-      if (left && right) { left.getWorldPosition(this.at); right.getWorldPosition(this.across); this.at.add(this.across).multiplyScalar(0.5); this.struck.set(this.at.x, 0, this.at.z); }
+      const floor = game?.to.y ?? 0;
+      if (left && right) { left.getWorldPosition(this.at); right.getWorldPosition(this.across); this.at.add(this.across).multiplyScalar(0.5); this.struck.set(this.at.x, floor, this.at.z); }
+      else if (game) this.struck.copy(game.to);
       else this.struck.set(this.at.x, 0, target);
       this.at.copy(this.struck);
-      this.shock.position.set(this.at.x, 0.6, this.at.z);
+      this.shock.position.set(this.at.x, this.at.y + 0.6, this.at.z);
       this.crack();
       for (const d of this.dusts) {
         const angle = Math.random() * Math.PI * 2, out = r(LEAP.dust.out) * this.tall;
-        d.at.set(this.at.x + Math.cos(angle) * wide * 0.3, 4, this.at.z + Math.sin(angle) * wide * 0.3);
+        d.at.set(this.at.x + Math.cos(angle) * wide * 0.3, this.at.y + 4, this.at.z + Math.sin(angle) * wide * 0.3);
         d.way.set(Math.cos(angle) * out, r(LEAP.dust.up) * this.tall, Math.sin(angle) * out);
         d.size = r(LEAP.dust.size) * this.tall;
         d.spin = Math.random() * Math.PI * 2;
@@ -439,7 +458,7 @@ export class Possessed {
       const angle = (l + Math.random() * 0.7) / kept * Math.PI * 2, far = (0.45 + Math.random() * 0.5) * LEAP.reach * this.tall * 1.3, line: THREE.Vector3[] = [];
       for (let p = 0; p < points; p++) {
         const k = p / (points - 1), off = p ? (Math.random() - 0.5) * jag * this.tall : 0;
-        line.push(new THREE.Vector3(this.at.x + Math.cos(angle) * far * k - Math.sin(angle) * off, 1, this.at.z + Math.sin(angle) * far * k + Math.cos(angle) * off));
+        line.push(new THREE.Vector3(this.at.x + Math.cos(angle) * far * k - Math.sin(angle) * off, this.at.y + 1, this.at.z + Math.sin(angle) * far * k + Math.cos(angle) * off));
       }
       this.cracked.push(line);
     }

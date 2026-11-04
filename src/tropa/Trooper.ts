@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { HitFX } from '../fx/HitFX';
 import type { Vec } from '../machi/controller';
 import type { Footprint } from '../world/footprint';
-import { DYING, KINDS, TroopBrain, type Deed, type KindName } from './brain';
+import { DYING, KINDS, TroopBrain, type Deed, type Kind, type KindName } from './brain';
 import { LOOKS, type Look, type Sheet } from './looks';
 
 // One of the king's other men on screen: draws what its brain is doing and
@@ -29,8 +29,9 @@ export class Trooper {
   /** Seconds since he last fired, while the recoil shows. */
   private kick = Infinity;
 
-  constructor(scene: Phaser.Scene, readonly kind: KindName, x: number, y: number) {
-    this.brain = new TroopBrain(KINDS[kind], x, y);
+  /** `made`, his kind as made for him, if not just as KINDS has it (the possessed, each quicker than the last). */
+  constructor(scene: Phaser.Scene, readonly kind: KindName, x: number, y: number, made?: Kind) {
+    this.brain = new TroopBrain(made ?? KINDS[kind], x, y);
     this.look = LOOKS[kind];
     this.shown = this.brain.life;
     const first = this.look.walk ?? this.look.aim ?? this.look.death;

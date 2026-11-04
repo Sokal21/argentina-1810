@@ -56,6 +56,9 @@ export class ChonchonBrain {
   private snapped = false;
   private home: Vec;
 
+  /** Back by itself after a while; not one the Wekufe lent for a while (his fight's first part). */
+  returns = true;
+
   constructor(x: number, y: number, private bounds?: Bounds, private rnd: () => number = Math.random) {
     this.x = x;
     this.y = y;
@@ -134,7 +137,7 @@ export class ChonchonBrain {
         if (this.t >= DYING) this.enter('gone');
         return false;
       case 'gone':
-        if (this.t >= RESPAWN) this.respawn();
+        if (this.returns && this.t >= RESPAWN) this.respawn();
         return false;
     }
   }
@@ -197,6 +200,12 @@ export class ChonchonBrain {
     this.enter('fly');
     this.z = HOVER;
     this.wait = this.between(WAIT);
+  }
+
+  /** Brought down at once, whatever its life, and not back. */
+  fall(): void {
+    this.returns = false;
+    if (this.alive) this.enter('dying');
   }
 
   private respawn(): void {

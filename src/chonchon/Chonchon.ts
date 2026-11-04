@@ -41,7 +41,7 @@ export class Chonchon {
   /** Invisible box over its head, which the physics engine tests against. */
   readonly zone: Phaser.GameObjects.Zone;
 
-  private brain: ChonchonBrain;
+  readonly brain: ChonchonBrain;
   private sprite: Phaser.GameObjects.Sprite;
   private shadow: Phaser.GameObjects.Ellipse;
   private barBack: Phaser.GameObjects.Rectangle;
