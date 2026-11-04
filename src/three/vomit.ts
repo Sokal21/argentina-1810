@@ -14,13 +14,17 @@ export { VOMIT };
 // him), spreading out as it comes. The pool stays a while and dries away. Whoever stands in it is
 // slowed and plagued (tropa/vomit.ts).
 
-/** The spray: how many drops kept, thrown a second, how fast, how big (a share of his height), how heavy; its colours. */
-const SPRAY = { kept: 90, rate: 70, up: [-30, 40], size: [0.035, 0.07], fall: 420, colours: ['#7f9c2e', '#94b236', '#5f7a22'] };
-/** The pool's colours: its body, its splashes, a few sickly bright spots; how thick it lies. */
-const POOL = { body: '#4f6420', splash: '#728f2a', bright: '#a3cf3c', thick: 0.88 };
+/** The spray: how many drops kept, thrown a second, how fast, how big (a share of his height), how heavy. */
+const SPRAY = { kept: 90, rate: 70, up: [-30, 40], size: [0.035, 0.07], fall: 420 };
+/** How thick the pool lies. */
+const POOL = { thick: 0.88 };
+/** Its bubbles: how many kept, how many rise a second, how long one swells before it bursts, how big (a share of his height). */
+const BUBBLES = { kept: 44, rate: 18, swell: [0.4, 0.9], size: [0.06, 0.13] };
 
-/** Its bubbles: how many kept, how many rise a second, how long one swells before it bursts, how big (a share of his height), their colour. */
-const BUBBLES = { kept: 44, rate: 18, swell: [0.4, 0.9], size: [0.06, 0.13], colour: '#d2f070' };
+/** What it is coloured: the spray's colours; the pool's body, its splashes, a few bright spots; its bubbles. */
+export interface VomitLook { spray: string[]; body: string; splash: string; bright: string; bubble: string }
+/** The plague-dead soldier's: sickly green. */
+export const GREEN: VomitLook = { spray: ['#7f9c2e', '#94b236', '#5f7a22'], body: '#4f6420', splash: '#728f2a', bright: '#a3cf3c', bubble: '#d2f070' };
 
 /** A drop of the spray: where it is, its speed, how big. The drops are all one mesh (billboards.ts), each a copy of it by its index. */
 interface Drop { at: THREE.Vector3; v: THREE.Vector3; size: number }
@@ -72,9 +76,10 @@ function bubble(): THREE.Texture {
 }
 
 /** The pool's picture: the cut cone, its near end along the top (laid flat, the end toward him), blotched, ragged at its edges, thinning outward. */
-let pooled: THREE.Texture | null = null;
-function poolPicture(): THREE.Texture {
-  if (pooled) return pooled;
+const pooled = new Map<VomitLook, THREE.Texture>();
+function poolPicture(look: VomitLook): THREE.Texture {
+  const had = pooled.get(look);
+  if (had) return had;
   const size = 256, canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const g = canvas.getContext('2d')!;
@@ -101,11 +106,11 @@ function poolPicture(): THREE.Texture {
       g.fill();
     }
   };
-  blob(POOL.body, 320, [6, 14], 0.95);
-  blob(POOL.splash, 140, [3, 9], 0.9);
-  blob(POOL.bright, 40, [1.5, 4], 0.85, 0.9);
+  blob(look.body, 320, [6, 14], 0.95);
+  blob(look.splash, 140, [3, 9], 0.9);
+  blob(look.bright, 40, [1.5, 4], 0.85, 0.9);
   // Splashes thrown off past its edges, small.
-  g.fillStyle = POOL.splash;
+  g.fillStyle = look.splash;
   for (let i = 0; i < 70; i++) {
     const d = rnd(), sideways = rnd() < 0.5 ? -1 : 1, past = 1 + 0.06 + rnd() * 0.18;
     g.globalAlpha = 0.85;
@@ -116,15 +121,16 @@ function poolPicture(): THREE.Texture {
   g.globalAlpha = 1;
   const texture = new THREE.CanvasTexture(canvas);
   texture.magFilter = texture.minFilter = THREE.NearestFilter;
-  return pooled = texture;
+  pooled.set(look, texture);
+  return texture;
 }
 
 export class Vomit {
   readonly group = new THREE.Group();
   /** The pool, grown out from its near end: its pivot is there. */
-  private readonly pivot = new THREE.Group();
+  protected readonly pivot = new THREE.Group();
   /** Turned his way, the pool on it at its near end. */
-  private readonly turned = new THREE.Group();
+  protected readonly turned = new THREE.Group();
   private readonly pool: THREE.Mesh;
   /** The spray's drops, drawn in one call; and the bubbles, in another. */
   private readonly spray = new Billboards(SPRAY.kept);
@@ -133,20 +139,20 @@ export class Vomit {
   private readonly bubbles: Bubble[] = [];
   /** How far it has dried, 0 to 1, as the pool's shader reads it. */
   /** How far it has spread, 0 to 1, as the pool's shader reads it. */
-  private readonly grown = { value: 0 };
-  private readonly dried = { value: 0 };
+  protected readonly grown = { value: 0 };
+  protected readonly dried = { value: 0 };
   private readonly mouth = new THREE.Vector3();
   private head: THREE.Object3D | null = null;
   private readonly ahead = new THREE.Vector3();
   private readonly side = new THREE.Vector3();
   private readonly lands = new THREE.Vector3();
-  private time = -1;
+  protected time = -1;
 
-  /** `body` is his model, already scaled; `tall` his height in the world's units. */
-  constructor(private readonly body: THREE.Object3D, private readonly tall: number) {
+  /** `body` is his model, already scaled; `tall` his height in the world's units; `look` what it is coloured. */
+  constructor(protected readonly body: THREE.Object3D, protected readonly tall: number, look: VomitLook = GREEN) {
     const long = tall * (VOMIT.reach - VOMIT.near), wide = tall * VOMIT.wide[1];
     const material = flat('#ffffff');
-    Object.assign(material, { map: poolPicture(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+    Object.assign(material, { map: poolPicture(look), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
     // Drying, it goes unevenly: wherever the order it dries in is under how far it has dried.
     const order = dryOrder();
     // Spreading, it is shown only as far out from its near end (the top of its picture) as it has
@@ -169,12 +175,12 @@ export class Vomit {
     this.group.add(this.turned);
     this.turned.add(this.pivot);
     for (let i = 0; i < SPRAY.kept; i++) {
-      this.spray.colour(i, SPRAY.colours[i % SPRAY.colours.length]);
+      this.spray.colour(i, look.spray[i % look.spray.length]);
       this.drops.push({ at: new THREE.Vector3(), v: new THREE.Vector3(), size: 0 });
     }
     this.group.add(this.spray.mesh);
     for (let i = 0; i < BUBBLES.kept; i++) {
-      this.froth.colour(i, BUBBLES.colour);
+      this.froth.colour(i, look.bubble);
       this.bubbles.push({ at: new THREE.Vector3(), t: 0, life: 0, size: 0 });
     }
     this.turned.add(this.froth.mesh);
@@ -207,6 +213,15 @@ export class Vomit {
     this.froth.commit();
     this.head = this.body.getObjectByName('Head') ?? null;
     this.group.visible = true;
+  }
+
+  /** A point somewhere well within the pool, as far as it has spread, in the group's own axes, a little over the ground. */
+  protected within(into: THREE.Vector3): THREE.Vector3 {
+    const along = 0.1 + Math.random() * 0.8, tall = this.tall, grown = this.grown.value;
+    into.set((Math.random() - 0.5) * wideAt(along) * tall * 0.7 * (0.5 + 0.5 * grown), 0, this.pivot.position.z + along * (VOMIT.reach - VOMIT.near) * tall * grown);
+    this.turned.localToWorld(into);
+    into.y = heightAt(into.x, into.z * ISO_Y) + 2;
+    return into.sub(this.group.position);
   }
 
   stop(): void {

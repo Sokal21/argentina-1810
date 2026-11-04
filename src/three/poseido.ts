@@ -3,6 +3,7 @@ import { Billboards } from './billboards';
 import type { Motion } from './motion';
 import { flat } from './paint';
 import { unlitShader } from './pixels';
+import { Vomit, type VomitLook } from './vomit';
 import { DODGE, lumps, soft, Streaks } from './wekufe';
 
 // The plague-dead soldier with the Wekufe in him (docs/personajes/apestado_poseido.md): the same model
@@ -571,5 +572,86 @@ export class Possessed {
     });
     this.tongues.commit();
     this.dodges.commit();
+  }
+}
+
+/** His retching, as the Wekufe has made it: black bile, a little red glowing in it, the pool it leaves black, smoking and burning. */
+const BLACK_BILE: VomitLook = { spray: ['#0a0708', '#1a0d0c', '#2e0a06'], body: '#0c0809', splash: '#1d1012', bright: '#e0301c', bubble: '#ff5030' };
+/**
+ * What rises from the pool: puffs of black smoke (how many kept, how many a second, how long each, how fast up, how big as shares of his height, how thick)
+ * and tongues of black fire with the red dodge (how many, points along each, how long one lasts, how tall and wide).
+ */
+const BILE = { smoke: { kept: 40, rate: 16, life: [1.2, 2.2], rise: [0.1, 0.2], size: [0.08, 0.16], swell: 2.2, thick: 0.55, colours: ['#2c2629', '#3a3236', '#4a4145'] },
+  fire: { kept: 18, points: 10, life: [0.4, 0.9], tall: [0.1, 0.22], wide: [0.025, 0.05], glow: new THREE.Color(2.2, 0.32, 0.1) } };
+
+/** The possessed soldier's retching: the apestado's (three/vomit.ts), black, its pool smoking and burning. */
+export class Bile extends Vomit {
+  private readonly smoke = new Billboards(BILE.smoke.kept, lumps());
+  private readonly puffs = Array.from({ length: BILE.smoke.kept }, () => ({ at: new THREE.Vector3(), up: 0, t: 0, life: 0, size: 0, spin: 0 }));
+  private readonly fire = new Streaks(BILE.fire.kept, BILE.fire.points, false, true);
+  private readonly flames = Array.from({ length: BILE.fire.kept }, () => ({ at: new THREE.Vector3(), t: 1, life: 0, tall: 0, wide: 0, phase: 0 }));
+  private readonly camera = new THREE.Vector3();
+  private seen = false;
+
+  constructor(body: THREE.Object3D, tall: number) {
+    super(body, tall, BLACK_BILE);
+    for (let i = 0; i < BILE.smoke.kept; i++) this.smoke.colour(i, BILE.smoke.colours[i % BILE.smoke.colours.length]);
+    this.smoke.mesh.renderOrder = 3;
+    this.fire.mesh.renderOrder = 4;
+    this.fire.mesh.onBeforeRender = (_r, _s, camera) => { this.camera.setFromMatrixPosition(camera.matrixWorld).sub(this.group.position); this.seen = true; };
+    this.group.add(this.smoke.mesh, this.fire.mesh);
+  }
+
+  override start(turn?: number): void {
+    super.start(turn);
+    this.smoke.hideAll();
+    this.smoke.commit();
+    for (const f of this.flames) f.t = f.life = 0;
+  }
+
+  override update(dt: number): void {
+    super.update(dt);
+    if (this.time < 0) return;
+    // As much of it as there is pool: spread and not yet dried.
+    const lying = Math.min(1, this.grown.value * 2) * (1 - this.dried.value);
+    const { smoke, fire } = BILE;
+    if (lying > 0.05 && Math.random() < dt * smoke.rate * lying) {
+      const i = this.smoke.free();
+      if (i >= 0) {
+        const p = this.puffs[i];
+        this.within(p.at);
+        p.up = r(smoke.rise) * this.tall; p.t = 0; p.life = r(smoke.life); p.size = r(smoke.size) * this.tall; p.spin = Math.random() * Math.PI * 2;
+        this.smoke.put(i, p.at, 0);
+      }
+    }
+    this.puffs.forEach((p, i) => {
+      if (!this.smoke.shown(i)) return;
+      p.t += dt;
+      const k = p.t / p.life;
+      if (k >= 1) { this.smoke.hide(i); return; }
+      p.at.y += p.up * dt;
+      this.smoke.put(i, p.at, p.size * (1 + (smoke.swell - 1) * k), smoke.thick * Math.sin(Math.PI * Math.min(1, k * 1.3 + 0.05)), p.spin + k);
+    });
+    this.smoke.commit();
+    const up = new THREE.Vector3(0, 1, 0), at = new THREE.Vector3(), across = new THREE.Vector3();
+    this.flames.forEach((f, l) => {
+      f.t += dt;
+      if (f.t >= f.life) {
+        this.within(f.at);
+        f.t = 0; f.life = r(fire.life); f.tall = r(fire.tall) * this.tall; f.wide = r(fire.wide) * this.tall; f.phase = Math.random() * Math.PI * 2;
+      }
+      const life = f.t / f.life, lit = lying * Math.sin(Math.PI * Math.pow(life, 0.6)), tall = f.tall * lit;
+      for (let p = 0; p < fire.points; p++) {
+        const q = p / (fire.points - 1);
+        at.copy(f.at).addScaledVector(up, q * tall);
+        if (this.seen) across.crossVectors(up, this.camera.clone().sub(at)).normalize();
+        else across.set(1, 0, 0);
+        at.addScaledVector(across, Math.sin(q * Math.PI * 2 - this.time * 9 + f.phase) * TONGUES.wave * tall * q);
+        const wide = f.wide * Math.sin(Math.PI / 2 * Math.min(1, q / 0.3)) * Math.pow(1 - q, 0.8);
+        const clear = lit * Math.min(1, q / 0.15) * (1 - q * q);
+        this.fire.put(l, p, at, across, wide, fire.glow, clear);
+      }
+    });
+    this.fire.commit();
   }
 }

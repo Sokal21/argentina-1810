@@ -6,7 +6,7 @@ import { Cart } from './cart';
 import { ChonchonFigure, DRAWN as CHONCHON } from './chonchon';
 import { ChonchonBrain } from '../chonchon/brain';
 import { Spirit } from './spirit';
-import { LEAP, Possessed } from './poseido';
+import { Bile, LEAP, Possessed } from './poseido';
 import { Stench } from './stench';
 import { Wekufe } from './wekufe';
 import { RISE, Rising } from './rising';
@@ -361,7 +361,7 @@ function play(name: string): void {
     if (name === BURST && w.revolver) { it.motion.play('rafaga', { once: true, afresh: true, blend: 0.12 }); continue; }
     if (name === RETCH && w.vomits) {
       let vomit = vomits.get(w);
-      if (!vomit) { vomit = new Vomit(it.body, w.drawn * UPRIGHT); vomits.set(w, vomit); view.scene.add(vomit.group); }
+      if (!vomit) { vomit = w.possessed ? new Bile(it.body, w.drawn * UPRIGHT) : new Vomit(it.body, w.drawn * UPRIGHT); vomits.set(w, vomit); view.scene.add(vomit.group); }
       it.body.rotation.y = turn;
       vomit.start();
       it.motion.play('grito', { once: true, lasts: SCREAM, afresh: true, blend: 0.12 });
