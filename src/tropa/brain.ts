@@ -54,8 +54,10 @@ export interface Kind {
   /**
    * He retches at whoever is between `from` and `to` off: stands, his head thrown at her, for `time`
    * seconds, and not again for `every`. The pool it leaves (tropa/vomit.ts) is laid by one `tall` high.
+   * With `warn`, he first stands that long, still turning after her, a red glow at his mouth (the
+   * warning, to be got out of the way by), and only then retches.
    */
-  retch?: { from: number; to: number; time: number; every: number; tall: number };
+  retch?: { from: number; to: number; time: number; every: number; tall: number; warn?: number };
   /**
    * He leaps at whoever is between `from` and `to` off and brings both hands down on the ground (the possessed apestado's): where he will land is
    * fixed as he crouches, where she stood (no further than `to`); he crouches `crouch` seconds (the warning, a red ring there), is `air` seconds in the air, and
@@ -171,7 +173,7 @@ export const KINDS = {
     id: 'poseido', name: 'Apestado poseído', life: 22, girth: 16, pace: 44, sight: 4000, steady: true, rushes: true,
     blow: { near: 66, time: 2.0, hit: 1.3, reach: 80, rest: 0.5, damage: 3 },
     lunge: { from: 150, to: 380, charge: 0.6, dash: 280, hit: 1.6, reach: 80, time: 2.6, every: 7, track: 0.3 },
-    retch: { from: 80, to: 320, time: 1.5, every: 5, tall: POSEIDO_DRAWN / Math.sqrt(1 - ISO_Y * ISO_Y) },
+    retch: { from: 80, to: 320, time: 1.5, every: 5, warn: 0.7, tall: POSEIDO_DRAWN / Math.sqrt(1 - ISO_Y * ISO_Y) },
     leap: { from: 120, to: 300, crouch: 0.4, air: 0.5, after: 1.6, reach: 75, damage: 3, every: 6 },
     possession: { time: 3.2, under: 2.9 }, worth: 40, spoils: 20,
   },
@@ -385,6 +387,7 @@ export class TroopBrain {
         if (k.retch && this.retching <= 0 && far >= k.retch.from && far <= k.retch.to) {
           this.enter('retch');
           this.look(to);
+          if (k.retch.warn) { this.done = false; return NOTHING; }
           return { retch: { x: this.x, y: this.y, dx: this.dir.x, dy: this.dir.y } };
         }
         if (k.leap && this.leaping <= 0 && far >= k.leap.from && far <= k.leap.to + k.leap.reach) {
@@ -501,10 +504,15 @@ export class TroopBrain {
         if (this.t >= (k.possession?.time ?? 0)) this.enter('stand');
         else if (to) this.look(to);
         return NOTHING;
-      case 'retch':
-        // His head thrown at her the way he began: the pool lies where it was aimed.
-        if (this.t >= k.retch!.time) { this.enter('stand'); this.retching = k.retch!.every; }
-        return NOTHING;
+      case 'retch': {
+        // Warning her first, turning after her; then his head thrown at her the way he was at its end: the pool lies where it was aimed.
+        const r = k.retch!, warn = r.warn ?? 0;
+        if (this.t >= warn + r.time) { this.enter('stand'); this.retching = r.every; return NOTHING; }
+        if (this.t < warn) { if (to) this.look(to); return NOTHING; }
+        if (!warn || this.done) return NOTHING;
+        this.done = true;
+        return { retch: { x: this.x, y: this.y, dx: this.dir.x, dy: this.dir.y } };
+      }
       case 'rise':
         if (this.t >= (k.rises?.time ?? 0)) this.enter('stand');
         else if (to) this.look(to);

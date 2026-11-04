@@ -337,6 +337,21 @@ describe('the possessed plague-dead soldier', () => {
     for (const power of ['blow', 'retch', 'lunge'] as const) expect(KINDS.poseido[power], power).toBeTruthy();
   });
 
+  it('warns before he retches, turning after her, and retches the way she then is', () => {
+    const b = new TroopBrain({ ...KINDS.poseido, leap: undefined, lunge: undefined }, 0, 0, () => 0.5);
+    const warn = KINDS.poseido.retch!.warn!;
+    let at = -1, deed: { retch: { dx: number; dy: number } } | null = null;
+    for (let t = 0; t < 4 && !deed; t += DT) {
+      // Kept ahead of him; once he has begun, gone round to his side.
+      const her = at < 0 ? { x: b.x + 150, y: b.y } : { x: b.x, y: b.y + 150 };
+      const d = b.update(DT, her) as { retch?: { dx: number; dy: number } };
+      if (b.mode === 'retch' && at < 0) at = t;
+      if (d.retch) deed = { retch: d.retch };
+      if (deed) expect(t - at).toBeGreaterThanOrEqual(warn - DT);
+    }
+    expect(deed!.retch.dx).toBeCloseTo(0);
+  });
+
   it('is quicker each time the Wekufe comes into another', () => {
     const [a, b, c] = [0, 1, 2].map(possessed);
     expect(a.pace).toBe(KINDS.poseido.pace);

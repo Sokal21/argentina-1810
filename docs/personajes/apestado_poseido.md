@@ -30,8 +30,8 @@ His own clip, falling; a black cloud gathers on him and hides the change: under 
 The apestado's brain, with all his powers (the user, 30 October 2026) and a leap; drawn 125, life 22 (his 14), pace 44 (his 34), his blow and charge reaching a little further.
 - **Being possessed** (`possess`): 3.2 s, his agony; not to be struck for the first 2.9, while the cloud is on him.
 - **His blow** up close, as the apestado's (3).
-- **His retching**, the black bile, from 80 to 320 off, every 5 s.
-- **His charge**, from 150 to 380, every 7 s.
+- **His retching**, the black bile, from 80 to 320 off, every 5 s. First he warns for 0.7 s, still turning after her, his head held back and a red glow and glint (the royalists' warning, larger) growing at his mouth; then he retches the way he faces (the user, 4 November 2026: so it is seen coming and can be got out of the way of).
+- **His charge**, from 150 to 380, every 7 s. His legs keep running under his swipe as he comes in, as the apestado's do (he slid at the end of it: the user).
 - **His leap**, from 120 to 300 off (and a little past, coming down 300 off): where he will land is fixed as he crouches, where she stood; 0.4 s crouched, 0.5 s in the air, then the blow on the ground, taking 3 from her if she is within 75 of where he lands; 1.6 s getting up; every 6 s. It gives the ring's place as it begins (`leap`) and the blow as he lands (`slam`).
 - **Three of him** (`possessed(nth)`): alike, each quicker than the one before (1, 1.12, 1.25: on his feet, and how soon he blows, retches, charges and leaps again). Proposed by Claude and coded so; the user has not said otherwise.
 

@@ -114,7 +114,7 @@ const TURN = 10, SETTLE = 10;
  * shot it begins and is at its height, and how far it turns (radians). Its rays must stay about a
  * pixel of the picture wide (1.8 units): thinner the pixels ate them, twice that was too thick.
  */
-const WARN = { colour: '#ff3424', from: 1.5, to: 3.5, faint: 0.12, full: 0.45, star: 30, halo: 38, begins: 0.4, height: 0.15, turn: 0.25 };
+export const WARN = { colour: '#ff3424', from: 1.5, to: 3.5, faint: 0.12, full: 0.45, star: 30, halo: 38, begins: 0.4, height: 0.15, turn: 0.25 };
 
 /** The glow's picture: a soft round light, white at the heart. */
 let glowing: THREE.Texture | null = null;
@@ -133,7 +133,7 @@ export function glow(): THREE.Texture {
 
 /** The glint's picture: four thin rays along the diagonals, tapering from a white heart. */
 let starred: THREE.Texture | null = null;
-function star(): THREE.Texture {
+export function star(): THREE.Texture {
   if (starred) return starred;
   const size = 64, half = size / 2, canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
