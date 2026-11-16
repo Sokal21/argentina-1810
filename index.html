@@ -180,6 +180,27 @@
   }
   @media (max-width: 700px) { #dialog-hero { display: none; } #dialog .faces { justify-content: flex-end; } #dialog img { max-width: 70%; } }
 </style>
+<script>
+  // Where there is no console to look at (a phone), what went wrong is written on the screen: an
+  // error, a promise refused, or a 3D canvas lost (the phone taking its memory back). Nothing shows
+  // while all goes well.
+  (() => {
+    const report = text => {
+      let box = document.getElementById('fault');
+      if (!box) {
+        box = document.createElement('pre');
+        box.id = 'fault';
+        box.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:99;margin:0;padding:8px;max-height:60vh;overflow:auto;'
+          + 'background:#300;color:#fdd;font:11px/1.3 ui-monospace,Menlo,monospace;white-space:pre-wrap;user-select:text;';
+        (document.body || document.documentElement).appendChild(box);
+      }
+      box.textContent += text + '\n\n';
+    };
+    addEventListener('error', e => report(e.error?.stack || (e.message ? `${e.message} (${e.filename}:${e.lineno})` : `no se cargó: ${e.target?.src || e.target?.href}`)), true);
+    addEventListener('unhandledrejection', e => report('promesa: ' + (e.reason?.stack || e.reason)));
+    addEventListener('webglcontextlost', e => report('se perdió un lienzo 3D (' + (e.target?.parentElement?.id || e.target?.tagName) + ')'), true);
+  })();
+</script>
 </head>
 <body>
 <div id="world" hidden></div>

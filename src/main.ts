@@ -37,6 +37,10 @@ let quality = (() => { try { return Math.min(LOWEST, Math.max(0, Number(localSto
 const shown = () => Math.min(1, Math.min(innerWidth, innerHeight) / SHORTS[quality]);
 const sized = (k: number) => [Math.ceil(innerWidth / k), Math.ceil(innerHeight / k)] as const;
 
+// Chrome on the iPhone may open the page before it knows how big its window is, 0 by 0, and a game
+// started that small never starts (the screen stays black): it waits for the window to have a size.
+while (!innerWidth || !innerHeight) await new Promise(next => requestAnimationFrame(next));
+
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
@@ -72,6 +76,8 @@ if (import.meta.env.DEV || (devAsked !== null && devAsked !== '0') || devOn) {
 
 // It fills the window, whatever becomes of it: turned on its side, or the browser's bars coming and going.
 const fit = () => {
+  // Nor is it shrunk to nothing, if the window says for a moment it has no size.
+  if (!innerWidth || !innerHeight) return;
   const k = shown(), [width, height] = sized(k);
   if (game.scale.zoom !== k) game.scale.setZoom(k);
   if (game.scale.width !== width || game.scale.height !== height) game.scale.resize(width, height);
