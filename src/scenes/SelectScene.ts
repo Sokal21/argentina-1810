@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { touch } from '../touch';
 import { playMusic } from '../music';
 import type { Hero } from '../machi/data';
+import { openLobby } from '../vs/lobby';
 
 // The screen is laid out on a canvas of this size, shown as large as fits.
 const W = 460, H = 410;
@@ -135,7 +136,15 @@ export class SelectScene extends Phaser.Scene {
       picture.on('pointerdown', () => { if (card.soon) return; this.choose(i); this.leave(); });
     });
 
+    // One against another, online (vs/): a room is made or come into over this screen.
+    const versus = this.add.text(W / 2, 34, touch.on ? '» Versus en línea «' : '» Versus en línea (V) «', {
+      fontFamily: GOTHIC, fontSize: BIG, color: '#ffcf6a', stroke: '#0d0b12', strokeThickness: 4,
+    }).setOrigin(0.5).setScale(HALF).setInteractive({ useHandCursor: true });
+    versus.on('pointerdown', () => this.versus());
+    this.texts.push(versus);
+
     const keys = this.input.keyboard;
+    keys?.on('keydown-V', () => this.versus());
     keys?.on('keydown-LEFT', () => this.choose(0));
     keys?.on('keydown-A', () => this.choose(0));
     keys?.on('keydown-RIGHT', () => this.choose(1));
@@ -146,6 +155,9 @@ export class SelectScene extends Phaser.Scene {
     for (const shown of this.shown) this.show(shown);
     this.choose(this.chosen);
     this.layout();
+    // A shared link to a room (?sala=CODE) goes straight into it.
+    const room = new URLSearchParams(location.search).get('sala');
+    if (room) this.versus(room);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.layout, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off(Phaser.Scale.Events.RESIZE, this.layout, this));
     this.cameras.main.fadeIn(FADE, 6, 10, 20);
@@ -202,6 +214,26 @@ export class SelectScene extends Phaser.Scene {
     // number of screen pixels to each of its own.
     this.back.setScale(Math.ceil(Math.max(width / BACK.w, height / BACK.h)) / zoom);
     for (const text of this.texts) text.setResolution(Math.max(1, zoom) * window.devicePixelRatio);
+  }
+
+  /** The versus lobby, over this screen; while it is open the cards take no keys. */
+  private versus(code?: string): void {
+    if (this.leaving) return;
+    const keys = this.input.keyboard;
+    if (keys) keys.enabled = false;
+    this.input.enabled = false;
+    openLobby(hero => {
+      // The code is not kept in the address: reloading is not coming back into the same room.
+      if (code) history.replaceState(null, '', location.pathname);
+      this.leaving = true;
+      document.body.classList.add('playing');
+      this.scene.launch('hud');
+      this.scene.start('game', { hero, versus: true });
+    }, () => {
+      if (code) history.replaceState(null, '', location.pathname);
+      if (keys) keys.enabled = true;
+      this.input.enabled = true;
+    }, code);
   }
 
   private leave(): void {

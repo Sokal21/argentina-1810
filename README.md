@@ -40,6 +40,20 @@ Con Inti, mantener `Q` muestra dónde va a caer el rayo y soltarla lo lanza.
 Con Cabral, mantener `Q` o `E` prepara el mosquete o la granada, y el clic
 dispara.
 
+## Versus en línea
+
+En la selección de personaje, **Versus en línea** (o `V`) arma un uno contra
+uno. Quien crea la sala elige con quién juega y le pasa el código, o el
+link, al otro, que juega con el personaje que queda. Pelean en el claro de
+la batería, sin enemigos.
+
+La conexión va directo de un navegador al otro (WebRTC, con
+[Trystero](https://github.com/dmotz/trystero)). No hay un servidor del
+juego: para encontrarse, los dos usan relays públicos de Nostr. Cada uno
+simula a su propio personaje y le manda al otro cómo está parado unas veinte
+veces por segundo. Los golpes los decide quien pega, y quien recibe aplica
+el daño, salvo que esté esquivando. Está en [`src/vs/`](src/vs/).
+
 ## Correrlo
 
 Hace falta [Node](https://nodejs.org) y [pnpm](https://pnpm.io).

@@ -74,6 +74,9 @@ import { MODELS } from '../three/buildings';
 import { World3D } from '../three/world3d';
 import { heightAt, PITCH, UPRIGHT } from '../three/space';
 import { extent, letterAt, middle, PLOT_H, PLOT_W, walk, zoneAt, type Charge as Cargo, type Spot, type WorldMap } from '../world/zones';
+import { versus, type Link, type Seen } from '../vs/link';
+import { poseOf, Puppet } from '../vs/puppet';
+import { Rival } from '../vs/rival';
 
 // Screen pixels per sprite pixel: drawn a little smaller than twice, so more of the country is seen
 // round the hero, as in Diablo.
@@ -170,6 +173,17 @@ const FIELD = { width: 1280, height: 800 }; // the bare field, in sprite pixels
 // The map each hero walks; one who has none fights on the bare field.
 // Inti's first map is the clearing where she fights Roca's battery, for now (the user, 28/10/2026); her forest is kept (maps/bosque.ts).
 const MAPS: Partial<Record<Hero, WorldMap>> = { inti: arenaDeRoca, cabral: vadoDeLasVizcachas };
+/**
+ * A versus (vs/) is fought in the clearing of Roca's battery, empty: neither Roca nor his column. A
+ * copy for each hero, as the 3D world of a map is kept and is made for whoever plays it first.
+ */
+const VERSUS_MAPS: Record<Hero, WorldMap> = { inti: { ...arenaDeRoca }, cabral: { ...arenaDeRoca } };
+/**
+ * In a versus: how far each begins from the clearing's middle, the host to the west and the other to
+ * the east; how many times a second each sends how they stand; how much of what a blow is worth
+ * against an enemy it takes off the other player.
+ */
+const VERSUS = { apart: 260, poses: 20, damage: 1 };
 // Where a map's enemies wait, in plots from where the hero arrives: out of the camp.
 const HUNT: [number, number] = [11, 0];
 const TILE_W = 32, TILE_H = 16; // ground diamond, in sprite pixels
@@ -307,7 +321,7 @@ const HINT_FADE = { in: 0.35, out: 0.6 };
 /** Anything that can be fought. */
 /** Any of the king's men: the fusilier, or one of the other kinds. */
 type Soldier = Realista | Trooper;
-type Foe = Enemy | Chonchon | Soldier;
+type Foe = Enemy | Chonchon | Soldier | Rival;
 
 export class GameScene extends Phaser.Scene {
   private keys!: Keys;
@@ -493,14 +507,24 @@ export class GameScene extends Phaser.Scene {
    * Nobody is talked to and every soldier is a fusilier.
    */
   private three?: World3D;
+  /**
+   * The versus under way, if this is one (vs/): the line to the other player, their puppet and the
+   * body this side's blows land on, seconds until our pose is next sent, and the falls of each.
+   */
+  private vs: { link: Link; puppet: Puppet; rival: Rival; sendIn: number; won: number; lost: number; score: HTMLElement } | null = null;
+  /** Asked for by the lobby: this game is a versus. */
+  private versusAsked = false;
+  /** The way Inti casts this step, in 3D, for the other player to see her turned to it. */
+  private castWayNow: Vec | null = null;
 
   constructor() {
     super('game');
   }
 
   /** Who is played is chosen before the game starts. */
-  init(data: { hero?: Hero }): void {
+  init(data: { hero?: Hero; versus?: boolean }): void {
     this.hero = data.hero ?? 'cabral';
+    this.versusAsked = !!data.versus && !!versus.link;
   }
 
   preload(): void {
@@ -536,7 +560,7 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     // Whoever has a tune of their own plays to it; anyone else, to silence.
     playMusic(this.hero === 'cabral' ? 'cabral' : null);
-    this.map = MAPS[this.hero];
+    this.map = this.versusAsked ? VERSUS_MAPS[this.hero] : MAPS[this.hero];
     this.size = this.map ? extent(this.map) : FIELD;
     this.start = this.map ? middle(this.map.start) : { x: FIELD.width / 2, y: FIELD.height / 2 };
     // Open country has no forest: what cannot be crossed is shaded, and what is built stands as blocks.
@@ -609,8 +633,8 @@ export class GameScene extends Phaser.Scene {
     this.shells = [];
     this.plague.cure();
     // Hers is laid about her once she is where the game begins (muster), wherever that is.
-    this.mustered = his || !map;
-    this.realistas = !his ? [] : held.length && map
+    this.mustered = his || !map || this.versusAsked;
+    this.realistas = !his || this.versusAsked ? [] : held.length && map
       ? held.map(post => {
         const soldier = this.enlist(post.kind, post.x, post.y, bounds).hold(this.walkable);
         this.posts.set(soldier, post);
@@ -729,7 +753,7 @@ export class GameScene extends Phaser.Scene {
     // While developing, Tab swaps who is played, where they stand.
     if (import.meta.env.DEV) this.input.keyboard?.on('keydown-TAB', (event: KeyboardEvent) => {
       event.preventDefault();
-      if (!this.vitals.standing || this.machi.isDashing) return;
+      if (!this.vitals.standing || this.machi.isDashing || this.vs) return;
       this.hero = this.hero === 'inti' ? 'cabral' : 'inti';
       this.abilities.reset();
       this.machi = this.enter(this.hero, this.machi);
@@ -960,7 +984,7 @@ export class GameScene extends Phaser.Scene {
       this.story = his && this.map === vadoDeLasVizcachas ? new Story(VADO, RULES) : new Story([]);
       // A game left earlier is taken up where it was, before anyone is listening to the story,
       // so nothing is paid or told a second time.
-      const saved = load(this.hero);
+      const saved = this.versusAsked ? undefined : load(this.hero);
       if (saved) this.resume(saved);
       this.board = mountBoard(this.story, FACTS);
       // A mission done is worth experience.
@@ -1050,12 +1074,122 @@ export class GameScene extends Phaser.Scene {
       this.look.pixel = ZOOM;
     }
 
+    if (this.versusAsked) this.beginVersus();
     this.draw();
+  }
+
+  /**
+   * A versus begins: each where they start, the other player's puppet and body set up, and what comes
+   * from them heeded: how they stand, a blow of theirs landing, what they let fly, their falls.
+   */
+  private beginVersus(): void {
+    const link = versus.link!, map = this.map!;
+    const middleOf = map.round ?? this.start;
+    const side = link.host ? -1 : 1;
+    this.start = { x: middleOf.x + side * VERSUS.apart, y: middleOf.y };
+    this.machi.x = this.start.x;
+    this.machi.y = this.start.y;
+    this.stood = { ...this.start };
+    const puppet = new Puppet();
+    const rival = new Rival(this, puppet, (amount, dx, dy) => link.hit({ amount: amount * VERSUS.damage, dx, dy }));
+    this.physics.add.overlap(this.bolts.bodies, rival.zone, this.struck);
+    const score = Object.assign(document.createElement('div'), { id: 'versus-score' });
+    score.style.cssText = "position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:12;pointer-events:none;padding:4px 14px 5px;background:rgba(20,17,15,.8);box-shadow:0 0 0 2px #3a3027;color:#f0e3c4;font:21px/1 'Jacquard 12',Georgia,serif;letter-spacing:.04em;white-space:nowrap";
+    document.body.append(score);
+    this.vs = { link, puppet, rival, sendIn: 0, won: 0, lost: 0, score };
+    this.showScore();
+    this.three?.versus(link.rivalHero!);
+    // Their ball stops on whoever plays here, as a royalist's does: on the torso, as it is seen.
+    if (this.three) this.three.rivalStrikes = (from, to) => {
+      if (!this.vitals.standing) return null;
+      const t = (p: Vec) => ({ x: p.x, y: p.y / ISO_Y });
+      const a = t(from), b = t(to), d = t(this.machi), ab = { x: b.x - a.x, y: b.y - a.y }, len = ab.x * ab.x + ab.y * ab.y || 1;
+      const k = Math.max(0, Math.min(1, ((d.x - a.x) * ab.x + (d.y - a.y) * ab.y) / len));
+      const near = { x: a.x + ab.x * k, y: a.y + ab.y * k };
+      return Math.hypot(d.x - near.x, d.y - near.y) <= 12 + MUSKET.girth ? { x: near.x, y: near.y * ISO_Y } : null;
+    };
+    link.onPose = pose => puppet.take(pose);
+    link.onHit = hit => { if (this.vitals.standing) this.hurt(hit.amount); };
+    link.onSeen = seen => this.seenFromRival(seen);
+    link.onGone = () => this.rivalGone();
+    this.board?.say(`Versus: vos con ${link.hero === 'inti' ? 'Inti' : 'Cabral'}, contra ${link.rivalHero === 'inti' ? 'Inti' : 'Cabral'}.`);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      score.remove();
+      link.leave();
+      if (versus.link === link) versus.link = null;
+      this.vs = null;
+    });
+  }
+
+  /** Something the other player did, seen here as they did it. */
+  private seenFromRival(seen: Seen): void {
+    const n = (key: string) => Number(seen[key]) || 0;
+    switch (seen.kind) {
+      case 'fire': this.three?.rivalFire(); break;
+      case 'lob': this.three?.rivalLob({ x: n('fx'), y: n('fy') }, { x: n('tx'), y: n('ty') }, n('throwing')); break;
+      case 'strike': this.three?.rivalStrike({ x: n('cx'), y: n('cy') }, { x: n('ax'), y: n('ay') }); break;
+      case 'bolt': this.three?.rivalBolt(n('x'), n('y'), n('r')); break;
+      case 'fell':
+        if (!this.vs) break;
+        this.vs.won++;
+        this.showScore();
+        this.board?.say('¡Lo tumbaste!');
+        break;
+    }
+  }
+
+  /** What this side has done, sent for the other player to see. */
+  private tell(seen: Seen): void {
+    this.vs?.link.seen(seen);
+  }
+
+  private showScore(): void {
+    if (!this.vs) return;
+    const name = (hero: Hero | null) => hero === 'inti' ? 'Inti' : 'Cabral';
+    this.vs.score.textContent = `Vos (${name(this.vs.link.hero)}) ${this.vs.won} · ${this.vs.lost} ${name(this.vs.link.rivalHero)}`;
+  }
+
+  /** The other player left, or the line between the two dropped: it is said, and one can go back. */
+  private rivalGone(): void {
+    if (!this.vs || document.getElementById('versus-gone')) return;
+    const box = Object.assign(document.createElement('div'), { id: 'versus-gone' });
+    box.style.cssText = "position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:rgba(10,8,7,.7);color:#f0e3c4;font:24px/1.3 'Jacquard 12',Georgia,serif;text-align:center";
+    const inner = document.createElement('div');
+    inner.style.cssText = 'background:#14110f;padding:22px 28px;box-shadow:0 0 0 2px #3a3027,0 0 0 4px #0a0807';
+    inner.append(Object.assign(document.createElement('p'), { textContent: `Se cortó la conexión con el otro jugador. Quedó ${this.vs.won} a ${this.vs.lost}.` }));
+    const back = Object.assign(document.createElement('button'), { textContent: 'Volver al menú' });
+    back.style.cssText = "all:unset;cursor:pointer;display:inline-block;margin-top:10px;padding:8px 22px;background:#2a2018;box-shadow:0 0 0 2px #e2c478,0 0 0 4px #0a0807";
+    back.addEventListener('click', () => location.assign(location.pathname));
+    inner.append(back);
+    box.append(inner);
+    document.body.append(box);
+  }
+
+  /** In a versus, how this side stands is sent, so many times a second. */
+  private sendPose(dt: number): void {
+    const vs = this.vs;
+    if (!vs || (vs.sendIn -= dt) > 0) return;
+    vs.sendIn = 1 / VERSUS.poses;
+    const brain = this.nahuel.brain;
+    vs.link.pose(poseOf(this.machi, {
+      fallen: !this.vitals.standing, hurt: this.flash,
+      rage: this.wrath.active ? Math.min(1, this.wrath.left / 0.8) : 0,
+      sick: this.plague.how === BILE ? 0 : Math.min(1, this.plague.left),
+      scorched: this.plague.how === BILE ? Math.min(1, this.plague.left) : 0,
+      aimed: this.machi.isShouldering ? this.shotAt : null, dashTime: this.machi.kit.dash?.time ?? 0.5,
+      life: Math.max(0, this.vitals.life / this.vitals.max),
+      castWay: this.castWayNow, locked: !!this.locked,
+      flying: this.hero === 'inti' ? this.bolts.flying : [],
+      waiting: this.abilities.pending.map(p => ({ x: p.x, y: p.y, share: Math.min(1, p.t / STRIKE.delay) })),
+      healing: this.abilities.healShare, calling: this.machi.channelling === 'call' ? this.machi.channelShare : null,
+      nahuel: brain.present ? { x: brain.x, y: brain.y, mode: brain.mode, t: brain.t, faceX: brain.faceX, back: brain.back, present: true } : null,
+    }));
   }
 
   update(_time: number, delta: number): void {
     // A long frame (tab in the background) must not teleport her.
     const dt = Math.min(0.05, delta / 1000);
+    if (this.vs) { this.vs.puppet.step(dt); this.vs.rival.follow(); }
     if (this.vitals.update(dt)) this.rise();
     const standing = this.vitals.standing;
     // Down, she takes no orders.
@@ -1109,7 +1243,8 @@ export class GameScene extends Phaser.Scene {
     if (this.overlaid) {
       // Locked on, at the middle of their body as seen; she turns to where they stand.
       this.castAt = this.locked ? { x: this.locked.body.x, y: this.locked.body.y } : input.target ?? null;
-      this.three!.castWay(input.target ? { x: input.target.x - this.machi.x, y: (input.target.y - this.machi.y) / ISO_Y } : input.aim ?? null, !!this.locked);
+      this.castWayNow = input.target ? { x: input.target.x - this.machi.x, y: (input.target.y - this.machi.y) / ISO_Y } : input.aim ?? null;
+      this.three!.castWay(this.castWayNow, !!this.locked);
     }
     if (in3d && this.hero === 'cabral' && this.machi.kit.dash) this.three!.cabral?.carry(this.machi, from, this.machi.kit.dash, dt);
     if (this.machi.dashes !== dodges) this.stamina.dodge();
@@ -1127,6 +1262,12 @@ export class GameScene extends Phaser.Scene {
       if (ember) this.embers.spawn(ember);
       if (!enemy.alive) continue;
       const clear = pushOut({ x: this.machi.x, y: this.machi.y, ...FEET }, enemy.footprint);
+      this.machi.x = clear.x;
+      this.machi.y = clear.y;
+    }
+    // Nor through the other player, in a versus.
+    if (this.vs?.rival.alive) {
+      const clear = pushOut({ x: this.machi.x, y: this.machi.y, ...FEET }, { ...this.vs.rival.ground, ...FEET });
       this.machi.x = clear.x;
       this.machi.y = clear.y;
     }
@@ -1450,6 +1591,7 @@ export class GameScene extends Phaser.Scene {
       if (alpha !== hint.alpha) hint.setAlpha(alpha).setVisible(alpha > 0);
     }
     this.drawCuts(dt);
+    this.sendPose(dt);
     this.flash = Math.max(0, this.flash - dt / FLASH);
     this.draw();
     this.trail(dt);
@@ -1464,6 +1606,7 @@ export class GameScene extends Phaser.Scene {
         // Or burnt by the black bile, as by fire.
         scorched: this.plague.how === BILE ? Math.min(1, this.plague.left) : 0,
       }, this.realistas.filter((r): r is Realista | Trooper => r instanceof Realista || (IN_3D.has(r.kind) && r.kind !== 'wekufe' && r.kind !== 'poseido')));
+      if (this.vs) this.three.rivalUpdate(dt, this.vs.puppet, this.vs.puppet.besides);
       // Framed a little above his feet, so his body is in the middle.
       // Her orbs are drawn in 3D, lit: in flight, and those her kills leave on the ground.
       if (this.overlaid) this.three.lights(dt, this.bolts.flying, this.orbs.map(o => {
@@ -1625,6 +1768,7 @@ export class GameScene extends Phaser.Scene {
       dx: this.shotAt.x - x, dy: (this.shotAt.y - (level ? y : y - MUSKET.height)) / ISO_Y,
     });
     if (level) this.three?.fire();
+    this.tell({ kind: 'fire' });
     this.shake(60, 0.004);
   }
 
@@ -1640,6 +1784,7 @@ export class GameScene extends Phaser.Scene {
   private lob(from: Vec, to: Vec): void {
     // In 3D it is thrown there, out of his hand; the blast and the fire are still reckoned here.
     if (this.shownIn3d) this.three!.lob(from, to, this.machi.arming?.shot ?? SLING);
+    this.tell({ kind: 'lob', fx: from.x, fy: from.y, tx: to.x, ty: to.y, throwing: this.machi.arming?.shot ?? SLING });
     const share = ground(from, to) / GRENADE.range;
     this.grenades.push({
       from, to, t: 0,
@@ -1852,10 +1997,12 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (events.cast && this.shownIn3d) this.three?.strike(this.machi, events.cast);
+    if (events.cast) this.tell({ kind: 'strike', cx: this.machi.x, cy: this.machi.y, ax: events.cast.x, ay: events.cast.y });
     for (const patch of events.struck) {
       this.lightning.strike(patch.x, patch.y, STRIKE.radius);
       // In 3D it falls there, lighting what stands about; the 3D camera is shaken instead.
       if (this.overlaid) { this.three?.bolt(patch.x, patch.y, STRIKE.radius); this.shake(140, 0.004); }
+      this.tell({ kind: 'bolt', x: patch.x, y: patch.y, r: STRIKE.radius });
       // Whatever stands on the patch, or flies over it, takes the bolt.
       for (const enemy of this.foes) {
         const spot = enemy.ground;
@@ -2231,6 +2378,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private fall(): void {
+    if (this.vs) {
+      this.vs.lost++;
+      this.showScore();
+      this.tell({ kind: 'fell' });
+      this.board?.say('Te tumbaron.');
+    }
     this.machi.fall();
     this.plague.cure();
     this.abilities.reset();
@@ -2838,6 +2991,11 @@ export class GameScene extends Phaser.Scene {
    */
   private wound(foe: Foe, dx: number, dy: number, amount: number, stat?: Stat): void {
     if (!foe.alive) return;
+    // The other player: it is sent to them, and is worth neither experience nor money.
+    if (foe instanceof Rival) {
+      foe.hit(dx, dy, amount * (stat ? this.growth.gives(stat) * this.pack.gives(stat) : 1));
+      return;
+    }
     // A soldier struck comes after the hero wherever they are, and so does any of his own nearby.
     if (foe instanceof Realista || foe instanceof Trooper) {
       for (const other of this.realistas) if (other === foe || ground(other.ground, foe.ground) <= ALARM) other.provoke(PROVOKED);
@@ -2879,7 +3037,7 @@ export class GameScene extends Phaser.Scene {
 
   /** Keeps the game as it stands, for the next time it is opened. */
   keep(): void {
-    if (!this.story || !this.stood) return;
+    if (!this.story || !this.stood || this.vs || this.versusAsked) return;
     keep(this.hero, {
       at: { x: Math.round(this.stood.x), y: Math.round(this.stood.y) },
       inside: this.indoors?.within,
@@ -2996,7 +3154,8 @@ export class GameScene extends Phaser.Scene {
 
   /** Everything there is to fight. */
   private get foes(): Foe[] {
-    return [...this.enemies, ...this.chonchones, ...this.realistas];
+    // In a versus, the other player too.
+    return [...this.enemies, ...this.chonchones, ...this.realistas, ...(this.vs ? [this.vs.rival] : [])];
   }
 
   get life(): number {

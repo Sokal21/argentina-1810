@@ -3,6 +3,7 @@ import type { Footprint } from '../world/footprint';
 import { SHOT } from '../bolts';
 import { ISO_Y } from '../machi/data';
 import type { MachiController, Vec } from '../machi/controller';
+import type { Besides, Posed } from '../vs/puppet';
 import { middle, type WorldMap } from '../world/zones';
 import { AimMarks, LockRing } from './aim';
 import { CabralFigure, THROWN, type Doing } from './cabral';
@@ -198,6 +199,85 @@ export class World3D {
     this.mendings.begin(0xffffff);
     this.view.warm();
     this.mendings.stop();
+  }
+
+  /**
+   * The other player, in a versus (vs/): their figure, posed from what their game sends; their own
+   * shots, stopped on whoever plays here (`rivalStrikes`); and, if it is Inti, her lights.
+   */
+  private rival: {
+    figure: CabralFigure | IntiFigure; shots: Shots; grenades: Grenades;
+    orbs: Orbs | null; lightning: Lightning3D | null; healing: Healing3D | null; calling: Calling3D | null; nahuel: NahuelFigure | null; from: Vec;
+  } | null = null;
+  /** What the other player's ball is tested against: whoever plays here. */
+  rivalStrikes: Strikes = () => null;
+
+  /** The other player comes onto this map, playing `hero`. Once: a second call changes nothing. */
+  versus(hero: 'cabral' | 'inti'): void {
+    if (this.rival) return;
+    const inti = hero === 'inti';
+    const figure = inti ? new IntiFigure() : new CabralFigure();
+    this.rival = {
+      figure,
+      shots: new Shots(this.view.camera, (from, to) => this.rivalStrikes(from, to), () => {}),
+      grenades: new Grenades(this.view.camera),
+      orbs: inti ? new Orbs() : null, lightning: inti ? new Lightning3D() : null,
+      healing: inti ? new Healing3D() : null, calling: inti ? new Calling3D() : null, nahuel: inti ? new NahuelFigure() : null,
+      from: { x: 0, y: 0 },
+    };
+    const { shots, grenades, orbs, lightning, healing, calling, nahuel } = this.rival;
+    this.view.scene.add(figure.group, shots.group, grenades.group, ...(figure instanceof IntiFigure ? [figure.around] : []),
+      ...[orbs, lightning, healing, calling, nahuel].flatMap(one => one ? [one.group] : []));
+  }
+
+  /** The other player as they stand this step: from their puppet, and what else their game sent. */
+  rivalUpdate(dt: number, c: Posed, b: Besides): void {
+    const rival = this.rival;
+    if (!rival) return;
+    const { figure } = rival;
+    if (figure instanceof IntiFigure) { figure.aim = b.castWay; figure.locked = b.locked; }
+    figure.update(dt, c as MachiController, {
+      from: rival.from, aimed: b.aimed, fallen: b.fallen, dashTime: b.dashTime, trail: true,
+      hurt: b.hurt, rage: b.rage, sick: b.sick, scorched: b.scorched,
+    });
+    rival.from = { x: c.x, y: c.y };
+    rival.orbs?.update(dt, b.flying, [], figure.position, figure instanceof IntiFigure ? figure.forming() : null);
+    rival.lightning?.update(dt, b.waiting);
+    rival.healing?.update(dt, figure.position, b.healing);
+    rival.calling?.update(dt, figure.position, b.calling);
+    rival.nahuel?.update(dt, (b.nahuel ?? { x: c.x, y: c.y, mode: 'gone', t: 0, faceX: 1, back: false, present: false }) as unknown as NahuelBrain);
+    rival.shots.update(dt);
+    rival.grenades.update(dt);
+    // Their life over their head, once they have lost any.
+    this.life('rival', b.fallen ? null : c, 110, b.life);
+  }
+
+  /** The other player's musket goes off, from its muzzle as it is drawn here. */
+  rivalFire(): void {
+    const figure = this.rival?.figure;
+    const barrel = figure instanceof CabralFigure ? figure.barrel() : null;
+    if (barrel) this.rival!.shots.fire(barrel.tip, barrel.way);
+  }
+
+  /** The other player throws a grenade. */
+  rivalLob(from: Vec, to: Vec, throwing: number): void {
+    const figure = this.rival?.figure;
+    this.rival?.grenades.lob(from, to, throwing * THROWN, () => figure instanceof CabralFigure ? figure.grenade() : null);
+  }
+
+  /** The other player calls her lightning down on a patch, and it falls. */
+  rivalStrike(c: Vec, at: Vec): void {
+    const figure = this.rival?.figure;
+    if (figure instanceof IntiFigure) figure.strike(c, at);
+  }
+
+  rivalBolt(x: number, y: number, radius: number): void {
+    this.rival?.lightning?.strike(x, y, radius);
+  }
+
+  /** Where the other player is drawn, if they are. */
+  get rivalAt(): THREE.Vector3 | null {
+    return this.rival?.figure.position ?? null;
   }
 
   /** Inti's HUD in 3D (hud3d.ts), on a canvas of its own, once the game first asks for it. */
